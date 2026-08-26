@@ -6,11 +6,13 @@ import DashboardPage from '@/pages/Dashboard'
 import GlobalSettingsPage from '@/pages/GlobalSettings'
 import LoginPage from '@/pages/Login'
 import SectionPage from '@/pages/SectionPage'
+import SetupPage from '@/pages/Setup'
 
 export default function RootRouter() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/setup" element={<SetupPage />} />
       <Route element={<Layout />}>
         <Route index element={<DashboardPage />} />
         <Route path="dashboard" element={<DashboardPage />} />

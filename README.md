@@ -12,7 +12,39 @@ pnpm install
 pnpm dev
 ```
 
-## Features & UI Layout
+## Features & Reusable Component System
+
+### 1. Reusable UI Components (`src/components/common`)
+
+- **`CommonInput`** (`src/components/common/CommonInput.tsx`):
+  - Standardized form input field component with header label, placeholder, red asterisk for required fields (`required`), icon support, character max length, and inline red validation error text (`error`).
+  - Supports both standard `<input>` (`text`, `email`, `password`, `number`) and `<textarea>` types.
+
+- **`CommonButton`** (`src/components/common/CommonButton.tsx`):
+  - Standardized button component with distinct UI variant styling:
+    - `variant="success"`: Emerald/Green action button (e.g. Save, Submit).
+    - `variant="cancel"`: Subtle neutral border outline button (e.g. Cancel).
+    - `variant="primary"`: Indigo primary action button.
+    - `variant="danger"`: Red destructive action button.
+    - `variant="outline"`: Border outline accent button.
+  - Supports loading state spinner (`isLoading`), custom icons (`icon`), size configurations (`sm`, `md`, `lg`), and custom `className`.
+
+- **`CommonModal`** (`src/components/common/CommonModal.tsx`):
+  - Modal overlay dialog matching the Rely Active glassmorphism design system (`bg-white/95 backdrop-blur-xl border border-white/60 shadow-2xl rounded-3xl`).
+  - **Hidden Scroll Feature**: Built-in hidden scrollbar (`[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden`) allowing smooth scrolling of lengthy modal content without visible scrollbar clutter.
+  - Reusable props for title, subtitle, icon, max width (`sm`, `md`, `lg`, `xl`, `2xl`, `4xl`), and custom footer button actions.
+
+### 2. Frontend Text Library Constants (`src/constants/textLibrary.ts`)
+
+- Centralized `TEXT_LIBRARY` object exporting all UI copy, headers, button labels, form headers, and validation error messages across screens:
+  - `TEXT_LIBRARY.APP`: Application branding, welcome titles, and subtitles.
+  - `TEXT_LIBRARY.BUTTONS`: Button names (`SUBMIT`, `SAVE`, `CANCEL`, `CREATE_COMPANY`, `EDIT_COMPANY`, `ADD_FIELD`).
+  - `TEXT_LIBRARY.COMPANY`: Company section headers and field labels.
+  - `TEXT_LIBRARY.VALIDATIONS`: Validation failure messages for required inputs, email format, and 10-digit mobile numbers starting with 6-9.
+
+---
+
+## Screen Architecture
 
 ### 1. Navigation & Side Nav Structure (`rely-active-1.0/rely_frontend` aligned)
 
@@ -44,16 +76,20 @@ Located at `/login`. Matches the provided screenshot reference:
 - Muted slate-blue button (`Sign In`) with log-in icon (`#6f8298`).
 - _Authentication Policy_: No authentication restriction on routes. Clicking "Sign In" or navigating directly opens the dashboard.
 
-### 3. Dashboard UI (`rely-assist` aligned)
+### 3. Setup Screen (`/setup`)
 
-Located at `/dashboard`. Features responsive tabs (`Dashboard`, `Occupancy`, `Billing`, `Inventory`) and operational status metrics cards.
+Standalone full-page setup screen rendered when company data is null. Features initial setup flow using `CommonInput`, `CommonButton`, and `TEXT_LIBRARY`.
 
-### 4. Company Creation & Management (`rely-assist` aligned)
+### 4. Company Creation & Management (`/company`)
 
-Located at `/company`. Provides an organizational view and `EditCompanyModal` supporting company fields, GST, bank details, accountant signature, file uploads, and custom fields connected to backend `/api/v1/company`.
+Located at `/company`. Provides an organizational view and `EditCompanyModal` supporting company fields, GST, bank details, accountant signature, file uploads, and custom fields connected to backend `/api/v1/company`. Uses `CommonModal`, `CommonInput`, and `CommonButton`.
 
-### 5. Global Settings (`rely-assist` aligned)
+### 5. Global Settings (`/global-settings`)
 
-Located at `/global-settings`. Features a grid layout grouped into Medical Settings, Operation Settings, and System Settings.
+Located at `/global-settings`. Features a grid layout grouped into Company Profile and Properties & Locations.
+
+---
+
+## Quality & Verification Commands
 
 Run `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` before pushing.

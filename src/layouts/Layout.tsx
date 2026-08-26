@@ -1,19 +1,32 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
+import SetupStatusGuard from '@/components/common/SetupStatusGuard'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen)
+  }
+
+  const closeSidebar = () => {
+    setSidebarOpen(false)
+  }
+
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#c4c6c9] font-sans text-slate-800">
-      <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-      <div className="flex flex-1 overflow-hidden p-3 gap-3">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <main className="flex-1 overflow-y-auto rounded-3xl border border-white/60 bg-[#e4e7ea]/90 p-4 md:p-6 backdrop-blur-xl shadow-xl">
-          <div className="mx-auto max-w-7xl">
-            <Outlet />
+    <div className="h-screen flex flex-col overflow-hidden bg-[#DEDDE1] font-sans text-slate-800">
+      <Header onMenuClick={toggleSidebar} showMenuButton={true} />
+
+      <div className="flex overflow-hidden flex-1">
+        <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
+
+        <main className="h-[calc(100vh-4rem)] flex-1 bg-white/30 rounded-lg shadow-[2px_3px_6px_0px_rgba(0,0,0,0.06),inset_1px_1px_2px_0px_#FFFFFF] backdrop-blur-[10px] overflow-x-hidden overflow-y-auto m-1 md:m-2 lg:m-3">
+          <div className="w-full h-full flex flex-col p-2 md:p-3 lg:p-6">
+            <SetupStatusGuard>
+              <Outlet />
+            </SetupStatusGuard>
           </div>
         </main>
       </div>

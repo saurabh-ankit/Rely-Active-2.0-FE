@@ -10,7 +10,7 @@ describe('Rely Active web shell', () => {
         <App />
       </MemoryRouter>,
     )
-    expect(screen.getAllByText(/RELY/i)[0]).toBeInTheDocument()
+    expect(screen.getAllByText('Dashboard')[0]).toBeInTheDocument()
   })
 
   it('renders login page correctly', () => {

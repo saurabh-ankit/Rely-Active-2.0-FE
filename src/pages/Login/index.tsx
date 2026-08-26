@@ -6,12 +6,33 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [userId, setUserId] = useState('')
   const [password, setPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Per requirement: No authentication block. Immediately navigate to dashboard.
-    navigate('/dashboard')
+    setIsLoading(true)
+    try {
+      const res = await fetch('http://localhost:3002/api/v1/company')
+      const json = await res.json()
+      const companies = Array.isArray(json.data)
+        ? json.data
+        : json.data && typeof json.data === 'object' && json.data.id
+          ? [json.data]
+          : []
+
+      if (companies.length === 0) {
+        navigate('/setup')
+      } else {
+        navigate('/dashboard')
+      }
+    } catch (err) {
+      console.error('Login setup check error:', err)
+      // If company check fails or company is empty, redirect to setup page
+      navigate('/setup')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -75,10 +96,11 @@ export default function LoginPage() {
           <div className="pt-2">
             <button
               type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#6f8298] py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-[#5e7186] active:scale-[0.99]"
+              disabled={isLoading}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#6f8298] py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-[#5e7186] active:scale-[0.99] disabled:opacity-50"
             >
               <LogIn className="h-4 w-4" />
-              Sign In
+              {isLoading ? 'Signing In...' : 'Sign In'}
             </button>
           </div>
         </form>
