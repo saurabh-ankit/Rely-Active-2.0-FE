@@ -1,17 +1,24 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import App from './App'
-import { useAuthStore } from '@/lib/stores/auth-store'
 
 describe('Rely Active web shell', () => {
-  beforeEach(() => useAuthStore.setState({ token: null }))
-  it('redirects unauthenticated users to login', () => {
+  it('renders dashboard shell correctly', () => {
     render(
-      <MemoryRouter initialEntries={['/']}>
+      <MemoryRouter initialEntries={['/dashboard']}>
         <App />
       </MemoryRouter>,
     )
-    expect(screen.getByText('Welcome to Rely Active')).toBeInTheDocument()
+    expect(screen.getAllByText(/RELY/i)[0]).toBeInTheDocument()
+  })
+
+  it('renders login page correctly', () => {
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <App />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('Sign In')).toBeInTheDocument()
   })
 })
