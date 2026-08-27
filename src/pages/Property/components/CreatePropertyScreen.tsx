@@ -1,15 +1,5 @@
 import React, { useState } from 'react'
-import {
-  ArrowLeft,
-  Building2,
-  Layers,
-  MapPin,
-  Plus,
-  Sparkles,
-  Trash2,
-  X,
-  Check,
-} from 'lucide-react'
+import { ArrowLeft, Building2, Layers, MapPin, Plus, Sparkles, Trash2, X, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { propertyApi } from '@/api/property'
 import { CommonProgressBar, type ProgressBarStep } from '@/components/common/CommonProgressBar'
@@ -31,7 +21,15 @@ const PROPERTY_TYPES: PropertyType[] = ['apartment', 'villa', 'duplex', 'triplex
 const AREA_UNITS: AreaUnit[] = ['sqft', 'sqmt', 'acres']
 const AVAILABLE_BHK_TYPES: UnitType[] = ['1BHK', '2BHK', '3BHK', '4BHK', 'studio']
 const DIRECTION_OPTIONS = ['North', 'North-East', 'East', 'South-East', 'South', 'South-West', 'West', 'North-West']
-const VIEW_FACING_OPTIONS = ['Garden View', 'Road View', 'Pool View', 'City View', 'Park View', 'Clubhouse View', 'Open View']
+const VIEW_FACING_OPTIONS = [
+  'Garden View',
+  'Road View',
+  'Pool View',
+  'City View',
+  'Park View',
+  'Clubhouse View',
+  'Open View',
+]
 const FLOOR_TYPE_OPTIONS = ['GROUND_FLOOR', 'FLOOR', 'STILT', 'BASEMENT', 'PENTHOUSE']
 const SUGGESTED_AMENITIES = ['Swimming Pool', 'Gym', 'Clubhouse', '24/7 Security']
 
@@ -82,10 +80,7 @@ function SelectField({
   )
 }
 
-function TextareaField({
-  label,
-  ...props
-}: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) {
+function TextareaField({ label, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) {
   return (
     <div className="space-y-1">
       <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">{label}</label>
@@ -403,13 +398,14 @@ export default function CreatePropertyScreen({
             />
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider block">
+              <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider block">
                 Property Type <span className="text-red-500">*</span>
-              </label>
+              </div>
               <div className="flex flex-wrap gap-2.5 pt-1">
                 {PROPERTY_TYPES.map((t) => {
                   const isSelected = propertyType === t
-                  const label = t === 'apartment' ? 'Apartment' : t === 'villa' ? 'Villa' : t === 'duplex' ? 'Duplex' : 'Triplex'
+                  const label =
+                    t === 'apartment' ? 'Apartment' : t === 'villa' ? 'Villa' : t === 'duplex' ? 'Duplex' : 'Triplex'
                   return (
                     <button
                       type="button"
@@ -437,11 +433,7 @@ export default function CreatePropertyScreen({
                 value={totalArea}
                 onChange={(e) => setTotalArea(e.target.value)}
               />
-              <SelectField
-                label="Area Unit"
-                value={areaUnit}
-                onChange={(e) => setAreaUnit(e.target.value as AreaUnit)}
-              >
+              <SelectField label="Area Unit" value={areaUnit} onChange={(e) => setAreaUnit(e.target.value as AreaUnit)}>
                 {AREA_UNITS.map((u) => (
                   <option key={u} value={u}>
                     {u}
@@ -451,9 +443,9 @@ export default function CreatePropertyScreen({
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider block">
+              <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider block">
                 Amenities Suggestions
-              </label>
+              </div>
               {selectedAmenities.length > 0 && (
                 <div className="flex flex-wrap gap-2 p-3 rounded-xl border border-blue-100 bg-blue-50/40 mb-2">
                   {selectedAmenities.map((amenity) => (
@@ -487,7 +479,11 @@ export default function CreatePropertyScreen({
                           : 'bg-white border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-blue-50/30'
                       }`}
                     >
-                      {isSelected ? <Check className="h-3.5 w-3.5 text-blue-600" /> : <Plus className="h-3.5 w-3.5 text-gray-400" />}
+                      {isSelected ? (
+                        <Check className="h-3.5 w-3.5 text-blue-600" />
+                      ) : (
+                        <Plus className="h-3.5 w-3.5 text-gray-400" />
+                      )}
                       {suggestion}
                     </button>
                   )
@@ -558,11 +554,7 @@ export default function CreatePropertyScreen({
                 value={pincode}
                 onChange={(e) => setPincode(e.target.value)}
               />
-              <InputField
-                label="Country"
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-              />
+              <InputField label="Country" value={country} onChange={(e) => setCountry(e.target.value)} />
             </div>
           </div>
         )}
@@ -574,9 +566,7 @@ export default function CreatePropertyScreen({
             <div className="md:col-span-3 rounded-2xl border border-gray-200 bg-gray-50/70 p-4 space-y-4 flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
-                    Property Structure
-                  </h3>
+                  <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider">Property Structure</h3>
                   <Button
                     type="button"
                     variant="outline"
@@ -691,16 +681,12 @@ export default function CreatePropertyScreen({
               <div className="space-y-4 pt-3 border-t border-gray-100">
                 <div>
                   <h4 className="text-xs font-bold text-gray-900">BHK templates</h4>
-                  <p className="text-[11px] text-gray-500">
-                    Click a BHK chip to add a new template variant.
-                  </p>
+                  <p className="text-[11px] text-gray-500">Click a BHK chip to add a new template variant.</p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                   {AVAILABLE_BHK_TYPES.map((bhkType) => {
-                    const variantsCount = (activeBlock.bhk_templates || []).filter(
-                      (t) => t.type === bhkType,
-                    ).length
+                    const variantsCount = (activeBlock.bhk_templates || []).filter((t) => t.type === bhkType).length
 
                     return (
                       <button
@@ -767,11 +753,7 @@ export default function CreatePropertyScreen({
                                   <Button
                                     type="button"
                                     variant="outline"
-                                    onClick={() =>
-                                      setExpandedAssignVariantIndex(
-                                        isAssignExpanded ? null : vIdx,
-                                      )
-                                    }
+                                    onClick={() => setExpandedAssignVariantIndex(isAssignExpanded ? null : vIdx)}
                                     className="h-8 rounded-lg text-xs font-semibold px-3 py-1 border-gray-300 hover:bg-blue-50 hover:text-blue-600"
                                   >
                                     Assign ({variant.positions.length})
@@ -798,9 +780,7 @@ export default function CreatePropertyScreen({
                                           value={variant.positions[0]?.position || 1}
                                           onChange={(e) => {
                                             const pos = Number(e.target.value)
-                                            const updatedPos = [
-                                              { ...variant.positions[0], position: pos },
-                                            ]
+                                            const updatedPos = [{ ...variant.positions[0], position: pos }]
                                             updateBHKTemplateVariant(vIdx, {
                                               positions: updatedPos,
                                             })
@@ -820,9 +800,7 @@ export default function CreatePropertyScreen({
                                           value={variant.positions[0]?.direction || 'North-East'}
                                           onChange={(e) => {
                                             const dir = e.target.value
-                                            const updatedPos = [
-                                              { ...variant.positions[0], direction: dir },
-                                            ]
+                                            const updatedPos = [{ ...variant.positions[0], direction: dir }]
                                             updateBHKTemplateVariant(vIdx, {
                                               positions: updatedPos,
                                             })
@@ -837,14 +815,10 @@ export default function CreatePropertyScreen({
 
                                         <SelectField
                                           label="View facing"
-                                          value={
-                                            variant.positions[0]?.view_facing || 'Garden View'
-                                          }
+                                          value={variant.positions[0]?.view_facing || 'Garden View'}
                                           onChange={(e) => {
                                             const view = e.target.value
-                                            const updatedPos = [
-                                              { ...variant.positions[0], view_facing: view },
-                                            ]
+                                            const updatedPos = [{ ...variant.positions[0], view_facing: view }]
                                             updateBHKTemplateVariant(vIdx, {
                                               positions: updatedPos,
                                             })
@@ -888,12 +862,8 @@ export default function CreatePropertyScreen({
                           {assignedBHK ? (
                             <>
                               <p className="font-bold text-blue-600">{assignedBHK.type}</p>
-                              <p className="text-gray-500 text-[10px]">
-                                {posObj?.direction || 'North-East'}
-                              </p>
-                              <p className="text-gray-400 text-[10px]">
-                                {posObj?.view_facing || 'Garden View'}
-                              </p>
+                              <p className="text-gray-500 text-[10px]">{posObj?.direction || 'North-East'}</p>
+                              <p className="text-gray-400 text-[10px]">{posObj?.view_facing || 'Garden View'}</p>
                             </>
                           ) : (
                             <p className="text-gray-400 italic">Unassigned</p>
@@ -941,11 +911,7 @@ export default function CreatePropertyScreen({
                             </td>
                             <td className="p-3">
                               <label className="relative inline-flex items-center cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  defaultChecked={!isGround}
-                                  className="sr-only peer"
-                                />
+                                <input type="checkbox" defaultChecked={!isGround} className="sr-only peer" />
                                 <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600" />
                                 <span className="ml-2 text-xs font-medium text-gray-700">
                                   {!isGround ? 'Yes' : 'No'}
@@ -958,9 +924,7 @@ export default function CreatePropertyScreen({
                     </tbody>
                   </table>
                 </div>
-                <p className="text-[10px] text-gray-400">
-                  Units are generated only for floors marked as sellable.
-                </p>
+                <p className="text-[10px] text-gray-400">Units are generated only for floors marked as sellable.</p>
               </div>
 
               <div className="space-y-4 pt-3 border-t border-gray-100">

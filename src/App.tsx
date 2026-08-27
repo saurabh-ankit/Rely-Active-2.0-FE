@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
+import { AuthProvider } from './context/AuthContext'
 import RootRouter from './RootRouter'
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
@@ -30,7 +31,9 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { failed: bool
 export default function App() {
   return (
     <AppErrorBoundary>
-      <RootRouter />
+      <AuthProvider>
+        <RootRouter />
+      </AuthProvider>
     </AppErrorBoundary>
   )
 }

@@ -2,20 +2,21 @@ import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   Box,
-  Building2,
   CalendarCheck,
   CalendarClock,
   HandHeart,
   LayoutDashboard,
-  MessageSquare,
   Package,
   ReceiptIndianRupee,
   Settings,
+  ShieldCheck,
   Stethoscope,
   User,
-  Users,
+  Utensils,
+  Wrench,
   X,
 } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
 import { cn } from '@/lib/utils'
 
 export interface SidebarItemData {
@@ -67,6 +68,7 @@ const SidebarItem: React.FC<{ item: SidebarItemData }> = ({ item }) => {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
   const location = useLocation()
+  const { isSuperAdmin } = useAuth()
 
   const sidebarItems: SidebarItemData[] = [
     {
@@ -81,23 +83,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
     },
     {
       icon: <HandHeart className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Employees',
+      label: 'Employee',
       href: '/admin/employees',
-    },
-    {
-      icon: <Stethoscope className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Medical',
-      href: '/admin/medical',
-    },
-    {
-      icon: <Building2 className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Rooms',
-      href: '/admin/medical/rooms',
-    },
-    {
-      icon: <Package className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Inventory',
-      href: '/admin/inventory/home',
     },
     {
       icon: <CalendarClock className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
@@ -105,14 +92,34 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       href: '/admin/shift-roster-management',
     },
     {
-      icon: <CalendarCheck className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Events',
-      href: '/admin/events',
+      icon: <Wrench className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
+      label: 'Tickets',
+      href: '/admin/tickets',
+    },
+    {
+      icon: <ShieldCheck className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
+      label: 'Gate & Security',
+      href: '/admin/visitor-history',
+    },
+    {
+      icon: <Package className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
+      label: 'Inventory',
+      href: '/admin/inventory/home',
     },
     {
       icon: <Box className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Assets',
+      label: 'Asset Mgmt',
       href: '/admin/asset-management',
+    },
+    {
+      icon: <Stethoscope className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
+      label: 'Medical',
+      href: '/admin/medical',
+    },
+    {
+      icon: <Utensils className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
+      label: 'Food',
+      href: '/admin/fnb-history',
     },
     {
       icon: <ReceiptIndianRupee className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
@@ -120,14 +127,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       href: '/admin/billing-management',
     },
     {
-      icon: <Users className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Visitors',
-      href: '/admin/visitor-history',
-    },
-    {
-      icon: <MessageSquare className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Feedback',
-      href: '/admin/feedback-and-training',
+      icon: <CalendarCheck className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
+      label: 'Events',
+      href: '/admin/events',
     },
     {
       icon: <Settings className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
@@ -172,17 +174,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
 
           <div className="flex-1 bg-white/20 backdrop-blur-md rounded-2xl shadow-xl border border-white/30 p-2 md:p-3 overflow-hidden">
             <div className="flex flex-col h-full overflow-y-auto no-scrollbar">
-              {sidebarItems.map((item, index) => (
-                <SidebarItem
-                  key={index}
-                  item={{
-                    ...item,
-                    isActive:
-                      location.pathname === item.href ||
-                      (item.href !== '/dashboard' && location.pathname.startsWith(item.href)),
-                  }}
-                />
-              ))}
+              {sidebarItems
+                .filter((item) => item.href !== '/global-settings' || isSuperAdmin)
+                .map((item, index) => (
+                  <SidebarItem
+                    key={index}
+                    item={{
+                      ...item,
+                      isActive:
+                        location.pathname === item.href ||
+                        (item.href !== '/dashboard' && location.pathname.startsWith(item.href)),
+                    }}
+                  />
+                ))}
             </div>
           </div>
         </div>

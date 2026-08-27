@@ -9,20 +9,36 @@ import PropertyPage from '@/pages/Property'
 import CreatePropertyPage from '@/pages/Property/CreatePropertyPage'
 import SectionPage from '@/pages/SectionPage'
 import SetupPage from '@/pages/Setup'
+import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
 export default function RootRouter() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/setup" element={<SetupPage />} />
-      <Route element={<Layout />}>
+
+      {/* Protected Operations Console Routes */}
+      <Route
+        element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<DashboardPage />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="company" element={<CompanyPage />} />
         <Route path="property" element={<PropertyPage />} />
         <Route path="property/create" element={<CreatePropertyPage />} />
         <Route path="property/edit/:id" element={<CreatePropertyPage />} />
-        <Route path="global-settings" element={<GlobalSettingsPage />} />
+        <Route
+          path="global-settings"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="components" element={<ComponentShowcase />} />
 
         {/* rely-active-1.0 Side Nav Routes */}
@@ -36,6 +52,10 @@ export default function RootRouter() {
         <Route path="admin/fnb-history" element={<SectionPage title="Food & Beverages" />} />
         <Route path="admin/inventory/*" element={<SectionPage title="Inventory Management" />} />
         <Route path="admin/asset-management" element={<SectionPage title="Asset Management" />} />
+        <Route
+          path="admin/tickets"
+          element={<SectionPage title="Ticket Management (R&M, Concierge, Housekeeping, Food)" />}
+        />
         <Route path="admin/feedback-and-training" element={<SectionPage title="Feedback And Training" />} />
 
         {/* Setting fallbacks */}

@@ -26,7 +26,7 @@ export const CommonProgressBar: React.FC<CommonProgressBarProps> = ({
     <div className={`w-full py-4 ${className}`}>
       <div className="relative flex items-center justify-between w-full">
         {/* Connecting Progress Line */}
-        <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 h-1 bg-gray-100 rounded-full z-0">
+        <div className="absolute top-[22px] left-6 right-6 -translate-y-1/2 h-1 bg-gray-100 rounded-full z-0">
           <div
             className="h-full bg-blue-600 rounded-full transition-all duration-300 ease-in-out"
             style={{
@@ -47,11 +47,13 @@ export const CommonProgressBar: React.FC<CommonProgressBarProps> = ({
           const Icon = step.icon
 
           return (
-            <div
+            <button
               key={step.id || index}
+              type="button"
+              disabled={!isDone || !onStepClick}
               onClick={() => isDone && onStepClick?.(step.id)}
-              className={`relative z-10 flex flex-col items-center group ${
-                isDone && onStepClick ? 'cursor-pointer' : ''
+              className={`relative z-10 flex flex-col items-center group bg-transparent border-0 p-0 text-left ${
+                isDone && onStepClick ? 'cursor-pointer' : 'cursor-default'
               }`}
             >
               {/* Step Circle & Icon */}
@@ -75,9 +77,7 @@ export const CommonProgressBar: React.FC<CommonProgressBarProps> = ({
                 {/* Point Count Badge */}
                 <span
                   className={`absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[20px] h-[20px] px-1 text-[10px] font-bold rounded-full border border-white ${
-                    isDone || isActive
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-500'
+                    isDone || isActive ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'
                   }`}
                 >
                   {stepNumber}
@@ -103,7 +103,7 @@ export const CommonProgressBar: React.FC<CommonProgressBarProps> = ({
                   </span>
                 )}
               </div>
-            </div>
+            </button>
           )
         })}
       </div>

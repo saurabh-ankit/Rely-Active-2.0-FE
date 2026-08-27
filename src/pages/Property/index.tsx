@@ -1,16 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Building2,
-  CalendarDays,
-  Edit,
-  Eye,
-  Layers,
-  MapPin,
-  Plus,
-  Search,
-  Trash2,
-} from 'lucide-react'
+import { Building2, CalendarDays, Edit, Eye, Layers, MapPin, Plus, Search, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Property } from './types'
 import { PROPERTY_TYPE_LABELS } from './types'
@@ -28,7 +18,6 @@ export default function PropertyPage() {
   // ── Fetch properties ───────────────────────────────────────────────────────
   useEffect(() => {
     let mounted = true
-    setIsLoading(true)
 
     propertyApi
       .getAll()
@@ -71,10 +60,7 @@ export default function PropertyPage() {
   })
 
   const totalUnits = (p: Property) =>
-    p.blocks?.reduce(
-      (s, b) => s + (b.floors?.reduce((fs, f) => fs + (f.units?.length ?? 0), 0) ?? 0),
-      0,
-    ) ?? 0
+    p.blocks?.reduce((s, b) => s + (b.floors?.reduce((fs, f) => fs + (f.units?.length ?? 0), 0) ?? 0), 0) ?? 0
 
   if (isLoading) {
     return (
@@ -104,9 +90,7 @@ export default function PropertyPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">Properties</h1>
-          <p className="text-sm text-gray-500">
-            Manage your residential property portfolio &amp; structure
-          </p>
+          <p className="text-sm text-gray-500">Manage your residential property portfolio &amp; structure</p>
         </div>
         <Button
           id="add-property-btn"
@@ -136,10 +120,7 @@ export default function PropertyPage() {
             },
           ] as const
         ).map(({ label, value, color, icon: Icon }) => (
-          <div
-            key={label}
-            className="rounded-2xl border border-white/40 bg-white/70 p-4 shadow-sm backdrop-blur-xl"
-          >
+          <div key={label} className="rounded-2xl border border-white/40 bg-white/70 p-4 shadow-sm backdrop-blur-xl">
             <div className={`w-9 h-9 rounded-xl ${color} flex items-center justify-center mb-2`}>
               <Icon className="h-4 w-4" />
             </div>
@@ -204,12 +185,8 @@ export default function PropertyPage() {
                     <Building2 className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 font-medium">
-                      {PROPERTY_TYPE_LABELS[property.property_type]}
-                    </p>
-                    <h3 className="text-sm font-bold text-gray-900 leading-tight">
-                      {property.property_name}
-                    </h3>
+                    <p className="text-xs text-gray-500 font-medium">{PROPERTY_TYPE_LABELS[property.property_type]}</p>
+                    <h3 className="text-sm font-bold text-gray-900 leading-tight">{property.property_name}</h3>
                   </div>
                 </div>
               </div>
@@ -228,8 +205,7 @@ export default function PropertyPage() {
                   { label: 'Blocks', value: property.blocks?.length ?? 0 },
                   {
                     label: 'Floors',
-                    value:
-                      property.blocks?.reduce((s, b) => s + (b.floors?.length ?? 0), 0) ?? 0,
+                    value: property.blocks?.reduce((s, b) => s + (b.floors?.length ?? 0), 0) ?? 0,
                   },
                   { label: 'Units', value: totalUnits(property) },
                 ].map(({ label, value }) => (

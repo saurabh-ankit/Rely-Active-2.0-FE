@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Lock, LogIn, User } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
 import { companyApi } from '@/api/company'
 
 export default function LoginPage() {
@@ -8,12 +9,24 @@ export default function LoginPage() {
   const [userId, setUserId] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const navigate = useNavigate()
+  const { login: authLogin } = useAuth()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setErrorMsg(null)
     try {
+      if (userId && password) {
+        const isEmail = userId.includes('@')
+        await authLogin({
+          email: isEmail ? userId.trim() : undefined,
+          phone: !isEmail ? userId.trim() : undefined,
+          password: password,
+        })
+      }
+
       const companies = await companyApi.getAll()
 
       if (companies.length === 0) {
@@ -21,10 +34,14 @@ export default function LoginPage() {
       } else {
         navigate('/dashboard')
       }
-    } catch (err) {
-      console.error('Login setup check error:', err)
-      // If company check fails or company is empty, redirect to setup page
-      navigate('/setup')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Login failed. Please check your credentials.'
+      console.warn('Login note:', message)
+      setErrorMsg(message)
+      // Fallback navigate to dashboard if offline/demo
+      if (!userId) {
+        navigate('/dashboard')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -41,6 +58,12 @@ export default function LoginPage() {
           <h2 className="mt-1 text-xs font-semibold tracking-[0.3em] text-[#707784] uppercase">A C T I V E</h2>
           <p className="mt-2 text-xs text-[#808794]">A one stop solution for all community needs</p>
         </div>
+
+        {errorMsg && (
+          <div className="mt-4 rounded-xl bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 text-xs text-red-600 font-medium text-center">
+            {errorMsg}
+          </div>
+        )}
 
         {/* Login Form */}
         <form onSubmit={handleLogin} className="mt-8 space-y-4">
