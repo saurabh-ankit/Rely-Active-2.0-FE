@@ -5,6 +5,8 @@ import CommonButton from '@/components/common/CommonButton'
 import CommonInput from '@/components/common/CommonInput'
 import type { CustomFieldItem } from '@/pages/Company/components/EditCompanyModal'
 import { TEXT_LIBRARY } from '@/constants/textLibrary'
+import { companyApi } from '@/api/company'
+import { API_BASE_URL } from '@/api/api'
 
 interface FormErrors {
   companyName?: string
@@ -47,19 +49,10 @@ export default function SetupPage() {
   useEffect(() => {
     let isMounted = true
 
-    fetch('http://localhost:3002/api/v1/company')
-      .then((res) => {
-        if (!res.ok) return { success: false, data: [] }
-        return res.json()
-      })
-      .then((json) => {
+    companyApi
+      .getAll()
+      .then((companies) => {
         if (!isMounted) return
-        const companies = Array.isArray(json.data)
-          ? json.data
-          : json.data && typeof json.data === 'object' && json.data.id
-            ? [json.data]
-            : []
-
         if (companies.length > 0) {
           navigate('/dashboard', { replace: true })
         }
@@ -156,7 +149,7 @@ export default function SetupPage() {
 
       formData.append('customFields', JSON.stringify(customFields))
 
-      const res = await fetch('http://localhost:3002/api/v1/company', {
+      const res = await fetch(`${API_BASE_URL}/company`, {
         method: 'POST',
         body: formData,
       })

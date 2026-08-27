@@ -20,7 +20,7 @@ const systemSettings: SettingItem[] = [
   {
     name: 'Properties & Locations',
     description: 'Manage facility locations, property units, and location tokens',
-    link: '/locations',
+    link: '/property',
     icon: Building2,
   },
 ]
@@ -30,11 +30,7 @@ export default function GlobalSettingsPage() {
   const [selectedSetting, setSelectedSetting] = useState<SettingItem | null>(null)
 
   const handleCardClick = (item: SettingItem) => {
-    if (item.link === '/company') {
-      navigate(item.link)
-    } else {
-      setSelectedSetting(item)
-    }
+    navigate(item.link)
   }
 
   return (

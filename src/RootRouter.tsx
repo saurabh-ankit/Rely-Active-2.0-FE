@@ -5,6 +5,8 @@ import ComponentShowcase from '@/pages/ComponentShowcase'
 import DashboardPage from '@/pages/Dashboard'
 import GlobalSettingsPage from '@/pages/GlobalSettings'
 import LoginPage from '@/pages/Login'
+import PropertyPage from '@/pages/Property'
+import CreatePropertyPage from '@/pages/Property/CreatePropertyPage'
 import SectionPage from '@/pages/SectionPage'
 import SetupPage from '@/pages/Setup'
 
@@ -17,6 +19,9 @@ export default function RootRouter() {
         <Route index element={<DashboardPage />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="company" element={<CompanyPage />} />
+        <Route path="property" element={<PropertyPage />} />
+        <Route path="property/create" element={<CreatePropertyPage />} />
+        <Route path="property/edit/:id" element={<CreatePropertyPage />} />
         <Route path="global-settings" element={<GlobalSettingsPage />} />
         <Route path="components" element={<ComponentShowcase />} />
 
@@ -45,7 +50,9 @@ export default function RootRouter() {
         <Route path="daily-routines" element={<SectionPage title="Daily Routine Templates" />} />
         <Route path="whatsapp" element={<SectionPage title="WhatsApp Manager" />} />
         <Route path="roster-settings" element={<SectionPage title="Roster Settings" />} />
-        <Route path="locations" element={<SectionPage title="Properties & Locations" />} />
+        <Route path="locations" element={<Navigate to="/property" replace />} />
+        <Route path="locations/create" element={<Navigate to="/property/create" replace />} />
+        <Route path="locations/edit/:id" element={<CreatePropertyPage />} />
         <Route path="device-permissions" element={<SectionPage title="Device Permissions" />} />
         <Route path="email-config" element={<SectionPage title="Email Configuration" />} />
         <Route path="tokens" element={<SectionPage title="Token & License Management" />} />

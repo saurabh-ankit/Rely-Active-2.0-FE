@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Lock, LogIn, User } from 'lucide-react'
+import { companyApi } from '@/api/company'
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -13,13 +14,7 @@ export default function LoginPage() {
     e.preventDefault()
     setIsLoading(true)
     try {
-      const res = await fetch('http://localhost:3002/api/v1/company')
-      const json = await res.json()
-      const companies = Array.isArray(json.data)
-        ? json.data
-        : json.data && typeof json.data === 'object' && json.data.id
-          ? [json.data]
-          : []
+      const companies = await companyApi.getAll()
 
       if (companies.length === 0) {
         navigate('/setup')

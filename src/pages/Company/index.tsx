@@ -8,6 +8,8 @@ import EditCompanyModal from './components/EditCompanyModal'
 import type { CompanyData, CustomFieldItem } from './components/EditCompanyModal'
 import { TEXT_LIBRARY } from '@/constants/textLibrary'
 
+import { companyApi } from '@/api/company'
+
 interface FormErrors {
   companyName?: string
   email?: string
@@ -53,17 +55,12 @@ export default function CompanyPage() {
   useEffect(() => {
     let isMounted = true
 
-    fetch('http://localhost:3002/api/v1/company')
-      .then((res) => {
-        if (!res.ok) return { success: false, data: [] }
-        return res.json()
-      })
-      .then((json) => {
+    companyApi
+      .getAll()
+      .then((companies) => {
         if (!isMounted) return
-        if (json.data && Array.isArray(json.data) && json.data.length > 0) {
-          setCompany(json.data[0])
-        } else if (json.data && typeof json.data === 'object' && !Array.isArray(json.data) && json.data.id) {
-          setCompany(json.data)
+        if (companies.length > 0) {
+          setCompany(companies[0] as CompanyData)
         } else {
           setCompany(null)
         }
@@ -87,20 +84,7 @@ export default function CompanyPage() {
 
   const handleSaveCompanyModal = async (formData: FormData) => {
     try {
-      const url = company?.id
-        ? `http://localhost:3002/api/v1/company/${company.id}`
-        : 'http://localhost:3002/api/v1/company'
-
-      const res = await fetch(url, {
-        method: company?.id ? 'PUT' : 'POST',
-        body: formData,
-      })
-
-      if (!res.ok) {
-        const errJson = await res.json()
-        throw new Error(errJson.message || 'Failed to save company')
-      }
-
+      await companyApi.saveFormData(formData, company?.id)
       setIsEditModalOpen(false)
       setReloadToken((prev) => prev + 1)
     } catch (err) {
@@ -189,32 +173,21 @@ export default function CompanyPage() {
 
       formData.append('customFields', JSON.stringify(customFields))
 
-      const res = await fetch('http://localhost:3002/api/v1/company', {
-        method: 'POST',
-        body: formData,
-      })
-
-      const resData = await res.json()
-
-      if (!res.ok) {
-        const msg = resData.message || 'Failed to create company'
-        if (msg.toLowerCase().includes('email')) {
-          setErrors((prev) => ({ ...prev, email: msg }))
-        } else if (
-          msg.toLowerCase().includes('contact number') ||
-          msg.toLowerCase().includes('6-9') ||
-          msg.toLowerCase().includes('10 digits')
-        ) {
-          setErrors((prev) => ({ ...prev, contactNumber: msg }))
-        }
-        throw new Error(msg)
-      }
-
-      // Company created successfully, navigate to dashboard
+      await companyApi.saveFormData(formData)
       navigate('/dashboard')
     } catch (error) {
       console.error('Failed to create company:', error)
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to create company. Please try again.')
+      const msg = error instanceof Error ? error.message : 'Failed to create company'
+      if (msg.toLowerCase().includes('email')) {
+        setErrors((prev) => ({ ...prev, email: msg }))
+      } else if (
+        msg.toLowerCase().includes('contact number') ||
+        msg.toLowerCase().includes('6-9') ||
+        msg.toLowerCase().includes('10 digits')
+      ) {
+        setErrors((prev) => ({ ...prev, contactNumber: msg }))
+      }
+      setErrorMessage(msg)
     } finally {
       setIsSubmitting(false)
     }

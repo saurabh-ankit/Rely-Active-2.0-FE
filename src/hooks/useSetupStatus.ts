@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { companyApi } from '@/api/company'
 
 export interface SetupStatusData {
   needsSetup: boolean
@@ -15,18 +16,13 @@ export function useSetupStatus() {
   const checkSetupStatus = useCallback(async () => {
     setIsChecking(true)
     try {
-      const res = await fetch('http://localhost:3002/api/v1/company/company-setup/status')
-      const json = await res.json()
-      if (json.success && json.data) {
-        setSetupStatus(json.data)
-        return json.data as SetupStatusData
+      const data = await companyApi.getSetupStatus()
+      if (data) {
+        setSetupStatus(data as unknown as SetupStatusData)
+        return data as unknown as SetupStatusData
       } else {
-        // Fallback: fetch company directly
-        const compRes = await fetch('http://localhost:3002/api/v1/company')
-        const compJson = await compRes.json()
-        const hasCompany = Boolean(
-          compJson.data && (Array.isArray(compJson.data) ? compJson.data.length > 0 : compJson.data.id),
-        )
+        const companies = await companyApi.getAll()
+        const hasCompany = companies.length > 0
         const statusData: SetupStatusData = {
           needsSetup: !hasCompany,
           setupStep: hasCompany ? 0 : 1,
@@ -54,12 +50,12 @@ export function useSetupStatus() {
   useEffect(() => {
     let isMounted = true
 
-    fetch('http://localhost:3002/api/v1/company/company-setup/status')
-      .then((res) => res.json())
-      .then((json) => {
+    companyApi
+      .getSetupStatus()
+      .then((data) => {
         if (!isMounted) return
-        if (json.success && json.data) {
-          setSetupStatus(json.data)
+        if (data) {
+          setSetupStatus(data as unknown as SetupStatusData)
         }
       })
       .catch((err) => {

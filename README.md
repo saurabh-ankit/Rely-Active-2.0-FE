@@ -12,81 +12,97 @@ pnpm install
 pnpm dev
 ```
 
-## Features & Reusable Component System
+---
 
-### 1. Reusable UI Components (`src/components/common`)
+## Centralized Architecture & Design Systems
 
-- **`CommonInput`** (`src/components/common/CommonInput.tsx`):
-  - Standardized form input field component with header label, placeholder, red asterisk for required fields (`required`), icon support, character max length, and inline red validation error text (`error`).
-  - Supports both standard `<input>` (`text`, `email`, `password`, `number`) and `<textarea>` types.
+### 1. Centralized API Layer (`src/api/`)
 
-- **`CommonButton`** (`src/components/common/CommonButton.tsx`):
-  - Standardized button component with distinct UI variant styling:
-    - `variant="success"`: Emerald/Green action button (e.g. Save, Submit).
-    - `variant="cancel"`: Subtle neutral border outline button (e.g. Cancel).
-    - `variant="primary"`: Indigo primary action button.
-    - `variant="danger"`: Red destructive action button.
-    - `variant="outline"`: Border outline accent button.
-  - Supports loading state spinner (`isLoading`), custom icons (`icon`), size configurations (`sm`, `md`, `lg`), and custom `className`.
+All API interactions are centrally organized in `src/api/` named by domain module:
 
-- **`CommonModal`** (`src/components/common/CommonModal.tsx`):
-  - Modal overlay dialog matching the Rely Active glassmorphism design system (`bg-white/95 backdrop-blur-xl border border-white/60 shadow-2xl rounded-3xl`).
-  - **Hidden Scroll Feature**: Built-in hidden scrollbar (`[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden`) allowing smooth scrolling of lengthy modal content without visible scrollbar clutter.
-  - Reusable props for title, subtitle, icon, max width (`sm`, `md`, `lg`, `xl`, `2xl`, `4xl`), and custom footer button actions.
+- **`src/api/api.ts`**: Defines base configuration (`API_BASE_URL` = `http://localhost:3002/api/v1`) and the generic `ApiResponse<T>` wrapper.
+- **`src/api/property.ts`**: Contains all Property API methods (`getAll`, `getById`, `create`, `update`, `delete`).
+- **`src/api/company.ts`**: Contains all Company API methods (`getAll`, `getById`, `create`, `update`, `saveFormData`, `getSetupStatus`).
+- **`src/api/index.ts`**: Unified re-export entrypoint.
+- *Policy*: No `api.ts` files or direct `fetch()` calls allowed inside page or component directories.
 
-### 2. Frontend Text Library Constants (`src/constants/textLibrary.ts`)
+### 2. Global Color & Theme System (`src/constants/theme.ts`)
 
-- Centralized `TEXT_LIBRARY` object exporting all UI copy, headers, button labels, form headers, and validation error messages across screens:
-  - `TEXT_LIBRARY.APP`: Application branding, welcome titles, and subtitles.
-  - `TEXT_LIBRARY.BUTTONS`: Button names (`SUBMIT`, `SAVE`, `CANCEL`, `CREATE_COMPANY`, `EDIT_COMPANY`, `ADD_FIELD`).
-  - `TEXT_LIBRARY.COMPANY`: Company section headers and field labels.
-  - `TEXT_LIBRARY.VALIDATIONS`: Validation failure messages for required inputs, email format, and 10-digit mobile numbers starting with 6-9.
+Centralized project color palette and UI utility maps:
+
+- **`THEME_COLORS.primary`**: Main brand blue color codes (`#2563eb`), background classes (`bg-blue-600`), hover classes (`hover:bg-blue-700`), border rings, and button styles.
+- **`THEME_COLORS.status`**: Unit-level status styles (`available`, `booked`, `sold`, `onHold`).
+- **`THEME_COLORS.groundFloor`**: Ground floor banner styling (`bg-blue-50/60 border-blue-200 text-blue-700`).
+- **`THEME_COLORS.neutral`**: Neutral card backgrounds, borders, and typography.
 
 ---
 
-## Screen Architecture
+## Features & Reusable Component System
 
-### 1. Navigation & Side Nav Structure (`rely-active-1.0/rely_frontend` aligned)
+### Reusable UI Components (`src/components/common`)
 
-The main navigation hierarchy and fields are sourced directly from `rely-active-1.0/rely_frontend`:
+- **`CommonProgressBar`** (`src/components/common/CommonProgressBar.tsx`):
+  - Stepper / progress bar occupying **100% of container width** with smooth progress line animation.
+  - Features point count badges (`1`, `2`, `3`), point labels/names, Lucide icon support, active blue rings, and completed checkmark badges.
+  - Supports step-click navigation for completed steps.
+
+- **`CommonInput`** (`src/components/common/CommonInput.tsx`):
+  - Standardized form input field component with header label, placeholder, required red asterisk (`required`), icon support, character max length, and inline red error text.
+  - Supports standard input types (`text`, `email`, `password`, `number`) and `<textarea>`.
+
+- **`CommonButton`** (`src/components/common/CommonButton.tsx`):
+  - Standardized button component with distinct UI variant styling:
+    - `variant="primary"`: Primary global action button (Blue `#2563eb`).
+    - `variant="success"`: Emerald/Green action button.
+    - `variant="cancel"`: Subtle neutral border outline button.
+    - `variant="danger"`: Red destructive action button.
+    - `variant="outline"`: Border outline accent button.
+  - Supports loading spinner (`isLoading`), custom icons (`icon`), size configurations (`sm`, `md`, `lg`), and custom `className`.
+
+- **`CommonModal`** (`src/components/common/CommonModal.tsx`):
+  - Modal overlay dialog matching the Rely Active glassmorphism design system (`bg-white/95 backdrop-blur-xl border border-white/60 shadow-2xl rounded-3xl`).
+  - Built-in hidden scrollbar allowing smooth scrolling of lengthy modal content without scrollbar clutter.
+
+- **`SetupStatusGuard`** (`src/components/common/SetupStatusGuard.tsx`):
+  - Route guard enforcing company setup completion before accessing application features.
+
+---
+
+## Screen Architecture & Navigation
+
+### 1. Navigation Hierarchy & Routes
 
 - **Dashboard**: `/dashboard`
+- **Properties & Locations**:
+  - Property Listing: `/property`
+  - Property Create (Full Screen): `/property/create`
+  - Property Edit (Full Screen): `/property/edit/:id`
+  - Location Listing: `/locations`
+  - Location Create: `/locations/create`
+  - Location Edit: `/locations/edit/:id`
 - **Resident**: `/admin/residents`
 - **Employee**: `/admin/employees`
-- **Medical Management**: `/admin/medical` (sub-items: Dashboard, Doctors, Nurses, House Visits, Shifts, Care Tasks, Appointments, Residents, Room Management, Care Management)
-- **Billing Management**: `/admin/billing-management` (sub-items: Dashboard, Residents & Services, Invoices, Payments, Services, Reports)
-- **Shift & Roster Management**: `/admin/shift-roster-management`
-- **Visitors Management**: `/admin/visitor-history`
-- **Event Management**: `/admin/events`
-- **Food & Beverages**: `/admin/fnb-history`
-- **Inventory**: `/admin/inventory/home`
-- **Asset Management**: `/admin/asset-management`
+- **Medical Management**: `/admin/medical`
+- **Billing Management**: `/admin/billing-management`
 - **Company**: `/company`
-- **Feedback And Training**: `/admin/feedback-and-training`
+- **Setup**: `/setup`
 - **Global Settings**: `/global-settings`
 
-### 2. Login Screen UI (`rely-assist` screenshot reference aligned)
+### 2. Full-Screen Property Wizard (`CreatePropertyScreen.tsx`)
 
-Located at `/login`. Matches the provided screenshot reference:
+Replaced modal overlay dialogs with full-screen route-based views for property creation and editing:
 
-- Neutral silver-gray background (`#c4c6c9`) with centered glass card (`rounded-[32px]`, `bg-[#d7d9dc]/90`).
-- Original vibrant `R_Logo.svg` branding.
-- Wide tracking title `R E L Y` and uppercase `A C T I V E`.
-- Soft rounded input containers for `User ID` and `Password` with person/lock icon indicators and eye toggle.
-- Muted slate-blue button (`Sign In`) with log-in icon (`#6f8298`).
-- _Authentication Policy_: No authentication restriction on routes. Clicking "Sign In" or navigating directly opens the dashboard.
+- **Step 1: Property Details**: Project Name, Property Type chips, Total Area, Area Unit, Amenities suggestion chips, custom amenity input, and Description.
+- **Step 2: Address**: Street Address, City, State, Pincode, and Country.
+- **Step 3: Structure Builder**: Tower/Block configuration with Unit Nomenclature Template (disabled preview input `{{TowerPrefix}}-{{FloorNumber}}{{Position}}`), BHK variant assigner, visual floor preview, and automatic floor & unit generation.
+- Integrated with 100% width `CommonProgressBar`.
 
-### 3. Setup Screen (`/setup`)
+### 3. Visual Tower & Floor Matrix Grid (`PropertyDetailDrawer.tsx`)
 
-Standalone full-page setup screen rendered when company data is null. Features initial setup flow using `CommonInput`, `CommonButton`, and `TEXT_LIBRARY`.
-
-### 4. Company Creation & Management (`/company`)
-
-Located at `/company`. Provides an organizational view and `EditCompanyModal` supporting company fields, GST, bank details, accountant signature, file uploads, and custom fields connected to backend `/api/v1/company`. Uses `CommonModal`, `CommonInput`, and `CommonButton`.
-
-### 5. Global Settings (`/global-settings`)
-
-Located at `/global-settings`. Features a grid layout grouped into Company Profile and Properties & Locations.
+- Visual stacked floor matrix (Top Floor down to Ground Floor).
+- Emerald green unit chips (`bg-emerald-50/80 border-emerald-300 text-emerald-900`) showing unit number, unit type (e.g. `A-101 (2BHK)`), and facing direction.
+- Full-width Ground Floor banner styling.
+- Edit property button navigating directly to `/property/edit/:id`.
 
 ---
 
