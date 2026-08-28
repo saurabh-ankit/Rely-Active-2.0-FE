@@ -1,9 +1,10 @@
 import React from 'react'
+import { THEME_COLORS } from '@/constants/theme'
 
 export interface CommonButtonProps {
   label?: string
   children?: React.ReactNode
-  variant?: 'success' | 'cancel' | 'primary' | 'danger' | 'outline'
+  variant?: 'light' | 'dark' | 'primary' | 'outline' | 'outlineDark' | 'success' | 'cancel' | 'danger'
   type?: 'button' | 'submit' | 'reset'
   onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
   disabled?: boolean
@@ -16,7 +17,7 @@ export interface CommonButtonProps {
 export const CommonButton: React.FC<CommonButtonProps> = ({
   label,
   children,
-  variant = 'primary',
+  variant = 'light',
   type = 'button',
   onClick,
   disabled = false,
@@ -35,12 +36,15 @@ export const CommonButton: React.FC<CommonButtonProps> = ({
   }
 
   const variantStyles = {
+    light: THEME_COLORS.button.light.className,
+    dark: THEME_COLORS.button.dark.className,
+    primary: THEME_COLORS.button.light.className,
+    outline: THEME_COLORS.button.light.outlineClassName,
+    outlineDark: THEME_COLORS.button.dark.outlineClassName,
     success: 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 active:bg-emerald-800',
     cancel:
       'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 shadow-sm active:bg-gray-100',
-    primary: 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 active:bg-indigo-800',
     danger: 'bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-600/20 active:bg-rose-800',
-    outline: 'border border-indigo-600 text-indigo-600 hover:bg-indigo-50 active:bg-indigo-100',
   }
 
   return (

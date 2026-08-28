@@ -41,16 +41,16 @@ const SidebarItem: React.FC<{ item: SidebarItemData }> = ({ item }) => {
     >
       <div
         className={cn(
-          'flex items-center justify-center w-10 h-10 md:w-full md:h-12 lg:h-14 rounded-lg transition-all duration-200',
+          'flex items-center justify-center w-10 h-10 md:w-full md:h-12 lg:h-14 rounded-xl transition-all duration-200',
           item.isActive
-            ? 'bg-white/30 backdrop-blur-sm shadow-lg'
-            : 'bg-transparent hover:bg-white/10 backdrop-blur-sm',
+            ? 'bg-[#005390] text-white shadow-md shadow-[#005390]/20'
+            : 'bg-transparent hover:bg-[#005390]/10 text-gray-500 hover:text-[#005390]',
         )}
       >
         <div
           className={cn(
-            'flex items-center justify-center',
-            item.isActive ? 'text-slate-900 font-bold' : 'text-gray-500',
+            'flex items-center justify-center transition-colors',
+            item.isActive ? 'text-white font-bold' : 'text-gray-500',
           )}
         >
           {item.icon}
@@ -58,8 +58,8 @@ const SidebarItem: React.FC<{ item: SidebarItemData }> = ({ item }) => {
       </div>
       <span
         className={cn(
-          'text-xs font-medium text-center hidden md:block leading-tight',
-          item.isActive ? 'text-slate-900 font-semibold' : 'text-gray-500',
+          'text-xs font-medium text-center hidden md:block leading-tight transition-colors',
+          item.isActive ? 'text-[#005390] font-bold' : 'text-gray-500',
         )}
       >
         {item.label}
@@ -162,7 +162,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
     if (isSuperAdmin) {
       return true
     }
-    // If resource permissions haven't configured any restrictions for non-superadmin, show all
     if (locationPermissions.length === 0) {
       return true
     }

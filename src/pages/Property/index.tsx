@@ -65,19 +65,8 @@ export default function PropertyPage() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="flex items-center gap-3 text-blue-600">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-          <span className="text-sm font-medium">Loading properties...</span>
-        </div>
-      </div>
-    )
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="flex items-center gap-3 text-blue-600">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="flex items-center gap-3 text-[#005390]">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#005390] border-t-transparent" />
           <span className="text-sm font-medium">Loading properties...</span>
         </div>
       </div>
@@ -95,7 +84,7 @@ export default function PropertyPage() {
         <Button
           id="add-property-btn"
           onClick={() => navigate('/property/create')}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-xs px-4 py-2 font-bold"
+          className="flex items-center gap-2 bg-[#005390] hover:bg-[#004274] text-white rounded-xl shadow-xs px-4 py-2 font-bold"
         >
           <Plus className="h-4 w-4" />
           Add Property
@@ -109,13 +98,13 @@ export default function PropertyPage() {
             {
               label: 'Total Properties',
               value: properties.length,
-              color: 'text-blue-600 bg-blue-50',
+              color: 'text-[#005390] bg-[#005390]/10',
               icon: Building2,
             },
             {
               label: 'Total Units',
               value: properties.reduce((s, p) => s + totalUnits(p), 0),
-              color: 'text-purple-600 bg-purple-50',
+              color: 'text-[#002C7D] bg-[#002C7D]/10',
               icon: Layers,
             },
           ] as const
@@ -138,7 +127,7 @@ export default function PropertyPage() {
           placeholder="Search by name or city..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition"
+          className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] transition"
         />
       </div>
 
@@ -157,7 +146,7 @@ export default function PropertyPage() {
           {properties.length === 0 && (
             <Button
               onClick={() => navigate('/property/create')}
-              className="mt-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold"
+              className="mt-6 rounded-xl bg-[#005390] hover:bg-[#004274] text-white font-bold"
             >
               <Plus className="h-4 w-4 mr-1.5" />
               Add Property
@@ -176,12 +165,12 @@ export default function PropertyPage() {
               tabIndex={0}
               onClick={() => setSelectedProperty(property)}
               onKeyDown={(e) => e.key === 'Enter' && setSelectedProperty(property)}
-              className="group relative rounded-3xl border border-white/50 bg-white/80 p-5 shadow-sm backdrop-blur-xl hover:shadow-lg hover:border-blue-200 transition-all duration-200 cursor-pointer"
+              className="group relative rounded-3xl border border-white/50 bg-white/80 p-5 shadow-sm backdrop-blur-xl hover:shadow-lg hover:border-[#005390]/30 transition-all duration-200 cursor-pointer"
             >
               {/* Type badge */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center shadow-md">
+                  <div className="w-10 h-10 rounded-2xl bg-[#005390] flex items-center justify-center shadow-md">
                     <Building2 className="h-5 w-5 text-white" />
                   </div>
                   <div>
@@ -193,7 +182,7 @@ export default function PropertyPage() {
 
               {/* Address */}
               <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-3">
-                <MapPin className="h-3.5 w-3.5 shrink-0 text-blue-500" />
+                <MapPin className="h-3.5 w-3.5 shrink-0 text-[#005390]" />
                 <span className="truncate">
                   {[property.city, property.state, property.pincode].filter(Boolean).join(', ')}
                 </span>
@@ -241,7 +230,7 @@ export default function PropertyPage() {
                     e.stopPropagation()
                     navigate(`/property/edit/${property.id}`)
                   }}
-                  className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                  className="p-1.5 rounded-lg bg-[#005390]/10 text-[#005390] hover:bg-[#005390]/20 transition-colors"
                   title="Edit property"
                 >
                   <Edit className="h-3.5 w-3.5" />

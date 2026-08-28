@@ -8,7 +8,7 @@ export interface CommonInputProps {
   onBlur?: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void
   error?: string
   required?: boolean
-  type?: 'text' | 'email' | 'password' | 'number' | 'textarea'
+  type?: 'text' | 'email' | 'password' | 'number' | 'textarea' | 'date' | 'tel'
   maxLength?: number
   disabled?: boolean
   rows?: number

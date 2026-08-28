@@ -1,14 +1,5 @@
 import { useState } from 'react'
-import {
-  Building2,
-  CalendarDays,
-  Edit,
-  HelpCircle,
-  Layers,
-  MapPin,
-  Maximize2,
-  X,
-} from 'lucide-react'
+import { Building2, CalendarDays, Edit, HelpCircle, Layers, MapPin, Maximize2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Property } from '../types'
 import { PROPERTY_TYPE_LABELS } from '../types'
@@ -19,22 +10,16 @@ interface PropertyDetailDrawerProps {
   onEdit?: (property: Property) => void
 }
 
-export default function PropertyDetailDrawer({
-  property,
-  onClose,
-  onEdit,
-}: PropertyDetailDrawerProps) {
+export default function PropertyDetailDrawer({ property, onClose, onEdit }: PropertyDetailDrawerProps) {
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null)
 
   if (!property) return null
 
-  const selectedBlock =
-    property.blocks?.find((b) => b.id === activeBlockId) || property.blocks?.[0]
+  const selectedBlock = property.blocks?.find((b) => b.id === activeBlockId) || property.blocks?.[0]
 
   const totalUnits =
     property.blocks?.reduce(
-      (sum, b) =>
-        sum + (b.floors?.reduce((fsum, f) => fsum + (f.units?.length ?? 0), 0) ?? 0),
+      (sum, b) => sum + (b.floors?.reduce((fsum, f) => fsum + (f.units?.length ?? 0), 0) ?? 0),
       0,
     ) ?? 0
 
@@ -42,24 +27,14 @@ export default function PropertyDetailDrawer({
     property.blocks?.reduce(
       (sum, b) =>
         sum +
-        (b.floors?.reduce(
-          (fsum, f) =>
-            fsum +
-            (f.units?.filter((u) => u.status === 'available').length ?? 0),
-          0,
-        ) ?? 0),
+        (b.floors?.reduce((fsum, f) => fsum + (f.units?.filter((u) => u.status === 'available').length ?? 0), 0) ?? 0),
       0,
     ) ?? 0
 
   const soldUnits =
     property.blocks?.reduce(
       (sum, b) =>
-        sum +
-        (b.floors?.reduce(
-          (fsum, f) =>
-            fsum + (f.units?.filter((u) => u.status === 'sold').length ?? 0),
-          0,
-        ) ?? 0),
+        sum + (b.floors?.reduce((fsum, f) => fsum + (f.units?.filter((u) => u.status === 'sold').length ?? 0), 0) ?? 0),
       0,
     ) ?? 0
 
@@ -79,7 +54,7 @@ export default function PropertyDetailDrawer({
         {/* Top Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 rounded-2xl bg-[#005390] flex items-center justify-center shadow-md">
               <Building2 className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -87,7 +62,8 @@ export default function PropertyDetailDrawer({
                 <h2 className="text-lg font-bold text-gray-900">{property.property_name}</h2>
               </div>
               <p className="text-xs text-gray-500">
-                {PROPERTY_TYPE_LABELS[property.property_type]} • {[property.city, property.state].filter(Boolean).join(', ')}
+                {PROPERTY_TYPE_LABELS[property.property_type]} •{' '}
+                {[property.city, property.state].filter(Boolean).join(', ')}
               </p>
             </div>
           </div>
@@ -100,7 +76,7 @@ export default function PropertyDetailDrawer({
                   onEdit(property)
                   onClose()
                 }}
-                className="flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-2 shadow-xs"
+                className="flex items-center gap-1.5 rounded-xl bg-[#005390] hover:bg-[#004274] text-white font-bold text-xs px-3.5 py-2 shadow-xs"
               >
                 <Edit className="h-3.5 w-3.5" /> Edit Property
               </Button>
@@ -124,13 +100,13 @@ export default function PropertyDetailDrawer({
                 icon: Layers,
                 label: 'Blocks',
                 value: property.blocks?.length ?? 0,
-                color: 'text-blue-600 bg-blue-50',
+                color: 'text-[#005390] bg-[#005390]/10',
               },
               {
                 icon: Building2,
                 label: 'Total Units',
                 value: totalUnits,
-                color: 'text-indigo-600 bg-indigo-50',
+                color: 'text-[#002C7D] bg-[#002C7D]/10',
               },
               {
                 icon: CalendarDays,
@@ -155,7 +131,7 @@ export default function PropertyDetailDrawer({
             ))}
           </div>
 
-          {/* Tower Selector & Visual Matrix Grid (Matching Screenshot) */}
+          {/* Tower Selector & Visual Matrix Grid */}
           {property.blocks && property.blocks.length > 0 && (
             <div className="space-y-4">
               {/* Block Selector Tabs */}
@@ -170,7 +146,7 @@ export default function PropertyDetailDrawer({
                         onClick={() => setActiveBlockId(b.id)}
                         className={`rounded-xl px-4 py-2 text-xs font-bold transition-all border ${
                           isSelected
-                            ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
+                            ? 'bg-[#005390] border-[#005390] text-white shadow-xs'
                             : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
                         }`}
                       >
@@ -181,31 +157,29 @@ export default function PropertyDetailDrawer({
                 </div>
               )}
 
-              {/* Tower Header Info Container (Matching Screenshot) */}
+              {/* Tower Header Info Container */}
               {selectedBlock && (
                 <div className="rounded-3xl border border-gray-200 bg-white overflow-hidden shadow-xs">
                   {/* Tower Header */}
-                  <div className="flex items-center justify-between px-6 py-4 bg-sky-50/60 border-b border-sky-100">
+                  <div className="flex items-center justify-between px-6 py-4 bg-[#005390]/5 border-b border-[#005390]/10">
                     <div className="flex items-center gap-2">
-                      <Building2 className="h-5 w-5 text-blue-600" />
+                      <Building2 className="h-5 w-5 text-[#005390]" />
                       <h3 className="text-base font-bold text-gray-900">{selectedBlock.block_name}</h3>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-blue-100 border border-blue-200 px-3 py-1 text-xs font-bold text-blue-800">
+                      <span className="rounded-full bg-[#005390]/10 border border-[#005390]/20 px-3 py-1 text-xs font-bold text-[#005390]">
                         {selectedBlock.floors?.length || 0} floors
                       </span>
                       <span className="rounded-full bg-emerald-100 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-800">
                         {selectedBlock.floors?.reduce(
-                          (s, f) =>
-                            s + (f.units?.filter((u) => u.status === 'available').length ?? 0),
+                          (s, f) => s + (f.units?.filter((u) => u.status === 'available').length ?? 0),
                           0,
                         ) || 0}{' '}
                         available
                       </span>
                       <span className="rounded-full bg-rose-100 border border-rose-200 px-3 py-1 text-xs font-bold text-rose-800">
                         {selectedBlock.floors?.reduce(
-                          (s, f) =>
-                            s + (f.units?.filter((u) => u.status === 'sold').length ?? 0),
+                          (s, f) => s + (f.units?.filter((u) => u.status === 'sold').length ?? 0),
                           0,
                         ) || 0}{' '}
                         sold
@@ -213,37 +187,29 @@ export default function PropertyDetailDrawer({
                     </div>
                   </div>
 
-                  {/* Visual Floor Grid (Ordered top floor to ground floor) */}
+                  {/* Visual Floor Grid */}
                   <div className="p-6 space-y-4 bg-slate-50/50">
                     {selectedBlock.floors && selectedBlock.floors.length > 0 ? (
                       [...selectedBlock.floors]
                         .sort((a, b) => b.floor_number - a.floor_number)
                         .map((floor) => {
-                          const isGround =
-                            floor.floor_number === 1 || floor.floor_type === 'GROUND_FLOOR'
+                          const isGround = floor.floor_number === 1 || floor.floor_type === 'GROUND_FLOOR'
 
                           return (
-                            <div
-                              key={floor.id}
-                              className="rounded-2xl border border-gray-200 bg-white p-4 shadow-xs"
-                            >
+                            <div key={floor.id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-xs">
                               <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                                 {/* Left Floor Label */}
                                 <div className="w-24 shrink-0 pt-1">
-                                  <h4 className="text-xs font-bold text-gray-800">
-                                    Floor {floor.floor_number}
-                                  </h4>
+                                  <h4 className="text-xs font-bold text-gray-800">Floor {floor.floor_number}</h4>
                                   {floor.floor_name && (
-                                    <p className="text-[10px] text-gray-400 font-medium">
-                                      {floor.floor_name}
-                                    </p>
+                                    <p className="text-[10px] text-gray-400 font-medium">{floor.floor_name}</p>
                                   )}
                                 </div>
 
                                 {/* Right Unit Matrix */}
                                 <div className="flex-1">
                                   {isGround ? (
-                                    <div className="w-full rounded-xl border border-blue-200 bg-blue-50/60 text-blue-700 font-bold py-4 text-center text-xs tracking-wider uppercase shadow-2xs">
+                                    <div className="w-full rounded-xl border border-[#005390]/30 bg-[#005390]/10 text-[#005390] font-bold py-4 text-center text-xs tracking-wider uppercase shadow-2xs">
                                       GROUND FLOOR
                                     </div>
                                   ) : floor.units && floor.units.length > 0 ? (
@@ -271,8 +237,7 @@ export default function PropertyDetailDrawer({
                                             </div>
                                             <p className="text-[10px] font-medium opacity-90 truncate">
                                               {unit.unit_type} •{' '}
-                                              {unit.status.charAt(0).toUpperCase() +
-                                                unit.status.slice(1)}
+                                              {unit.status.charAt(0).toUpperCase() + unit.status.slice(1)}
                                             </p>
                                           </div>
                                         )
@@ -289,9 +254,7 @@ export default function PropertyDetailDrawer({
                           )
                         })
                     ) : (
-                      <p className="text-xs text-gray-400 text-center py-6">
-                        No floors available for this tower.
-                      </p>
+                      <p className="text-xs text-gray-400 text-center py-6">No floors available for this tower.</p>
                     )}
                   </div>
                 </div>
@@ -302,7 +265,7 @@ export default function PropertyDetailDrawer({
           {/* Address Card */}
           <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs">
             <h3 className="flex items-center gap-2 text-xs font-bold text-gray-800 uppercase tracking-wider mb-2">
-              <MapPin className="h-4 w-4 text-blue-600" /> Address Details
+              <MapPin className="h-4 w-4 text-[#005390]" /> Address Details
             </h3>
             <p className="text-xs text-gray-700 leading-relaxed">
               {[property.street, property.city, property.state, property.pincode, property.country]
@@ -314,14 +277,12 @@ export default function PropertyDetailDrawer({
           {/* Amenities Card */}
           {property.amenities && property.amenities.length > 0 && (
             <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs">
-              <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider mb-2">
-                Amenities
-              </h3>
+              <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider mb-2">Amenities</h3>
               <div className="flex flex-wrap gap-2">
                 {property.amenities.map((a) => (
                   <span
                     key={a}
-                    className="rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold px-3 py-1"
+                    className="rounded-full bg-[#005390]/10 border border-[#005390]/20 text-[#005390] text-xs font-semibold px-3 py-1"
                   >
                     {a}
                   </span>
@@ -333,9 +294,7 @@ export default function PropertyDetailDrawer({
           {/* Description */}
           {property.description && (
             <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs">
-              <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider mb-1">
-                Description
-              </h3>
+              <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider mb-1">Description</h3>
               <p className="text-xs text-gray-600 leading-relaxed">{property.description}</p>
             </div>
           )}

@@ -24,7 +24,7 @@ All API interactions are centrally organized in `src/api/` named by domain modul
 - **`src/api/property.ts`**: Contains all Property API methods (`getAll`, `getById`, `create`, `update`, `delete`).
 - **`src/api/company.ts`**: Contains all Company API methods (`getAll`, `getById`, `create`, `update`, `saveFormData`, `getSetupStatus`).
 - **`src/api/index.ts`**: Unified re-export entrypoint.
-- *Policy*: No `api.ts` files or direct `fetch()` calls allowed inside page or component directories.
+- _Policy_: No `api.ts` files or direct `fetch()` calls allowed inside page or component directories.
 
 ### 2. Global Color & Theme System (`src/constants/theme.ts`)
 

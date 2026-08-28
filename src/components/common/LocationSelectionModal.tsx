@@ -35,14 +35,14 @@ export const LocationSelectionModal: React.FC = () => {
                 onClick={() => selectLocation(loc)}
                 className={`w-full flex items-center justify-between p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
                   isSelected
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200'
-                    : 'bg-white border-gray-200 hover:border-blue-300 hover:bg-blue-50/40 text-gray-900'
+                    ? 'bg-[#005390] text-white border-[#005390] shadow-md shadow-[#005390]/20'
+                    : 'bg-white border-gray-200 hover:border-[#005390]/40 hover:bg-[#005390]/10 text-gray-900'
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <div
                     className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600'
+                      isSelected ? 'bg-white/20 text-white' : 'bg-[#005390]/10 text-[#005390]'
                     }`}
                   >
                     <Building2 className="w-5 h-5" />
@@ -61,7 +61,7 @@ export const LocationSelectionModal: React.FC = () => {
                 </div>
 
                 {isSelected && (
-                  <div className="w-6 h-6 rounded-full bg-white text-blue-600 flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-full bg-white text-[#005390] flex items-center justify-center">
                     <Check className="w-4 h-4 stroke-[3]" />
                   </div>
                 )}

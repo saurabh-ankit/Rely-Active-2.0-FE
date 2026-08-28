@@ -40,7 +40,7 @@ export default function DashboardPage() {
         <button
           onClick={() => setActiveTab('dashboard')}
           className={`flex items-center justify-center gap-2 rounded-xl px-6 py-2.5 text-xs font-bold transition-all ${
-            activeTab === 'dashboard' ? 'bg-[#2d4366] text-white shadow-md' : 'text-[#5c6370] hover:text-slate-900'
+            activeTab === 'dashboard' ? 'bg-[#005390] text-white shadow-md' : 'text-[#5c6370] hover:text-slate-900'
           }`}
         >
           <LayoutDashboard className="h-4 w-4" />
@@ -50,7 +50,7 @@ export default function DashboardPage() {
         <button
           onClick={() => setActiveTab('occupancy')}
           className={`flex items-center justify-center gap-2 rounded-xl px-6 py-2.5 text-xs font-bold transition-all ${
-            activeTab === 'occupancy' ? 'bg-[#2d4366] text-white shadow-md' : 'text-[#5c6370] hover:text-slate-900'
+            activeTab === 'occupancy' ? 'bg-[#005390] text-white shadow-md' : 'text-[#5c6370] hover:text-slate-900'
           }`}
         >
           <Users className="h-4 w-4" />
@@ -60,7 +60,7 @@ export default function DashboardPage() {
         <button
           onClick={() => setActiveTab('billing')}
           className={`flex items-center justify-center gap-2 rounded-xl px-6 py-2.5 text-xs font-bold transition-all ${
-            activeTab === 'billing' ? 'bg-[#2d4366] text-white shadow-md' : 'text-[#5c6370] hover:text-slate-900'
+            activeTab === 'billing' ? 'bg-[#005390] text-white shadow-md' : 'text-[#5c6370] hover:text-slate-900'
           }`}
         >
           <IndianRupee className="h-4 w-4" />
@@ -70,7 +70,7 @@ export default function DashboardPage() {
         <button
           onClick={() => setActiveTab('inventory')}
           className={`flex items-center justify-center gap-2 rounded-xl px-6 py-2.5 text-xs font-bold transition-all ${
-            activeTab === 'inventory' ? 'bg-[#2d4366] text-white shadow-md' : 'text-[#5c6370] hover:text-slate-900'
+            activeTab === 'inventory' ? 'bg-[#005390] text-white shadow-md' : 'text-[#5c6370] hover:text-slate-900'
           }`}
         >
           <Package className="h-4 w-4" />
@@ -116,7 +116,7 @@ export default function DashboardPage() {
                   <p className="text-xl font-bold text-[#2d3748] mt-0.5">0</p>
                   <p className="text-[10px] text-gray-400">Admitted in last 24h</p>
                 </div>
-                <div className="flex size-8 items-center justify-center rounded-xl bg-[#eef2f7] text-[#4a72b2]">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-[#005390]/10 text-[#005390]">
                   <UserPlus className="h-4 w-4" />
                 </div>
               </div>
@@ -165,10 +165,10 @@ export default function DashboardPage() {
                   <span className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">
                     REGISTERED & PRE-ASSESSED
                   </span>
-                  <p className="text-xl font-bold text-[#5b3eb3] mt-0.5">72</p>
+                  <p className="text-xl font-bold text-[#005390] mt-0.5">72</p>
                   <p className="text-[10px] text-gray-400">Registered, pre-assessed & skipped</p>
                 </div>
-                <div className="flex size-8 items-center justify-center rounded-xl bg-[#f0ecfc] text-[#5b3eb3]">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-[#005390]/10 text-[#005390]">
                   <UserCheck className="h-4 w-4" />
                 </div>
               </div>
@@ -257,7 +257,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-3">
                   <button className="text-xs font-semibold text-gray-400 hover:text-gray-700">&lt; Prev</button>
                   <span className="font-bold text-[#2d3748]">1/4</span>
-                  <button className="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Next &gt;</button>
+                  <button className="text-xs font-semibold text-[#005390] hover:text-[#004274]">Next &gt;</button>
                 </div>
               </div>
             </div>
@@ -285,16 +285,16 @@ export default function DashboardPage() {
             </span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-            <div className="rounded-2xl bg-indigo-50/80 p-5">
-              <p className="text-3xl font-extrabold text-indigo-600">160</p>
+            <div className="rounded-2xl bg-[#005390]/10 p-5">
+              <p className="text-3xl font-extrabold text-[#005390]">160</p>
               <p className="text-xs font-medium text-gray-600">Total Rooms</p>
             </div>
             <div className="rounded-2xl bg-emerald-50/80 p-5">
               <p className="text-3xl font-extrabold text-emerald-600">144</p>
               <p className="text-xs font-medium text-gray-600">Occupied Rooms</p>
             </div>
-            <div className="rounded-2xl bg-blue-50/80 p-5">
-              <p className="text-3xl font-extrabold text-blue-600">16</p>
+            <div className="rounded-2xl bg-[#005390]/10 p-5">
+              <p className="text-3xl font-extrabold text-[#005390]">16</p>
               <p className="text-xs font-medium text-gray-600">Available Vacancies</p>
             </div>
           </div>
@@ -306,7 +306,7 @@ export default function DashboardPage() {
         <div className="rounded-[24px] border border-white/80 bg-white/70 p-6 shadow-lg backdrop-blur-xl space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-[#2d3748]">Monthly Revenue & Billing Summary</h3>
-            <span className="text-xs font-semibold bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full">
+            <span className="text-xs font-semibold bg-[#005390]/10 text-[#005390] border border-[#005390]/20 px-3 py-1 rounded-full">
               Current Month
             </span>
           </div>
@@ -319,8 +319,8 @@ export default function DashboardPage() {
               <p className="text-3xl font-extrabold text-amber-600">₹ 62,500</p>
               <p className="text-xs font-medium text-gray-600">Pending Invoices</p>
             </div>
-            <div className="rounded-2xl bg-blue-50/80 p-5">
-              <p className="text-3xl font-extrabold text-blue-600">92%</p>
+            <div className="rounded-2xl bg-[#005390]/10 p-5">
+              <p className="text-3xl font-extrabold text-[#005390]">92%</p>
               <p className="text-xs font-medium text-gray-600">Collection Efficiency</p>
             </div>
           </div>
@@ -337,8 +337,8 @@ export default function DashboardPage() {
             </span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-            <div className="rounded-2xl bg-indigo-50/80 p-5">
-              <p className="text-3xl font-extrabold text-indigo-600">540</p>
+            <div className="rounded-2xl bg-[#005390]/10 p-5">
+              <p className="text-3xl font-extrabold text-[#005390]">540</p>
               <p className="text-xs font-medium text-gray-600">Total Stocked Items</p>
             </div>
             <div className="rounded-2xl bg-amber-50/80 p-5">

@@ -28,7 +28,7 @@ export const CommonProgressBar: React.FC<CommonProgressBarProps> = ({
         {/* Connecting Progress Line */}
         <div className="absolute top-[22px] left-6 right-6 -translate-y-1/2 h-1 bg-gray-100 rounded-full z-0">
           <div
-            className="h-full bg-blue-600 rounded-full transition-all duration-300 ease-in-out"
+            className="h-full bg-[#005390] rounded-full transition-all duration-300 ease-in-out"
             style={{
               width: `${
                 steps.length > 1
@@ -60,9 +60,9 @@ export const CommonProgressBar: React.FC<CommonProgressBarProps> = ({
               <div
                 className={`relative flex items-center justify-center w-11 h-11 rounded-2xl transition-all duration-200 shadow-xs ${
                   isDone
-                    ? 'bg-blue-600 text-white shadow-blue-200'
+                    ? 'bg-[#005390] text-white shadow-[#005390]/20'
                     : isActive
-                      ? 'bg-white border-2 border-blue-600 text-blue-600 ring-4 ring-blue-50 shadow-md scale-105'
+                      ? 'bg-white border-2 border-[#005390] text-[#005390] ring-4 ring-[#005390]/10 shadow-md scale-105'
                       : 'bg-white border border-gray-200 text-gray-400'
                 }`}
               >
@@ -77,7 +77,7 @@ export const CommonProgressBar: React.FC<CommonProgressBarProps> = ({
                 {/* Point Count Badge */}
                 <span
                   className={`absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[20px] h-[20px] px-1 text-[10px] font-bold rounded-full border border-white ${
-                    isDone || isActive ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'
+                    isDone || isActive ? 'bg-[#005390] text-white' : 'bg-gray-100 text-gray-500'
                   }`}
                 >
                   {stepNumber}
@@ -89,7 +89,7 @@ export const CommonProgressBar: React.FC<CommonProgressBarProps> = ({
                 <span
                   className={`text-xs font-bold tracking-tight transition-colors ${
                     isActive
-                      ? 'text-blue-600 font-extrabold'
+                      ? 'text-[#005390] font-extrabold'
                       : isDone
                         ? 'text-gray-900 font-semibold'
                         : 'text-gray-400 font-medium'

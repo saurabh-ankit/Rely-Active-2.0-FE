@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Building2, Check, Save, ShieldCheck, UserCheck, X } from 'lucide-react'
+import { useParams } from 'react-router-dom'
+import { Building2, Check, Save, ShieldCheck, X } from 'lucide-react'
 import { propertyApi } from '@/api/property'
 import { rbacApi, type ResourceItem, type UserItem } from '@/api/rbac'
 import type { Property } from '@/pages/Property/types'
@@ -26,18 +27,25 @@ interface RoleModuleManagementProps {
 }
 
 export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ initialUser, onClose }) => {
-  const [users, setUsers] = useState<UserItem[]>([])
+  const { userId: targetParamUserId } = useParams<{ userId?: string }>()
   const [resources, setResources] = useState<ResourceItem[]>([])
   const [properties, setProperties] = useState<Property[]>([])
 
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(initialUser || null)
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('')
-
-  // Set of keys formatted as `${resourceKey}:${permission}` (e.g., `INVENTORY:view`)
   const [activePermissions, setActivePermissions] = useState<Set<string>>(new Set())
-
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null)
+
+  const isSa = selectedUser?.userRoles?.some((ur) => ur.role?.code === 'SUPER_ADMIN')
+
+  const userAssignedProperties = React.useMemo(() => {
+    if (!selectedUser) return properties
+    if (!isSa && selectedUser.assignedProperties && selectedUser.assignedProperties.length > 0) {
+      return selectedUser.assignedProperties
+    }
+    return properties
+  }, [selectedUser, properties, isSa])
 
   useEffect(() => {
     let isMounted = true
@@ -58,24 +66,34 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
           const rankA = ROLE_HIERARCHY_ORDER[roleA] ?? 99
           const rankB = ROLE_HIERARCHY_ORDER[roleB] ?? 99
           if (rankA !== rankB) return rankA - rankB
-          const nameA = a.profile?.first_name || ''
-          const nameB = b.profile?.first_name || ''
+          const nameA = a.profile?.firstName || a.profile?.first_name || ''
+          const nameB = b.profile?.firstName || b.profile?.first_name || ''
           return nameA.localeCompare(nameB)
         })
 
-        setUsers(sortedUsers)
         setResources(rData)
         setProperties(pData)
 
-        if (initialUser) {
-          const target = sortedUsers.find((u) => u.id === initialUser.id) || initialUser
-          setSelectedUser(target)
+        const targetUserId = initialUser?.id || targetParamUserId
+        let targetUserObj: UserItem | null = null
+        if (targetUserId) {
+          targetUserObj = sortedUsers.find((u) => u.id === targetUserId) || initialUser || null
         } else if (sortedUsers.length > 0) {
-          setSelectedUser(sortedUsers[0])
+          targetUserObj = sortedUsers[0]
         }
+        setSelectedUser(targetUserObj)
 
-        if (pData.length > 0) {
-          setSelectedPropertyId(pData[0].id)
+        const isTargetSa = targetUserObj?.userRoles?.some((ur) => ur.role?.code === 'SUPER_ADMIN')
+        const assignedProps =
+          targetUserObj &&
+          !isTargetSa &&
+          targetUserObj.assignedProperties &&
+          targetUserObj.assignedProperties.length > 0
+            ? targetUserObj.assignedProperties
+            : pData
+
+        if (assignedProps.length > 0) {
+          setSelectedPropertyId(assignedProps[0].id)
         }
       } catch (err: unknown) {
         console.warn('Error fetching UBAC resources & locations:', err)
@@ -87,7 +105,7 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
     return () => {
       isMounted = false
     }
-  }, [initialUser])
+  }, [initialUser, targetParamUserId])
 
   // Load location-specific permissions when user or property changes
   useEffect(() => {
@@ -170,7 +188,10 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
     }
   }
 
-  const selectedPropertyName = properties.find((p) => p.id === selectedPropertyId)?.property_name || 'Property'
+  const selectedPropertyName =
+    userAssignedProperties.find((p) => p.id === selectedPropertyId)?.property_name ||
+    properties.find((p) => p.id === selectedPropertyId)?.property_name ||
+    'Property'
 
   return (
     <div className="space-y-6">
@@ -197,40 +218,6 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
           )}
         </div>
 
-        {/* User Selection Chips (hidden if fixed for single initialUser modal, or available to switch) */}
-        <div className="space-y-1.5 pt-2">
-          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-            Select User / Staff Member:
-          </span>
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {users.map((u) => {
-              const isSelected = selectedUser?.id === u.id
-              const fullName =
-                `${u.profile?.first_name || ''} ${u.profile?.last_name || ''}`.trim() || u.email || 'User'
-              const roleTitle = u.userRoles?.[0]?.role?.name || u.userRoles?.[0]?.role?.code || 'User'
-
-              return (
-                <button
-                  key={u.id}
-                  type="button"
-                  onClick={() => setSelectedUser(u)}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer whitespace-nowrap ${
-                    isSelected
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
-                      : 'bg-white/80 border border-gray-200/80 text-gray-700 hover:bg-white'
-                  }`}
-                >
-                  <UserCheck className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-blue-600'}`} />
-                  <span>{fullName}</span>
-                  <span className={`text-[10px] opacity-80 ${isSelected ? 'text-blue-100' : 'text-gray-400'}`}>
-                    ({roleTitle})
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
         {/* Select Location Dropdown */}
         <div className="pt-2">
           <label
@@ -246,7 +233,7 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
             onChange={(e) => setSelectedPropertyId(e.target.value)}
             className="w-full sm:w-72 rounded-xl border border-gray-200 bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 font-semibold shadow-xs"
           >
-            {properties.map((p) => (
+            {userAssignedProperties.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.property_name}
               </option>
@@ -272,8 +259,11 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
             </h3>
             {selectedUser && (
               <p className="text-xs text-gray-500 mt-0.5">
-                Configuring permissions for {selectedUser.profile?.first_name} {selectedUser.profile?.last_name} (
-                {selectedUser.email || 'Staff'})
+                Configuring permissions for{' '}
+                {`${selectedUser.profile?.firstName || selectedUser.profile?.first_name || ''} ${
+                  selectedUser.profile?.lastName || selectedUser.profile?.last_name || ''
+                }`.trim() || selectedUser.username}{' '}
+                ({selectedUser.email || 'Staff'})
               </p>
             )}
           </div>

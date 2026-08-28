@@ -53,7 +53,7 @@ function InputField({
       </label>
       <input
         {...props}
-        className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100 disabled:opacity-75"
+        className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-900 placeholder-gray-400 outline-none transition focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20 disabled:bg-gray-100 disabled:opacity-75"
       />
     </div>
   )
@@ -72,7 +72,7 @@ function SelectField({
       </label>
       <select
         {...props}
-        className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:opacity-50"
+        className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-900 outline-none transition focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20 disabled:opacity-50"
       >
         {children}
       </select>
@@ -87,7 +87,7 @@ function TextareaField({ label, ...props }: React.TextareaHTMLAttributes<HTMLTex
       <textarea
         {...props}
         rows={3}
-        className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-none"
+        className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-900 placeholder-gray-400 outline-none transition focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20 resize-none"
       />
     </div>
   )
@@ -467,8 +467,8 @@ export default function CreatePropertyScreen({
                       onClick={() => setPropertyType(t)}
                       className={`inline-flex items-center gap-1.5 rounded-xl text-xs font-semibold px-4 py-2 border transition-all ${
                         isSelected
-                          ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-                          : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50/50'
+                          ? 'bg-[#005390] border-[#005390] text-white shadow-sm'
+                          : 'bg-white border-gray-200 text-gray-700 hover:border-[#005390]/40 hover:bg-[#005390]/10'
                       }`}
                     >
                       {isSelected && <Check className="h-3.5 w-3.5" />}
@@ -501,17 +501,17 @@ export default function CreatePropertyScreen({
                 Amenities Suggestions
               </div>
               {selectedAmenities.length > 0 && (
-                <div className="flex flex-wrap gap-2 p-3 rounded-xl border border-blue-100 bg-blue-50/40 mb-2">
+                <div className="flex flex-wrap gap-2 p-3 rounded-xl border border-[#005390]/20 bg-[#005390]/10 mb-2">
                   {selectedAmenities.map((amenity) => (
                     <span
                       key={amenity}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 text-white text-xs font-medium px-3 py-1 shadow-sm"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-[#005390] text-white text-xs font-medium px-3 py-1 shadow-sm"
                     >
                       {amenity}
                       <button
                         type="button"
                         onClick={() => toggleAmenity(amenity)}
-                        className="hover:bg-blue-700 rounded-full p-0.5"
+                        className="hover:bg-[#004274] rounded-full p-0.5"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -529,12 +529,12 @@ export default function CreatePropertyScreen({
                       onClick={() => toggleAmenity(suggestion)}
                       className={`inline-flex items-center gap-1.5 rounded-xl text-xs font-medium px-3.5 py-2 border transition-all ${
                         isSelected
-                          ? 'bg-blue-50 border-blue-300 text-blue-700 font-semibold shadow-xs'
-                          : 'bg-white border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-blue-50/30'
+                          ? 'bg-[#005390]/10 border-[#005390]/30 text-[#005390] font-semibold shadow-xs'
+                          : 'bg-white border-gray-200 text-gray-600 hover:border-[#005390]/30 hover:bg-[#005390]/10'
                       }`}
                     >
                       {isSelected ? (
-                        <Check className="h-3.5 w-3.5 text-blue-600" />
+                        <Check className="h-3.5 w-3.5 text-[#005390]" />
                       ) : (
                         <Plus className="h-3.5 w-3.5 text-gray-400" />
                       )}
@@ -555,13 +555,13 @@ export default function CreatePropertyScreen({
                       addCustomAmenity()
                     }
                   }}
-                  className="flex-1 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  className="flex-1 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs text-gray-900 outline-none focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20"
                 />
                 <Button
                   type="button"
                   variant="outline"
                   onClick={addCustomAmenity}
-                  className="rounded-xl text-xs px-4 py-2 border-gray-200 hover:bg-blue-50 hover:text-blue-600"
+                  className="rounded-xl text-xs px-4 py-2 border-gray-200 hover:bg-[#005390]/10 hover:text-[#005390]"
                 >
                   Add
                 </Button>
@@ -1061,7 +1061,7 @@ export default function CreatePropertyScreen({
             <Button
               type="button"
               onClick={handleNext}
-              className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-6"
+              className="rounded-xl bg-[#005390] hover:bg-[#004274] text-white px-6"
             >
               Next →
             </Button>
@@ -1070,7 +1070,7 @@ export default function CreatePropertyScreen({
               type="button"
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-6 min-w-[140px]"
+              className="rounded-xl bg-[#005390] hover:bg-[#004274] text-white px-6 min-w-[140px]"
             >
               {isSubmitting ? (
                 <span className="flex items-center gap-2">

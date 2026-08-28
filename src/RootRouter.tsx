@@ -39,6 +39,46 @@ export default function RootRouter() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="global-settings/users"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="users" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="global-settings/create-user"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="create-user" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="global-settings/edit-user/:id"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="edit-user" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="global-settings/permissions"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="permissions" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="global-settings/permissions/:userId"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="permissions" />
+            </ProtectedRoute>
+          }
+        />
         <Route path="components" element={<ComponentShowcase />} />
 
         {/* rely-active-1.0 Side Nav Routes */}

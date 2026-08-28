@@ -115,7 +115,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#6f8298] py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-[#5e7186] active:scale-[0.99] disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#005390] hover:bg-[#004274] py-2.5 text-sm font-semibold text-white shadow-md transition-all active:scale-[0.99] disabled:opacity-50"
             >
               <LogIn className="h-4 w-4" />
               {isLoading ? 'Signing In...' : 'Sign In'}

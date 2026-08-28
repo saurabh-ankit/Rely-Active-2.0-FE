@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Building2, ShieldCheck, UserCheck } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -10,8 +9,6 @@ interface SettingItem {
   description: string
   link?: string
   icon: LucideIcon
-  color: 'blue' | 'emerald' | 'indigo' | 'amber'
-  view?: 'users'
 }
 
 const systemSettings: SettingItem[] = [
@@ -21,7 +18,6 @@ const systemSettings: SettingItem[] = [
     description: 'Manage core company profile, tax GST info, bank & accountant signatures',
     link: '/company',
     icon: Building2,
-    color: 'emerald',
   },
   {
     id: 'property',
@@ -29,44 +25,56 @@ const systemSettings: SettingItem[] = [
     description: 'Manage facility locations, property units, and location tokens',
     link: '/property',
     icon: Building2,
-    color: 'emerald',
   },
 ]
 
 const accessSettings: SettingItem[] = [
   {
     id: 'user-management',
-    name: 'User Management',
-    description:
-      'Create platform users, staff members, assign roles, property location scopes, and manage module permissions.',
+    name: 'Employee Directory',
+    description: 'Manage employee profiles, assigned properties, and module access permissions.',
     icon: UserCheck,
-    color: 'blue',
-    view: 'users',
+    link: '/global-settings/users',
   },
 ]
 
-export default function GlobalSettingsPage() {
+interface GlobalSettingsPageProps {
+  initialView?: 'main' | 'users' | 'create-user' | 'edit-user' | 'permissions'
+}
+
+export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSettingsPageProps) {
   const navigate = useNavigate()
-  const [activeView, setActiveView] = useState<'main' | 'users'>('main')
+  const activeView = initialView
 
   const handleCardClick = (item: SettingItem) => {
     if (item.link) {
       navigate(item.link)
-    } else if (item.view) {
-      setActiveView(item.view)
     }
+  }
+
+  if (activeView === 'create-user') {
+    return <AdminUserManagement initialMode="create" />
+  }
+
+  if (activeView === 'edit-user') {
+    return <AdminUserManagement initialMode="edit" />
+  }
+
+  if (activeView === 'permissions') {
+    return <AdminUserManagement initialMode="permissions" />
   }
 
   if (activeView === 'users') {
     return (
       <div className="space-y-6 pb-10">
         <button
-          onClick={() => setActiveView('main')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-blue-600 transition-colors cursor-pointer"
+          type="button"
+          onClick={() => navigate('/global-settings')}
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
         </button>
-        <AdminUserManagement />
+        <AdminUserManagement initialMode="list" />
       </div>
     )
   }
@@ -84,7 +92,7 @@ export default function GlobalSettingsPage() {
       {/* Access Control & Permission Management */}
       <section className="space-y-4">
         <h2 className="flex items-center gap-2 text-lg font-bold text-gray-800">
-          <ShieldCheck className="h-5 w-5 text-blue-600" />
+          <ShieldCheck className="h-5 w-5 text-[#005390]" />
           Access Control & Permissions
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -98,10 +106,10 @@ export default function GlobalSettingsPage() {
                 className="group w-full text-left cursor-pointer rounded-3xl border border-white/40 bg-white/70 p-5 shadow-lg backdrop-blur-xl transition-all duration-300 hover:scale-[1.02] hover:bg-white hover:shadow-xl"
               >
                 <div className="flex items-center space-x-3.5 mb-3">
-                  <div className="rounded-2xl bg-blue-50 p-3 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
+                  <div className="rounded-2xl bg-[#005390]/10 p-3 text-[#005390] transition-colors group-hover:bg-[#005390] group-hover:text-white">
                     <Icon className="h-6 w-6" />
                   </div>
-                  <h3 className="text-base font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                  <h3 className="text-base font-bold text-gray-900 group-hover:text-[#005390] transition-colors">
                     {item.name}
                   </h3>
                 </div>
@@ -115,7 +123,7 @@ export default function GlobalSettingsPage() {
       {/* System Settings Grid */}
       <section className="space-y-4">
         <h2 className="flex items-center gap-2 text-lg font-bold text-gray-800">
-          <Building2 className="h-5 w-5 text-emerald-600" />
+          <Building2 className="h-5 w-5 text-[#005390]" />
           Organization & Locations
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -129,10 +137,10 @@ export default function GlobalSettingsPage() {
                 className="group w-full text-left cursor-pointer rounded-3xl border border-white/40 bg-white/70 p-5 shadow-lg backdrop-blur-xl transition-all duration-300 hover:scale-[1.02] hover:bg-white hover:shadow-xl"
               >
                 <div className="flex items-center space-x-3.5 mb-3">
-                  <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600 transition-colors group-hover:bg-emerald-600 group-hover:text-white">
+                  <div className="rounded-2xl bg-[#005390]/10 p-3 text-[#005390] transition-colors group-hover:bg-[#005390] group-hover:text-white">
                     <Icon className="h-6 w-6" />
                   </div>
-                  <h3 className="text-base font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">
+                  <h3 className="text-base font-bold text-gray-900 group-hover:text-[#005390] transition-colors">
                     {item.name}
                   </h3>
                 </div>

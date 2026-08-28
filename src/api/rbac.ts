@@ -25,10 +25,24 @@ export interface UserItem {
   company_id?: string | null
   default_location_id?: string | null
   profile?: {
-    first_name: string
+    firstName?: string | null
+    first_name?: string | null
+    lastName?: string | null
     last_name?: string | null
+    phone?: string | null
     designation?: string | null
+    employeeCode?: string | null
     employee_code?: string | null
+    gender?: string | null
+    dateOfBirth?: string | null
+    date_of_birth?: string | null
+    emergencyContact?: string | null
+    emergency_contact?: string | null
+    bloodGroup?: string | null
+    blood_group?: string | null
+    address?: string | null
+    qualification?: string | null
+    experience?: string | null
   } | null
   userRoles?: UserRoleItem[]
   assignedProperties?: Array<{ id: string; property_name: string }>
@@ -114,6 +128,16 @@ export const rbacApi = {
     password?: string
     designation?: string
     employee_code?: string
+    gender?: string
+    date_of_birth?: string
+    dateOfBirth?: string
+    emergency_contact?: string
+    emergencyContact?: string
+    blood_group?: string
+    bloodGroup?: string
+    address?: string
+    qualification?: string
+    experience?: string
     roleCode?: string
     departmentId?: string
     propertyIds?: string[]
@@ -131,6 +155,48 @@ export const rbacApi = {
     })
     const json: ApiResponse<UserItem> = await res.json()
     if (!res.ok || !json.success) throw new Error(json.message || 'Failed to create user')
+    return json.data
+  },
+
+  updateUser: async (
+    id: string,
+    payload: {
+      username?: string
+      first_name?: string
+      last_name?: string
+      email?: string
+      phone?: string
+      password?: string
+      designation?: string
+      employee_code?: string
+      gender?: string
+      date_of_birth?: string
+      dateOfBirth?: string
+      emergency_contact?: string
+      emergencyContact?: string
+      blood_group?: string
+      bloodGroup?: string
+      address?: string
+      qualification?: string
+      experience?: string
+      roleCode?: string
+      departmentId?: string
+      propertyIds?: string[]
+      locIds?: string[]
+      companyId?: string
+      defaultLocationId?: string
+    },
+  ): Promise<UserItem> => {
+    const res = await fetch(`${API_BASE_URL}/users/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        ...payload,
+        locIds: payload.locIds || payload.propertyIds,
+      }),
+    })
+    const json: ApiResponse<UserItem> = await res.json()
+    if (!res.ok || !json.success) throw new Error(json.message || 'Failed to update user')
     return json.data
   },
 
