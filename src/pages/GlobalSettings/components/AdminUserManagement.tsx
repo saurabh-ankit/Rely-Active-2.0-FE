@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react'
-import { Building2, Check, Plus, Shield, UserCheck } from 'lucide-react'
+import { ArrowLeft, Building2, Check, Plus, Shield, ShieldCheck, UserCheck } from 'lucide-react'
 import { propertyApi } from '@/api/property'
 import { rbacApi, type DepartmentItem, type RoleItem, type UserItem } from '@/api/rbac'
 import type { Property } from '@/pages/Property/types'
 import { CommonButton } from '@/components/common/CommonButton'
 import { CommonInput } from '@/components/common/CommonInput'
 import { CommonModal } from '@/components/common/CommonModal'
+import { notifyError, notifySuccess } from '@/utils/toast'
+import { RoleModuleManagement } from './RoleModuleManagement'
 
 const ROLE_HIERARCHY_ORDER: Record<string, number> = {
   SUPER_ADMIN: 1,
@@ -38,7 +40,11 @@ export const AdminUserManagement: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
+  // Full page view state for managing permissions
+  const [selectedUserForPermissions, setSelectedUserForPermissions] = useState<UserItem | null>(null)
+
   // Form fields
+  const [username, setUsername] = useState('')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -92,8 +98,8 @@ export const AdminUserManagement: React.FC = () => {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!firstName || (!email && !phone)) {
-      setErrorMsg('First name and email or phone are required.')
+    if (!firstName || (!username && !email && !phone)) {
+      setErrorMsg('First name and username (or email/phone) are required.')
       return
     }
 
@@ -101,6 +107,7 @@ export const AdminUserManagement: React.FC = () => {
     setErrorMsg(null)
     try {
       await rbacApi.createUser({
+        username: username.trim() || undefined,
         first_name: firstName,
         last_name: lastName,
         email,
@@ -109,12 +116,16 @@ export const AdminUserManagement: React.FC = () => {
         designation,
         employee_code: employeeCode,
         roleCode: selectedRoleCode,
-        departmentId: selectedDepartmentId || undefined,
+        departmentId: ['MANAGER', 'EMPLOYEE'].includes(selectedRoleCode.toUpperCase())
+          ? selectedDepartmentId || undefined
+          : undefined,
         propertyIds: Array.from(selectedPropertyIds),
       })
 
+      notifySuccess(`User ${firstName} created successfully!`)
       setShowCreateModal(false)
       // Reset form
+      setUsername('')
       setFirstName('')
       setLastName('')
       setEmail('')
@@ -137,9 +148,30 @@ export const AdminUserManagement: React.FC = () => {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to create user.'
       setErrorMsg(message)
+      notifyError('Failed to Create User', message)
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // If user selected an employee to manage permissions, render full PAGE view
+  if (selectedUserForPermissions) {
+    return (
+      <div className="space-y-6 pb-10">
+        <button
+          type="button"
+          onClick={() => setSelectedUserForPermissions(null)}
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-blue-600 transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to User Management
+        </button>
+
+        <RoleModuleManagement
+          initialUser={selectedUserForPermissions}
+          onClose={() => setSelectedUserForPermissions(null)}
+        />
+      </div>
+    )
   }
 
   return (
@@ -149,10 +181,10 @@ export const AdminUserManagement: React.FC = () => {
         <div>
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <UserCheck className="w-5 h-5 text-blue-600" />
-            Admin & User Management
+            User Management
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">
-            Create platform users, tick accessible properties (`user_properties`), and assign operational departments.
+            Manage platform users, staff profiles, assigned properties, and module access permissions.
           </p>
         </div>
         <CommonButton variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setShowCreateModal(true)}>
@@ -179,6 +211,7 @@ export const AdminUserManagement: React.FC = () => {
                   <th className="py-3.5 px-5">Assigned Roles</th>
                   <th className="py-3.5 px-5">Assigned Properties</th>
                   <th className="py-3.5 px-5">Status</th>
+                  <th className="py-3.5 px-5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100/70 font-medium">
@@ -198,6 +231,7 @@ export const AdminUserManagement: React.FC = () => {
                           </div>
                           <div>
                             <div className="font-bold text-gray-900 text-sm">{fullName}</div>
+                            {u.username && <div className="text-[11px] text-blue-600 font-semibold">@{u.username}</div>}
                             {u.profile?.employee_code && (
                               <div className="text-[10px] text-gray-400">Code: {u.profile.employee_code}</div>
                             )}
@@ -254,6 +288,22 @@ export const AdminUserManagement: React.FC = () => {
                           {u.status}
                         </span>
                       </td>
+                      <td className="py-4 px-5 text-right">
+                        {!isSa ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedUserForPermissions(u)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-all cursor-pointer border border-blue-200/80 shadow-2xs"
+                          >
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            Manage Permissions
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-amber-700 font-bold bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                            Full System Access
+                          </span>
+                        )}
+                      </td>
                     </tr>
                   )
                 })}
@@ -277,6 +327,14 @@ export const AdminUserManagement: React.FC = () => {
             </div>
           )}
 
+          <CommonInput
+            label="Username (Login Handle)"
+            required
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="e.g. ravi_kumar"
+          />
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <CommonInput
               label="First Name"
@@ -295,9 +353,8 @@ export const AdminUserManagement: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <CommonInput
-              label="Email Address / Login Username"
+              label="Email Address"
               type="email"
-              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="admin.hyd@rely.com"
@@ -334,51 +391,58 @@ export const AdminUserManagement: React.FC = () => {
           </div>
 
           {/* Role & Department Dropdowns */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="role-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Assigned System Role
-              </label>
-              <select
-                id="role-select"
-                value={selectedRoleCode}
-                onChange={(e) => setSelectedRoleCode(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 font-medium"
-              >
-                {roles
-                  .filter((r) => r.code !== 'SUPER_ADMIN')
-                  .map((r) => (
-                    <option key={r.id} value={r.code}>
-                      {r.name} ({r.code})
-                    </option>
-                  ))}
-              </select>
-            </div>
+          {(() => {
+            const isDepartmentRole = ['MANAGER', 'EMPLOYEE'].includes(selectedRoleCode.toUpperCase())
+            return (
+              <div className={`grid grid-cols-1 ${isDepartmentRole ? 'sm:grid-cols-2' : ''} gap-4`}>
+                <div>
+                  <label htmlFor="role-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Assigned System Role
+                  </label>
+                  <select
+                    id="role-select"
+                    value={selectedRoleCode}
+                    onChange={(e) => setSelectedRoleCode(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 font-medium"
+                  >
+                    {roles
+                      .filter((r) => r.code !== 'SUPER_ADMIN')
+                      .map((r) => (
+                        <option key={r.id} value={r.code}>
+                          {r.name} ({r.code})
+                        </option>
+                      ))}
+                  </select>
+                </div>
 
-            <div>
-              <label htmlFor="dept-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Assign Operational Department
-              </label>
-              <select
-                id="dept-select"
-                value={selectedDepartmentId}
-                onChange={(e) => setSelectedDepartmentId(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 font-medium"
-              >
-                {departments.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name} ({d.code})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+                {isDepartmentRole && (
+                  <div>
+                    <label htmlFor="dept-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                      Assign Operational Department
+                    </label>
+                    <select
+                      id="dept-select"
+                      value={selectedDepartmentId}
+                      onChange={(e) => setSelectedDepartmentId(e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 font-medium"
+                    >
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name} ({d.code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
 
-          {/* Tick Properties Checkboxes (user_properties mapping) */}
+          {/* Tick Properties Checkboxes (user_locations mapping) */}
           <div className="space-y-2 border-t border-gray-100 pt-3">
             <div className="block text-xs font-bold text-gray-800 flex items-center gap-1.5">
               <Building2 className="w-4 h-4 text-blue-600" />
-              Tick Property Access (`user_properties`):
+              Tick Property Access (`user_locations`):
             </div>
             {availableProperties.length === 0 ? (
               <p className="text-xs text-gray-400">No properties created yet.</p>

@@ -1,4 +1,4 @@
-import { API_BASE_URL, type ApiResponse } from './api'
+import { API_BASE_URL, getAuthHeaders, type ApiResponse } from './api'
 
 export interface UserRoleItem {
   id: string
@@ -17,6 +17,7 @@ export interface UserRoleItem {
 
 export interface UserItem {
   id: string
+  username?: string | null
   email?: string | null
   phone?: string | null
   status: string
@@ -96,9 +97,8 @@ export interface UserLocationPermissionItem {
 export const rbacApi = {
   // ── Users ────────────────────────────────────────────────────────────────
   getUsers: async (): Promise<UserItem[]> => {
-    const token = localStorage.getItem('rely_auth_token')
     const res = await fetch(`${API_BASE_URL}/users`, {
-      headers: { Authorization: token ? `Bearer ${token}` : '' },
+      headers: getAuthHeaders(),
     })
     const json: ApiResponse<UserItem[]> = await res.json()
     if (!res.ok || !json.success) throw new Error(json.message || 'Failed to fetch users')
@@ -106,6 +106,7 @@ export const rbacApi = {
   },
 
   createUser: async (payload: {
+    username?: string
     first_name: string
     last_name?: string
     email?: string
@@ -116,17 +117,17 @@ export const rbacApi = {
     roleCode?: string
     departmentId?: string
     propertyIds?: string[]
+    locIds?: string[]
     companyId?: string
     defaultLocationId?: string
   }): Promise<UserItem> => {
-    const token = localStorage.getItem('rely_auth_token')
     const res = await fetch(`${API_BASE_URL}/users`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : '',
-      },
-      body: JSON.stringify(payload),
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        ...payload,
+        locIds: payload.locIds || payload.propertyIds,
+      }),
     })
     const json: ApiResponse<UserItem> = await res.json()
     if (!res.ok || !json.success) throw new Error(json.message || 'Failed to create user')
@@ -134,24 +135,19 @@ export const rbacApi = {
   },
 
   getUserAccessibleProperties: async (): Promise<Array<{ id: string; property_name: string }>> => {
-    const token = localStorage.getItem('rely_auth_token')
-    const res = await fetch(`${API_BASE_URL}/users/me/properties`, {
-      headers: { Authorization: token ? `Bearer ${token}` : '' },
+    const res = await fetch(`${API_BASE_URL}/users/accessible-properties`, {
+      headers: getAuthHeaders(),
     })
     const json: ApiResponse<Array<{ id: string; property_name: string }>> = await res.json()
     if (!res.ok || !json.success) throw new Error(json.message || 'Failed to fetch user accessible properties')
     return json.data
   },
 
-  updateUserProperties: async (userId: string, propertyIds: string[]) => {
-    const token = localStorage.getItem('rely_auth_token')
+  updateUserProperties: async (userId: string, locIds: string[]) => {
     const res = await fetch(`${API_BASE_URL}/users/${userId}/properties`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : '',
-      },
-      body: JSON.stringify({ propertyIds }),
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ locIds, propertyIds: locIds }),
     })
     const json = await res.json()
     if (!res.ok || !json.success) throw new Error(json.message || 'Failed to update user properties')
@@ -162,13 +158,9 @@ export const rbacApi = {
     userId: string,
     payload: { roleCode: string; companyId?: string; locationId?: string; departmentId?: string },
   ) => {
-    const token = localStorage.getItem('rely_auth_token')
     const res = await fetch(`${API_BASE_URL}/users/${userId}/roles`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : '',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload),
     })
     const json = await res.json()
@@ -177,13 +169,9 @@ export const rbacApi = {
   },
 
   updateUserPermissions: async (userId: string, permissionIds: string[]) => {
-    const token = localStorage.getItem('rely_auth_token')
     const res = await fetch(`${API_BASE_URL}/users/${userId}/permissions`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : '',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ permissionIds }),
     })
     const json = await res.json()
@@ -193,9 +181,8 @@ export const rbacApi = {
 
   // ── Location & Resource UBAC ─────────────────────────────────────────────
   getResources: async (): Promise<ResourceItem[]> => {
-    const token = localStorage.getItem('rely_auth_token')
     const res = await fetch(`${API_BASE_URL}/resources`, {
-      headers: { Authorization: token ? `Bearer ${token}` : '' },
+      headers: getAuthHeaders(),
     })
     const json: ApiResponse<ResourceItem[]> = await res.json()
     if (!res.ok || !json.success) throw new Error(json.message || 'Failed to fetch resources')
@@ -203,9 +190,8 @@ export const rbacApi = {
   },
 
   getUserLocationPermissions: async (userId: string, locationId: string): Promise<UserLocationPermissionItem[]> => {
-    const token = localStorage.getItem('rely_auth_token')
     const res = await fetch(`${API_BASE_URL}/resources/users/${userId}/location-permissions?locationId=${locationId}`, {
-      headers: { Authorization: token ? `Bearer ${token}` : '' },
+      headers: getAuthHeaders(),
     })
     const json: ApiResponse<UserLocationPermissionItem[]> = await res.json()
     if (!res.ok || !json.success) throw new Error(json.message || 'Failed to fetch location permissions')
@@ -217,13 +203,9 @@ export const rbacApi = {
     locationId: string,
     permissions: Array<{ resourceKey: string; permission: 'view' | 'create' | 'update' | 'delete' }>,
   ) => {
-    const token = localStorage.getItem('rely_auth_token')
     const res = await fetch(`${API_BASE_URL}/resources/users/${userId}/location-permissions`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : '',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ locationId, permissions }),
     })
     const json = await res.json()
@@ -233,9 +215,8 @@ export const rbacApi = {
 
   // ── Roles ────────────────────────────────────────────────────────────────
   getRoles: async (): Promise<RoleItem[]> => {
-    const token = localStorage.getItem('rely_auth_token')
     const res = await fetch(`${API_BASE_URL}/roles`, {
-      headers: { Authorization: token ? `Bearer ${token}` : '' },
+      headers: getAuthHeaders(),
     })
     const json: ApiResponse<RoleItem[]> = await res.json()
     if (!res.ok || !json.success) throw new Error(json.message || 'Failed to fetch roles')
@@ -248,13 +229,9 @@ export const rbacApi = {
     description?: string
     permissionIds?: string[]
   }): Promise<RoleItem> => {
-    const token = localStorage.getItem('rely_auth_token')
     const res = await fetch(`${API_BASE_URL}/roles`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : '',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload),
     })
     const json: ApiResponse<RoleItem> = await res.json()
@@ -263,13 +240,9 @@ export const rbacApi = {
   },
 
   updateRolePermissions: async (roleId: string, permissionIds: string[]): Promise<RoleItem> => {
-    const token = localStorage.getItem('rely_auth_token')
     const res = await fetch(`${API_BASE_URL}/roles/${roleId}/permissions`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : '',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ permissionIds }),
     })
     const json: ApiResponse<RoleItem> = await res.json()
@@ -279,9 +252,8 @@ export const rbacApi = {
 
   // ── Departments ──────────────────────────────────────────────────────────
   getDepartments: async (): Promise<DepartmentItem[]> => {
-    const token = localStorage.getItem('rely_auth_token')
     const res = await fetch(`${API_BASE_URL}/departments`, {
-      headers: { Authorization: token ? `Bearer ${token}` : '' },
+      headers: getAuthHeaders(),
     })
     const json: ApiResponse<DepartmentItem[]> = await res.json()
     if (!res.ok || !json.success) throw new Error(json.message || 'Failed to fetch departments')
@@ -290,9 +262,8 @@ export const rbacApi = {
 
   // ── Permissions & Modules ────────────────────────────────────────────────
   getModules: async (): Promise<ModuleItem[]> => {
-    const token = localStorage.getItem('rely_auth_token')
     const res = await fetch(`${API_BASE_URL}/permissions/modules`, {
-      headers: { Authorization: token ? `Bearer ${token}` : '' },
+      headers: getAuthHeaders(),
     })
     const json: ApiResponse<ModuleItem[]> = await res.json()
     if (!res.ok || !json.success) throw new Error(json.message || 'Failed to fetch modules')
@@ -300,9 +271,8 @@ export const rbacApi = {
   },
 
   getPermissionsAndModules: async (): Promise<{ permissions: PermissionItem[]; modules: ModuleItem[] }> => {
-    const token = localStorage.getItem('rely_auth_token')
     const res = await fetch(`${API_BASE_URL}/permissions`, {
-      headers: { Authorization: token ? `Bearer ${token}` : '' },
+      headers: getAuthHeaders(),
     })
     const json: ApiResponse<{ permissions: PermissionItem[]; modules: ModuleItem[] }> = await res.json()
     if (!res.ok || !json.success) throw new Error(json.message || 'Failed to fetch permissions')

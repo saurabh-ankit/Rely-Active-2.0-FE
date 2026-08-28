@@ -323,6 +323,60 @@ export default function CreatePropertyScreen({
     setError(null)
     setIsSubmitting(true)
     try {
+      const processedBlocks = blocks.map((b) => {
+        if ((!b.floors || b.floors.length === 0) && b.total_floors && b.total_floors > 0) {
+          const totalFloors = b.total_floors
+          const unitsPerFloor = b.units_per_floor || 4
+          const prefix = b.prefix || 'A'
+          const bhkTemplates = b.bhk_templates || []
+          const generatedFloors: FloorInput[] = []
+
+          for (let f = 1; f <= totalFloors; f++) {
+            const isGround = f === 1
+            const floorType = isGround ? 'GROUND_FLOOR' : 'FLOOR'
+            const isSellable = !isGround
+            const floorUnits: UnitInput[] = []
+
+            if (isSellable) {
+              for (let p = 1; p <= unitsPerFloor; p++) {
+                const assignedBHK = bhkTemplates.find((t) => t.positions.some((pos) => pos.position === p))
+                const unitType = assignedBHK ? assignedBHK.type : '2BHK'
+                const carpetArea = assignedBHK ? assignedBHK.carpet_area : 1200
+                const sbaArea = assignedBHK ? assignedBHK.super_built_up_area : 1200
+                const posObj = assignedBHK?.positions.find((pos) => pos.position === p)
+                const direction = posObj?.direction || 'North-East'
+                const viewFacing = posObj?.view_facing || 'Garden View'
+                const unitNum = `${prefix}-${f}${String(p).padStart(2, '0')}`
+
+                floorUnits.push({
+                  unit_number: unitNum,
+                  unit_type: unitType,
+                  position: p,
+                  direction,
+                  view_facing: viewFacing,
+                  is_sellable: true,
+                  carpet_area: carpetArea,
+                  built_up_area: sbaArea,
+                  super_built_up_area: sbaArea,
+                  status: 'available',
+                })
+              }
+            }
+
+            generatedFloors.push({
+              floor_number: f,
+              floor_name: isGround ? 'Ground Floor' : `Floor ${f}`,
+              floor_type: floorType,
+              is_sellable: isSellable,
+              units: floorUnits,
+            })
+          }
+
+          return { ...b, floors: generatedFloors }
+        }
+        return b
+      })
+
       const payload: CreatePropertyPayload = {
         companyId,
         property_name: propertyName.trim(),
@@ -336,7 +390,7 @@ export default function CreatePropertyScreen({
         total_area: totalArea ? Number(totalArea) : null,
         area_unit: areaUnit,
         amenities: selectedAmenities.length > 0 ? selectedAmenities : null,
-        blocks: blocks.length > 0 ? blocks : undefined,
+        blocks: processedBlocks.length > 0 ? processedBlocks : undefined,
       }
 
       if (editPropertyId) {

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { Building2, Check, Save, ShieldCheck, UserCheck } from 'lucide-react'
+import { Building2, Check, Save, ShieldCheck, UserCheck, X } from 'lucide-react'
 import { propertyApi } from '@/api/property'
 import { rbacApi, type ResourceItem, type UserItem } from '@/api/rbac'
 import type { Property } from '@/pages/Property/types'
 import { CommonButton } from '@/components/common/CommonButton'
+import { notifyError, notifySuccess } from '@/utils/toast'
 
 const ROLE_HIERARCHY_ORDER: Record<string, number> = {
   SUPER_ADMIN: 1,
@@ -19,12 +20,17 @@ const ROLE_HIERARCHY_ORDER: Record<string, number> = {
 
 type PermissionAction = 'view' | 'create' | 'update' | 'delete'
 
-export const RoleModuleManagement: React.FC = () => {
+interface RoleModuleManagementProps {
+  initialUser?: UserItem | null
+  onClose?: () => void
+}
+
+export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ initialUser, onClose }) => {
   const [users, setUsers] = useState<UserItem[]>([])
   const [resources, setResources] = useState<ResourceItem[]>([])
   const [properties, setProperties] = useState<Property[]>([])
 
-  const [selectedUser, setSelectedUser] = useState<UserItem | null>(null)
+  const [selectedUser, setSelectedUser] = useState<UserItem | null>(initialUser || null)
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('')
 
   // Set of keys formatted as `${resourceKey}:${permission}` (e.g., `INVENTORY:view`)
@@ -61,9 +67,13 @@ export const RoleModuleManagement: React.FC = () => {
         setResources(rData)
         setProperties(pData)
 
-        if (sortedUsers.length > 0) {
+        if (initialUser) {
+          const target = sortedUsers.find((u) => u.id === initialUser.id) || initialUser
+          setSelectedUser(target)
+        } else if (sortedUsers.length > 0) {
           setSelectedUser(sortedUsers[0])
         }
+
         if (pData.length > 0) {
           setSelectedPropertyId(pData[0].id)
         }
@@ -77,7 +87,7 @@ export const RoleModuleManagement: React.FC = () => {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [initialUser])
 
   // Load location-specific permissions when user or property changes
   useEffect(() => {
@@ -147,10 +157,14 @@ export const RoleModuleManagement: React.FC = () => {
 
       await rbacApi.saveUserLocationPermissions(selectedUser.id, selectedPropertyId, payload)
       const selectedProp = properties.find((p) => p.id === selectedPropertyId)
-      setSaveSuccessMsg(`Resource permissions saved for ${selectedProp?.property_name || 'selected property'}!`)
-      setTimeout(() => setSaveSuccessMsg(null), 3000)
+      notifySuccess(`Resource permissions saved for ${selectedProp?.property_name || 'selected property'}!`)
+      if (onClose) {
+        setTimeout(() => onClose(), 600)
+      }
     } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save location permissions.'
       console.error('Failed to save location permissions:', err)
+      notifyError('Save Failed', msg)
     } finally {
       setIsSaving(false)
     }
@@ -162,20 +176,31 @@ export const RoleModuleManagement: React.FC = () => {
     <div className="space-y-6">
       {/* Header Bar */}
       <div className="bg-white/60 backdrop-blur-xl border border-white/50 rounded-2xl p-5 shadow-sm space-y-4">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <ShieldCheck className="w-6 h-6 text-blue-600" />
-            Resource Permissions
-          </h2>
-          <p className="text-xs text-gray-500 mt-1">
-            Manage Location & Resource UBAC permissions across modules for selected user roles.
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <ShieldCheck className="w-6 h-6 text-blue-600" />
+              Role & Module Permissions
+            </h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Manage Location & Resource UBAC permissions across modules for selected user roles.
+            </p>
+          </div>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
         </div>
 
-        {/* User Selection Chips */}
+        {/* User Selection Chips (hidden if fixed for single initialUser modal, or available to switch) */}
         <div className="space-y-1.5 pt-2">
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-            Select User Role / Admin:
+            Select User / Staff Member:
           </span>
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
             {users.map((u) => {
@@ -213,7 +238,7 @@ export const RoleModuleManagement: React.FC = () => {
             className="block text-xs font-bold text-gray-700 mb-1.5 flex items-center gap-1.5"
           >
             <Building2 className="w-4 h-4 text-blue-600" />
-            Select Location
+            Select Location / Property Scope
           </label>
           <select
             id="location-select"
@@ -243,24 +268,31 @@ export const RoleModuleManagement: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
           <div>
             <h3 className="text-base font-bold text-gray-900">
-              Resource Permissions for <span className="text-blue-600">{selectedPropertyName}</span>
+              Module Access Matrix for <span className="text-blue-600">{selectedPropertyName}</span>
             </h3>
             {selectedUser && (
               <p className="text-xs text-gray-500 mt-0.5">
                 Configuring permissions for {selectedUser.profile?.first_name} {selectedUser.profile?.last_name} (
-                {selectedUser.email || 'Admin'})
+                {selectedUser.email || 'Staff'})
               </p>
             )}
           </div>
 
-          <CommonButton
-            variant="primary"
-            icon={<Save className="w-4 h-4" />}
-            isLoading={isSaving}
-            onClick={handleSaveChanges}
-          >
-            Save Changes
-          </CommonButton>
+          <div className="flex items-center gap-2">
+            {onClose && (
+              <CommonButton variant="cancel" onClick={onClose}>
+                Cancel
+              </CommonButton>
+            )}
+            <CommonButton
+              variant="primary"
+              icon={<Save className="w-4 h-4" />}
+              isLoading={isSaving}
+              onClick={handleSaveChanges}
+            >
+              Save Permissions
+            </CommonButton>
+          </div>
         </div>
 
         {/* Matrix Table */}
@@ -268,7 +300,7 @@ export const RoleModuleManagement: React.FC = () => {
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-gray-200/80 text-gray-500 font-bold text-[11px] uppercase tracking-wider">
-                <th className="py-3 px-4 w-1/3">Resource</th>
+                <th className="py-3 px-4 w-1/3">Resource Module</th>
                 <th className="py-3 px-4 text-center">View</th>
                 <th className="py-3 px-4 text-center">Create</th>
                 <th className="py-3 px-4 text-center">Update</th>

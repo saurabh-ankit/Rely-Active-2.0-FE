@@ -1,8 +1,7 @@
 import { API_BASE_URL, type ApiResponse } from './api'
 
 export interface LoginPayload {
-  email?: string
-  phone?: string
+  username: string
   password: string
 }
 
@@ -18,6 +17,7 @@ export interface UserProfileData {
 
 export interface UserAuthData {
   id: string
+  username?: string | null
   email?: string | null
   phone?: string | null
   companyId?: string | null
@@ -34,7 +34,7 @@ export interface LoginResponseData {
 }
 
 export const authApi = {
-  /** Login with email/phone & password */
+  /** Login with username & password */
   login: async (payload: LoginPayload): Promise<LoginResponseData> => {
     const res = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
@@ -48,7 +48,7 @@ export const authApi = {
 
   /** Get logged in user profile & permissions */
   getMe: async (token: string): Promise<UserAuthData> => {
-    const res = await fetch(`${API_BASE_URL}/auth/me`, {
+    const res = await fetch(`${API_BASE_URL}/auth/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     const json: ApiResponse<UserAuthData> = await res.json()

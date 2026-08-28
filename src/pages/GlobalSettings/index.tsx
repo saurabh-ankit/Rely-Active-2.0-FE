@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Building2, ShieldCheck, UserCheck } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { AdminUserManagement } from './components/AdminUserManagement'
-import { RoleModuleManagement } from './components/RoleModuleManagement'
 
 interface SettingItem {
   id: string
@@ -12,7 +11,7 @@ interface SettingItem {
   link?: string
   icon: LucideIcon
   color: 'blue' | 'emerald' | 'indigo' | 'amber'
-  view?: 'users' | 'roles'
+  view?: 'users'
 }
 
 const systemSettings: SettingItem[] = [
@@ -37,25 +36,18 @@ const systemSettings: SettingItem[] = [
 const accessSettings: SettingItem[] = [
   {
     id: 'user-management',
-    name: 'Admin & User Management',
-    description: 'Create platform users, staff members, assign roles and property location scopes',
+    name: 'User Management',
+    description:
+      'Create platform users, staff members, assign roles, property location scopes, and manage module permissions.',
     icon: UserCheck,
     color: 'blue',
     view: 'users',
-  },
-  {
-    id: 'role-permissions',
-    name: 'Roles & Module Permissions',
-    description: 'Configure system roles, custom authorization roles, and module access matrix',
-    icon: ShieldCheck,
-    color: 'indigo',
-    view: 'roles',
   },
 ]
 
 export default function GlobalSettingsPage() {
   const navigate = useNavigate()
-  const [activeView, setActiveView] = useState<'main' | 'users' | 'roles'>('main')
+  const [activeView, setActiveView] = useState<'main' | 'users'>('main')
 
   const handleCardClick = (item: SettingItem) => {
     if (item.link) {
@@ -75,20 +67,6 @@ export default function GlobalSettingsPage() {
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
         </button>
         <AdminUserManagement />
-      </div>
-    )
-  }
-
-  if (activeView === 'roles') {
-    return (
-      <div className="space-y-6 pb-10">
-        <button
-          onClick={() => setActiveView('main')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-blue-600 transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </button>
-        <RoleModuleManagement />
       </div>
     )
   }

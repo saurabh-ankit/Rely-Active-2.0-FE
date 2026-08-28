@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Lock, LogIn, User } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { companyApi } from '@/api/company'
+import { notifyError, notifySuccess } from '@/utils/toast'
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
-  const [userId, setUserId] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -18,13 +19,12 @@ export default function LoginPage() {
     setIsLoading(true)
     setErrorMsg(null)
     try {
-      if (userId && password) {
-        const isEmail = userId.includes('@')
+      if (username && password) {
         await authLogin({
-          email: isEmail ? userId.trim() : undefined,
-          phone: !isEmail ? userId.trim() : undefined,
+          username: username.trim(),
           password: password,
         })
+        notifySuccess('Sign in successful!', 'Welcome back to Rely Active Operations.')
       }
 
       const companies = await companyApi.getAll()
@@ -38,8 +38,8 @@ export default function LoginPage() {
       const message = err instanceof Error ? err.message : 'Login failed. Please check your credentials.'
       console.warn('Login note:', message)
       setErrorMsg(message)
-      // Fallback navigate to dashboard if offline/demo
-      if (!userId) {
+      notifyError('Sign In Failed', message)
+      if (!username) {
         navigate('/dashboard')
       }
     } finally {
@@ -67,18 +67,18 @@ export default function LoginPage() {
 
         {/* Login Form */}
         <form onSubmit={handleLogin} className="mt-8 space-y-4">
-          {/* User ID Field */}
+          {/* Username Field */}
           <div>
             <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-[#5a616d]">
               <User className="h-3.5 w-3.5" />
-              User ID
+              Username
             </span>
             <div className="relative">
               <input
                 type="text"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                placeholder="Enter your user ID"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your username (e.g. superadmin)"
                 className="w-full rounded-xl border border-gray-300/80 bg-[#e4e6e9] py-2.5 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-500/70 focus:border-[#71849a] focus:bg-[#eaecf0] focus:outline-none focus:ring-2 focus:ring-[#71849a]/30"
               />
               <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500/80" />

@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Bell, Building2, ChevronDown, LogOut, Menu, Settings, Shield } from 'lucide-react'
-import { rbacApi } from '@/api/rbac'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
+import { useLocationContext, type PropertyLocationItem } from '@/context/LocationContext'
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -13,28 +13,10 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = true }) => {
   const navigate = useNavigate()
   const { user, isSuperAdmin, logout } = useAuth()
-  const [userProperties, setUserProperties] = useState<Array<{ id: string; property_name: string }>>([])
-  const [selectedLocation, setSelectedLocation] = useState<string>('Select Property')
+  const { selectedLocationName, accessibleLocations, selectLocation } = useLocationContext()
+
   const [showLocationDropdown, setShowLocationDropdown] = useState(false)
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
-
-  useEffect(() => {
-    const fetchUserProperties = async () => {
-      try {
-        const props = await rbacApi.getUserAccessibleProperties()
-        setUserProperties(props)
-        if (props.length > 0) {
-          setSelectedLocation(props[0].property_name)
-        }
-      } catch (err: unknown) {
-        console.warn('Error fetching accessible user properties:', err)
-      }
-    }
-
-    if (user) {
-      fetchUserProperties()
-    }
-  }, [user])
 
   const fullName = user?.profile?.first_name
     ? `${user.profile.first_name} ${user.profile.last_name || ''}`.trim()
@@ -82,7 +64,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
               className="flex items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 shadow-lg rounded-full px-4 py-1.5 text-xs font-semibold text-gray-800 transition-all hover:bg-white/30 cursor-pointer"
             >
               <Building2 className="h-3.5 w-3.5 text-blue-600" />
-              <span>{selectedLocation}</span>
+              <span>{selectedLocationName || 'Select Property'}</span>
               <ChevronDown className="h-3.5 w-3.5 text-gray-500 opacity-80" />
             </button>
 
@@ -93,25 +75,25 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
                   {isSuperAdmin && <span className="text-[9px] text-blue-600 font-extrabold">GLOBAL</span>}
                 </div>
 
-                {userProperties.length === 0 ? (
+                {accessibleLocations.length === 0 ? (
                   <div className="px-3 py-2 text-xs text-gray-400">No properties available</div>
                 ) : (
-                  userProperties.map((p) => (
+                  accessibleLocations.map((p: PropertyLocationItem) => (
                     <button
                       key={p.id}
                       type="button"
                       onClick={() => {
-                        setSelectedLocation(p.property_name)
+                        selectLocation(p)
                         setShowLocationDropdown(false)
                       }}
                       className={`w-full text-left px-3 py-2 text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-between ${
-                        selectedLocation === p.property_name
+                        selectedLocationName === p.property_name
                           ? 'bg-blue-600 font-semibold text-white shadow-sm'
                           : 'hover:bg-gray-100 text-gray-700'
                       }`}
                     >
                       <span className="truncate">{p.property_name}</span>
-                      {selectedLocation === p.property_name && <span className="text-[10px]">✓</span>}
+                      {selectedLocationName === p.property_name && <span className="text-[10px]">✓</span>}
                     </button>
                   ))
                 )}
