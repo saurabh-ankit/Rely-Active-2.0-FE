@@ -8,6 +8,7 @@ import GlobalSettingsPage from '@/pages/GlobalSettings'
 import LoginPage from '@/pages/Login'
 import PropertyPage from '@/pages/Property'
 import CreatePropertyPage from '@/pages/Property/CreatePropertyPage'
+import ResidentPage from '@/pages/Resident'
 import SectionPage from '@/pages/SectionPage'
 import SetupPage from '@/pages/Setup'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
@@ -83,7 +84,9 @@ export default function RootRouter() {
         <Route path="components" element={<ComponentShowcase />} />
 
         {/* rely-active-1.0 Side Nav Routes */}
-        <Route path="admin/residents" element={<SectionPage title="Resident Management" />} />
+        <Route path="admin/residents" element={<ResidentPage initialView="list" />} />
+        <Route path="admin/residents/create" element={<ResidentPage initialView="create" />} />
+        <Route path="admin/residents/edit/:id" element={<ResidentPage initialView="edit" />} />
         <Route path="admin/employees" element={<EmployeeDirectoryPage initialView="list" />} />
         <Route path="admin/employees/create" element={<EmployeeDirectoryPage initialView="create" />} />
         <Route path="admin/employees/edit/:id" element={<EmployeeDirectoryPage initialView="edit" />} />

@@ -35,6 +35,16 @@ export const API_ENDPOINTS = {
     delete: (id: string) => `${BASE_URL}/property/${id}`,
   },
 
+  resident: {
+    getAll: `${BASE_URL}/residents`,
+    getById: (id: string) => `${BASE_URL}/residents/${id}`,
+    getByUnit: (unitId: string) => `${BASE_URL}/residents/unit/${unitId}`,
+    create: `${BASE_URL}/residents`,
+    update: (id: string) => `${BASE_URL}/residents/${id}`,
+    delete: (id: string) => `${BASE_URL}/residents/${id}`,
+    login: `${BASE_URL}/residents/auth/login`,
+  },
+
   globalRbac: {
     getRoles: `${BASE_URL}/roles`,
     createRole: `${BASE_URL}/roles`,
