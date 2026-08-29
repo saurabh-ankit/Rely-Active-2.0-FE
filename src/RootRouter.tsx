@@ -3,6 +3,7 @@ import Layout from '@/layouts/Layout'
 import CompanyPage from '@/pages/Company'
 import ComponentShowcase from '@/pages/ComponentShowcase'
 import DashboardPage from '@/pages/Dashboard'
+import EmployeeDirectoryPage from '@/pages/Employees'
 import GlobalSettingsPage from '@/pages/GlobalSettings'
 import LoginPage from '@/pages/Login'
 import PropertyPage from '@/pages/Property'
@@ -83,7 +84,9 @@ export default function RootRouter() {
 
         {/* rely-active-1.0 Side Nav Routes */}
         <Route path="admin/residents" element={<SectionPage title="Resident Management" />} />
-        <Route path="admin/employees" element={<SectionPage title="Employee Directory" />} />
+        <Route path="admin/employees" element={<EmployeeDirectoryPage initialView="list" />} />
+        <Route path="admin/employees/create" element={<EmployeeDirectoryPage initialView="create" />} />
+        <Route path="admin/employees/edit/:id" element={<EmployeeDirectoryPage initialView="edit" />} />
         <Route path="admin/medical/*" element={<SectionPage title="Medical Management" />} />
         <Route path="admin/billing-management/*" element={<SectionPage title="Billing Management" />} />
         <Route path="admin/shift-roster-management" element={<SectionPage title="Shift & Roster Management" />} />

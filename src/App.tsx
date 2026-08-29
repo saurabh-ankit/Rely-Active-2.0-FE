@@ -1,8 +1,8 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { Component, Suspense, type ErrorInfo, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
-import { AuthProvider } from './context/AuthContext'
-import { LocationProvider } from './context/LocationContext'
 import { LocationSelectionModal } from './components/common/LocationSelectionModal'
+import { GlobalLoadingIndicator } from './components/common/GlobalLoadingIndicator'
+import SuspenseLoader from './components/shared/SuspenseLoader'
 import RootRouter from './RootRouter'
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
@@ -33,12 +33,11 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { failed: bool
 export default function App() {
   return (
     <AppErrorBoundary>
-      <AuthProvider>
-        <LocationProvider>
-          <RootRouter />
-          <LocationSelectionModal />
-        </LocationProvider>
-      </AuthProvider>
+      <GlobalLoadingIndicator />
+      <Suspense fallback={<SuspenseLoader />}>
+        <RootRouter />
+      </Suspense>
+      <LocationSelectionModal />
     </AppErrorBoundary>
   )
 }

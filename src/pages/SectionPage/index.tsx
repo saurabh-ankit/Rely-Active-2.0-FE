@@ -17,9 +17,6 @@ export default function SectionPage({ title }: { title?: string }) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">{sectionName}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Path: <span className="font-mono text-xs text-indigo-600">{location.pathname}</span>
-          </p>
         </div>
       </div>
 

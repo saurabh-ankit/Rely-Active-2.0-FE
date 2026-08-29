@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { companyApi } from '@/api/company'
+import { getCompaniesAPI, getCompanySetupStatusAPI } from '@/lib/services/companyService'
 
 export interface SetupStatusData {
   needsSetup: boolean
@@ -16,12 +16,12 @@ export function useSetupStatus() {
   const checkSetupStatus = useCallback(async () => {
     setIsChecking(true)
     try {
-      const data = await companyApi.getSetupStatus()
+      const data = await getCompanySetupStatusAPI()
       if (data) {
         setSetupStatus(data as unknown as SetupStatusData)
         return data as unknown as SetupStatusData
       } else {
-        const companies = await companyApi.getAll()
+        const companies = await getCompaniesAPI()
         const hasCompany = companies.length > 0
         const statusData: SetupStatusData = {
           needsSetup: !hasCompany,
@@ -50,8 +50,7 @@ export function useSetupStatus() {
   useEffect(() => {
     let isMounted = true
 
-    companyApi
-      .getSetupStatus()
+    getCompanySetupStatusAPI()
       .then((data) => {
         if (!isMounted) return
         if (data) {

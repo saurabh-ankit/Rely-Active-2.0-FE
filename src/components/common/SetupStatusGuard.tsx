@@ -1,21 +1,19 @@
 import { useEffect, useState } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
-import { companyApi } from '@/api/company'
+import { Navigate } from 'react-router-dom'
+import { getCompaniesAPI } from '@/lib/services/companyService'
 
 interface SetupStatusGuardProps {
   children: React.ReactNode
 }
 
 export function SetupStatusGuard({ children }: SetupStatusGuardProps) {
-  const location = useLocation()
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null)
   const [isChecking, setIsChecking] = useState<boolean>(true)
 
   useEffect(() => {
     let isMounted = true
 
-    companyApi
-      .getAll()
+    getCompaniesAPI()
       .then((companies) => {
         if (!isMounted) return
         setNeedsSetup(companies.length === 0)
@@ -31,7 +29,7 @@ export function SetupStatusGuard({ children }: SetupStatusGuardProps) {
     return () => {
       isMounted = false
     }
-  }, [location.pathname])
+  }, [])
 
   if (isChecking) {
     return (

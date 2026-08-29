@@ -4,7 +4,7 @@ import { Building2, CalendarDays, Edit, Eye, Layers, MapPin, Plus, Search, Trash
 import { Button } from '@/components/ui/button'
 import type { Property } from './types'
 import { PROPERTY_TYPE_LABELS } from './types'
-import { propertyApi } from '@/api/property'
+import { deletePropertyAPI, getPropertiesAPI } from '@/lib/services/propertyService'
 import PropertyDetailDrawer from './components/PropertyDetailDrawer'
 
 export default function PropertyPage() {
@@ -19,8 +19,7 @@ export default function PropertyPage() {
   useEffect(() => {
     let mounted = true
 
-    propertyApi
-      .getAll()
+    getPropertiesAPI()
       .then((data) => {
         if (!mounted) return
         setProperties(Array.isArray(data) ? data : [])
@@ -42,7 +41,7 @@ export default function PropertyPage() {
     e.stopPropagation()
     if (!confirm('Are you sure you want to delete this property?')) return
     try {
-      await propertyApi.delete(id)
+      await deletePropertyAPI(id)
       setReloadToken((t) => t + 1)
       if (selectedProperty?.id === id) setSelectedProperty(null)
     } catch {

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Lock, LogIn, User } from 'lucide-react'
-import { useAuth } from '@/context/AuthContext'
-import { companyApi } from '@/api/company'
+import { useAuth } from '@/hooks/useAuth'
+import { getCompaniesAPI } from '@/lib/services/companyService'
 import { notifyError, notifySuccess } from '@/utils/toast'
 
 export default function LoginPage() {
@@ -16,18 +16,27 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    const trimmedUsername = username.trim()
+    const trimmedPassword = password.trim()
+
+    if (!trimmedUsername || !trimmedPassword) {
+      const msg = 'Please enter both username and password.'
+      setErrorMsg(msg)
+      notifyError('Validation Error', msg)
+      return
+    }
+
     setIsLoading(true)
     setErrorMsg(null)
     try {
-      if (username && password) {
-        await authLogin({
-          username: username.trim(),
-          password: password,
-        })
-        notifySuccess('Sign in successful!', 'Welcome back to Rely Active Operations.')
-      }
+      await authLogin({
+        username: trimmedUsername,
+        password: trimmedPassword,
+      })
+      notifySuccess('Sign in successful!', 'Welcome back to Rely Active Operations.')
 
-      const companies = await companyApi.getAll()
+      const companies = await getCompaniesAPI()
 
       if (companies.length === 0) {
         navigate('/setup')
@@ -39,9 +48,6 @@ export default function LoginPage() {
       console.warn('Login note:', message)
       setErrorMsg(message)
       notifyError('Sign In Failed', message)
-      if (!username) {
-        navigate('/dashboard')
-      }
     } finally {
       setIsLoading(false)
     }

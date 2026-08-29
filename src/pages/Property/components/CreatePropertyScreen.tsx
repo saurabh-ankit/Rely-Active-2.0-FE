@@ -1,8 +1,46 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { useState } from 'react'
 import { ArrowLeft, Building2, Layers, MapPin, Plus, Sparkles, Trash2, X, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { propertyApi } from '@/api/property'
+import { createPropertyAPI, getPropertyByIdAPI, updatePropertyAPI } from '@/lib/services/propertyService'
 import { CommonProgressBar, type ProgressBarStep } from '@/components/common/CommonProgressBar'
+import { z } from 'zod'
+
+export const PINCODE_REGEX = /^[1-9][0-9]{5}$/
+
+export const propertyDetailsSchema = z.object({
+  property_name: z.string().trim().min(1, 'Property name is required'),
+  property_type: z.enum(['apartment', 'villa', 'duplex', 'triplex']),
+  description: z.string().optional(),
+  total_area: z
+    .string()
+    .optional()
+    .refine((val) => !val || val.trim() === '' || (!isNaN(Number(val)) && Number(val) > 0), {
+      message: 'Total area must be a positive number',
+    }),
+  area_unit: z.enum(['sqft', 'sqmt', 'acres']),
+  amenities: z.array(z.string()).optional(),
+})
+
+export const propertyAddressSchema = z.object({
+  street: z.string().optional(),
+  city: z.string().trim().min(1, 'City is required'),
+  state: z.string().trim().min(1, 'State is required'),
+  pincode: z
+    .string()
+    .trim()
+    .min(1, 'Pincode is required')
+    .refine((val) => PINCODE_REGEX.test(val), {
+      message: 'Pincode must be exactly 6 digits',
+    }),
+  country: z.string().default('India'),
+})
+
+export const fullPropertySchema = propertyDetailsSchema.merge(propertyAddressSchema)
+
+export type PropertyDetailsFormValues = z.infer<typeof propertyDetailsSchema>
+export type PropertyAddressFormValues = z.infer<typeof propertyAddressSchema>
+export type FullPropertyFormValues = z.infer<typeof fullPropertySchema>
 import type {
   AreaUnit,
   BHKTemplateVariant,
@@ -44,17 +82,22 @@ const STEPS: ProgressBarStep[] = [
 function InputField({
   label,
   required,
+  error,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & { label: string; required?: boolean }) {
+}: React.InputHTMLAttributes<HTMLInputElement> & { label: string; required?: boolean; error?: string }) {
+  const isReq = required || label.includes('*')
+  const cleanLabel = label.replace(/\s*\*/g, '')
+
   return (
     <div className="space-y-1">
       <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
-        {label} {required && <span className="text-red-500">*</span>}
+        {cleanLabel} {isReq && <span className="text-red-500 font-bold">*</span>}
       </label>
       <input
         {...props}
-        className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-900 placeholder-gray-400 outline-none transition focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20 disabled:bg-gray-100 disabled:opacity-75"
+        className={`w-full rounded-xl border ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white px-3.5 py-2.5 text-xs text-gray-900 placeholder-gray-400 outline-none transition focus:ring-2 disabled:bg-gray-100 disabled:opacity-75`}
       />
+      {error && <p className="mt-1 text-xs font-semibold text-red-500">{error}</p>}
     </div>
   )
 }
@@ -62,33 +105,49 @@ function InputField({
 function SelectField({
   label,
   required,
+  error,
   children,
   ...props
-}: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; required?: boolean }) {
+}: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; required?: boolean; error?: string }) {
+  const isReq = required || label.includes('*')
+  const cleanLabel = label.replace(/\s*\*/g, '')
+
   return (
     <div className="space-y-1">
       <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
-        {label} {required && <span className="text-red-500">*</span>}
+        {cleanLabel} {isReq && <span className="text-red-500 font-bold">*</span>}
       </label>
       <select
         {...props}
-        className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-900 outline-none transition focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20 disabled:opacity-50"
+        className={`w-full rounded-xl border ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white px-3.5 py-2.5 text-xs text-gray-900 outline-none transition focus:ring-2 disabled:opacity-50`}
       >
         {children}
       </select>
+      {error && <p className="mt-1 text-xs font-semibold text-red-500">{error}</p>}
     </div>
   )
 }
 
-function TextareaField({ label, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) {
+function TextareaField({
+  label,
+  required,
+  error,
+  ...props
+}: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; required?: boolean; error?: string }) {
+  const isReq = required || label.includes('*')
+  const cleanLabel = label.replace(/\s*\*/g, '')
+
   return (
     <div className="space-y-1">
-      <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">{label}</label>
+      <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
+        {cleanLabel} {isReq && <span className="text-red-500 font-bold">*</span>}
+      </label>
       <textarea
         {...props}
         rows={3}
-        className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-900 placeholder-gray-400 outline-none transition focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20 resize-none"
+        className={`w-full rounded-xl border ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white px-3.5 py-2.5 text-xs text-gray-900 placeholder-gray-400 outline-none transition focus:ring-2 resize-none`}
       />
+      {error && <p className="mt-1 text-xs font-semibold text-red-500">{error}</p>}
     </div>
   )
 }
@@ -146,8 +205,7 @@ export default function CreatePropertyScreen({
   // Fetch property details if editing
   React.useEffect(() => {
     if (!editPropertyId) return
-    propertyApi
-      .getById(editPropertyId)
+    getPropertyByIdAPI(editPropertyId)
       .then((p) => {
         if (p) {
           setPropertyName(p.property_name || '')
@@ -206,12 +264,16 @@ export default function CreatePropertyScreen({
   // BHK template management
   const addBHKTemplateVariant = (type: UnitType) => {
     const currentTemplates = activeBlock.bhk_templates || []
-    const existingCount = currentTemplates.filter((t) => t.type === type).length
+    const takenPositions = currentTemplates.flatMap((t) => (t.positions ? t.positions.map((p) => p.position) : []))
+    const unitsPerFloor = activeBlock.units_per_floor || 3
+    const available = Array.from({ length: unitsPerFloor }, (_, i) => i + 1).filter((p) => !takenPositions.includes(p))
+    const nextPosition = available[0] || takenPositions.length + 1
+
     const newVariant: BHKTemplateVariant = {
       type,
       carpet_area: 1200,
       super_built_up_area: 1200,
-      positions: [{ position: existingCount + 1, direction: 'North-East', view_facing: 'Garden View' }],
+      positions: [{ position: nextPosition, direction: 'North-East', view_facing: 'Garden View' }],
     }
     updateActiveBlock({ bhk_templates: [...currentTemplates, newVariant] })
   }
@@ -299,27 +361,56 @@ export default function CreatePropertyScreen({
     }
   }
 
-  const validate = () => {
-    if (step === 1 && !propertyName.trim()) return 'Property name is required'
-    if (step === 2) {
-      if (!city.trim()) return 'City is required'
-      if (!state.trim()) return 'State is required'
-      if (!pincode.trim()) return 'Pincode is required'
+  const validateStep = (): boolean => {
+    if (step === 1) {
+      const res = propertyDetailsSchema.safeParse({
+        property_name: propertyName,
+        property_type: propertyType,
+        description,
+        total_area: totalArea,
+        area_unit: areaUnit,
+        amenities: selectedAmenities,
+      })
+      if (!res.success) {
+        setError(res.error.issues[0]?.message || 'Invalid property details')
+        return false
+      }
+    } else if (step === 2) {
+      const res = propertyAddressSchema.safeParse({
+        street,
+        city,
+        state,
+        pincode,
+        country,
+      })
+      if (!res.success) {
+        setError(res.error.issues[0]?.message || 'Invalid property address')
+        return false
+      }
+    } else if (step === 3) {
+      for (let i = 0; i < blocks.length; i++) {
+        const b = blocks[i]
+        if (!b || !b.block_name.trim()) {
+          setError(`Block #${i + 1} name is required`)
+          return false
+        }
+        if (b.total_floors && b.total_floors <= 0) {
+          setError(`Block #${i + 1} total floors must be greater than 0`)
+          return false
+        }
+      }
     }
-    return null
+    setError(null)
+    return true
   }
 
   const handleNext = () => {
-    const err = validate()
-    if (err) {
-      setError(err)
-      return
-    }
-    setError(null)
+    if (!validateStep()) return
     setStep((s) => s + 1)
   }
 
   const handleSubmit = async () => {
+    if (!validateStep()) return
     setError(null)
     setIsSubmitting(true)
     try {
@@ -394,9 +485,9 @@ export default function CreatePropertyScreen({
       }
 
       if (editPropertyId) {
-        await propertyApi.update(editPropertyId, payload)
+        await updatePropertyAPI(editPropertyId, payload)
       } else {
-        await propertyApi.create(payload)
+        await createPropertyAPI(payload)
       }
       onSuccess()
       onBack()
@@ -829,25 +920,41 @@ export default function CreatePropertyScreen({
                                   <td colSpan={5} className="bg-gray-50/70 p-4 border-b border-gray-200">
                                     <div className="space-y-3">
                                       <div className="grid grid-cols-3 gap-3">
-                                        <SelectField
-                                          label="Position"
-                                          value={variant.positions[0]?.position || 1}
-                                          onChange={(e) => {
-                                            const pos = Number(e.target.value)
-                                            const updatedPos = [{ ...variant.positions[0], position: pos }]
-                                            updateBHKTemplateVariant(vIdx, {
-                                              positions: updatedPos,
-                                            })
-                                          }}
-                                        >
-                                          {Array.from({
-                                            length: activeBlock.units_per_floor || 3,
-                                          }).map((_, pI) => (
-                                            <option key={pI + 1} value={pI + 1}>
-                                              Position {pI + 1}
-                                            </option>
-                                          ))}
-                                        </SelectField>
+                                        {(() => {
+                                          const assignedInOtherVariants = (activeBlock.bhk_templates || [])
+                                            .filter((_, idx) => idx !== vIdx)
+                                            .flatMap((t) => (t.positions ? t.positions.map((p) => p.position) : []))
+
+                                          const currentPos = variant.positions[0]?.position || 1
+                                          const unitsPerFloor = activeBlock.units_per_floor || 3
+                                          const availablePositions = Array.from(
+                                            { length: unitsPerFloor },
+                                            (_, i) => i + 1,
+                                          ).filter(
+                                            (posNum) =>
+                                              posNum === currentPos || !assignedInOtherVariants.includes(posNum),
+                                          )
+
+                                          return (
+                                            <SelectField
+                                              label="Position"
+                                              value={currentPos}
+                                              onChange={(e) => {
+                                                const pos = Number(e.target.value)
+                                                const updatedPos = [{ ...variant.positions[0], position: pos }]
+                                                updateBHKTemplateVariant(vIdx, {
+                                                  positions: updatedPos,
+                                                })
+                                              }}
+                                            >
+                                              {availablePositions.map((posNum) => (
+                                                <option key={posNum} value={posNum}>
+                                                  Position {posNum}
+                                                </option>
+                                              ))}
+                                            </SelectField>
+                                          )
+                                        })()}
 
                                         <SelectField
                                           label="Direction"

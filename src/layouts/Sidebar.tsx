@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   Package,
   ReceiptIndianRupee,
-  Settings,
   ShieldCheck,
   Stethoscope,
   User,
@@ -16,8 +15,8 @@ import {
   Wrench,
   X,
 } from 'lucide-react'
-import { useAuth } from '@/context/AuthContext'
-import { useLocationContext } from '@/context/LocationContext'
+import { useAuth } from '@/hooks/useAuth'
+import { useLocationContext } from '@/hooks/useLocation'
 import { cn } from '@/lib/utils'
 
 export interface SidebarItemData {
@@ -144,11 +143,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       label: 'Events',
       href: '/admin/events',
       resourceKey: 'EVENTS',
-    },
-    {
-      icon: <Settings className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Settings',
-      href: '/global-settings',
     },
   ]
 

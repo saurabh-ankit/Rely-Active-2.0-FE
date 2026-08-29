@@ -1,56 +1,52 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { AlertCircle, Building2, Plus, Trash2, Upload, X } from 'lucide-react'
-import CommonButton from '@/components/common/CommonButton'
-import CommonInput from '@/components/common/CommonInput'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import type { CustomFieldItem } from '@/pages/Company/components/EditCompanyModal'
-import { TEXT_LIBRARY } from '@/constants/textLibrary'
-import { companyApi } from '@/api/company'
-import { API_BASE_URL } from '@/api/api'
-
-interface FormErrors {
-  companyName?: string
-  email?: string
-  contactNumber?: string
-  altContactNumber?: string
-  address?: string
-}
+import { TEXT_LIBRARY } from '@/lib/constants/textLibrary'
+import { getCompaniesAPI, saveCompanyFormDataAPI } from '@/lib/services/companyService'
+import { companySchema, type CompanyFormValues } from '@/pages/Company'
 
 export default function SetupPage() {
   const navigate = useNavigate()
   const [isChecking, setIsChecking] = useState(true)
-
-  const [companyName, setCompanyName] = useState('')
-  const [gstNumber, setGstNumber] = useState('')
-  const [email, setEmail] = useState('')
-  const [contactNumber, setContactNumber] = useState('')
-  const [altContactNumber, setAltContactNumber] = useState('')
-  const [address, setAddress] = useState('')
-
-  const [bankName, setBankName] = useState('')
-  const [branchName, setBranchName] = useState('')
-  const [accountNo, setAccountNo] = useState('')
-  const [ifscCode, setIfscCode] = useState('')
-
-  const [accountantName, setAccountantName] = useState('')
-  const [docDescription, setDocDescription] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const [documentFile, setDocumentFile] = useState<File | null>(null)
   const [signatureFile, setSignatureFile] = useState<File | null>(null)
-
   const [customFields, setCustomFields] = useState<CustomFieldItem[]>([])
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [errors, setErrors] = useState<FormErrors>({})
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  const phoneRegex = /^[6-9][0-9]{9}$/
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors },
+  } = useForm<CompanyFormValues>({
+    resolver: zodResolver(companySchema),
+    defaultValues: {
+      company_name: '',
+      company_gst_number: '',
+      email_id: '',
+      contact_number: '',
+      alternate_contact_number: '',
+      company_head_office_address: '',
+      bank_name: '',
+      branch_name: '',
+      account_no: '',
+      ifsc_code: '',
+      accountant_name: '',
+      document_description: '',
+    },
+  })
 
   useEffect(() => {
     let isMounted = true
 
-    companyApi
-      .getAll()
+    getCompaniesAPI()
       .then((companies) => {
         if (!isMounted) return
         if (companies.length > 0) {
@@ -69,75 +65,29 @@ export default function SetupPage() {
     }
   }, [navigate])
 
-  const validatePhone = (val: string): string | undefined => {
-    if (!val) return undefined
-    if (!/^[6-9]/.test(val)) {
-      return 'Contact number must start with a digit between 6-9'
-    }
-    if (val.length !== 10 || !phoneRegex.test(val)) {
-      return TEXT_LIBRARY.VALIDATIONS.INVALID_CONTACT
-    }
-    return undefined
-  }
-
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {}
-
-    if (!companyName.trim()) {
-      newErrors.companyName = TEXT_LIBRARY.VALIDATIONS.COMPANY_NAME_REQUIRED
-    }
-
-    if (!email.trim()) {
-      newErrors.email = TEXT_LIBRARY.VALIDATIONS.EMAIL_REQUIRED
-    } else if (!emailRegex.test(email.trim())) {
-      newErrors.email = TEXT_LIBRARY.VALIDATIONS.INVALID_EMAIL
-    }
-
-    if (!contactNumber.trim()) {
-      newErrors.contactNumber = TEXT_LIBRARY.VALIDATIONS.CONTACT_REQUIRED
-    } else {
-      const phoneErr = validatePhone(contactNumber.trim())
-      if (phoneErr) newErrors.contactNumber = phoneErr
-    }
-
-    if (altContactNumber.trim()) {
-      const altErr = validatePhone(altContactNumber.trim())
-      if (altErr) newErrors.altContactNumber = altErr
-    }
-
-    if (!address.trim()) {
-      newErrors.address = TEXT_LIBRARY.VALIDATIONS.ADDRESS_REQUIRED
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onSubmit = async (values: CompanyFormValues) => {
     setErrorMessage(null)
-
-    if (!validateForm()) {
-      return
-    }
-
     setIsSubmitting(true)
+
     try {
       const formData = new FormData()
-      formData.append('company_name', companyName.trim())
-      formData.append('gst_number', gstNumber.trim())
-      formData.append('email', email.trim())
-      formData.append('contact_number', contactNumber.trim())
-      formData.append('alternate_contact_number', altContactNumber.trim())
-      formData.append('head_office_address', address.trim())
+      formData.append('company_name', values.company_name.trim())
+      formData.append('gst_number', values.company_gst_number ? values.company_gst_number.trim() : '')
+      formData.append('email', values.email_id.trim())
+      formData.append('contact_number', values.contact_number.trim())
+      formData.append(
+        'alternate_contact_number',
+        values.alternate_contact_number ? values.alternate_contact_number.trim() : '',
+      )
+      formData.append('head_office_address', values.company_head_office_address.trim())
 
-      formData.append('bank_name', bankName.trim())
-      formData.append('branch_name', branchName.trim())
-      formData.append('account_no', accountNo.trim())
-      formData.append('ifsc_code', ifscCode.trim())
+      formData.append('bank_name', values.bank_name ? values.bank_name.trim() : '')
+      formData.append('branch_name', values.branch_name ? values.branch_name.trim() : '')
+      formData.append('account_no', values.account_no ? values.account_no.trim() : '')
+      formData.append('ifsc_code', values.ifsc_code ? values.ifsc_code.trim() : '')
 
-      formData.append('accountant_name', accountantName.trim())
-      formData.append('document_description', docDescription.trim())
+      formData.append('accountant_name', values.accountant_name ? values.accountant_name.trim() : '')
+      formData.append('document_description', values.document_description ? values.document_description.trim() : '')
 
       if (documentFile) {
         formData.append('document', documentFile)
@@ -149,31 +99,22 @@ export default function SetupPage() {
 
       formData.append('customFields', JSON.stringify(customFields))
 
-      const res = await fetch(`${API_BASE_URL}/company`, {
-        method: 'POST',
-        body: formData,
-      })
-
-      const resData = await res.json()
-
-      if (!res.ok) {
-        const msg = resData.message || 'Failed to create company'
-        if (msg.toLowerCase().includes('email')) {
-          setErrors((prev) => ({ ...prev, email: msg }))
-        } else if (
-          msg.toLowerCase().includes('contact number') ||
-          msg.toLowerCase().includes('6-9') ||
-          msg.toLowerCase().includes('10 digits')
-        ) {
-          setErrors((prev) => ({ ...prev, contactNumber: msg }))
-        }
-        throw new Error(msg)
-      }
+      await saveCompanyFormDataAPI(formData)
 
       navigate('/dashboard', { replace: true })
     } catch (error) {
       console.error('Failed to create company:', error)
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to create company. Please try again.')
+      const msg = error instanceof Error ? error.message : 'Failed to create company. Please try again.'
+      if (msg.toLowerCase().includes('email')) {
+        setError('email_id', { message: msg })
+      } else if (
+        msg.toLowerCase().includes('contact number') ||
+        msg.toLowerCase().includes('6-9') ||
+        msg.toLowerCase().includes('10 digits')
+      ) {
+        setError('contact_number', { message: msg })
+      }
+      setErrorMessage(msg)
     } finally {
       setIsSubmitting(false)
     }
@@ -247,100 +188,63 @@ export default function SetupPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} noValidate className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
             {/* Company Name */}
-            <CommonInput
+            <Input
               label={TEXT_LIBRARY.COMPANY.COMPANY_NAME}
               required
-              value={companyName}
-              onChange={(e) => {
-                setCompanyName(e.target.value)
-                if (errors.companyName) setErrors((prev) => ({ ...prev, companyName: undefined }))
-              }}
-              error={errors.companyName}
+              {...register('company_name')}
+              error={errors.company_name?.message}
               placeholder="Enter your company name"
             />
 
             {/* Email Address & Contact Number */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <CommonInput
+              <Input
                 label={TEXT_LIBRARY.COMPANY.EMAIL}
                 required
                 type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value)
-                  if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }))
-                }}
-                onBlur={() => {
-                  if (email.trim() && !emailRegex.test(email.trim())) {
-                    setErrors((prev) => ({ ...prev, email: TEXT_LIBRARY.VALIDATIONS.INVALID_EMAIL }))
-                  }
-                }}
-                error={errors.email}
+                {...register('email_id')}
+                error={errors.email_id?.message}
                 placeholder="company@example.com"
               />
 
-              <CommonInput
+              <Input
                 label={TEXT_LIBRARY.COMPANY.CONTACT_NUMBER}
                 required
                 maxLength={10}
-                value={contactNumber}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, '')
-                  setContactNumber(val)
-                  const err = validatePhone(val)
-                  setErrors((prev) => ({ ...prev, contactNumber: err }))
-                }}
-                onBlur={() => {
-                  const err = validatePhone(contactNumber.trim())
-                  if (err) setErrors((prev) => ({ ...prev, contactNumber: err }))
-                }}
-                error={errors.contactNumber}
+                {...register('contact_number')}
+                error={errors.contact_number?.message}
                 placeholder="10 digit mobile number"
               />
             </div>
 
             {/* GST Number & Alternate Contact */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <CommonInput
+              <Input
                 label={TEXT_LIBRARY.COMPANY.GST_NUMBER}
-                value={gstNumber}
-                onChange={(e) => setGstNumber(e.target.value)}
+                {...register('company_gst_number')}
+                error={errors.company_gst_number?.message}
                 placeholder="Enter GST number"
               />
 
-              <CommonInput
+              <Input
                 label={TEXT_LIBRARY.COMPANY.ALT_CONTACT_NUMBER}
                 maxLength={10}
-                value={altContactNumber}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, '')
-                  setAltContactNumber(val)
-                  const err = validatePhone(val)
-                  setErrors((prev) => ({ ...prev, altContactNumber: err }))
-                }}
-                onBlur={() => {
-                  const err = validatePhone(altContactNumber.trim())
-                  if (err) setErrors((prev) => ({ ...prev, altContactNumber: err }))
-                }}
-                error={errors.altContactNumber}
+                {...register('alternate_contact_number')}
+                error={errors.alternate_contact_number?.message}
                 placeholder="10 digit mobile number"
               />
             </div>
 
             {/* Head Office Address */}
-            <CommonInput
+            <Input
               label={TEXT_LIBRARY.COMPANY.HEAD_OFFICE_ADDRESS}
               required
               type="textarea"
               rows={3}
-              value={address}
-              onChange={(e) => {
-                setAddress(e.target.value)
-                if (errors.address) setErrors((prev) => ({ ...prev, address: undefined }))
-              }}
-              error={errors.address}
+              {...register('company_head_office_address')}
+              error={errors.company_head_office_address?.message}
               placeholder="Enter complete address"
             />
 
@@ -385,12 +289,12 @@ export default function SetupPage() {
             </div>
 
             {/* Document Description */}
-            <CommonInput
+            <Input
               label={TEXT_LIBRARY.COMPANY.DOCUMENT_DESC}
               type="textarea"
               rows={2}
-              value={docDescription}
-              onChange={(e) => setDocDescription(e.target.value)}
+              {...register('document_description')}
+              error={errors.document_description?.message}
               placeholder="Describe the uploaded document"
             />
 
@@ -398,31 +302,31 @@ export default function SetupPage() {
             <div className="space-y-4 pt-6 border-t border-gray-200">
               <h3 className="text-sm font-semibold text-gray-900">{TEXT_LIBRARY.COMPANY.BANK_DETAILS}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <CommonInput
+                <Input
                   label={TEXT_LIBRARY.COMPANY.BANK_NAME}
-                  value={bankName}
-                  onChange={(e) => setBankName(e.target.value)}
+                  {...register('bank_name')}
+                  error={errors.bank_name?.message}
                   placeholder="Enter bank name"
                 />
-                <CommonInput
+                <Input
                   label={TEXT_LIBRARY.COMPANY.BRANCH_NAME}
-                  value={branchName}
-                  onChange={(e) => setBranchName(e.target.value)}
+                  {...register('branch_name')}
+                  error={errors.branch_name?.message}
                   placeholder="Enter branch name"
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <CommonInput
+                <Input
                   label={TEXT_LIBRARY.COMPANY.ACCOUNT_NO}
-                  value={accountNo}
-                  onChange={(e) => setAccountNo(e.target.value)}
+                  {...register('account_no')}
+                  error={errors.account_no?.message}
                   placeholder="Enter account number"
                 />
-                <CommonInput
+                <Input
                   label={TEXT_LIBRARY.COMPANY.IFSC_CODE}
-                  value={ifscCode}
-                  onChange={(e) => setIfscCode(e.target.value)}
+                  {...register('ifsc_code')}
+                  error={errors.ifsc_code?.message}
                   placeholder="Enter IFSC code"
                 />
               </div>
@@ -431,10 +335,10 @@ export default function SetupPage() {
             {/* Accountant Details */}
             <div className="space-y-4 pt-6 border-t border-gray-200">
               <h3 className="text-sm font-semibold text-gray-900">{TEXT_LIBRARY.COMPANY.FILES_ACCOUNTANT}</h3>
-              <CommonInput
+              <Input
                 label={TEXT_LIBRARY.COMPANY.ACCOUNTANT_NAME}
-                value={accountantName}
-                onChange={(e) => setAccountantName(e.target.value)}
+                {...register('accountant_name')}
+                error={errors.accountant_name?.message}
                 placeholder="Enter accountant name"
               />
 
@@ -492,7 +396,7 @@ export default function SetupPage() {
                   <h3 className="text-sm font-semibold text-gray-900">{TEXT_LIBRARY.COMPANY.CUSTOM_FIELDS}</h3>
                   <p className="text-xs text-gray-500">Define additional fields for your company</p>
                 </div>
-                <CommonButton
+                <Button
                   variant="outline"
                   size="sm"
                   icon={<Plus className="h-4 w-4" />}
@@ -555,7 +459,7 @@ export default function SetupPage() {
 
             {/* Action Submit Button */}
             <div className="pt-6 border-t border-gray-200">
-              <CommonButton
+              <Button
                 type="submit"
                 variant="primary"
                 isLoading={isSubmitting}

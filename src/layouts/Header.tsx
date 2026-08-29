@@ -2,8 +2,8 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Bell, Building2, ChevronDown, LogOut, Menu, Settings, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useAuth } from '@/context/AuthContext'
-import { useLocationContext, type PropertyLocationItem } from '@/context/LocationContext'
+import { useAuth } from '@/hooks/useAuth'
+import { useLocationContext, type PropertyLocationItem } from '@/hooks/useLocation'
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -85,6 +85,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
                       onClick={() => {
                         selectLocation(p)
                         setShowLocationDropdown(false)
+                        navigate('/dashboard')
                       }}
                       className={`w-full text-left px-3 py-2 text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-between ${
                         selectedLocationName === p.property_name

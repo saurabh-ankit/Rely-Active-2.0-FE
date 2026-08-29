@@ -14,19 +14,163 @@ pnpm dev
 
 ---
 
+## Mandatory Module Architecture & Standards
+
+All new feature modules added to Rely-Active-2.0-FE **MUST** strictly adhere to the following architecture, folder layout, and layer conventions.
+
+### 1. Folder Structure Standard
+
+Every feature module (e.g. `Property`, `Company`, `User`, `Resident`, `Employee`) must strictly conform to this folder layout:
+
+```text
+src/
+├── lib/
+│   ├── api/
+│   │   ├── axios.ts           # Centralized Axios instances with interceptors (JWT & Location headers)
+│   │   └── endpoints.ts       # Centralized API endpoint URLs & route helpers
+│   ├── services/
+│   │   ├── propertyService.ts # Pure API service layer for Property domain
+│   │   ├── companyService.ts  # Pure API service layer for Company domain
+│   │   └── <module>Service.ts # Service layer for new module
+│   ├── types/
+│   │   ├── property.ts        # Shared DTOs and API payload interfaces
+│   │   ├── company.ts
+│   │   └── index.ts
+│   └── constants/
+│       └── theme.ts           # Design tokens, status colors, & UI styles
+├── hooks/
+│   ├── useAuth.ts             # Custom hook for auth state
+│   ├── useDebounce.ts         # Custom hook for debouncing input
+│   └── use<Feature>.ts        # Domain or feature-specific React custom hooks
+├── pages/
+│   └── <ModuleName>/          # e.g., Property, Company, Setup, Users
+│       ├── index.tsx          # Main module listing / dashboard view
+│       ├── Create<Module>Page.tsx (Optional full-screen screen entrypoint)
+│       ├── components/        # Sub-components, forms, modal dialogs, drawers
+│       │   ├── Create<Module>Screen.tsx
+│       │   ├── Edit<Module>Modal.tsx
+│       │   └── <Module>DetailDrawer.tsx
+│       └── types.ts           # Module-specific local UI types & form state schemas
+```
+
+---
+
+### 2. API Endpoints Standard (`src/lib/api/endpoints.ts`)
+
+- **Rule**: All API URL strings **MUST** be defined in `src/lib/api/endpoints.ts` under the `API_ENDPOINTS` object dictionary.
+- **Location-Scoped Endpoints**: Location/Property-scoped modules must use the `buildLocationEndpoint(path, locationId)` helper.
+- **Example**:
+
+```typescript
+export const API_ENDPOINTS = {
+  property: {
+    getAll: `${BASE_URL}/property`,
+    getById: (id: string) => `${BASE_URL}/property/${id}`,
+    create: `${BASE_URL}/property`,
+    update: (id: string) => `${BASE_URL}/property/${id}`,
+    delete: (id: string) => `${BASE_URL}/property/${id}`,
+  },
+  modules: {
+    employees: (locationId?: string | null) => buildLocationEndpoint('/users', locationId),
+  },
+}
+```
+
+---
+
+### 3. Axios Interceptor & HTTP Client Standard (`src/lib/api/axios.ts`)
+
+- **Rule**: Direct `fetch()` calls or unconfigured `axios` calls in components are **STRICTLY PROHIBITED**.
+- **Axios Instances**: Use `api` (or `apiClient`) from `@/lib/api/axios`.
+- **Automatic Interceptors**:
+  - `Authorization`: Attaches `Bearer ${token}` from `localStorage.getItem('rely_auth_token')`.
+  - `x-location-id` & `x-property-id`: Automatically attaches active location/property context header from `localStorage.getItem('rely_active_property_id')`.
+
+```typescript
+import api from '@/lib/api/axios'
+import { API_ENDPOINTS } from '@/lib/api/endpoints'
+```
+
+---
+
+### 4. Services Layer Standard (`src/lib/services/<module>Service.ts`)
+
+- **Rule**: Every module must have a service file under `src/lib/services/` wrapping HTTP calls into typed async functions.
+- **Example**:
+
+```typescript
+import api from '@/lib/api/axios'
+import { API_ENDPOINTS } from '@/lib/api/endpoints'
+import type { CreatePropertyPayload, Property } from '@/lib/types'
+
+export const getPropertiesAPI = async (companyId?: string): Promise<Property[]> => {
+  const url = companyId ? `${API_ENDPOINTS.property.getAll}?companyId=${companyId}` : API_ENDPOINTS.property.getAll
+  const response = await api.get(url)
+  return response.data?.data || response.data
+}
+
+export const createPropertyAPI = async (payload: CreatePropertyPayload): Promise<Property> => {
+  const response = await api.post(API_ENDPOINTS.property.create, payload)
+  return response.data?.data || response.data
+}
+```
+
+---
+
+### 5. Custom Hooks Layer Standard (`src/hooks/`)
+
+- **Rule**: Encapsulate reusable state management, async operations, side-effects, or debouncing inside custom React hooks in `src/hooks/`.
+- **Naming**: Custom hook filenames and function names must begin with `use` (e.g. `useDebounce`, `useProperty`, `useAuth`).
+
+---
+
+### 6. Form Schemas, Validation & Type Inference Standard
+
+- **Validation Library**: Use **Zod** (`import { z } from 'zod'`) for defining form validation schemas.
+- **Type Inference**: Derive form types directly using `z.infer<typeof schema>`.
+- **Validation Rules**:
+  - Use regex constants for string formats (e.g., `PINCODE_REGEX = /^[1-9][0-9]{5}$/`, `PHONE_REGEX`, `EMAIL_REGEX`).
+  - Use `.trim()` and `.min(1, 'Required message')` on required text fields.
+  - Use `.refine()` for conditional or custom pattern validations.
+
+```typescript
+import { z } from 'zod'
+
+export const PINCODE_REGEX = /^[1-9][0-9]{5}$/
+
+export const propertyAddressSchema = z.object({
+  street: z.string().optional(),
+  city: z.string().trim().min(1, 'City is required'),
+  state: z.string().trim().min(1, 'State is required'),
+  pincode: z
+    .string()
+    .trim()
+    .min(1, 'Pincode is required')
+    .refine((val) => PINCODE_REGEX.test(val), {
+      message: 'Pincode must be exactly 6 digits',
+    }),
+  country: z.string().default('India'),
+})
+
+export type PropertyAddressFormValues = z.infer<typeof propertyAddressSchema>
+```
+
+- **UI Form Components**:
+  - Always use standard reusable components from `@/components/common` (`CommonInput`, `CommonButton`, `CommonModal`, `CommonProgressBar`) and `@/components/ui`.
+
+---
+
 ## Centralized Architecture & Design Systems
 
-### 1. Centralized API Layer (`src/api/`)
+### 1. Centralized API Layer (`src/lib/api/`)
 
-All API interactions are centrally organized in `src/api/` named by domain module:
+All API interactions are centrally organized in `src/lib/api/` named by domain module:
 
-- **`src/api/api.ts`**: Defines base configuration (`API_BASE_URL` = `http://localhost:3002/api/v1`) and the generic `ApiResponse<T>` wrapper.
-- **`src/api/property.ts`**: Contains all Property API methods (`getAll`, `getById`, `create`, `update`, `delete`).
-- **`src/api/company.ts`**: Contains all Company API methods (`getAll`, `getById`, `create`, `update`, `saveFormData`, `getSetupStatus`).
-- **`src/api/index.ts`**: Unified re-export entrypoint.
-- _Policy_: No `api.ts` files or direct `fetch()` calls allowed inside page or component directories.
+- **`src/lib/api/axios.ts`**: Defines base configuration, timeout, Bearer token interceptor, and location headers.
+- **`src/lib/api/endpoints.ts`**: Defines endpoint constants and location-scoped endpoint helpers.
+- _Policy_: No direct `fetch()` calls allowed inside page or component directories.
 
-### 2. Global Color & Theme System (`src/constants/theme.ts`)
+### 2. Global Color & Theme System (`src/lib/constants/theme.ts`)
 
 Centralized project color palette and UI utility maps:
 

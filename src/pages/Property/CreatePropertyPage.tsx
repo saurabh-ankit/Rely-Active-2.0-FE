@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { companyApi } from '@/api/company'
+import { getCompaniesAPI } from '@/lib/services/companyService'
 import CreatePropertyScreen from './components/CreatePropertyScreen'
 
 const COMPANY_ID_PLACEHOLDER = '00000000-0000-0000-0000-000000000001'
@@ -14,8 +14,7 @@ export default function CreatePropertyPage() {
   const [companyId, setCompanyId] = useState<string>(COMPANY_ID_PLACEHOLDER)
 
   useEffect(() => {
-    companyApi
-      .getAll()
+    getCompaniesAPI()
       .then((companies) => {
         const first = companies[0]
         if (first?.id) setCompanyId(first.id)
