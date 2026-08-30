@@ -11,6 +11,7 @@ import CreatePropertyPage from '@/pages/Property/CreatePropertyPage'
 import ResidentPage from '@/pages/Resident'
 import SectionPage from '@/pages/SectionPage'
 import SetupPage from '@/pages/Setup'
+import AssetManagementPage from '@/pages/AssetManagement'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
 export default function RootRouter() {
@@ -122,7 +123,7 @@ export default function RootRouter() {
         <Route path="admin/events" element={<SectionPage title="Event Management" />} />
         <Route path="admin/fnb-history" element={<SectionPage title="Food & Beverages" />} />
         <Route path="admin/inventory/*" element={<SectionPage title="Inventory Management" />} />
-        <Route path="admin/asset-management" element={<SectionPage title="Asset Management" />} />
+        <Route path="admin/asset-management" element={<AssetManagementPage />} />
         <Route
           path="admin/tickets"
           element={<SectionPage title="Ticket Management (R&M, Concierge, Housekeeping, Food)" />}

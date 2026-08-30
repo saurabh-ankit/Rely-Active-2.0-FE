@@ -130,6 +130,17 @@ interface FloorOption {
   label: string
 }
 
+interface BlockOption {
+  id: string
+  block_name: string
+  floors: Array<{
+    id: string
+    floor_number: number
+    floor_name?: string | null
+    units?: UnitWithOccupancy[]
+  }>
+}
+
 interface OnboardResidentScreenProps {
   isEditMode?: boolean
   isGlobalMode?: boolean
@@ -146,6 +157,8 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
   const isGlobal = isGlobalMode || window.location.pathname.includes('/global-settings')
   const backUrl = isGlobal ? '/global-settings/residents' : '/admin/residents'
 
+  const [blocks, setBlocks] = useState<BlockOption[]>([])
+  const [selectedBlockId, setSelectedBlockId] = useState<string>('')
   const [units, setUnits] = useState<UnitWithOccupancy[]>([])
   const [floors, setFloors] = useState<FloorOption[]>([])
   const [selectedFloorId, setSelectedFloorId] = useState<string>('')
@@ -299,42 +312,34 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
         if (!isMounted) return
         setExistingResidents(resList)
 
-        const allFloors: FloorOption[] = []
-        const allUnits: UnitWithOccupancy[] = []
-        const hasMultipleBlocks = (propDetails.blocks?.length || 0) > 1
-
-        propDetails.blocks?.forEach((b) => {
-          b.floors?.forEach((f) => {
-            const floorName = f.floor_name || (f.floor_number === 1 ? 'Ground Floor' : `Floor ${f.floor_number}`)
-            const label = hasMultipleBlocks && b.block_name ? `${b.block_name} — ${floorName}` : floorName
-
-            allFloors.push({
-              id: f.id,
-              floor_number: f.floor_number,
-              floor_name: floorName,
-              blockName: b.block_name,
-              label,
-            })
-
-            f.units?.forEach((u) => {
+        const loadedBlocks: BlockOption[] = (propDetails.blocks || []).map((b) => ({
+          id: b.id,
+          block_name: b.block_name,
+          floors: (b.floors || []).map((f) => ({
+            id: f.id,
+            floor_number: f.floor_number,
+            floor_name: f.floor_name || (f.floor_number === 1 ? 'Ground Floor' : `Floor ${f.floor_number}`),
+            units: (f.units || []).map((u) => {
               const computedOccupancy = getOccupancyStatusForUnit(u.id, resList)
-              allUnits.push({
+              return {
                 ...u,
                 floorId: u.floorId || f.id,
                 occupancyStatus: u.occupancyStatus || computedOccupancy,
-              } as UnitWithOccupancy)
+              } as UnitWithOccupancy
+            }),
+          })),
+        }))
+
+        setBlocks(loadedBlocks)
+
+        const allUnits: UnitWithOccupancy[] = []
+        loadedBlocks.forEach((b) => {
+          b.floors.forEach((f) => {
+            f.units?.forEach((u) => {
+              allUnits.push(u)
             })
           })
         })
-
-        allFloors.sort((a, b) => {
-          if (a.blockName !== b.blockName) {
-            return (a.blockName || '').localeCompare(b.blockName || '')
-          }
-          return a.floor_number - b.floor_number
-        })
-
-        setFloors(allFloors)
         setUnits(allUnits)
 
         if (isEditMode && editResidentId) {
@@ -342,11 +347,35 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
           if (targetRes) {
             const targetUnit = allUnits.find((u) => u.id === targetRes.unitId)
             if (targetUnit) {
-              const targetFloor = allFloors.find((f) => f.id === targetUnit.floorId)
-              if (targetFloor) {
+              let targetBlock: BlockOption | undefined
+              let targetFloor: BlockOption['floors'][number] | undefined
+
+              for (const b of loadedBlocks) {
+                const f = b.floors.find((fl) => fl.id === targetUnit.floorId)
+                if (f) {
+                  targetBlock = b
+                  targetFloor = f
+                  break
+                }
+              }
+
+              if (targetBlock && targetFloor) {
+                setSelectedBlockId(targetBlock.id)
+                const blockFloorOptions: FloorOption[] = targetBlock.floors
+                  .map((f) => ({
+                    id: f.id,
+                    floor_number: f.floor_number,
+                    floor_name: f.floor_name || (f.floor_number === 1 ? 'Ground Floor' : `Floor ${f.floor_number}`),
+                    blockName: targetBlock?.block_name || '',
+                    label: f.floor_name || (f.floor_number === 1 ? 'Ground Floor' : `Floor ${f.floor_number}`),
+                  }))
+                  .sort((a, b) => a.floor_number - b.floor_number)
+
+                setFloors(blockFloorOptions)
                 setSelectedFloorId(targetFloor.id)
               }
             }
+
             resetForm({
               unitId: targetRes.unitId,
               locId: targetRes.locId,
@@ -383,15 +412,32 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
               })),
             })
           }
-        } else if (allFloors.length > 0) {
-          const firstFloorId = allFloors[0].id
-          setSelectedFloorId(firstFloorId)
-          const unitsOnFirstFloor = allUnits.filter((u) => u.floorId === firstFloorId)
-          const firstAvailable = unitsOnFirstFloor.find((u) => !checkIsUnitOccupied(u))
-          if (firstAvailable) {
-            setValue('unitId', firstAvailable.id)
-          } else {
-            setValue('unitId', '')
+        } else if (loadedBlocks.length > 0) {
+          const firstBlock = loadedBlocks[0]
+          setSelectedBlockId(firstBlock.id)
+
+          const blockFloorOptions: FloorOption[] = firstBlock.floors
+            .map((f) => ({
+              id: f.id,
+              floor_number: f.floor_number,
+              floor_name: f.floor_name || (f.floor_number === 1 ? 'Ground Floor' : `Floor ${f.floor_number}`),
+              blockName: firstBlock.block_name || '',
+              label: f.floor_name || (f.floor_number === 1 ? 'Ground Floor' : `Floor ${f.floor_number}`),
+            }))
+            .sort((a, b) => a.floor_number - b.floor_number)
+
+          setFloors(blockFloorOptions)
+
+          if (blockFloorOptions.length > 0) {
+            const firstFloorId = blockFloorOptions[0].id
+            setSelectedFloorId(firstFloorId)
+            const unitsOnFirstFloor = allUnits.filter((u) => u.floorId === firstFloorId)
+            const firstAvailable = unitsOnFirstFloor.find((u) => !checkIsUnitOccupied(u))
+            if (firstAvailable) {
+              setValue('unitId', firstAvailable.id)
+            } else {
+              setValue('unitId', '')
+            }
           }
         }
       } catch (err: unknown) {
@@ -407,6 +453,30 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
       isMounted = false
     }
   }, [selectedLocationId, isEditMode, editResidentId, setValue, resetForm])
+
+  const handleBlockChange = (blockId: string) => {
+    setSelectedBlockId(blockId)
+    const targetBlock = blocks.find((b) => b.id === blockId)
+
+    if (targetBlock) {
+      const blockFloorOptions: FloorOption[] = targetBlock.floors
+        .map((f) => ({
+          id: f.id,
+          floor_number: f.floor_number,
+          floor_name: f.floor_name || (f.floor_number === 1 ? 'Ground Floor' : `Floor ${f.floor_number}`),
+          blockName: targetBlock.block_name || '',
+          label: f.floor_name || (f.floor_number === 1 ? 'Ground Floor' : `Floor ${f.floor_number}`),
+        }))
+        .sort((a, b) => a.floor_number - b.floor_number)
+
+      setFloors(blockFloorOptions)
+    } else {
+      setFloors([])
+    }
+
+    setSelectedFloorId('')
+    setValue('unitId', '')
+  }
 
   // Family Members helpers
   const handleAddFamilyMember = () => {
@@ -689,7 +759,28 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
               Property & Flat Unit Mapping
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs">
+              {/* Block Selection */}
+              <div>
+                <label htmlFor="select-block" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  Property Block <span className="text-red-500 font-bold">*</span>
+                </label>
+                <select
+                  id="select-block"
+                  value={selectedBlockId}
+                  onChange={(e) => handleBlockChange(e.target.value)}
+                  className="h-9 w-full rounded-xl border border-gray-200 bg-white px-3.5 py-1 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20 shadow-2xs"
+                >
+                  <option value="">Select Block...</option>
+                  {blocks.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.block_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Floor Selection */}
               <div>
                 <label htmlFor="select-floor" className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Floor <span className="text-red-500 font-bold">*</span>
@@ -697,18 +788,28 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                 <select
                   id="select-floor"
                   value={selectedFloorId}
+                  disabled={!selectedBlockId}
                   onChange={(e) => handleFloorChange(e.target.value)}
-                  className="h-9 w-full rounded-xl border border-gray-200 bg-white px-3.5 py-1 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20 shadow-2xs"
+                  className="h-9 w-full rounded-xl border border-gray-200 bg-white px-3.5 py-1 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20 shadow-2xs disabled:bg-gray-100 disabled:opacity-70"
                 >
-                  <option value="">Select Floor...</option>
-                  {floors.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.label}
-                    </option>
-                  ))}
+                  {!selectedBlockId ? (
+                    <option value="">Select Block first...</option>
+                  ) : floors.length === 0 ? (
+                    <option value="">No floors in this block</option>
+                  ) : (
+                    <>
+                      <option value="">Select Floor...</option>
+                      {floors.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.label}
+                        </option>
+                      ))}
+                    </>
+                  )}
                 </select>
               </div>
 
+              {/* Unit Selection */}
               <div>
                 <label htmlFor="select-unit" className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Property Flat / Unit <span className="text-red-500 font-bold">*</span>

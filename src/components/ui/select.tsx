@@ -6,15 +6,93 @@ import { Select as SelectPrimitive } from '@base-ui/react/select'
 import { cn } from '@/lib/utils'
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from 'lucide-react'
 
-const Select = SelectPrimitive.Root
+const SelectContext = React.createContext<{
+  valueLabelMap: Map<unknown, string>
+  selectedValue?: unknown
+}>({ valueLabelMap: new Map() })
+
+function extractText(node: React.ReactNode): string | undefined {
+  if (typeof node === 'string' || typeof node === 'number') {
+    return String(node)
+  }
+  if (Array.isArray(node)) {
+    const text = node.map(extractText).filter(Boolean).join(' ')
+    return text || undefined
+  }
+  if (React.isValidElement(node) && (node.props as { children?: React.ReactNode })?.children) {
+    return extractText((node.props as { children?: React.ReactNode }).children)
+  }
+  return undefined
+}
+
+function buildValueLabelMap(node: React.ReactNode, map: Map<unknown, string> = new Map()): Map<unknown, string> {
+  React.Children.forEach(node, (child) => {
+    if (!React.isValidElement(child)) return
+
+    const props = child.props as Record<string, unknown>
+    if (props) {
+      if (props.value !== undefined) {
+        const label = (props.label as string | undefined) ?? extractText(props.children as React.ReactNode)
+        if (label) {
+          map.set(props.value, label)
+        }
+      }
+      if (props.children) {
+        buildValueLabelMap(props.children as React.ReactNode, map)
+      }
+    }
+  })
+  return map
+}
+
+function Select({ children, value, defaultValue, ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) {
+  const valueLabelMap = React.useMemo(() => {
+    return buildValueLabelMap(children)
+  }, [children])
+
+  return (
+    <SelectContext.Provider value={{ valueLabelMap, selectedValue: value ?? defaultValue }}>
+      <SelectPrimitive.Root value={value} defaultValue={defaultValue} {...props}>
+        {children}
+      </SelectPrimitive.Root>
+    </SelectContext.Provider>
+  )
+}
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return <SelectPrimitive.Group data-slot="select-group" className={cn('scroll-my-1 p-1', className)} {...props} />
 }
 
-function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
+function SelectValue({ className, placeholder, children, ...props }: SelectPrimitive.Value.Props) {
+  const { valueLabelMap, selectedValue } = React.useContext(SelectContext)
+
   return (
-    <SelectPrimitive.Value data-slot="select-value" className={cn('flex flex-1 text-left', className)} {...props} />
+    <SelectPrimitive.Value
+      data-slot="select-value"
+      className={cn('flex flex-1 text-left', className)}
+      placeholder={placeholder}
+      {...props}
+    >
+      {(value: unknown) => {
+        if (typeof children === 'function') {
+          return (children as (val: unknown) => React.ReactNode)(value)
+        }
+        if (children != null) {
+          return children
+        }
+
+        const currentVal = value ?? selectedValue
+
+        if (currentVal !== undefined && currentVal !== null && currentVal !== '') {
+          const mapLabel = valueLabelMap.get(currentVal)
+          if (mapLabel) {
+            return mapLabel
+          }
+        }
+
+        return placeholder
+      }}
+    </SelectPrimitive.Value>
   )
 }
 
@@ -31,7 +109,7 @@ function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "flex w-fit items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-8 data-[size=sm]:h-7 data-[size=sm]:rounded-[min(var(--radius-md),10px)] *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "flex w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-8 data-[size=sm]:h-7 data-[size=sm]:rounded-[min(var(--radius-md),10px)] *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
@@ -47,9 +125,9 @@ function SelectContent({
   children,
   side = 'bottom',
   sideOffset = 4,
-  align = 'center',
+  align = 'start',
   alignOffset = 0,
-  alignItemWithTrigger = true,
+  alignItemWithTrigger = false,
   ...props
 }: SelectPrimitive.Popup.Props &
   Pick<SelectPrimitive.Positioner.Props, 'align' | 'alignOffset' | 'side' | 'sideOffset' | 'alignItemWithTrigger'>) {
@@ -91,10 +169,13 @@ function SelectLabel({ className, ...props }: SelectPrimitive.GroupLabel.Props) 
   )
 }
 
-function SelectItem({ className, children, ...props }: SelectPrimitive.Item.Props) {
+function SelectItem({ className, children, label, ...props }: SelectPrimitive.Item.Props) {
+  const itemLabel = label ?? extractText(children)
+
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
+      label={itemLabel}
       className={cn(
         "relative flex w-full cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className,
