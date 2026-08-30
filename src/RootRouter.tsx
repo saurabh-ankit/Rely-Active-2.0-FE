@@ -50,6 +50,30 @@ export default function RootRouter() {
           }
         />
         <Route
+          path="global-settings/residents"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="residents" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="global-settings/residents/edit/:id"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="edit-resident" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="global-settings/residents/details/:id"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="view-resident" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="global-settings/create-user"
           element={
             <ProtectedRoute requireSuperAdmin>
@@ -87,6 +111,7 @@ export default function RootRouter() {
         <Route path="admin/residents" element={<ResidentPage initialView="list" />} />
         <Route path="admin/residents/create" element={<ResidentPage initialView="create" />} />
         <Route path="admin/residents/edit/:id" element={<ResidentPage initialView="edit" />} />
+        <Route path="admin/residents/details/:id" element={<ResidentPage initialView="view" />} />
         <Route path="admin/employees" element={<EmployeeDirectoryPage initialView="list" />} />
         <Route path="admin/employees/create" element={<EmployeeDirectoryPage initialView="create" />} />
         <Route path="admin/employees/edit/:id" element={<EmployeeDirectoryPage initialView="edit" />} />

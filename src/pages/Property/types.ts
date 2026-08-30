@@ -23,6 +23,7 @@ export interface BHKTemplateVariant {
 }
 
 export interface UnitInput {
+  id?: string
   unit_number: string
   unit_type: UnitType
   position?: number | null
@@ -40,6 +41,7 @@ export interface UnitInput {
 }
 
 export interface FloorInput {
+  id?: string
   floor_number: number
   floor_name?: string | null
   floor_type?: string | null
@@ -49,6 +51,7 @@ export interface FloorInput {
 }
 
 export interface BlockInput {
+  id?: string
   block_name: string
   total_floors?: number | null
   units_per_floor?: number | null
@@ -92,6 +95,7 @@ export interface PropertyUnit {
   price: number | null
   price_per_sqft: number | null
   status: UnitStatus
+  occupancyStatus?: string | null
   isActive: boolean
   isDeleted: boolean
   createdAt: string

@@ -1,8 +1,10 @@
-import { useState } from 'react'
-import { Building2, CalendarDays, Edit, HelpCircle, Layers, MapPin, Maximize2, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Building2, CalendarDays, Edit, Layers, MapPin, Maximize2, User, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Property } from '../types'
 import { PROPERTY_TYPE_LABELS } from '../types'
+import type { ResidentItem } from '@/lib/types'
+import { residentService } from '@/lib/services/residentService'
 
 interface PropertyDetailDrawerProps {
   property: Property | null
@@ -12,6 +14,24 @@ interface PropertyDetailDrawerProps {
 
 export default function PropertyDetailDrawer({ property, onClose, onEdit }: PropertyDetailDrawerProps) {
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null)
+  const [residents, setResidents] = useState<ResidentItem[]>([])
+
+  useEffect(() => {
+    let isMounted = true
+    if (property?.id) {
+      residentService
+        .getResidents({ locId: property.id })
+        .then((resList) => {
+          if (isMounted) setResidents(resList)
+        })
+        .catch((err: unknown) => {
+          console.error('Failed to load residents for property detail drawer:', err)
+        })
+    }
+    return () => {
+      isMounted = false
+    }
+  }, [property?.id])
 
   if (!property) return null
 
@@ -40,6 +60,86 @@ export default function PropertyDetailDrawer({ property, onClose, onEdit }: Prop
         sum + (b.floors?.reduce((fsum, f) => fsum + (f.units?.filter((u) => u.status === 'sold').length ?? 0), 0) ?? 0),
       0,
     ) ?? 0
+
+  // Helper to determine precise unit occupancy status (Owner / Tenant / Off-site / Available / Sold)
+  const getUnitOccupancyInfo = (unitId: string, baseStatus: string) => {
+    const activeResidents = residents.filter(
+      (r) => r.unitId === unitId && r.status !== 'INACTIVE' && r.status !== 'MOVED_OUT',
+    )
+
+    const residingTenant = activeResidents.find((r) => r.residentType === 'TENANT' && r.isResiding)
+    if (residingTenant) {
+      return {
+        label: 'Occupied (Tenant)',
+        badgeText: 'Tenant',
+        residentName: `${residingTenant.firstName} ${residingTenant.lastName || ''}`.trim(),
+        cardClass:
+          'bg-purple-50 border-purple-300 text-purple-950 shadow-2xs hover:border-purple-400 dark:bg-purple-950/60 dark:border-purple-800 dark:text-purple-200',
+        badgeClass:
+          'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900 dark:text-purple-300 dark:border-purple-700',
+      }
+    }
+
+    const residingOwner = activeResidents.find((r) => r.residentType === 'OWNER' && r.isResiding)
+    if (residingOwner) {
+      return {
+        label: 'Occupied (Owner)',
+        badgeText: 'Owner',
+        residentName: `${residingOwner.firstName} ${residingOwner.lastName || ''}`.trim(),
+        cardClass:
+          'bg-blue-50 border-blue-300 text-blue-950 shadow-2xs hover:border-blue-400 dark:bg-blue-950/60 dark:border-blue-800 dark:text-blue-200',
+        badgeClass:
+          'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-700',
+      }
+    }
+
+    const offsiteOwner = activeResidents.find((r) => r.residentType === 'OWNER' && !r.isResiding)
+    if (offsiteOwner) {
+      return {
+        label: 'Off-site Owner',
+        badgeText: 'Off-site',
+        residentName: `${offsiteOwner.firstName} ${offsiteOwner.lastName || ''}`.trim(),
+        cardClass:
+          'bg-amber-50 border-amber-300 text-amber-950 shadow-2xs hover:border-amber-400 dark:bg-amber-950/60 dark:border-amber-800 dark:text-amber-200',
+        badgeClass:
+          'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900 dark:text-amber-300 dark:border-amber-700',
+      }
+    }
+
+    if (baseStatus === 'sold') {
+      return {
+        label: 'Sold',
+        badgeText: 'Sold',
+        residentName: null,
+        cardClass:
+          'bg-rose-50/80 border-rose-300 text-rose-900 dark:bg-rose-950/60 dark:border-rose-800 dark:text-rose-200',
+        badgeClass:
+          'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-900 dark:text-rose-300 dark:border-rose-700',
+      }
+    }
+
+    if (baseStatus === 'booked') {
+      return {
+        label: 'Booked',
+        badgeText: 'Booked',
+        residentName: null,
+        cardClass:
+          'bg-amber-50/80 border-amber-300 text-amber-900 dark:bg-amber-950/60 dark:border-amber-800 dark:text-amber-200',
+        badgeClass:
+          'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900 dark:text-amber-300 dark:border-amber-700',
+      }
+    }
+
+    return {
+      label: 'Available',
+      badgeText: 'Available',
+      residentName: null,
+      cardClass:
+        'bg-emerald-50/80 border-emerald-300 text-emerald-900 hover:shadow-xs dark:bg-emerald-950/60 dark:border-emerald-800 dark:text-emerald-200',
+      badgeClass:
+        'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900 dark:text-emerald-300 dark:border-emerald-700',
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -196,6 +296,29 @@ export default function PropertyDetailDrawer({ property, onClose, onEdit }: Prop
 
                   {/* Visual Floor Grid */}
                   <div className="p-6 space-y-4 bg-slate-50/50">
+                    {/* Visual Color Legend Bar */}
+                    <div className="flex flex-wrap items-center gap-3 px-1 py-1.5 text-xs font-semibold text-gray-600 border-b border-gray-200/60 pb-3">
+                      <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">
+                        Unit Status Legend:
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                        Available
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 border border-blue-200 text-[10px] font-bold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                        Occupied (Owner)
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-bold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-600" />
+                        Occupied (Tenant)
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-bold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
+                        Off-site Owner
+                      </span>
+                    </div>
+
                     {selectedBlock.floors && selectedBlock.floors.length > 0 ? (
                       [...selectedBlock.floors]
                         .sort((a, b) => b.floor_number - a.floor_number)
@@ -225,30 +348,32 @@ export default function PropertyDetailDrawer({ property, onClose, onEdit }: Prop
                                   {floor.units && floor.units.length > 0 ? (
                                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2.5">
                                       {floor.units.map((unit) => {
-                                        const isSold = unit.status === 'sold'
-                                        const isBooked = unit.status === 'booked'
+                                        const occInfo = getUnitOccupancyInfo(unit.id, unit.status)
 
                                         return (
                                           <div
                                             key={unit.id}
-                                            className={`rounded-xl border p-2.5 space-y-1 transition-all ${
-                                              isSold
-                                                ? 'bg-rose-50/80 border-rose-300 text-rose-900'
-                                                : isBooked
-                                                  ? 'bg-amber-50/80 border-amber-300 text-amber-900'
-                                                  : 'bg-emerald-50/80 border-emerald-300 text-emerald-900 hover:shadow-xs'
-                                            }`}
+                                            className={`rounded-xl border p-2.5 space-y-1 transition-all ${occInfo.cardClass}`}
                                           >
-                                            <div className="flex items-center justify-between">
-                                              <span className="text-xs font-extrabold tracking-tight">
+                                            <div className="flex items-center justify-between gap-1">
+                                              <span className="text-xs font-extrabold tracking-tight truncate">
                                                 {unit.unit_number}
                                               </span>
-                                              <HelpCircle className="h-3.5 w-3.5 opacity-60" />
+                                              <span
+                                                className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border shrink-0 ${occInfo.badgeClass}`}
+                                              >
+                                                {occInfo.badgeText}
+                                              </span>
                                             </div>
                                             <p className="text-[10px] font-medium opacity-90 truncate">
-                                              {unit.unit_type} •{' '}
-                                              {unit.status.charAt(0).toUpperCase() + unit.status.slice(1)}
+                                              {unit.unit_type} • {occInfo.label}
                                             </p>
+                                            {occInfo.residentName && (
+                                              <p className="text-[9px] font-bold text-gray-700 dark:text-gray-300 truncate mt-0.5 flex items-center gap-1">
+                                                <User className="w-2.5 h-2.5 shrink-0" />
+                                                <span className="truncate">{occInfo.residentName}</span>
+                                              </p>
+                                            )}
                                           </div>
                                         )
                                       })}

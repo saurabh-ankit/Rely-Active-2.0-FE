@@ -17,6 +17,8 @@ export interface ResidentFamilyMember {
   isResiding?: boolean
   gender?: 'MALE' | 'FEMALE' | 'OTHER' | null
   dob?: string | null
+  bloodGroup?: string | null
+  photoUrl?: string | null
   phone?: string | null
   username?: string | null
   password?: string
@@ -33,6 +35,8 @@ export interface ResidentItem {
   isResiding: boolean
   firstName: string
   lastName?: string | null
+  gender?: 'MALE' | 'FEMALE' | 'OTHER' | null
+  dob?: string | null
   username?: string | null
   email?: string | null
   phone?: string | null
@@ -44,12 +48,33 @@ export interface ResidentItem {
   status: ResidentStatus
   isActive: boolean
   createdAt: string
+  property?: {
+    id: string
+    name?: string
+    property_name?: string
+    code?: string | null
+    city?: string | null
+  }
   unit?: {
     id: string
     unit_number: string
+    unit_type?: string
     occupancyStatus?: string
+    floor?: {
+      id: string
+      floor_number: number
+      floor_name?: string | null
+    }
   }
   familyMembers?: ResidentFamilyMember[]
+}
+
+export interface GetResidentsParams {
+  locId?: string
+  unitId?: string
+  residentType?: string
+  isResiding?: boolean | string
+  search?: string
 }
 
 export interface UnitResidentsPayload {
@@ -67,6 +92,8 @@ export interface CreateResidentPayload {
   isResiding?: boolean
   firstName: string
   lastName?: string
+  gender?: 'MALE' | 'FEMALE' | 'OTHER' | ''
+  dob?: string
   username?: string
   password?: string
   email?: string

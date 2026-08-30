@@ -1,7 +1,10 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Building2, ShieldCheck, UserCheck } from 'lucide-react'
+import { ArrowLeft, Building2, Home, ShieldCheck, UserCheck } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { AdminUserManagement } from './components/AdminUserManagement'
+import { ResidentListScreen } from '../Resident/components/ResidentListScreen'
+import { OnboardResidentScreen } from '../Resident/components/OnboardResidentScreen'
+import { ResidentDetailsScreen } from '../Resident/components/ResidentDetailsScreen'
 
 interface SettingItem {
   id: string
@@ -36,10 +39,18 @@ const accessSettings: SettingItem[] = [
     icon: UserCheck,
     link: '/global-settings/users',
   },
+  {
+    id: 'resident-directory',
+    name: 'Residents Directory',
+    description: 'View and manage resident profiles, flat occupancy, and credentials across all properties.',
+    icon: Home,
+    link: '/global-settings/residents',
+  },
 ]
 
 interface GlobalSettingsPageProps {
-  initialView?: 'main' | 'users' | 'create-user' | 'edit-user' | 'permissions'
+  initialView?:
+    'main' | 'users' | 'create-user' | 'edit-user' | 'permissions' | 'residents' | 'edit-resident' | 'view-resident'
 }
 
 export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSettingsPageProps) {
@@ -62,6 +73,29 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
 
   if (activeView === 'permissions') {
     return <AdminUserManagement initialMode="permissions" />
+  }
+
+  if (activeView === 'edit-resident') {
+    return <OnboardResidentScreen isEditMode={true} isGlobalMode={true} />
+  }
+
+  if (activeView === 'view-resident') {
+    return <ResidentDetailsScreen isGlobalMode={true} />
+  }
+
+  if (activeView === 'residents') {
+    return (
+      <div className="space-y-6 pb-10">
+        <button
+          type="button"
+          onClick={() => navigate('/global-settings')}
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+        </button>
+        <ResidentListScreen isGlobalMode={true} />
+      </div>
+    )
   }
 
   if (activeView === 'users') {

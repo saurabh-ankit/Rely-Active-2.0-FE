@@ -313,6 +313,7 @@ export default function CreatePropertyScreen({
     const unitsPerFloor = activeBlock.units_per_floor || 3
     const prefix = activeBlock.prefix || 'A'
     const bhkTemplates = activeBlock.bhk_templates || []
+    const template = activeBlock.nomenclature_template || null
     const currentFloors = activeBlock.floors || []
 
     const generatedFloors: FloorInput[] = []
@@ -322,21 +323,31 @@ export default function CreatePropertyScreen({
       const existingFloor = currentFloors.find((fl) => fl.floor_number === f)
       const floorType = existingFloor?.floor_type || (isGround ? 'GROUND_FLOOR' : 'FLOOR')
       const isSellable = existingFloor?.is_sellable !== undefined ? Boolean(existingFloor.is_sellable) : true
+      const existingUnits = existingFloor?.units || []
 
       const floorUnits: UnitInput[] = []
-      if (isSellable) {
+      if (isSellable && unitsPerFloor > 0) {
         for (let p = 1; p <= unitsPerFloor; p++) {
+          const existingUnit = existingUnits.find((u) => u.position === p)
           const assignedBHK = bhkTemplates.find((t) => t.positions.some((pos) => pos.position === p))
-          const unitType = assignedBHK ? assignedBHK.type : '2BHK'
-          const carpetArea = assignedBHK ? assignedBHK.carpet_area : 1200
-          const sbaArea = assignedBHK ? assignedBHK.super_built_up_area : 1200
+          const unitType = assignedBHK ? assignedBHK.type : existingUnit?.unit_type || '2BHK'
+          const carpetArea = assignedBHK ? assignedBHK.carpet_area : existingUnit?.carpet_area || 1200
+          const sbaArea = assignedBHK ? assignedBHK.super_built_up_area : existingUnit?.super_built_up_area || 1200
           const posObj = assignedBHK?.positions.find((pos) => pos.position === p)
-          const direction = posObj?.direction || 'North-East'
-          const viewFacing = posObj?.view_facing || 'Garden View'
-          const unitNum = `${prefix}-${f}${p}`
+          const direction = posObj?.direction || existingUnit?.direction || 'North-East'
+          const viewFacing = posObj?.view_facing || existingUnit?.view_facing || 'Garden View'
+
+          let unitNum = `${prefix}-${f}${p}`
+          if (template) {
+            unitNum = template
+              .replace(/\{\{TowerPrefix\}\}/g, prefix)
+              .replace(/\{\{FloorNumber\}\}/g, String(f))
+              .replace(/\{\{Position\}\}/g, String(p))
+          }
 
           floorUnits.push({
-            unit_number: unitNum,
+            id: existingUnit?.id,
+            unit_number: existingUnit?.unit_number || unitNum,
             unit_type: unitType,
             position: p,
             direction,
@@ -345,14 +356,15 @@ export default function CreatePropertyScreen({
             carpet_area: carpetArea,
             built_up_area: sbaArea,
             super_built_up_area: sbaArea,
-            status: 'available',
+            status: existingUnit?.status || 'available',
           })
         }
       }
 
       generatedFloors.push({
+        id: existingFloor?.id,
         floor_number: f,
-        floor_name: isGround ? 'Ground Floor' : `Floor ${f}`,
+        floor_name: existingFloor?.floor_name || (isGround ? 'Ground Floor' : `Floor ${f}`),
         floor_type: floorType,
         is_sellable: isSellable,
         units: floorUnits,
@@ -433,57 +445,69 @@ export default function CreatePropertyScreen({
     setIsSubmitting(true)
     try {
       const processedBlocks = blocks.map((b) => {
-        if ((!b.floors || b.floors.length === 0) && b.total_floors && b.total_floors > 0) {
-          const totalFloors = b.total_floors
-          const unitsPerFloor = b.units_per_floor || 4
-          const prefix = b.prefix || 'A'
-          const bhkTemplates = b.bhk_templates || []
-          const generatedFloors: FloorInput[] = []
+        const totalFloors = b.total_floors || 3
+        const unitsPerFloor = b.units_per_floor || 3
+        const prefix = b.prefix || 'A'
+        const bhkTemplates = b.bhk_templates || []
+        const template = b.nomenclature_template || null
+        const currentFloors = b.floors || []
 
-          for (let f = 1; f <= totalFloors; f++) {
-            const isGround = f === 1
-            const floorType = isGround ? 'GROUND_FLOOR' : 'FLOOR'
-            const isSellable = !isGround
-            const floorUnits: UnitInput[] = []
+        const generatedFloors: FloorInput[] = []
 
-            if (isSellable) {
-              for (let p = 1; p <= unitsPerFloor; p++) {
-                const assignedBHK = bhkTemplates.find((t) => t.positions.some((pos) => pos.position === p))
-                const unitType = assignedBHK ? assignedBHK.type : '2BHK'
-                const carpetArea = assignedBHK ? assignedBHK.carpet_area : 1200
-                const sbaArea = assignedBHK ? assignedBHK.super_built_up_area : 1200
-                const posObj = assignedBHK?.positions.find((pos) => pos.position === p)
-                const direction = posObj?.direction || 'North-East'
-                const viewFacing = posObj?.view_facing || 'Garden View'
-                const unitNum = `${prefix}-${f}${String(p).padStart(2, '0')}`
+        for (let f = 1; f <= totalFloors; f++) {
+          const isGround = f === 1
+          const existingFloor = currentFloors.find((fl) => fl.floor_number === f)
+          const floorType = existingFloor?.floor_type || (isGround ? 'GROUND_FLOOR' : 'FLOOR')
+          const isSellable = existingFloor?.is_sellable !== undefined ? Boolean(existingFloor.is_sellable) : true
+          const existingUnits = existingFloor?.units || []
 
-                floorUnits.push({
-                  unit_number: unitNum,
-                  unit_type: unitType,
-                  position: p,
-                  direction,
-                  view_facing: viewFacing,
-                  is_sellable: true,
-                  carpet_area: carpetArea,
-                  built_up_area: sbaArea,
-                  super_built_up_area: sbaArea,
-                  status: 'available',
-                })
+          const floorUnits: UnitInput[] = []
+          if (isSellable && unitsPerFloor > 0) {
+            for (let p = 1; p <= unitsPerFloor; p++) {
+              const existingUnit = existingUnits.find((u) => u.position === p)
+              const assignedBHK = bhkTemplates.find((t) => t.positions.some((pos) => pos.position === p))
+              const unitType = assignedBHK ? assignedBHK.type : existingUnit?.unit_type || '2BHK'
+              const carpetArea = assignedBHK ? assignedBHK.carpet_area : existingUnit?.carpet_area || 1200
+              const sbaArea = assignedBHK ? assignedBHK.super_built_up_area : existingUnit?.super_built_up_area || 1200
+              const posObj = assignedBHK?.positions.find((pos) => pos.position === p)
+              const direction = posObj?.direction || existingUnit?.direction || 'North-East'
+              const viewFacing = posObj?.view_facing || existingUnit?.view_facing || 'Garden View'
+
+              let unitNum = `${prefix}-${f}${p}`
+              if (template) {
+                unitNum = template
+                  .replace(/\{\{TowerPrefix\}\}/g, prefix)
+                  .replace(/\{\{FloorNumber\}\}/g, String(f))
+                  .replace(/\{\{Position\}\}/g, String(p))
               }
-            }
 
-            generatedFloors.push({
-              floor_number: f,
-              floor_name: isGround ? 'Ground Floor' : `Floor ${f}`,
-              floor_type: floorType,
-              is_sellable: isSellable,
-              units: floorUnits,
-            })
+              floorUnits.push({
+                id: existingUnit?.id,
+                unit_number: existingUnit?.unit_number || unitNum,
+                unit_type: unitType,
+                position: p,
+                direction,
+                view_facing: viewFacing,
+                is_sellable: true,
+                carpet_area: carpetArea,
+                built_up_area: sbaArea,
+                super_built_up_area: sbaArea,
+                status: existingUnit?.status || 'available',
+              })
+            }
           }
 
-          return { ...b, floors: generatedFloors }
+          generatedFloors.push({
+            id: existingFloor?.id,
+            floor_number: f,
+            floor_name: existingFloor?.floor_name || (isGround ? 'Ground Floor' : `Floor ${f}`),
+            floor_type: floorType,
+            is_sellable: isSellable,
+            units: floorUnits,
+          })
         }
-        return b
+
+        return { ...b, floors: generatedFloors }
       })
 
       const payload: CreatePropertyPayload = {
@@ -820,10 +844,14 @@ export default function CreatePropertyScreen({
                     value={activeBlock.units_per_floor ?? ''}
                     onChange={(e) => {
                       const newUnitsPerFloor = e.target.value ? Math.max(1, Number(e.target.value)) : null
-                      let updatedTemplates = activeBlock.bhk_templates || []
-                      if (newUnitsPerFloor !== null && updatedTemplates.length > newUnitsPerFloor) {
-                        updatedTemplates = updatedTemplates.slice(0, newUnitsPerFloor)
-                      }
+                      const updatedTemplates = (activeBlock.bhk_templates || [])
+                        .map((t) => ({
+                          ...t,
+                          positions: t.positions
+                            ? t.positions.filter((p) => p.position <= (newUnitsPerFloor || 0))
+                            : [],
+                        }))
+                        .filter((t) => t.positions && t.positions.length > 0)
                       updateActiveBlock({
                         units_per_floor: newUnitsPerFloor,
                         bhk_templates: updatedTemplates,
