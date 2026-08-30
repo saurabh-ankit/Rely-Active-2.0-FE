@@ -14,8 +14,9 @@ export interface ResidentFamilyMember {
   firstName: string
   lastName?: string | null
   relation: string
+  isResiding?: boolean
   gender?: 'MALE' | 'FEMALE' | 'OTHER' | null
-  age?: number | null
+  dob?: string | null
   phone?: string | null
   username?: string | null
   password?: string

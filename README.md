@@ -88,20 +88,20 @@ Full-page, 100% width management module matching the Employee Management design 
 
 #### Key Features & Business Rules
 
-- **Header Location Sync**: Automatically synchronizes `selectedPropertyId` with the top header location selector (`useLocationContext()`).
+- **Header Location Sync & Route Preservation**: Synchronizes `selectedPropertyId` with the top header location selector (`useLocationContext()`) without forcing route redirects to `/dashboard`. Active page route remains active and re-fetches location-scoped data.
 - **Role Selection First**: Section 1 card (**Resident Type & Residing Status**) is placed at the top. Selecting **Owner** vs **Tenant** instantly updates the unit selection rules.
 - **Tenant Off-site Owner Filter**: When **Tenant** is selected, the **Property Flat / Unit** dropdown dynamically filters to display **ONLY units that have a registered Off-site Owner (`isResiding: false`)**. If no units qualify, submit is disabled and an alert banner guides the admin.
-- **Individual Family Member App Logins**: In the Family Members section, each member card includes a toggle: `[x] Enable Individual Mobile App Login Credentials` with inputs for `@username`, `password`, and `email`.
+- **Family Member Profile & Login Credentials**: Basic details row contains `First Name`, `Relation`, `Gender`, `Date of Birth` (date picker), `Phone`, `Email Address`. Mobile Credentials section contains `Username Handle` and `Initial Password`.
 - **UI Design Alignment**: Styled with Rely Active 2.0 glassmorphism cards (`rounded-3xl border border-white/60 bg-white/80 backdrop-blur-xl`), `DataTable` pagination, and `DropdownMenu` actions.
 
 ---
 
 ### 2. Property Management Module (`/property`)
 
-- **Property Listing**: `/property`
-- **Property Create (Full-Screen Wizard)**: `/property/create`
+- **Property Listing**: `/property` (Unit count calculated strictly as sum of `total_floors * units_per_floor` across blocks).
+- **Property Create (Full-Screen Wizard)**: `/property/create` (Enforces strict `Units / Floor` position limits on BHK template variants with live badges, toast alerts, and interactive Ground Floor `Sellable: Yes/No` toggles).
 - **Property Edit**: `/property/edit/:id`
-- **Visual Matrix**: Visual stacked floor matrix grid in `PropertyDetailDrawer.tsx`.
+- **Full View Visual Matrix**: Full-screen width (`max-w-6xl`) modal grid in `PropertyDetailDrawer.tsx` rendering sellable units for all floors (including Ground Floor) and graying out non-sellable floors.
 
 ---
 

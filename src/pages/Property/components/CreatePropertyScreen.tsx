@@ -4,6 +4,7 @@ import { ArrowLeft, Building2, Layers, MapPin, Plus, Sparkles, Trash2, X, Check 
 import { Button } from '@/components/ui/button'
 import { createPropertyAPI, getPropertyByIdAPI, updatePropertyAPI } from '@/lib/services/propertyService'
 import { CommonProgressBar, type ProgressBarStep } from '@/components/common/CommonProgressBar'
+import { notifyError } from '@/utils/toast'
 import { z } from 'zod'
 
 export const PINCODE_REGEX = /^[1-9][0-9]{5}$/
@@ -264,10 +265,25 @@ export default function CreatePropertyScreen({
   // BHK template management
   const addBHKTemplateVariant = (type: UnitType) => {
     const currentTemplates = activeBlock.bhk_templates || []
-    const takenPositions = currentTemplates.flatMap((t) => (t.positions ? t.positions.map((p) => p.position) : []))
     const unitsPerFloor = activeBlock.units_per_floor || 3
+
+    if (currentTemplates.length >= unitsPerFloor) {
+      notifyError(
+        `Limit Reached (${unitsPerFloor} / ${unitsPerFloor})`,
+        `Tower "${activeBlock.block_name}" allows a maximum of ${unitsPerFloor} unit positions per floor.`,
+      )
+      return
+    }
+
+    const takenPositions = currentTemplates.flatMap((t) => (t.positions ? t.positions.map((p) => p.position) : []))
     const available = Array.from({ length: unitsPerFloor }, (_, i) => i + 1).filter((p) => !takenPositions.includes(p))
-    const nextPosition = available[0] || takenPositions.length + 1
+
+    if (available.length === 0) {
+      notifyError(`All ${unitsPerFloor} unit positions are already assigned for this floor.`)
+      return
+    }
+
+    const nextPosition = available[0]
 
     const newVariant: BHKTemplateVariant = {
       type,
@@ -297,13 +313,15 @@ export default function CreatePropertyScreen({
     const unitsPerFloor = activeBlock.units_per_floor || 3
     const prefix = activeBlock.prefix || 'A'
     const bhkTemplates = activeBlock.bhk_templates || []
+    const currentFloors = activeBlock.floors || []
 
     const generatedFloors: FloorInput[] = []
 
     for (let f = 1; f <= totalFloors; f++) {
       const isGround = f === 1
-      const floorType = isGround ? 'GROUND_FLOOR' : 'FLOOR'
-      const isSellable = !isGround
+      const existingFloor = currentFloors.find((fl) => fl.floor_number === f)
+      const floorType = existingFloor?.floor_type || (isGround ? 'GROUND_FLOOR' : 'FLOOR')
+      const isSellable = existingFloor?.is_sellable !== undefined ? Boolean(existingFloor.is_sellable) : true
 
       const floorUnits: UnitInput[] = []
       if (isSellable) {
@@ -334,7 +352,7 @@ export default function CreatePropertyScreen({
 
       generatedFloors.push({
         floor_number: f,
-        floor_name: isGround ? 'Ground Floor' : `${f - 1}th Floor`,
+        floor_name: isGround ? 'Ground Floor' : `Floor ${f}`,
         floor_type: floorType,
         is_sellable: isSellable,
         units: floorUnits,
@@ -798,12 +816,19 @@ export default function CreatePropertyScreen({
                   <InputField
                     label="Units / floor"
                     type="number"
+                    min={1}
                     value={activeBlock.units_per_floor ?? ''}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const newUnitsPerFloor = e.target.value ? Math.max(1, Number(e.target.value)) : null
+                      let updatedTemplates = activeBlock.bhk_templates || []
+                      if (newUnitsPerFloor !== null && updatedTemplates.length > newUnitsPerFloor) {
+                        updatedTemplates = updatedTemplates.slice(0, newUnitsPerFloor)
+                      }
                       updateActiveBlock({
-                        units_per_floor: e.target.value ? Number(e.target.value) : null,
+                        units_per_floor: newUnitsPerFloor,
+                        bhk_templates: updatedTemplates,
                       })
-                    }
+                    }}
                   />
                 </div>
                 <InputField
@@ -824,24 +849,46 @@ export default function CreatePropertyScreen({
               </div>
 
               <div className="space-y-4 pt-3 border-t border-gray-100">
-                <div>
-                  <h4 className="text-xs font-bold text-gray-900">BHK templates</h4>
-                  <p className="text-[11px] text-gray-500">Click a BHK chip to add a new template variant.</p>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div>
+                    <h4 className="text-xs font-bold text-gray-900">BHK templates</h4>
+                    <p className="text-[11px] text-gray-500">
+                      Click a BHK chip to add a template variant (Max {activeBlock.units_per_floor || 3} positions per
+                      floor).
+                    </p>
+                  </div>
+                  <div>
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                        (activeBlock.bhk_templates || []).length >= (activeBlock.units_per_floor || 3)
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : 'bg-blue-50 text-[#005390] border border-blue-200'
+                      }`}
+                    >
+                      {(activeBlock.bhk_templates || []).length >= (activeBlock.units_per_floor || 3) ? '✓ ' : ''}
+                      {(activeBlock.bhk_templates || []).length} / {activeBlock.units_per_floor || 3} Positions Assigned
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                   {AVAILABLE_BHK_TYPES.map((bhkType) => {
                     const variantsCount = (activeBlock.bhk_templates || []).filter((t) => t.type === bhkType).length
+                    const isLimitReached =
+                      (activeBlock.bhk_templates || []).length >= (activeBlock.units_per_floor || 3)
 
                     return (
                       <button
                         type="button"
                         key={bhkType}
+                        disabled={isLimitReached}
                         onClick={() => addBHKTemplateVariant(bhkType)}
                         className={`rounded-xl px-4 py-2 text-xs font-semibold border transition-all ${
                           variantsCount > 0
-                            ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
-                            : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50/30'
+                            ? 'bg-[#005390] border-[#005390] text-white shadow-xs'
+                            : isLimitReached
+                              ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60'
+                              : 'bg-white border-gray-200 text-gray-700 hover:border-[#005390]/40 hover:bg-blue-50/30'
                         }`}
                       >
                         {bhkType} {variantsCount > 0 && `(${variantsCount})`}
@@ -1053,18 +1100,44 @@ export default function CreatePropertyScreen({
                       {Array.from({ length: activeBlock.total_floors || 3 }).map((_, fI) => {
                         const floorNum = fI + 1
                         const isGround = floorNum === 1
+                        const existingFloor = activeBlock.floors?.find((fl) => fl.floor_number === floorNum)
+                        const isSellable =
+                          existingFloor?.is_sellable !== undefined ? Boolean(existingFloor.is_sellable) : true
+                        const currentFloorType = existingFloor?.floor_type || (isGround ? 'GROUND_FLOOR' : 'FLOOR')
+
+                        const updateFloorConfig = (updated: Partial<FloorInput>) => {
+                          const currentFloors = activeBlock.floors || []
+                          const existingIdx = currentFloors.findIndex((fl) => fl.floor_number === floorNum)
+                          let nextFloors: FloorInput[] = []
+
+                          if (existingIdx >= 0) {
+                            nextFloors = currentFloors.map((fl, i) => (i === existingIdx ? { ...fl, ...updated } : fl))
+                          } else {
+                            nextFloors = [
+                              ...currentFloors,
+                              {
+                                floor_number: floorNum,
+                                floor_name: isGround ? 'Ground Floor' : `Floor ${floorNum}`,
+                                floor_type: currentFloorType,
+                                is_sellable: isSellable,
+                                ...updated,
+                              },
+                            ]
+                          }
+                          updateActiveBlock({ floors: nextFloors })
+                        }
 
                         return (
                           <tr key={floorNum}>
                             <td className="p-3 font-bold text-gray-900">{floorNum}</td>
                             <td className="p-3">
-                              <select className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs outline-none">
+                              <select
+                                value={currentFloorType}
+                                onChange={(e) => updateFloorConfig({ floor_type: e.target.value })}
+                                className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs outline-none"
+                              >
                                 {FLOOR_TYPE_OPTIONS.map((ft) => (
-                                  <option
-                                    key={ft}
-                                    value={ft}
-                                    selected={isGround ? ft === 'GROUND_FLOOR' : ft === 'FLOOR'}
-                                  >
+                                  <option key={ft} value={ft}>
                                     {ft}
                                   </option>
                                 ))}
@@ -1072,10 +1145,15 @@ export default function CreatePropertyScreen({
                             </td>
                             <td className="p-3">
                               <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" defaultChecked={!isGround} className="sr-only peer" />
+                                <input
+                                  type="checkbox"
+                                  checked={isSellable}
+                                  onChange={(e) => updateFloorConfig({ is_sellable: e.target.checked })}
+                                  className="sr-only peer"
+                                />
                                 <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600" />
                                 <span className="ml-2 text-xs font-medium text-gray-700">
-                                  {!isGround ? 'Yes' : 'No'}
+                                  {isSellable ? 'Yes' : 'No'}
                                 </span>
                               </label>
                             </td>
@@ -1101,7 +1179,7 @@ export default function CreatePropertyScreen({
                     Typical floors: {activeBlock.total_floors || 0}
                   </span>
                   <span className="rounded-full bg-gray-100 px-3.5 py-1 text-xs font-semibold text-gray-600">
-                    Generated units: {activeBlock.floors?.reduce((s, f) => s + (f.units?.length ?? 0), 0) || 0}
+                    Total units: {(activeBlock.total_floors || 0) * (activeBlock.units_per_floor || 0)}
                   </span>
                 </div>
 

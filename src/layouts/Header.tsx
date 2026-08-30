@@ -85,7 +85,6 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
                       onClick={() => {
                         selectLocation(p)
                         setShowLocationDropdown(false)
-                        navigate('/dashboard')
                       }}
                       className={`w-full text-left px-3 py-2 text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-between ${
                         selectedLocationName === p.property_name

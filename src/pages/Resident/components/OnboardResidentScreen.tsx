@@ -19,8 +19,8 @@ import {
 } from 'lucide-react'
 import type { CreateResidentPayload, ResidentFamilyMember, ResidentItem, ResidentType } from '@/lib/types'
 import { residentService } from '@/lib/services/residentService'
-import { getPropertiesAPI, getPropertyByIdAPI } from '@/lib/services/propertyService'
-import type { Property, PropertyUnit } from '@/pages/Property/types'
+import { getPropertyByIdAPI } from '@/lib/services/propertyService'
+import type { PropertyUnit } from '@/pages/Property/types'
 import { useLocationContext } from '@/hooks/useLocation'
 import { residentFormSchema, type ResidentFormValues } from '@/validations/residentValidation'
 import { Input } from '@/components/ui/input'
@@ -39,8 +39,6 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({ is
   const { id: editResidentId } = useParams<{ id: string }>()
   const { selectedLocationId } = useLocationContext()
 
-  const [properties, setProperties] = useState<Property[]>([])
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('')
   const [units, setUnits] = useState<UnitWithOccupancy[]>([])
   const [existingResidents, setExistingResidents] = useState<ResidentItem[]>([])
   const [familyMembers, setFamilyMembers] = useState<ResidentFamilyMember[]>([])
@@ -88,59 +86,56 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({ is
     const init = async () => {
       setIsLoading(true)
       try {
-        const propList = await getPropertiesAPI()
+        if (!selectedLocationId) {
+          setIsLoading(false)
+          return
+        }
+
+        setValue('locId', selectedLocationId)
+
+        const [resList, propDetails] = await Promise.all([
+          residentService.getResidents({ locId: selectedLocationId }),
+          getPropertyByIdAPI(selectedLocationId),
+        ])
+
         if (!isMounted) return
-        setProperties(propList)
+        setExistingResidents(resList)
 
-        const activeLoc = selectedLocationId || (propList.length > 0 ? propList[0].id : '')
-        setSelectedPropertyId(activeLoc)
-        setValue('locId', activeLoc)
-
-        if (activeLoc) {
-          const [resList, propDetails] = await Promise.all([
-            residentService.getResidents({ locId: activeLoc }),
-            getPropertyByIdAPI(activeLoc),
-          ])
-
-          if (!isMounted) return
-          setExistingResidents(resList)
-
-          const allUnits: UnitWithOccupancy[] = []
-          propDetails.blocks?.forEach((b) => {
-            b.floors?.forEach((f) => {
-              f.units?.forEach((u) => {
-                allUnits.push(u as UnitWithOccupancy)
-              })
+        const allUnits: UnitWithOccupancy[] = []
+        propDetails.blocks?.forEach((b) => {
+          b.floors?.forEach((f) => {
+            f.units?.forEach((u) => {
+              allUnits.push(u as UnitWithOccupancy)
             })
           })
-          setUnits(allUnits)
+        })
+        setUnits(allUnits)
 
-          if (allUnits.length > 0) {
-            setValue('unitId', allUnits[0].id)
-          }
+        if (allUnits.length > 0 && !isEditMode) {
+          setValue('unitId', allUnits[0].id)
+        }
 
-          // If Edit Mode, load resident details
-          if (isEditMode && editResidentId) {
-            const targetRes = resList.find((r) => r.id === editResidentId)
-            if (targetRes) {
-              resetForm({
-                unitId: targetRes.unitId,
-                locId: targetRes.locId,
-                residentType: targetRes.residentType,
-                ownershipType: targetRes.ownershipType || 'PRIMARY',
-                isResiding: targetRes.isResiding,
-                firstName: targetRes.firstName,
-                lastName: targetRes.lastName || '',
-                username: targetRes.username || '',
-                password: '',
-                email: targetRes.email || '',
-                phone: targetRes.phone || '',
-                emergencyContact: targetRes.emergencyContact || '',
-                bloodGroup: targetRes.bloodGroup || '',
-                moveInDate: targetRes.moveInDate || new Date().toISOString().split('T')[0],
-              })
-              setFamilyMembers(targetRes.familyMembers || [])
-            }
+        // If Edit Mode, load resident details
+        if (isEditMode && editResidentId) {
+          const targetRes = resList.find((r) => r.id === editResidentId)
+          if (targetRes) {
+            resetForm({
+              unitId: targetRes.unitId,
+              locId: targetRes.locId,
+              residentType: targetRes.residentType,
+              ownershipType: targetRes.ownershipType || 'PRIMARY',
+              isResiding: targetRes.isResiding,
+              firstName: targetRes.firstName,
+              lastName: targetRes.lastName || '',
+              username: targetRes.username || '',
+              password: '',
+              email: targetRes.email || '',
+              phone: targetRes.phone || '',
+              emergencyContact: targetRes.emergencyContact || '',
+              bloodGroup: targetRes.bloodGroup || '',
+              moveInDate: targetRes.moveInDate || new Date().toISOString().split('T')[0],
+            })
+            setFamilyMembers(targetRes.familyMembers || [])
           }
         }
       } catch (err: unknown) {
@@ -157,43 +152,22 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({ is
     }
   }, [selectedLocationId, isEditMode, editResidentId, setValue, resetForm])
 
-  const handlePropertyChange = async (locId: string) => {
-    setSelectedPropertyId(locId)
-    setValue('locId', locId)
-    setValue('unitId', '')
-    setIsLoading(true)
-    try {
-      const [resList, propDetails] = await Promise.all([
-        residentService.getResidents({ locId }),
-        getPropertyByIdAPI(locId),
-      ])
-
-      setExistingResidents(resList)
-
-      const allUnits: UnitWithOccupancy[] = []
-      propDetails.blocks?.forEach((b) => {
-        b.floors?.forEach((f) => {
-          f.units?.forEach((u) => {
-            allUnits.push(u as UnitWithOccupancy)
-          })
-        })
-      })
-      setUnits(allUnits)
-      if (allUnits.length > 0) {
-        setValue('unitId', allUnits[0].id)
-      }
-    } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : 'Failed to load property data')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   // Family Members helpers
   const handleAddFamilyMember = () => {
     setFamilyMembers((prev) => [
       ...prev,
-      { firstName: '', lastName: '', relation: 'Spouse', gender: 'MALE', age: undefined, phone: '' },
+      {
+        firstName: '',
+        lastName: '',
+        relation: 'Spouse',
+        isResiding: watchedIsResiding,
+        gender: 'MALE',
+        dob: '',
+        phone: '',
+        email: '',
+        username: '',
+        password: '',
+      },
     ])
   }
 
@@ -384,47 +358,25 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({ is
               Property & Flat Unit Mapping
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
-              <div>
-                <label htmlFor="select-property" className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Property Location <span className="text-red-500 font-bold">*</span>
-                </label>
-                <select
-                  id="select-property"
-                  value={selectedPropertyId}
-                  onChange={(e) => handlePropertyChange(e.target.value)}
-                  className="h-9 w-full rounded-xl border border-gray-200 bg-white px-3.5 py-1 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20 shadow-2xs"
-                  disabled={isEditMode}
-                >
-                  {properties.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.property_name} ({p.city})
-                    </option>
-                  ))}
-                </select>
-                {errors.locId && <p className="mt-1 text-xs font-semibold text-red-500">{errors.locId.message}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="select-unit" className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Property Flat / Unit <span className="text-red-500 font-bold">*</span>
-                </label>
-                <select
-                  id="select-unit"
-                  {...register('unitId')}
-                  className={`h-9 w-full rounded-xl border bg-white px-3.5 py-1 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20 shadow-2xs ${
-                    errors.unitId ? 'border-red-500 focus:ring-red-500/20' : 'border-gray-200'
-                  }`}
-                >
-                  <option value="">Select Flat...</option>
-                  {availableUnits.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      Unit {u.unit_number} ({u.unit_type}) — Occupancy: {u.occupancyStatus || 'VACANT'}
-                    </option>
-                  ))}
-                </select>
-                {errors.unitId && <p className="mt-1 text-xs font-semibold text-red-500">{errors.unitId.message}</p>}
-              </div>
+            <div className="text-xs">
+              <label htmlFor="select-unit" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Property Flat / Unit <span className="text-red-500 font-bold">*</span>
+              </label>
+              <select
+                id="select-unit"
+                {...register('unitId')}
+                className={`h-9 w-full rounded-xl border bg-white px-3.5 py-1 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20 shadow-2xs ${
+                  errors.unitId ? 'border-red-500 focus:ring-red-500/20' : 'border-gray-200'
+                }`}
+              >
+                <option value="">Select Flat...</option>
+                {availableUnits.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    Unit {u.unit_number} ({u.unit_type}) — Occupancy: {u.occupancyStatus || 'VACANT'}
+                  </option>
+                ))}
+              </select>
+              {errors.unitId && <p className="mt-1 text-xs font-semibold text-red-500">{errors.unitId.message}</p>}
             </div>
           </div>
 
@@ -512,7 +464,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({ is
                   {familyMembers.map((fm, idx) => (
                     <div
                       key={idx}
-                      className="p-4 bg-gray-50/80 border border-gray-200 rounded-2xl grid grid-cols-1 sm:grid-cols-5 gap-3 items-center text-xs shadow-2xs"
+                      className="p-4 bg-gray-50/80 border border-gray-200 rounded-2xl grid grid-cols-1 sm:grid-cols-6 gap-3 items-center text-xs shadow-2xs"
                     >
                       <div>
                         <label
@@ -576,42 +528,58 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({ is
 
                       <div>
                         <label
-                          htmlFor={`fm-age-input-${idx}`}
+                          htmlFor={`fm-dob-input-${idx}`}
                           className="block text-[10px] font-semibold text-gray-500 mb-1"
                         >
-                          Age
+                          Date of Birth
                         </label>
                         <input
-                          id={`fm-age-input-${idx}`}
-                          type="number"
-                          placeholder="e.g. 28"
-                          value={fm.age || ''}
-                          onChange={(e) => handleFamilyMemberChange(idx, 'age', e.target.value)}
+                          id={`fm-dob-input-${idx}`}
+                          type="date"
+                          value={fm.dob || ''}
+                          onChange={(e) => handleFamilyMemberChange(idx, 'dob', e.target.value)}
+                          className="h-8 w-full rounded-xl border border-gray-200 bg-white px-2 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor={`fm-phone-input-${idx}`}
+                          className="block text-[10px] font-semibold text-gray-500 mb-1"
+                        >
+                          Phone
+                        </label>
+                        <input
+                          id={`fm-phone-input-${idx}`}
+                          type="text"
+                          placeholder="Phone Number"
+                          value={fm.phone || ''}
+                          onChange={(e) => handleFamilyMemberChange(idx, 'phone', e.target.value)}
                           className="h-8 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none"
                         />
                       </div>
 
-                      <div className="flex items-center justify-between gap-2 pt-2 sm:pt-0">
+                      <div className="flex items-center justify-between gap-2">
                         <div className="flex-1">
                           <label
-                            htmlFor={`fm-phone-input-${idx}`}
+                            htmlFor={`fm-email-input-${idx}`}
                             className="block text-[10px] font-semibold text-gray-500 mb-1"
                           >
-                            Phone
+                            Email Address
                           </label>
                           <input
-                            id={`fm-phone-input-${idx}`}
-                            type="text"
-                            placeholder="Phone Number"
-                            value={fm.phone || ''}
-                            onChange={(e) => handleFamilyMemberChange(idx, 'phone', e.target.value)}
+                            id={`fm-email-input-${idx}`}
+                            type="email"
+                            placeholder="Email Address"
+                            value={fm.email || ''}
+                            onChange={(e) => handleFamilyMemberChange(idx, 'email', e.target.value)}
                             className="h-8 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none"
                           />
                         </div>
                         <button
                           type="button"
                           onClick={() => handleRemoveFamilyMember(idx)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl mt-3 transition"
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl mt-4 transition shrink-0"
                           title="Remove Member"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -619,7 +587,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({ is
                       </div>
 
                       {/* Mobile App Login Credentials for Family Member */}
-                      <div className="sm:col-span-5 pt-2.5 border-t border-gray-200/60 mt-1">
+                      <div className="sm:col-span-6 pt-2.5 border-t border-gray-200/60 mt-1">
                         <label
                           htmlFor={`fm-[#005390]-login-access-${idx}`}
                           className="inline-flex items-center gap-2 text-xs font-semibold text-[#005390] cursor-pointer"
@@ -647,7 +615,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({ is
                         </label>
 
                         {Boolean(fm.username) && (
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2.5 p-3 bg-blue-50/60 border border-blue-100 rounded-xl">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2.5 p-3 bg-blue-50/60 border border-blue-100 rounded-xl">
                             <div>
                               <label
                                 htmlFor={`fm-username-input-${idx}`}
@@ -677,22 +645,6 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({ is
                                 placeholder="Default: Resident@123"
                                 value={fm.password || ''}
                                 onChange={(e) => handleFamilyMemberChange(idx, 'password', e.target.value)}
-                                className="h-8 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-xs text-gray-900"
-                              />
-                            </div>
-                            <div>
-                              <label
-                                htmlFor={`fm-email-input-${idx}`}
-                                className="block text-[10px] font-semibold text-gray-600 mb-1"
-                              >
-                                App Email
-                              </label>
-                              <input
-                                id={`fm-email-input-${idx}`}
-                                type="email"
-                                placeholder="priya@example.com"
-                                value={fm.email || ''}
-                                onChange={(e) => handleFamilyMemberChange(idx, 'email', e.target.value)}
                                 className="h-8 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-xs text-gray-900"
                               />
                             </div>

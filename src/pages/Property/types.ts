@@ -118,6 +118,7 @@ export interface PropertyBlock {
   propertyId: string
   block_name: string
   total_floors: number | null
+  units_per_floor: number | null
   description: string | null
   isActive: boolean
   isDeleted: boolean

@@ -1,11 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Building2, Check, Edit, Home, MoreVertical, Trash2, UserCheck, UserPlus } from 'lucide-react'
+import { Check, Edit, Home, MoreVertical, Trash2, UserCheck, UserPlus } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ResidentItem } from '@/lib/types'
 import { residentService } from '@/lib/services/residentService'
-import { getPropertiesAPI } from '@/lib/services/propertyService'
-import type { Property } from '@/pages/Property/types'
 import { useLocationContext } from '@/hooks/useLocation'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
@@ -15,8 +13,6 @@ export const ResidentListScreen: React.FC = () => {
   const navigate = useNavigate()
   const { selectedLocationId } = useLocationContext()
 
-  const [properties, setProperties] = useState<Property[]>([])
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('')
   const [residents, setResidents] = useState<ResidentItem[]>([])
 
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -27,6 +23,7 @@ export const ResidentListScreen: React.FC = () => {
 
   const loadPropertyData = useCallback(async (locId: string) => {
     setIsLoading(true)
+    setError(null)
     try {
       const resList = await residentService.getResidents({ locId })
       setResidents(resList)
@@ -38,57 +35,29 @@ export const ResidentListScreen: React.FC = () => {
     }
   }, [])
 
-  const fetchInitialData = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
-    try {
-      const propList = await getPropertiesAPI()
-      setProperties(propList)
-
-      const activeLoc = selectedLocationId || (propList.length > 0 ? propList[0].id : '')
-      setSelectedPropertyId(activeLoc)
-
-      if (activeLoc) {
-        await loadPropertyData(activeLoc)
-      } else {
-        setIsLoading(false)
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to load property data'
-      setError(msg)
-      setIsLoading(false)
-    }
-  }, [selectedLocationId, loadPropertyData])
-
   // Sync with top header location selector
   useEffect(() => {
     let isMounted = true
     const syncLocation = async () => {
       if (!isMounted) return
       if (selectedLocationId) {
-        setSelectedPropertyId(selectedLocationId)
         await loadPropertyData(selectedLocationId)
       } else {
-        await fetchInitialData()
+        setIsLoading(false)
       }
     }
     void syncLocation()
     return () => {
       isMounted = false
     }
-  }, [selectedLocationId, fetchInitialData, loadPropertyData])
-
-  const handlePropertyChange = (locId: string) => {
-    setSelectedPropertyId(locId)
-    loadPropertyData(locId)
-  }
+  }, [selectedLocationId, loadPropertyData])
 
   const handleDelete = async (id: string, name: string) => {
     if (!window.confirm(`Are you sure you want to remove resident "${name}"?`)) return
 
     try {
       await residentService.deleteResident(id)
-      if (selectedPropertyId) loadPropertyData(selectedPropertyId)
+      if (selectedLocationId) loadPropertyData(selectedLocationId)
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Failed to delete resident')
     }
@@ -248,29 +217,7 @@ export const ResidentListScreen: React.FC = () => {
 
   // Filter Bar controls passed into DataTable
   const filterControls = (
-    <div className="flex flex-wrap items-center gap-3 w-full">
-      {/* Property Selector */}
-      <div className="flex-1 min-w-[200px]">
-        <label htmlFor="active-property-select" className="block text-xs font-semibold text-gray-500 mb-1">
-          Active Property
-        </label>
-        <div className="relative">
-          <Building2 className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
-          <select
-            id="active-property-select"
-            value={selectedPropertyId}
-            onChange={(e) => handlePropertyChange(e.target.value)}
-            className="h-9 w-full pl-9 pr-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-medium text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390] shadow-2xs"
-          >
-            {properties.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.property_name} ({p.city})
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
+    <div className="flex flex-wrap items-center gap-3">
       {/* Resident Type Filter */}
       <div className="min-w-[160px]">
         <label htmlFor="filter-type-select" className="block text-xs font-semibold text-gray-500 mb-1">

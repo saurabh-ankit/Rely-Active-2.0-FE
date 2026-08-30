@@ -1,11 +1,9 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Building2, Check, MapPin } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useLocationContext, type PropertyLocationItem } from '@/hooks/useLocation'
 
 export const LocationSelectionModal: React.FC = () => {
-  const navigate = useNavigate()
   const { showLocationModal, setShowLocationModal, accessibleLocations, selectedLocationId, selectLocation } =
     useLocationContext()
 
@@ -39,7 +37,6 @@ export const LocationSelectionModal: React.FC = () => {
                   type="button"
                   onClick={() => {
                     selectLocation(loc)
-                    navigate('/dashboard')
                   }}
                   className={`w-full flex items-center justify-between p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
                     isSelected

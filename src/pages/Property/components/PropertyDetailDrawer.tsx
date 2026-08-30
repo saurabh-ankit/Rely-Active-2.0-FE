@@ -18,10 +18,13 @@ export default function PropertyDetailDrawer({ property, onClose, onEdit }: Prop
   const selectedBlock = property.blocks?.find((b) => b.id === activeBlockId) || property.blocks?.[0]
 
   const totalUnits =
-    property.blocks?.reduce(
-      (sum, b) => sum + (b.floors?.reduce((fsum, f) => fsum + (f.units?.length ?? 0), 0) ?? 0),
-      0,
-    ) ?? 0
+    property.blocks?.reduce((sum, b) => {
+      const floors = b.total_floors ?? b.floors?.length ?? 0
+      const unitsPerFloor = b.units_per_floor ?? b.floors?.[0]?.units?.length ?? 0
+      const calc = floors * unitsPerFloor
+      if (calc > 0) return sum + calc
+      return sum + (b.floors?.reduce((fsum, f) => fsum + (f.units?.length ?? 0), 0) ?? 0)
+    }, 0) ?? 0
 
   const availableUnits =
     property.blocks?.reduce(
@@ -49,8 +52,8 @@ export default function PropertyDetailDrawer({ property, onClose, onEdit }: Prop
         onKeyDown={(e) => e.key === 'Escape' && onClose()}
       />
 
-      {/* Drawer Panel */}
-      <div className="relative z-10 w-full max-w-3xl h-full bg-slate-50 shadow-2xl flex flex-col overflow-hidden border-l border-gray-200">
+      {/* Drawer Panel - Full View */}
+      <div className="relative z-10 w-full max-w-6xl h-full bg-slate-50 shadow-2xl flex flex-col overflow-hidden border-l border-gray-200">
         {/* Top Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200 shrink-0">
           <div className="flex items-center gap-3">
@@ -100,13 +103,13 @@ export default function PropertyDetailDrawer({ property, onClose, onEdit }: Prop
                 icon: Layers,
                 label: 'Blocks',
                 value: property.blocks?.length ?? 0,
-                color: 'text-[#005390] bg-[#005390]/10',
+                color: 'text-blue-600 bg-blue-50',
               },
               {
                 icon: Building2,
                 label: 'Total Units',
                 value: totalUnits,
-                color: 'text-[#002C7D] bg-[#002C7D]/10',
+                color: 'text-indigo-600 bg-indigo-50',
               },
               {
                 icon: CalendarDays,
@@ -121,28 +124,32 @@ export default function PropertyDetailDrawer({ property, onClose, onEdit }: Prop
                 color: 'text-rose-600 bg-rose-50',
               },
             ].map(({ icon: Icon, label, value, color }) => (
-              <div key={label} className="rounded-2xl border border-gray-200 bg-white p-3 text-center shadow-xs">
-                <div className={`w-8 h-8 rounded-xl ${color} flex items-center justify-center mx-auto mb-1`}>
-                  <Icon className="h-4 w-4" />
+              <div key={label} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2.5 rounded-xl ${color}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium">{label}</p>
+                    <h4 className="text-lg font-bold text-gray-900">{value}</h4>
+                  </div>
                 </div>
-                <p className="text-[10px] text-gray-500 mb-0.5">{label}</p>
-                <p className="text-sm font-bold text-gray-900">{value}</p>
               </div>
             ))}
           </div>
 
-          {/* Tower Selector & Visual Matrix Grid */}
+          {/* Towers Breakdown */}
           {property.blocks && property.blocks.length > 0 && (
             <div className="space-y-4">
-              {/* Block Selector Tabs */}
+              {/* Block Tabs */}
               {property.blocks.length > 1 && (
                 <div className="flex flex-wrap gap-2">
                   {property.blocks.map((b) => {
-                    const isSelected = selectedBlock?.id === b.id
+                    const isSelected = b.id === (selectedBlock?.id || property.blocks?.[0]?.id)
                     return (
                       <button
-                        type="button"
                         key={b.id}
+                        type="button"
                         onClick={() => setActiveBlockId(b.id)}
                         className={`rounded-xl px-4 py-2 text-xs font-bold transition-all border ${
                           isSelected
@@ -193,10 +200,17 @@ export default function PropertyDetailDrawer({ property, onClose, onEdit }: Prop
                       [...selectedBlock.floors]
                         .sort((a, b) => b.floor_number - a.floor_number)
                         .map((floor) => {
-                          const isGround = floor.floor_number === 1 || floor.floor_type === 'GROUND_FLOOR'
+                          const isSellableFloor = floor.is_sellable !== false && floor.units && floor.units.length > 0
 
                           return (
-                            <div key={floor.id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-xs">
+                            <div
+                              key={floor.id}
+                              className={`rounded-2xl border p-4 shadow-xs transition-all ${
+                                isSellableFloor
+                                  ? 'border-gray-200 bg-white'
+                                  : 'border-gray-200/80 bg-gray-100/70 opacity-75'
+                              }`}
+                            >
                               <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                                 {/* Left Floor Label */}
                                 <div className="w-24 shrink-0 pt-1">
@@ -208,12 +222,8 @@ export default function PropertyDetailDrawer({ property, onClose, onEdit }: Prop
 
                                 {/* Right Unit Matrix */}
                                 <div className="flex-1">
-                                  {isGround ? (
-                                    <div className="w-full rounded-xl border border-[#005390]/30 bg-[#005390]/10 text-[#005390] font-bold py-4 text-center text-xs tracking-wider uppercase shadow-2xs">
-                                      GROUND FLOOR
-                                    </div>
-                                  ) : floor.units && floor.units.length > 0 ? (
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                  {floor.units && floor.units.length > 0 ? (
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2.5">
                                       {floor.units.map((unit) => {
                                         const isSold = unit.status === 'sold'
                                         const isBooked = unit.status === 'booked'
@@ -244,9 +254,9 @@ export default function PropertyDetailDrawer({ property, onClose, onEdit }: Prop
                                       })}
                                     </div>
                                   ) : (
-                                    <p className="text-xs text-gray-400 italic py-2">
-                                      No units configured for this floor
-                                    </p>
+                                    <div className="w-full rounded-xl border border-gray-200 bg-gray-100/70 text-gray-500 font-semibold py-3 px-4 text-center text-xs tracking-wider uppercase opacity-75">
+                                      Non-Sellable Floor ({floor.floor_name || `Floor ${floor.floor_number}`})
+                                    </div>
                                   )}
                                 </div>
                               </div>

@@ -59,7 +59,13 @@ export default function PropertyPage() {
   })
 
   const totalUnits = (p: Property) =>
-    p.blocks?.reduce((s, b) => s + (b.floors?.reduce((fs, f) => fs + (f.units?.length ?? 0), 0) ?? 0), 0) ?? 0
+    p.blocks?.reduce((s, b) => {
+      const floors = b.total_floors ?? b.floors?.length ?? 0
+      const unitsPerFloor = b.units_per_floor ?? b.floors?.[0]?.units?.length ?? 0
+      const calc = floors * unitsPerFloor
+      if (calc > 0) return s + calc
+      return s + (b.floors?.reduce((fs, f) => fs + (f.units?.length ?? 0), 0) ?? 0)
+    }, 0) ?? 0
 
   if (isLoading) {
     return (
@@ -193,7 +199,7 @@ export default function PropertyPage() {
                   { label: 'Blocks', value: property.blocks?.length ?? 0 },
                   {
                     label: 'Floors',
-                    value: property.blocks?.reduce((s, b) => s + (b.floors?.length ?? 0), 0) ?? 0,
+                    value: property.blocks?.reduce((s, b) => s + (b.total_floors ?? b.floors?.length ?? 0), 0) ?? 0,
                   },
                   { label: 'Units', value: totalUnits(property) },
                 ].map(({ label, value }) => (
