@@ -408,8 +408,7 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
                     <SelectContent>
                       {items.map((item) => (
                         <SelectItem key={item.id} value={item.id}>
-                          {item.name}{' '}
-                          {(item as Record<string, string>).model && `(${(item as Record<string, string>).model})`}
+                          {item.name} {item.model && `(${item.model})`}
                         </SelectItem>
                       ))}
                     </SelectContent>

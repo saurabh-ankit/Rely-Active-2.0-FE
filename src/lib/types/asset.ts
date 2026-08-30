@@ -30,6 +30,8 @@ export interface IdNamePair {
   id: string
   name: string
   property_name?: string
+  model?: string
+  manufacturer?: string
 }
 
 export interface AssetCategory extends BaseEntity {
