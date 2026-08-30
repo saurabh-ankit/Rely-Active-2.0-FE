@@ -83,4 +83,103 @@ export const API_ENDPOINTS = {
     inventory: (locationId?: string | null) => buildLocationEndpoint('/inventory', locationId),
     assets: (locationId?: string | null) => buildLocationEndpoint('/assets', locationId),
   },
+
+  // Asset Management Endpoints
+  assetManagement: {
+    categories: {
+      list: `${BASE_URL}/location/:locationId/assets/categories`,
+      create: `${BASE_URL}/location/:locationId/assets/categories`,
+      get: `${BASE_URL}/location/:locationId/assets/categories/:id`,
+      update: `${BASE_URL}/location/:locationId/assets/categories/:id`,
+      delete: `${BASE_URL}/location/:locationId/assets/categories/:id`,
+    },
+    vendors: {
+      list: `${BASE_URL}/location/:locationId/assets/vendors`,
+      create: `${BASE_URL}/location/:locationId/assets/vendors`,
+      get: `${BASE_URL}/location/:locationId/assets/vendors/:id`,
+      update: `${BASE_URL}/location/:locationId/assets/vendors/:id`,
+      delete: `${BASE_URL}/location/:locationId/assets/vendors/:id`,
+      dropdown: `${BASE_URL}/location/:locationId/assets/vendors/dropdown/list`,
+    },
+    items: {
+      list: `${BASE_URL}/location/:locationId/assets/items`,
+      create: `${BASE_URL}/location/:locationId/assets/items`,
+      get: `${BASE_URL}/location/:locationId/assets/items/:id`,
+      update: `${BASE_URL}/location/:locationId/assets/items/:id`,
+      delete: `${BASE_URL}/location/:locationId/assets/items/:id`,
+      dropdown: `${BASE_URL}/location/:locationId/assets/items/dropdown/list`,
+    },
+    assets: {
+      list: `${BASE_URL}/location/:locationId/assets`,
+      create: `${BASE_URL}/location/:locationId/assets`,
+      get: `${BASE_URL}/location/:locationId/assets/:id`,
+      update: `${BASE_URL}/location/:locationId/assets/:id`,
+      delete: `${BASE_URL}/location/:locationId/assets/:id`,
+      stats: `${BASE_URL}/location/:locationId/assets/stats`,
+    },
+    assignments: {
+      list: `${BASE_URL}/location/:locationId/assets/assignments`,
+      create: `${BASE_URL}/location/:locationId/assets/assignments`,
+      get: `${BASE_URL}/location/:locationId/assets/assignments/:id`,
+      return: `${BASE_URL}/location/:locationId/assets/assignments/:id/return`,
+      active: `${BASE_URL}/location/:locationId/assets/assignments/active/list`,
+    },
+    assignees: {
+      employees: `${BASE_URL}/location/:locationId/assets/assignees/employees`,
+      patients: `${BASE_URL}/location/:locationId/assets/assignees/patients`,
+      rooms: `${BASE_URL}/location/:locationId/assets/assignees/rooms`,
+      beds: `${BASE_URL}/location/:locationId/assets/assignees/beds`,
+    },
+    maintenance: {
+      serviceLogs: {
+        list: `${BASE_URL}/location/:locationId/assets/maintenance/service-logs`,
+        create: `${BASE_URL}/location/:locationId/assets/maintenance/service-logs`,
+        update: `${BASE_URL}/location/:locationId/assets/maintenance/service-logs/:id`,
+        delete: `${BASE_URL}/location/:locationId/assets/maintenance/service-logs/:id`,
+        complete: `${BASE_URL}/location/:locationId/assets/maintenance/service-logs/:id/complete`,
+      },
+      warranties: {
+        list: `${BASE_URL}/location/:locationId/assets/maintenance/warranties`,
+        create: `${BASE_URL}/location/:locationId/assets/maintenance/warranties`,
+        update: `${BASE_URL}/location/:locationId/assets/maintenance/warranties/:id`,
+        delete: `${BASE_URL}/location/:locationId/assets/maintenance/warranties/:id`,
+      },
+      calibrations: {
+        list: `${BASE_URL}/location/:locationId/assets/maintenance/calibrations`,
+        create: `${BASE_URL}/location/:locationId/assets/maintenance/calibrations`,
+        update: `${BASE_URL}/location/:locationId/assets/maintenance/calibrations/:id`,
+        delete: `${BASE_URL}/location/:locationId/assets/maintenance/calibrations/:id`,
+      },
+      upcoming: `${BASE_URL}/location/:locationId/assets/maintenance/upcoming`,
+    },
+    compliance: {
+      certifications: {
+        list: `${BASE_URL}/location/:locationId/assets/compliance/certifications`,
+        create: `${BASE_URL}/location/:locationId/assets/compliance/certifications`,
+        update: `${BASE_URL}/location/:locationId/assets/compliance/certifications/:id`,
+        delete: `${BASE_URL}/location/:locationId/assets/compliance/certifications/:id`,
+        expiring: `${BASE_URL}/location/:locationId/assets/compliance/certifications/expiring`,
+      },
+      inspections: {
+        list: `${BASE_URL}/location/:locationId/assets/compliance/inspections`,
+        create: `${BASE_URL}/location/:locationId/assets/compliance/inspections`,
+        update: `${BASE_URL}/location/:locationId/assets/compliance/inspections/:id`,
+        delete: `${BASE_URL}/location/:locationId/assets/compliance/inspections/:id`,
+      },
+      training: {
+        list: `${BASE_URL}/location/:locationId/assets/compliance/training`,
+        create: `${BASE_URL}/location/:locationId/assets/compliance/training`,
+        update: `${BASE_URL}/location/:locationId/assets/compliance/training/:id`,
+        delete: `${BASE_URL}/location/:locationId/assets/compliance/training/:id`,
+      },
+      status: `${BASE_URL}/location/:locationId/assets/compliance/status`,
+    },
+    bulk: {
+      template: `${BASE_URL}/location/:locationId/assets/bulk/template`,
+      upload: `${BASE_URL}/location/:locationId/assets/bulk/upload`,
+    },
+    complianceStatus: {
+      get: `${BASE_URL}/location/:locationId/assets/compliance/status`,
+    },
+  },
 }
