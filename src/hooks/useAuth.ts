@@ -21,9 +21,11 @@ export const useAuth = () => {
           setIsLoading(false)
         })
     } else {
-      setIsLoading(false)
+      if (isLoading) {
+        setIsLoading(false)
+      }
     }
-  }, [user, setUser, setIsLoading, storeLogout])
+  }, [user, setUser, isLoading, setIsLoading, storeLogout])
 
   const login = async (payload: LoginPayload): Promise<UserAuthData> => {
     setIsLoading(true)

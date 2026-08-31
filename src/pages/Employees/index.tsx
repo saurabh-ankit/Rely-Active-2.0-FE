@@ -12,6 +12,7 @@ import { useLocationStore } from '@/lib/stores/locationStore'
 import type { UserItem } from '@/lib/types'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { AdminUserManagement } from '@/pages/GlobalSettings/components/AdminUserManagement'
+import { useLocationContext } from '@/hooks/useLocation'
 
 import { useDebounce } from '@/hooks/useDebounce'
 
@@ -59,6 +60,10 @@ interface EmployeeDirectoryPageProps {
 
 export default function EmployeeDirectoryPage({ initialView = 'list' }: EmployeeDirectoryPageProps) {
   const navigate = useNavigate()
+  const { hasResourcePermission } = useLocationContext()
+  const canCreateEmployee = hasResourcePermission('EMPLOYEE', 'create')
+  const canUpdateEmployee = hasResourcePermission('EMPLOYEE', 'update')
+
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearch = useDebounce(searchTerm, 400)
   const [selectedDepartmentFilter, setSelectedDepartmentFilter] = useState('ALL')
@@ -85,34 +90,49 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
 
   const getAvailableManagers = (targetUser: UserItem) => {
     const targetLoc = targetUser.userLocations?.[0] as LocationRec | undefined
-    const targetDeptId = targetLoc?.departmentId || targetLoc?.department_id || ''
+    const targetRole = targetUser.userRoles?.[0] as RoleRec | undefined
+    const targetDeptId =
+      targetLoc?.departmentId || targetLoc?.department_id || targetRole?.departmentId || targetRole?.department_id || ''
 
     return users.filter((u) => {
       if (u.id === targetUser.id) return false
 
-      const isSuperOrAdmin =
-        u.username === 'superadmin' ||
-        u.userLocations?.some((ul: LocationRec) =>
-          ['ADMIN', 'SUPER_ADMIN'].includes((ul.role?.code || '').toUpperCase()),
-        ) ||
-        u.userRoles?.some((ur: RoleRec) => ['ADMIN', 'SUPER_ADMIN'].includes((ur.role?.code || '').toUpperCase()))
+      // 1. Candidate must have the Department Manager role (MANAGER)
+      const roleCodes: string[] = []
+      const roleNames: string[] = []
 
-      if (isSuperOrAdmin) return true
+      const uRecord = u as unknown as Record<string, unknown>
+      const uRoleObj = uRecord.role as { name?: string; code?: string } | undefined
+      if (uRoleObj?.code) roleCodes.push(uRoleObj.code.toUpperCase())
+      if (uRoleObj?.name) roleNames.push(uRoleObj.name.toUpperCase())
 
-      const hasManagerRole =
-        u.userLocations?.some((ul: LocationRec) =>
-          ['MANAGER', 'ADMIN', 'SUPER_ADMIN'].includes((ul.role?.code || '').toUpperCase()),
-        ) ||
-        u.userRoles?.some((ur: RoleRec) =>
-          ['MANAGER', 'ADMIN', 'SUPER_ADMIN'].includes((ur.role?.code || '').toUpperCase()),
-        )
-      if (!hasManagerRole) return false
+      u.userRoles?.forEach((ur: RoleRec) => {
+        const code = ur.role?.code || ur.code
+        const name = ur.role?.name || ur.name
+        if (code) roleCodes.push(code.toUpperCase())
+        if (name) roleNames.push(name.toUpperCase())
+      })
 
+      u.userLocations?.forEach((ul: LocationRec) => {
+        const code = ul.role?.code || ul.code
+        const name = ul.role?.name || ul.name
+        if (code) roleCodes.push(code.toUpperCase())
+        if (name) roleNames.push(name.toUpperCase())
+      })
+
+      const isDepartmentManager =
+        roleCodes.includes('MANAGER') || roleNames.some((n) => n.includes('DEPARTMENT MANAGER') || n === 'MANAGER')
+
+      if (!isDepartmentManager) return false
+
+      // 2. Candidate manager must belong to the same department as the target user
       if (targetDeptId) {
-        const belongsToDept =
+        const belongsToSameDept =
           u.userLocations?.some((ul: LocationRec) => (ul.departmentId || ul.department_id) === targetDeptId) ||
-          u.userRoles?.some((ur: RoleRec) => (ur.departmentId || ur.department_id) === targetDeptId)
-        if (!belongsToDept) return false
+          u.userRoles?.some((ur: RoleRec) => (ur.departmentId || ur.department_id) === targetDeptId) ||
+          false
+
+        if (!belongsToSameDept) return false
       }
 
       return true
@@ -188,6 +208,44 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
       dateOfJoining.includes(term)
     )
   })
+
+  const isOperationalStaff = (u: UserItem) => {
+    const roleCodes: string[] = []
+    const roleNames: string[] = []
+
+    const uRecord = u as unknown as Record<string, unknown>
+    const uRoleObj = uRecord.role as { name?: string; code?: string } | undefined
+    if (uRoleObj?.code) roleCodes.push(uRoleObj.code.toUpperCase())
+    if (uRoleObj?.name) roleNames.push(uRoleObj.name.toUpperCase())
+
+    u.userRoles?.forEach((ur: RoleRec) => {
+      const code = ur.role?.code || ur.code
+      const name = ur.role?.name || ur.name
+      if (code) roleCodes.push(code.toUpperCase())
+      if (name) roleNames.push(name.toUpperCase())
+    })
+
+    u.userLocations?.forEach((ul: LocationRec) => {
+      const code = ul.role?.code || ul.code
+      const name = ul.role?.name || ul.name
+      if (code) roleCodes.push(code.toUpperCase())
+      if (name) roleNames.push(name.toUpperCase())
+    })
+
+    const isManagementRole =
+      roleCodes.some((c) => ['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(c)) ||
+      roleNames.some((n) =>
+        ['PROPERTY ADMIN', 'SUPER ADMIN', 'DEPARTMENT MANAGER', 'ADMINISTRATOR', 'MANAGER'].includes(n),
+      )
+
+    if (isManagementRole) return false
+
+    return (
+      roleCodes.includes('EMPLOYEE') ||
+      roleNames.some((n) => n.includes('OPERATIONAL STAFF') || n.includes('EMPLOYEE') || n.includes('STAFF')) ||
+      roleCodes.length === 0
+    )
+  }
 
   const columns: ColumnDef<UserItem>[] = [
     {
@@ -382,40 +440,46 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
         const u = row.original
         return (
           <div className="text-right">
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 hover:border-[#005390] hover:bg-[#005390]/10 hover:text-[#005390] transition-colors cursor-pointer shadow-2xs dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
-                title="Actions"
-              >
-                <MoreVertical className="h-4 w-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-56 rounded-2xl p-1.5 shadow-xl border border-gray-100 bg-white dark:bg-slate-900 dark:border-gray-800"
-              >
-                <DropdownMenuItem
-                  onClick={() => navigate(`/admin/employees/edit/${u.id}`)}
-                  className="flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-xl px-3 py-2 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+            {canUpdateEmployee ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 hover:border-[#005390] hover:bg-[#005390]/10 hover:text-[#005390] transition-colors cursor-pointer shadow-2xs dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+                  title="Actions"
                 >
-                  <Edit className="h-3.5 w-3.5 text-[#005390]" />
-                  Edit Profile
-                </DropdownMenuItem>
+                  <MoreVertical className="h-4 w-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-56 rounded-2xl p-1.5 shadow-xl border border-gray-100 bg-white dark:bg-slate-900 dark:border-gray-800"
+                >
+                  <DropdownMenuItem
+                    onClick={() => navigate(`/admin/employees/edit/${u.id}`)}
+                    className="flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-xl px-3 py-2 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                  >
+                    <Edit className="h-3.5 w-3.5 text-[#005390]" />
+                    Edit Profile
+                  </DropdownMenuItem>
 
-                <DropdownMenuItem
-                  onClick={() => {
-                    setSelectedUserForManager(u)
-                    const primaryLoc = u.userLocations?.[0] as LocationRec | undefined
-                    const currentMgrId =
-                      primaryLoc?.managerId || primaryLoc?.manager_id || primaryLoc?.manager?.id || ''
-                    setSelectedManagerId(currentMgrId)
-                  }}
-                  className="flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-xl px-3 py-2 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
-                >
-                  <UserCheck className="h-3.5 w-3.5 text-[#005390]" />
-                  Assign Reporting Manager
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  {isOperationalStaff(u) && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setSelectedUserForManager(u)
+                        const primaryLoc = u.userLocations?.[0] as LocationRec | undefined
+                        const currentMgrId =
+                          primaryLoc?.managerId || primaryLoc?.manager_id || primaryLoc?.manager?.id || ''
+                        setSelectedManagerId(currentMgrId)
+                      }}
+                      className="flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-xl px-3 py-2 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                    >
+                      <UserCheck className="h-3.5 w-3.5 text-[#005390]" />
+                      Assign Reporting Manager
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <span className="text-[10px] text-gray-400 font-medium">Read Only</span>
+            )}
           </div>
         )
       },
@@ -436,13 +500,15 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
             {selectedLocationName || 'NCL'}.
           </p>
         </div>
-        <Button
-          variant="primary"
-          icon={<Plus className="w-4 h-4" />}
-          onClick={() => navigate('/admin/employees/create')}
-        >
-          Add Employee
-        </Button>
+        {canCreateEmployee && (
+          <Button
+            variant="primary"
+            icon={<Plus className="w-4 h-4" />}
+            onClick={() => navigate('/admin/employees/create')}
+          >
+            Add Employee
+          </Button>
+        )}
       </div>
 
       {/* ── Main Data Table ─────────────────────────────────────────────────── */}

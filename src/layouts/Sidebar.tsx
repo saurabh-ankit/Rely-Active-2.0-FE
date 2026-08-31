@@ -70,7 +70,7 @@ const SidebarItem: React.FC<{ item: SidebarItemData }> = ({ item }) => {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
   const location = useLocation()
   const { isSuperAdmin } = useAuth()
-  const { hasResourcePermission, locationPermissions, isLoadingLocations } = useLocationContext()
+  const { hasResourcePermission, isLoadingLocations } = useLocationContext()
 
   const sidebarItems: SidebarItemData[] = [
     {
@@ -154,9 +154,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       return true
     }
     if (isSuperAdmin) {
-      return true
-    }
-    if (locationPermissions.length === 0) {
       return true
     }
     if (item.resourceKey) {

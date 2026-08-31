@@ -3,9 +3,21 @@ import { useAuth } from '@/hooks/useAuth'
 import { getUserLocationPermissionsAPI } from '@/lib/services/rbacService'
 import { getUserAccessiblePropertiesAPI } from '@/lib/services/userService'
 import { ACTIVE_PROP_ID_KEY, type PropertyLocationItem, useLocationStore } from '@/lib/stores/locationStore'
-import { notifyError, notifySuccess } from '@/utils/toast'
+import { notifySuccess } from '@/utils/toast'
 
 export type { PropertyLocationItem }
+
+let inFlightLocationsUserId: string | null = null
+let fetchedLocationsUserId: string | null = null
+let inFlightPermissionsKey: string | null = null
+let fetchedPermissionsKey: string | null = null
+
+export const clearLocationFetchCache = () => {
+  inFlightLocationsUserId = null
+  fetchedLocationsUserId = null
+  inFlightPermissionsKey = null
+  fetchedPermissionsKey = null
+}
 
 export const useLocation = () => {
   const { user, isAuthenticated } = useAuth()
@@ -23,26 +35,31 @@ export const useLocation = () => {
     setShowLocationModal,
     setIsLoadingLocations,
     setIsLoadingPermissions,
-    resetLocationState,
+    resetLocationState: storeResetLocationState,
   } = useLocationStore()
 
   // 1. Fetch accessible properties on authentication
   useEffect(() => {
-    let isMounted = true
-
     if (!isAuthenticated || !user) {
+      clearLocationFetchCache()
       setAccessibleLocations([])
       setLocationPermissions([])
       setIsLoadingLocations(false)
+      setIsLoadingPermissions(false)
+      return
+    }
+
+    if (fetchedLocationsUserId === user.id || inFlightLocationsUserId === user.id) {
       return
     }
 
     const loadLocations = async () => {
+      inFlightLocationsUserId = user.id
       try {
         setIsLoadingLocations(true)
         const locations = await getUserAccessiblePropertiesAPI()
-        if (!isMounted) return
         setAccessibleLocations(locations)
+        fetchedLocationsUserId = user.id
 
         const savedLocId = localStorage.getItem(ACTIVE_PROP_ID_KEY)
         const savedLoc = locations.find((l) => l.id === savedLocId)
@@ -50,56 +67,57 @@ export const useLocation = () => {
         if (savedLoc) {
           setSelectedLocation(savedLoc.id, savedLoc.property_name)
         } else if (locations.length > 0) {
-          setShowLocationModal(true)
+          setSelectedLocation(locations[0].id, locations[0].property_name)
         }
       } catch (err: unknown) {
         console.warn('Error loading accessible properties:', err)
       } finally {
-        if (isMounted) setIsLoadingLocations(false)
+        inFlightLocationsUserId = null
+        setIsLoadingLocations(false)
       }
     }
 
     loadLocations()
-
-    return () => {
-      isMounted = false
-    }
   }, [
     isAuthenticated,
     user,
     setAccessibleLocations,
     setLocationPermissions,
-    setSelectedLocation,
-    setShowLocationModal,
     setIsLoadingLocations,
+    setIsLoadingPermissions,
+    setSelectedLocation,
   ])
 
   // 2. Fetch location permissions whenever selectedLocationId changes
   useEffect(() => {
-    let isMounted = true
+    if (!user || !selectedLocationId) {
+      setIsLoadingPermissions(false)
+      return
+    }
 
-    if (!user || !selectedLocationId) return
+    const permKey = `${user.id}_${selectedLocationId}`
+    if (fetchedPermissionsKey === permKey || inFlightPermissionsKey === permKey) {
+      return
+    }
 
     const loadLocationPermissions = async () => {
+      inFlightPermissionsKey = permKey
       setIsLoadingPermissions(true)
       try {
         const perms = await getUserLocationPermissionsAPI(user.id, selectedLocationId)
-        if (isMounted) setLocationPermissions(perms)
+        setLocationPermissions(perms)
+        fetchedPermissionsKey = permKey
       } catch (err: unknown) {
         console.warn('Error loading location permissions:', err)
-        notifyError('Failed to load location permissions.')
-        if (isMounted) setLocationPermissions([])
+        setLocationPermissions([])
       } finally {
-        if (isMounted) setIsLoadingPermissions(false)
+        inFlightPermissionsKey = null
+        setIsLoadingPermissions(false)
       }
     }
 
     loadLocationPermissions()
-
-    return () => {
-      isMounted = false
-    }
-  }, [user, selectedLocationId, setLocationPermissions, setIsLoadingPermissions])
+  }, [user, selectedLocationId, setIsLoadingPermissions, setLocationPermissions])
 
   const selectLocation = useCallback(
     (location: PropertyLocationItem) => {
@@ -120,10 +138,16 @@ export const useLocation = () => {
       ) {
         return true
       }
+
       return locationPermissions.some((p) => p.resourceKey === resourceKey && p.permission === permission)
     },
     [user, locationPermissions],
   )
+
+  const resetLocationState = useCallback(() => {
+    clearLocationFetchCache()
+    storeResetLocationState()
+  }, [storeResetLocationState])
 
   return {
     selectedLocationId,

@@ -21,9 +21,16 @@ export default function Layout() {
     setSidebarOpen(false)
   }
 
-  // If user is regular admin/manager with a selected location, but permissions array is empty (no modules assigned), show full white screen
+  const { user } = useAuth()
+  const isAdminRole =
+    isSuperAdmin ||
+    user?.roles?.includes('ADMIN') ||
+    user?.roles?.includes('SUPER_ADMIN') ||
+    (user as unknown as Record<string, unknown>)?.role === 'ADMIN'
+
+  // If user is regular employee/staff with a selected location, but permissions array is empty (no modules assigned), show full white screen
   const hasNoModulesAssigned =
-    !isSuperAdmin &&
+    !isAdminRole &&
     selectedLocationId &&
     !isLoadingLocations &&
     !isLoadingPermissions &&
