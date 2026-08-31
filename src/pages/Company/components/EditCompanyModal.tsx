@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { TEXT_LIBRARY } from '@/lib/constants/textLibrary'
+import { getFileUrl, isImageFile } from '@/lib/utils'
 import { companySchema, type CompanyFormValues } from '../index'
 
 export interface CustomFieldItem {
@@ -301,6 +302,20 @@ export default function EditCompanyModal({ isOpen, onClose, company, onSave }: E
                   onChange={(e) => setDocumentFile(e.target.files?.[0] || null)}
                   className="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100"
                 />
+                {!documentFile && company?.document_path && (
+                  <div className="mt-1.5 flex items-center gap-2">
+                    {isImageFile(company.document_path, company.document_name) ? (
+                      <img
+                        src={getFileUrl(company.document_path)}
+                        alt="Company Logo Preview"
+                        className="h-10 w-10 object-contain rounded-lg border bg-white p-0.5"
+                      />
+                    ) : null}
+                    <span className="text-[11px] text-gray-500 truncate max-w-[200px]">
+                      Current: {company.document_name || 'Uploaded File'}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -312,6 +327,15 @@ export default function EditCompanyModal({ isOpen, onClose, company, onSave }: E
                   onChange={(e) => setSignatureFile(e.target.files?.[0] || null)}
                   className="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100"
                 />
+                {!signatureFile && company?.accountant_signature && (
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <img
+                      src={getFileUrl(company.accountant_signature)}
+                      alt="Signature Preview"
+                      className="h-8 max-w-[120px] object-contain rounded-lg border bg-white p-0.5"
+                    />
+                  </div>
+                )}
               </div>
 
               <Input

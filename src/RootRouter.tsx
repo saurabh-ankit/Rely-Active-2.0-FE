@@ -12,6 +12,7 @@ import ResidentPage from '@/pages/Resident'
 import SectionPage from '@/pages/SectionPage'
 import SetupPage from '@/pages/Setup'
 import AssetManagementPage from '@/pages/AssetManagement'
+import FnbManagementPage from '@/pages/FnbManagement'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
 export default function RootRouter() {
@@ -55,6 +56,22 @@ export default function RootRouter() {
           element={
             <ProtectedRoute requireSuperAdmin>
               <GlobalSettingsPage initialView="residents" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="global-settings/fnb-packages"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="fnb-packages" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="global-settings/fnb-dishes"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="fnb-dishes" />
             </ProtectedRoute>
           }
         />
@@ -121,7 +138,8 @@ export default function RootRouter() {
         <Route path="admin/shift-roster-management" element={<SectionPage title="Shift & Roster Management" />} />
         <Route path="admin/visitor-history" element={<SectionPage title="Visitors Management" />} />
         <Route path="admin/events" element={<SectionPage title="Event Management" />} />
-        <Route path="admin/fnb-history" element={<SectionPage title="Food & Beverages" />} />
+        <Route path="admin/fnb-history" element={<FnbManagementPage />} />
+        <Route path="fnb-management" element={<FnbManagementPage />} />
         <Route path="admin/inventory/*" element={<SectionPage title="Inventory Management" />} />
         <Route path="admin/asset-management" element={<AssetManagementPage />} />
         <Route

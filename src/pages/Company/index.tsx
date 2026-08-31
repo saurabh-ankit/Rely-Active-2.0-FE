@@ -3,7 +3,21 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
-import { Building2, CreditCard, Download, Edit, Hash, Mail, MapPin, Phone, Plus, Trash2, UserCheck } from 'lucide-react'
+import {
+  Building2,
+  CreditCard,
+  Download,
+  Edit,
+  FileText,
+  Hash,
+  Mail,
+  MapPin,
+  Phone,
+  Plus,
+  Trash2,
+  UserCheck,
+} from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +27,7 @@ import type { CompanyData, CustomFieldItem } from './components/EditCompanyModal
 import { TEXT_LIBRARY } from '@/lib/constants/textLibrary'
 
 import { getCompaniesAPI, saveCompanyFormDataAPI } from '@/lib/services/companyService'
+import { getFileUrl, isImageFile } from '@/lib/utils'
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export const PHONE_REGEX = /^[6-9][0-9]{9}$/
@@ -473,16 +488,29 @@ export default function CompanyPage() {
   return (
     <div className="w-full space-y-6 pb-12">
       {/* Header Banner */}
-      <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 shadow-sm">
-              <Building2 className="h-6 w-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">{company.company_name}</h1>
-                <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">
+      <div className="rounded-3xl border border-white/60 bg-gradient-to-r from-white/90 via-white/85 to-indigo-50/50 p-6 shadow-xl backdrop-blur-xl">
+        <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-4">
+            {company.document_path && isImageFile(company.document_path, company.document_name) ? (
+              <div className="group relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-indigo-100 bg-white p-2 shadow-md transition-all duration-300 hover:shadow-indigo-100 hover:border-indigo-200">
+                <img
+                  src={getFileUrl(company.document_path)}
+                  alt={company.company_name}
+                  className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                />
+              </div>
+            ) : (
+              <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-200">
+                <Building2 className="h-8 w-8" />
+              </div>
+            )}
+            <div className="space-y-1">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900 md:text-3xl">{company.company_name}</h1>
+                <Badge
+                  variant="outline"
+                  className="border-indigo-200 bg-indigo-50 text-indigo-700 font-semibold px-2.5 py-0.5"
+                >
                   Active
                 </Badge>
               </div>
@@ -582,37 +610,81 @@ export default function CompanyPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
           <div>
-            <span className="block text-xs text-gray-400">Accountant Name</span>
-            <span className="font-medium text-gray-800">{company.accountant_name || '-'}</span>
-          </div>
-
-          <div>
-            <span className="block text-xs text-gray-400 mb-1">Company Document</span>
-            {company.document_path ? (
-              <a
-                href={`http://localhost:3002${company.document_path}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium text-xs bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100"
-              >
-                <Download className="h-3.5 w-3.5" />
-                {company.document_name || 'Download File'}
-              </a>
-            ) : (
-              <span className="text-gray-400 italic">No document uploaded</span>
+            <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">
+              Accountant Name
+            </span>
+            <span className="font-medium text-gray-800 text-base">{company.accountant_name || '-'}</span>
+            {company.document_description && (
+              <div className="mt-3">
+                <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-0.5">
+                  Document Description
+                </span>
+                <span className="text-xs text-gray-600">{company.document_description}</span>
+              </div>
             )}
           </div>
 
           <div>
-            <span className="block text-xs text-gray-400 mb-1">Accountant Signature</span>
-            {company.accountant_signature ? (
-              <img
-                src={`http://localhost:3002${company.accountant_signature}`}
-                alt="Accountant Signature"
-                className="h-16 max-w-[200px] object-contain rounded-xl border bg-white p-1"
-              />
+            <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
+              Company Logo / Document
+            </span>
+            {company.document_path ? (
+              <div className="group relative rounded-2xl border border-gray-200/80 bg-white p-3 shadow-sm hover:shadow-md transition-all duration-300 max-w-xs">
+                {isImageFile(company.document_path, company.document_name) ? (
+                  <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-gray-50/80 border border-gray-100 min-h-[120px]">
+                    <img
+                      src={getFileUrl(company.document_path)}
+                      alt={company.document_name || 'Company Logo'}
+                      className="h-28 max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-indigo-50/50 text-indigo-600 min-h-[80px]">
+                    <FileText className="h-8 w-8 shrink-0" />
+                    <span className="text-xs font-medium text-gray-700 truncate">
+                      {company.document_name || 'Document File'}
+                    </span>
+                  </div>
+                )}
+                <div className="mt-3 flex items-center justify-between pt-2 border-t border-gray-100">
+                  <span
+                    className="text-[11px] text-gray-400 font-medium truncate max-w-[140px]"
+                    title={company.document_name}
+                  >
+                    {company.document_name || 'Uploaded File'}
+                  </span>
+                  <a
+                    href={getFileUrl(company.document_path)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Download
+                  </a>
+                </div>
+              </div>
             ) : (
-              <span className="text-gray-400 italic">No signature uploaded</span>
+              <span className="text-gray-400 italic text-xs">No document or logo uploaded</span>
+            )}
+          </div>
+
+          <div>
+            <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
+              Accountant Signature
+            </span>
+            {company.accountant_signature ? (
+              <div className="group relative rounded-2xl border border-gray-200/80 bg-white p-3 shadow-sm hover:shadow-md transition-all duration-300 max-w-xs">
+                <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-gray-50/80 border border-gray-100">
+                  <img
+                    src={getFileUrl(company.accountant_signature)}
+                    alt="Accountant Signature"
+                    className="h-20 max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+              </div>
+            ) : (
+              <span className="text-gray-400 italic text-xs">No signature uploaded</span>
             )}
           </div>
         </div>
@@ -625,10 +697,28 @@ export default function CompanyPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {company.customFields.map((cf, idx) => (
               <div key={idx} className="rounded-2xl border bg-gray-50/50 p-4">
-                <span className="block text-xs font-semibold uppercase text-gray-400">
+                <span className="block text-xs font-semibold uppercase text-gray-400 mb-1">
                   {cf.fieldLabel || cf.fieldName}
                 </span>
-                <span className="text-sm font-medium text-gray-800">{String(cf.fieldValue || '-')}</span>
+                {cf.fieldType === 'document' && cf.fieldValue ? (
+                  <div className="space-y-1.5">
+                    {isImageFile(cf.fieldValue) && (
+                      <div className="overflow-hidden rounded-lg border bg-white p-1 max-w-[180px]">
+                        <img src={getFileUrl(cf.fieldValue)} alt={cf.fieldLabel} className="h-16 object-contain" />
+                      </div>
+                    )}
+                    <a
+                      href={getFileUrl(cf.fieldValue)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs text-indigo-600 font-medium hover:underline"
+                    >
+                      <Download className="h-3.5 w-3.5" /> View File
+                    </a>
+                  </div>
+                ) : (
+                  <span className="text-sm font-medium text-gray-800">{String(cf.fieldValue || '-')}</span>
+                )}
               </div>
             ))}
           </div>

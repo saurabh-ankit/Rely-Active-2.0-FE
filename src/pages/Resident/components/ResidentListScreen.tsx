@@ -30,6 +30,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination'
 import { notifyError, notifySuccess } from '@/utils/toast'
+import { getFileUrl } from '@/lib/utils'
 
 interface FlatGroup {
   unitId: string
@@ -435,6 +436,13 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                                     <span className="text-purple-700 dark:text-purple-400 font-semibold text-[10px] bg-purple-50 dark:bg-purple-950 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-800">
                                       Tenant:
                                     </span>
+                                    {group.residingTenant.photoUrl && (
+                                      <img
+                                        src={getFileUrl(group.residingTenant.photoUrl)}
+                                        alt={group.residingTenant.firstName}
+                                        className="w-4 h-4 rounded-full object-cover shrink-0 border border-purple-200"
+                                      />
+                                    )}
                                     {group.residingTenant.firstName} {group.residingTenant.lastName || ''}
                                   </div>
                                 )}
@@ -443,6 +451,13 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                                     <span className="text-amber-700 dark:text-amber-400 font-semibold text-[10px] bg-amber-50 dark:bg-amber-950 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800">
                                       Owner:
                                     </span>
+                                    {group.offsiteOwner.photoUrl && (
+                                      <img
+                                        src={getFileUrl(group.offsiteOwner.photoUrl)}
+                                        alt={group.offsiteOwner.firstName}
+                                        className="w-4 h-4 rounded-full object-cover shrink-0 border border-amber-200"
+                                      />
+                                    )}
                                     {group.offsiteOwner.firstName} {group.offsiteOwner.lastName || ''}
                                   </div>
                                 )}
@@ -451,6 +466,13 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                                     <span className="text-blue-700 dark:text-blue-400 font-semibold text-[10px] bg-blue-50 dark:bg-blue-950 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800">
                                       Owner:
                                     </span>
+                                    {group.residingOwner.photoUrl && (
+                                      <img
+                                        src={getFileUrl(group.residingOwner.photoUrl)}
+                                        alt={group.residingOwner.firstName}
+                                        className="w-4 h-4 rounded-full object-cover shrink-0 border border-blue-200"
+                                      />
+                                    )}
                                     {group.residingOwner.firstName} {group.residingOwner.lastName || ''}
                                   </div>
                                 )}
@@ -522,8 +544,16 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                                                 }}
                                                 title="Click to view resident profile details"
                                               >
-                                                <div className="w-7 h-7 rounded-full bg-[#005390]/10 text-[#005390] group-hover/occ:bg-[#005390] group-hover/occ:text-white transition-colors flex items-center justify-center font-bold text-xs shrink-0">
-                                                  {occ.firstName[0]?.toUpperCase()}
+                                                <div className="w-8 h-8 rounded-full bg-[#005390]/10 text-[#005390] group-hover/occ:border-[#005390] overflow-hidden border border-gray-200/80 transition-colors flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                                                  {occ.photoUrl ? (
+                                                    <img
+                                                      src={getFileUrl(occ.photoUrl)}
+                                                      alt={fullName}
+                                                      className="w-full h-full object-cover"
+                                                    />
+                                                  ) : (
+                                                    <span>{occ.firstName[0]?.toUpperCase()}</span>
+                                                  )}
                                                 </div>
                                                 <div>
                                                   <div className="font-bold text-gray-900 dark:text-white text-xs group-hover/occ:text-[#005390] transition-colors">
@@ -537,8 +567,15 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                                                       {occ.familyMembers.map((fm) => (
                                                         <span
                                                           key={fm.id || fm.firstName}
-                                                          className="text-[9px] font-medium bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
+                                                          className="inline-flex items-center gap-1 text-[9px] font-medium bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
                                                         >
+                                                          {fm.photoUrl ? (
+                                                            <img
+                                                              src={getFileUrl(fm.photoUrl)}
+                                                              alt={fm.firstName}
+                                                              className="w-3.5 h-3.5 rounded-full object-cover shrink-0"
+                                                            />
+                                                          ) : null}
                                                           {fm.firstName} {fm.lastName || ''} (
                                                           {fm.relation || 'Relative'})
                                                         </span>

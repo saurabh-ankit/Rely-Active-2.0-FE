@@ -15,10 +15,13 @@ import {
   RefreshCw,
   UserCheck,
   Users,
+  Utensils,
 } from 'lucide-react'
 import type { ResidentItem } from '@/lib/types'
 import { residentService } from '@/lib/services/residentService'
 import { Button } from '@/components/ui/button'
+import { ResidentFnbPackageModal } from './ResidentFnbPackageModal'
+import { getFileUrl } from '@/lib/utils'
 
 export interface ResidentDetailsScreenProps {
   isGlobalMode?: boolean
@@ -31,6 +34,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   const [resident, setResident] = useState<ResidentItem | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+  const [isFnbModalOpen, setIsFnbModalOpen] = useState<boolean>(false)
 
   const isGlobal = isGlobalMode || window.location.pathname.includes('/global-settings')
   const backUrl = isGlobal ? '/global-settings/residents' : '/admin/residents'
@@ -130,9 +134,9 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
       <div className="rounded-3xl border border-white/70 bg-white/90 p-6 md:p-8 shadow-xl backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
           {/* Avatar / Photo */}
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-[#005390] to-sky-600 text-white flex items-center justify-center font-bold text-2xl shadow-md shrink-0 border-2 border-white">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-[#005390] to-sky-600 text-white flex items-center justify-center font-bold text-2xl shadow-md shrink-0 border-2 border-white overflow-hidden">
             {resident.photoUrl ? (
-              <img src={resident.photoUrl} alt={fullName} className="w-full h-full object-cover rounded-2xl" />
+              <img src={getFileUrl(resident.photoUrl)} alt={fullName} className="w-full h-full object-cover" />
             ) : (
               resident.firstName[0]?.toUpperCase()
             )}
@@ -179,15 +183,28 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
           </div>
         </div>
 
-        {/* Edit Button */}
-        <Button
-          variant="primary"
-          icon={<Edit className="w-4 h-4" />}
-          onClick={() => navigate(editUrl)}
-          className="shrink-0 rounded-xl"
-        >
-          Edit Resident Profile
-        </Button>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-3 shrink-0">
+          {resident.isResiding && (
+            <Button
+              variant="secondary"
+              icon={<Utensils className="w-4 h-4" />}
+              onClick={() => setIsFnbModalOpen(true)}
+              className="rounded-xl"
+            >
+              Manage Food Package
+            </Button>
+          )}
+
+          <Button
+            variant="primary"
+            icon={<Edit className="w-4 h-4" />}
+            onClick={() => navigate(editUrl)}
+            className="rounded-xl"
+          >
+            Edit Resident Profile
+          </Button>
+        </div>
       </div>
 
       {/* ── Main Details Grid (2 Columns) ─────────────────────────────────────── */}
@@ -336,8 +353,12 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-[#005390]/10 text-[#005390] flex items-center justify-center font-bold text-xs shrink-0">
-                          {fm.firstName[0]?.toUpperCase()}
+                        <div className="w-9 h-9 rounded-full bg-[#005390]/10 text-[#005390] flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden border border-gray-200">
+                          {fm.photoUrl ? (
+                            <img src={getFileUrl(fm.photoUrl)} alt={fmName} className="w-full h-full object-cover" />
+                          ) : (
+                            fm.firstName[0]?.toUpperCase()
+                          )}
                         </div>
                         <div>
                           <h3 className="text-xs font-bold text-gray-900 dark:text-white">{fmName}</h3>
@@ -347,7 +368,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
                         </div>
                       </div>
 
-                      {fm.isResiding ? (
+                      {resident.isResiding || fm.isResiding ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                           <CheckCircle2 className="w-3 h-3" /> Residing
                         </span>
@@ -397,6 +418,19 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
           )}
         </div>
       </div>
+
+      {/* F&B Package Modal */}
+      {resident && (
+        <ResidentFnbPackageModal
+          isOpen={isFnbModalOpen}
+          onClose={() => setIsFnbModalOpen(false)}
+          residentId={resident.id}
+          locId={resident.locId}
+          isResiding={resident.isResiding}
+          residentName={fullName}
+          familyMembers={familyMembers}
+        />
+      )}
     </div>
   )
 }

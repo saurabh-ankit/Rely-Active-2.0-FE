@@ -27,7 +27,8 @@ import { useLocationContext } from '@/hooks/useLocation'
 import { z } from 'zod'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { cn, getFileUrl } from '@/lib/utils'
+
 import { notifyError, notifySuccess } from '@/utils/toast'
 import type { FieldErrors } from 'react-hook-form'
 
@@ -400,7 +401,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                 firstName: fm.firstName,
                 lastName: fm.lastName || '',
                 relation: fm.relation || 'Spouse',
-                isResiding: fm.isResiding !== undefined ? fm.isResiding : targetRes.isResiding,
+                isResiding: targetRes.residentType === 'TENANT' || targetRes.isResiding ? true : Boolean(fm.isResiding),
                 gender: fm.gender || 'MALE',
                 dob: fm.dob || '',
                 phone: fm.phone || '',
@@ -480,11 +481,12 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
 
   // Family Members helpers
   const handleAddFamilyMember = () => {
+    const effectiveIsResiding = watchedResidentType === 'TENANT' ? true : watchedIsResiding
     appendFamilyMember({
       firstName: '',
       lastName: '',
       relation: 'Spouse',
-      isResiding: watchedIsResiding,
+      isResiding: effectiveIsResiding,
       gender: 'MALE',
       dob: '',
       bloodGroup: '',
@@ -520,10 +522,14 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
 
     setIsSubmitting(true)
 
+    const effectiveIsResiding = values.residentType === 'TENANT' ? true : values.isResiding
     const payload: CreateResidentPayload = {
       ...values,
-      isResiding: values.residentType === 'TENANT' ? true : values.isResiding,
-      familyMembers: values.familyMembers || [],
+      isResiding: effectiveIsResiding,
+      familyMembers: (values.familyMembers || []).map((fm) => ({
+        ...fm,
+        isResiding: effectiveIsResiding,
+      })),
     }
 
     try {
@@ -867,7 +873,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
               <div className="relative group shrink-0">
                 <div className="w-24 h-24 rounded-2xl bg-white border-2 border-dashed border-gray-300 flex flex-col items-center justify-center overflow-hidden shadow-2xs group-hover:border-[#005390] transition">
                   {watchedPhotoUrl ? (
-                    <img src={watchedPhotoUrl} alt="Main Resident" className="w-full h-full object-cover" />
+                    <img src={getFileUrl(watchedPhotoUrl)} alt="Main Resident" className="w-full h-full object-cover" />
                   ) : (
                     <div className="flex flex-col items-center justify-center text-gray-400 p-2 text-center">
                       <Camera className="w-6 h-6 mb-1 text-[#005390]" />
@@ -1081,7 +1087,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                             <div className="w-20 h-20 rounded-xl bg-gray-50 border-2 border-dashed border-gray-300 flex flex-col items-center justify-center overflow-hidden">
                               {fm.photoUrl ? (
                                 <img
-                                  src={fm.photoUrl}
+                                  src={getFileUrl(fm.photoUrl)}
                                   alt={`Family Member ${idx + 1}`}
                                   className="w-full h-full object-cover"
                                 />
