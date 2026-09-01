@@ -1895,9 +1895,7 @@ export default function ShiftRosterPage() {
                               <Sparkles className="w-4 h-4 text-purple-700" />
                               <span>{aiOptimizationMessage}</span>
                             </div>
-                          )}
-
-                          {/* Duty Type Selector */}
+                           {/* Duty Type Selector */}
                           <div className="space-y-2">
                             <Label className="text-sm font-semibold text-gray-900">Operational Duty Type *</Label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1950,7 +1948,9 @@ export default function ShiftRosterPage() {
                                 </button>
                               ))}
                             </div>
-                               {/* Dates */}
+                          </div>
+
+                          {/* Dates */}                {/* Dates */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <Label className="text-xs font-semibold">Effective From Date *</Label>
@@ -2039,7 +2039,7 @@ export default function ShiftRosterPage() {
                                   </p>
                                 </div>
                               ))}
-                          </div>
+                            </div>
                           </div>
 
                           {/* Duty Target Scope (Simplified Core Hierarchy) */}
