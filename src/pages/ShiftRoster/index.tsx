@@ -697,6 +697,30 @@ export default function ShiftRosterPage() {
     }
   }
 
+  // Check shift pattern availability for a selected staff member
+  const getShiftPatternAvailabilityForStaff = (staffIdOrName: string, dateStr: string, shiftId: string) => {
+    if (!staffIdOrName || !dateStr || !shiftId) return { isFree: true, label: 'Free' }
+    const selectedShift = availableShifts.find((s) => s.id === shiftId)
+    if (!selectedShift) return { isFree: true, label: 'Free' }
+
+    const conflict = displayRosterDates.find((item) => {
+      if (item.status === 'CANCELLED') return false
+      if (item.date !== dateStr) return false
+      const matchName = item.resource && item.resource.toLowerCase() === staffIdOrName.toLowerCase()
+      const matchResId = item.schedulingResourceId === staffIdOrName
+      const matchUserId = item.resourceUserId === staffIdOrName
+      if (!matchName && !matchResId && !matchUserId) return false
+      if (item.shift.toLowerCase() === selectedShift.shiftName.toLowerCase()) return true
+      if (item.time === `${selectedShift.startTime} - ${selectedShift.endTime}`) return true
+      return false
+    })
+
+    if (conflict) {
+      return { isFree: false, label: `Occupied @ ${conflict.target}` }
+    }
+    return { isFree: true, label: 'Free' }
+  }
+
 
   const filteredPersonnelOptions = useMemo(() => {
     if (selectedCategoryFilter === 'DOCTOR') {
@@ -2966,11 +2990,29 @@ export default function ShiftRosterPage() {
                   <SelectValue placeholder="Select shift..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableShifts.map((shift) => (
-                    <SelectItem key={shift.id} value={shift.id}>
-                      {shift.shiftName} ({shift.startTime} - {shift.endTime})
-                    </SelectItem>
-                  ))}
+                  {availableShifts.map((shift) => {
+                    const staffTarget = addStaffForm.resourceName || addStaffForm.resourceId
+                    const shiftAvail = getShiftPatternAvailabilityForStaff(staffTarget, addStaffForm.date, shift.id)
+                    return (
+                      <SelectItem key={shift.id} value={shift.id}>
+                        <div className="flex items-center justify-between w-full gap-3 py-0.5 min-w-[260px]">
+                          <span className="font-medium text-gray-900">
+                            {shift.shiftName} ({shift.startTime} - {shift.endTime})
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={`text-[9.5px] px-2 py-0.5 font-bold ${
+                              shiftAvail.isFree
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : 'bg-amber-100 text-amber-800 border-amber-300'
+                            }`}
+                          >
+                            {shiftAvail.label}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
             </div>
