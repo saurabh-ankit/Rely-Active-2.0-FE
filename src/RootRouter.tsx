@@ -14,6 +14,7 @@ import SetupPage from '@/pages/Setup'
 import AssetManagementPage from '@/pages/AssetManagement'
 import FnbManagementPage from '@/pages/FnbManagement'
 import UserProfilePage from '@/pages/Profile'
+import ShiftRosterPage from '@/pages/ShiftRoster'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
 
@@ -147,7 +148,7 @@ export default function RootRouter() {
         <Route path="admin/employees/edit/:id" element={<EmployeeDirectoryPage initialView="edit" />} />
         <Route path="admin/medical/*" element={<SectionPage title="Medical Management" />} />
         <Route path="admin/billing-management/*" element={<SectionPage title="Billing Management" />} />
-        <Route path="admin/shift-roster-management" element={<SectionPage title="Shift & Roster Management" />} />
+        <Route path="admin/shift-roster-management" element={<ShiftRosterPage />} />
         <Route path="admin/visitor-history" element={<SectionPage title="Visitors Management" />} />
         <Route path="admin/events" element={<SectionPage title="Event Management" />} />
         <Route path="admin/fnb-history" element={<FnbManagementPage />} />
