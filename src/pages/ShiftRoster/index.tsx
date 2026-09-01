@@ -190,7 +190,9 @@ export default function ShiftRosterPage() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter((item: any) => !item.id || !String(item.id).startsWith('seed-'))
+        }
       } catch {
         // Fallback
       }
@@ -563,42 +565,9 @@ export default function ShiftRosterPage() {
     }
   }, [targetLocations])
 
-  const defaultShiftTemplates = useMemo(() => [
-    {
-      id: 'default-1',
-      shiftName: 'General Day Duty',
-      code: 'DAY-GEN',
-      startTime: '08:00',
-      endTime: '16:00',
-      breakStartTime: '12:00',
-      breakEndTime: '13:00',
-      description: 'Standard 8-hour day operational shift',
-    },
-    {
-      id: 'default-2',
-      shiftName: 'Morning OPD Shift',
-      code: 'M-OPD',
-      startTime: '09:00',
-      endTime: '13:00',
-      breakStartTime: '',
-      breakEndTime: '',
-      description: 'Clinic & OPD Consultation hours',
-    },
-    {
-      id: 'default-3',
-      shiftName: 'Night Duty',
-      code: 'NIGHT-OV',
-      startTime: '20:00',
-      endTime: '08:00',
-      breakStartTime: '01:00',
-      breakEndTime: '02:00',
-      description: 'Overnight Caregiver & Emergency Shift',
-    },
-  ], [])
-
   const availableShifts = useMemo(() => {
-    return liveShifts.length > 0 ? liveShifts : defaultShiftTemplates
-  }, [liveShifts, defaultShiftTemplates])
+    return liveShifts
+  }, [liveShifts])
 
   useEffect(() => {
     if (availableShifts.length > 0 && !builderForm.selectedShiftId) {
@@ -618,80 +587,8 @@ export default function ShiftRosterPage() {
     }
   }, [availableShifts])
 
-  const defaultRosterSeed: RosterGridRow[] = useMemo(() => {
-    const today = new Date()
-    const year = today.getFullYear()
-    const month = String(today.getMonth() + 1).padStart(2, '0')
-
-    const primaryResourceName = sampleResources[0]?.name || 'Dr. Manish Jagtap'
-    const primaryResourceType = sampleResources[0]?.type || 'DOCTOR'
-
-    const secondResource = sampleResources[1] || sampleResources[0]
-    const secondResourceName = secondResource?.name || primaryResourceName
-    const secondResourceType = secondResource?.type || primaryResourceType
-
-    return [
-      {
-        id: 'seed-1',
-        date: `${year}-${month}-01`,
-        resource: primaryResourceName,
-        type: primaryResourceType,
-        dutyType: 'OPD_SESSION',
-        shift: 'Morning OPD Consultation',
-        time: '09:00 - 13:00',
-        target: 'OPD Clinic #101',
-        status: 'PUBLISHED',
-      },
-      {
-        id: 'seed-2',
-        date: `${year}-${month}-01`,
-        resource: secondResourceName,
-        type: secondResourceType,
-        dutyType: 'SHIFT',
-        shift: 'General Day Duty',
-        time: '08:00 - 16:00',
-        target: 'Resident Ward A',
-        status: 'PUBLISHED',
-      },
-      {
-        id: 'seed-3',
-        date: `${year}-${month}-02`,
-        resource: primaryResourceName,
-        type: primaryResourceType,
-        dutyType: 'SHIFT',
-        shift: 'Evening Nursing Shift',
-        time: '16:00 - 00:00',
-        target: 'Care & ICU Center',
-        status: 'PUBLISHED',
-      },
-      {
-        id: 'seed-4',
-        date: `${year}-${month}-03`,
-        resource: primaryResourceName,
-        type: primaryResourceType,
-        dutyType: 'OPD_SESSION',
-        shift: 'Morning OPD Consultation',
-        time: '09:00 - 13:00',
-        target: 'OPD Clinic #101',
-        status: 'PUBLISHED',
-      },
-      {
-        id: 'seed-5',
-        date: `${year}-${month}-05`,
-        resource: secondResourceName,
-        type: secondResourceType,
-        dutyType: 'SHIFT',
-        shift: 'Night Caregiver Duty',
-        time: '20:00 - 08:00',
-        target: 'Resident Ward B',
-        status: 'PUBLISHED',
-      },
-    ]
-  }, [sampleResources])
-
   const displayRosterDates: RosterGridRow[] = useMemo(() => {
-    const rawList = liveRosterDates.length > 0 ? liveRosterDates : defaultRosterSeed
-    return rawList.map((d: any) => {
+    return liveRosterDates.map((d: any) => {
       const rawDate = d.assignmentDate || d.date || ''
       const formattedDate = typeof rawDate === 'string' ? rawDate.split('T')[0] : rawDate
 
@@ -707,7 +604,8 @@ export default function ShiftRosterPage() {
         status: d.status || 'UPCOMING',
       }
     })
-  }, [liveRosterDates, defaultRosterSeed])
+  }, [liveRosterDates])
+
 
   const filteredPersonnelOptions = useMemo(() => {
     if (selectedCategoryFilter === 'DOCTOR') {
