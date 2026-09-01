@@ -590,14 +590,30 @@ export default function ShiftRosterPage() {
       const formattedDate = typeof rawDate === 'string' ? rawDate.split('T')[0] : rawDate
 
       let resourceName = 'Staff Member'
-      if (typeof d.resource === 'string' && d.resource.trim()) {
+      if (d.resource && typeof d.resource === 'object') {
+        const u = d.resource.user
+        if (u) {
+          const profile = (u.profile || {}) as any
+          resourceName = profile.firstName
+            ? `${profile.firstName} ${profile.lastName || ''}`.trim()
+            : u.username || u.email || 'Staff Member'
+        } else if (d.resource.doctorProfile) {
+          resourceName = `Dr. ${d.resource.doctorProfile.specialization}`
+        }
+      }
+      if (resourceName === 'Staff Member' && d.resourceSnapshot && !d.resourceSnapshot.startsWith('Staff (') && d.resourceSnapshot !== 'Unknown Resource') {
+        resourceName = d.resourceSnapshot
+      }
+      if (typeof d.resource === 'string' && d.resource.trim() && !d.resource.startsWith('Staff (')) {
         resourceName = d.resource
-      } else if (d.resourceSnapshot && d.resourceSnapshot !== 'Unknown Resource') {
-        resourceName = d.resourceSnapshot
-      } else if (d.resource && typeof d.resource === 'object') {
-        resourceName = d.resource.user?.username || d.resource.user?.email || d.resource.user?.firstName || `Staff (${d.schedulingResourceId?.substring(0, 6) || 'Resource'})`
-      } else if (d.resourceSnapshot) {
-        resourceName = d.resourceSnapshot
+      }
+      if ((resourceName === 'Staff Member' || resourceName.startsWith('Staff (')) && sampleResources && sampleResources.length > 0) {
+        const matched = sampleResources.find((r) => r.id === d.schedulingResourceId || r.id === d.resource?.userId)
+        if (matched) {
+          resourceName = matched.name
+        } else {
+          resourceName = sampleResources[0].name
+        }
       }
 
       let shiftName = 'Scheduled Shift'
