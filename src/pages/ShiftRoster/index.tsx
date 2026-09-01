@@ -628,7 +628,7 @@ export default function ShiftRosterPage() {
       if (typeof d.resource === 'string' && d.resource.trim() && !d.resource.startsWith('Staff (')) {
         resourceName = d.resource
       }
-      if ((resourceName === 'Staff Member' || resourceName.startsWith('Staff (')) && sampleResources && sampleResources.length > 0) {
+      if ((resourceName === 'Staff Member' || resourceName.startsWith('Staff (') || resourceName.includes('@')) && sampleResources && sampleResources.length > 0) {
         const matched = sampleResources.find((r) => r.id === d.schedulingResourceId || r.id === d.resource?.userId)
         if (matched) {
           resourceName = matched.name
@@ -651,6 +651,8 @@ export default function ShiftRosterPage() {
         date: formattedDate,
         resource: resourceName,
         resourceName: resourceName,
+        schedulingResourceId: d.schedulingResourceId,
+        resourceUserId: d.resource?.userId || d.resourceUserId,
         type: typeof d.type === 'string' ? d.type : d.resource?.resourceType || 'EMPLOYEE',
         dutyType: d.dutyType || 'SHIFT',
         shift: shiftName,
@@ -659,7 +661,7 @@ export default function ShiftRosterPage() {
         status: d.status || 'UPCOMING',
       }
     })
-  }, [liveRosterDates])
+  }, [liveRosterDates, sampleResources])
 
 
   const filteredPersonnelOptions = useMemo(() => {
@@ -1509,9 +1511,13 @@ export default function ShiftRosterPage() {
                           </thead>
                           <tbody className="divide-y divide-gray-100 text-xs">
                             {displayStaffList.map((staff) => {
-                              const staffAssignments = displayRosterDates.filter(
-                                (d) => d.resource.toLowerCase() === staff.name.toLowerCase()
-                              )
+                              const staffAssignments = displayRosterDates.filter((d: any) => {
+                                if (d.resource && d.resource.toLowerCase() === staff.name.toLowerCase()) return true
+                                if (d.schedulingResourceId && d.schedulingResourceId === staff.id) return true
+                                if (d.resourceUserId && d.resourceUserId === staff.id) return true
+                                if (displayStaffList.length === 1) return true
+                                return false
+                              })
                               const activeCount = staffAssignments.filter((d) => d.status !== 'CANCELLED').length
 
                               return (
@@ -2859,32 +2865,6 @@ export default function ShiftRosterPage() {
 
           <div className="space-y-4 py-2">
             <div>
-              <Label>Duty Date *</Label>
-              <Input
-                type="date"
-                value={addStaffForm.date}
-                onChange={(e) => setAddStaffForm({ ...addStaffForm, date: e.target.value })}
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label>Operational Duty Type *</Label>
-              <Select
-                value={addStaffForm.dutyType}
-                onValueChange={(val: any) => setAddStaffForm({ ...addStaffForm, dutyType: val })}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select duty type..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="SHIFT">SHIFT (Regular Operational Duty)</SelectItem>
-                  <SelectItem value="OPD_SESSION">OPD_SESSION (Doctor Consultation Session)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
               <Label>Select Staff Member / Doctor *</Label>
               {addStaffForm.isEmployeeLocked ? (
                 <div className="mt-1 p-2.5 bg-blue-50/80 border border-blue-200 rounded-lg flex items-center justify-between text-xs font-semibold text-gray-900">
@@ -2923,6 +2903,32 @@ export default function ShiftRosterPage() {
                   </SelectContent>
                 </Select>
               )}
+            </div>
+
+            <div>
+              <Label>Duty Date *</Label>
+              <Input
+                type="date"
+                value={addStaffForm.date}
+                onChange={(e) => setAddStaffForm({ ...addStaffForm, date: e.target.value })}
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label>Operational Duty Type *</Label>
+              <Select
+                value={addStaffForm.dutyType}
+                onValueChange={(val: any) => setAddStaffForm({ ...addStaffForm, dutyType: val })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select duty type..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SHIFT">SHIFT (Regular Operational Duty)</SelectItem>
+                  <SelectItem value="OPD_SESSION">OPD_SESSION (Doctor Consultation Session)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
 
