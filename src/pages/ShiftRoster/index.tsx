@@ -64,111 +64,20 @@ import { MedicalSpecializationModal } from '@/components/medical/MedicalSpeciali
 import { useUsersQuery } from '@/hooks/react-query/user'
 import { useLocationContext } from '@/hooks/useLocation'
 
-export interface RosterGridRow {
-  id: string
-  date: string
-  resource: string
-  type: string
-  dutyType: 'SHIFT' | 'OPD_SESSION'
-  shift: string
-  time: string
-  target: string
-  status: string
-}
+import {
+  type RosterGridRow,
+  type SchedulableResource,
+  type TargetLocation,
+  type OpdSlot,
+  type RosterBuilderState,
+  calculateOpdSlots,
+} from './types'
+import { StatCardsHeader } from './components/StatCardsHeader'
+import { ShiftTemplatesTab } from './components/ShiftTemplatesTab'
+import { CreateCustomShiftModal } from './components/CreateCustomShiftModal'
+import { AddTargetLocationModal } from './components/AddTargetLocationModal'
 
-export interface SchedulableResource {
-  id: string
-  name: string
-  role: string
-  type: 'EMPLOYEE' | 'DOCTOR'
-  subType?: 'IN_HOUSE' | 'VISITING'
-  specialization?: string
-}
-
-export interface TargetLocation {
-  id: string
-  name: string
-  type: 'PROPERTY' | 'BLOCK' | 'FLOOR' | 'AREA' | 'ROOM_UNIT' | 'DEPARTMENT' | 'CLINIC_VENUE' | 'SERVICE'
-}
-
-export interface OpdSlot {
-  slotNumber: number
-  startTime: string
-  endTime: string
-  duration: number
-}
-
-function calculateOpdSlots(
-  shiftTime: string,
-  slotDurationMinutes: number,
-  bufferMinutes: number = 0
-): OpdSlot[] {
-  if (!shiftTime || !shiftTime.includes('-')) return []
-
-  const [startStr, endStr] = shiftTime.split('-').map((s) => s.trim())
-  const [startH, startM] = startStr.split(':').map(Number)
-  const [endH, endM] = endStr.split(':').map(Number)
-
-  if (isNaN(startH) || isNaN(startM) || isNaN(endH) || isNaN(endM)) return []
-
-  let startTotalMins = startH * 60 + startM
-  let endTotalMins = endH * 60 + endM
-
-  if (endTotalMins <= startTotalMins) {
-    endTotalMins += 24 * 60
-  }
-
-  const slots: OpdSlot[] = []
-  let currentMins = startTotalMins
-  let count = 1
-
-  while (currentMins + slotDurationMinutes <= endTotalMins) {
-    const slotStartMins = currentMins
-    const slotEndMins = currentMins + slotDurationMinutes
-
-    const formatTime = (totalMins: number) => {
-      const h = Math.floor((totalMins % (24 * 60)) / 60)
-      const m = totalMins % 60
-      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
-    }
-
-    slots.push({
-      slotNumber: count++,
-      startTime: formatTime(slotStartMins),
-      endTime: formatTime(slotEndMins),
-      duration: slotDurationMinutes,
-    })
-
-    currentMins = slotEndMins + bufferMinutes
-  }
-
-  return slots
-}
-
-export interface RosterBuilderState {
-  rosterName: string
-  dutyType: 'SHIFT' | 'OPD_SESSION'
-  resourceType: 'EMPLOYEE' | 'DOCTOR'
-  selectedResourceIds: string[]
-  selectedResourceNames: string[]
-  targetScopeType: 'PROPERTY' | 'BLOCK' | 'FLOOR' | 'AREA' | 'ROOM_UNIT' | 'DEPARTMENT' | 'CLINIC_VENUE' | 'SERVICE'
-  selectedTargetId: string
-  selectedTargetName: string
-  selectedShiftId: string
-  selectedShiftName: string
-  selectedShiftTime: string
-  frequencyType: 'DAILY' | 'WEEKLY' | 'BI_WEEKLY' | 'MONTHLY' | 'CUSTOM'
-  selectedDaysOfWeek: string[]
-  effectiveFrom: string
-  effectiveUntil: string
-  holidayPolicy: 'IGNORE' | 'SKIP' | 'RESCHEDULE' | 'REQUIRE_COVERAGE'
-  instructions: string
-  overrideReason: string
-  overrideConfirmed: boolean
-  enableOpdSlots?: boolean
-  opdSlotDurationMinutes?: number
-  opdBufferMinutes?: number
-}
+export type { RosterGridRow, SchedulableResource, TargetLocation, OpdSlot, RosterBuilderState }
 
 export default function ShiftRosterPage() {
   const [activeTab, setActiveTab] = useState('grid')
@@ -1346,40 +1255,12 @@ export default function ShiftRosterPage() {
       </div>
 
       {/* Standard Stats Grid */}
-      <StatsGrid>
-        <StatCard
-          title="Total Roster Dates"
-          value={isLoading ? '...' : displayRosterDates.length.toString()}
-          description="Converged date instances"
-          icon={CalendarIcon}
-          color="blue"
-          isLoading={isLoading}
-        />
-        <StatCard
-          title="In-House Staff"
-          value={isLoadingUsers ? '...' : inHouseStaffCount.toString()}
-          description="Employees & Resident Caregivers"
-          icon={UserCheck}
-          color="green"
-          isLoading={isLoadingUsers}
-        />
-        <StatCard
-          title="Visiting Doctors"
-          value={isLoadingUsers ? '...' : visitingDoctorCount.toString()}
-          description="Contracted engagement slots"
-          icon={Stethoscope}
-          color="purple"
-          isLoading={isLoadingUsers}
-        />
-        <StatCard
-          title="Roster Conflict Status"
-          value={totalRosterConflicts === 0 ? '0 Conflicts' : `${totalRosterConflicts} Conflict${totalRosterConflicts > 1 ? 's' : ''}`}
-          description={totalRosterConflicts === 0 ? '100% Policy Compliant' : 'Overlapping duties detected'}
-          icon={ShieldCheck}
-          color={totalRosterConflicts === 0 ? 'green' : 'yellow'}
-          isLoading={isLoading}
-        />
-      </StatsGrid>
+      <StatCardsHeader
+        displayRosterDates={displayRosterDates}
+        sampleResources={sampleResources}
+        isLoading={isLoading}
+        isLoadingUsers={isLoadingUsers}
+      />
 
       {/* Standard System Tabs */}
       <ResponsiveTabs
@@ -2592,165 +2473,26 @@ export default function ShiftRosterPage() {
             shortLabel: 'Shifts',
             icon: Clock,
             content: (
-              <Card className="shadow-xs border-gray-200">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-xl font-bold">Shift Master Templates & Policy Configuration</CardTitle>
-                      <CardDescription>
-                        Configure independent shift templates and location rest period parameters.
-                      </CardDescription>
-                    </div>
-                    <Button onClick={handleOpenCreateShift} className="gap-2 bg-[#004B87] hover:bg-[#003865]">
-                      <Plus className="w-4 h-4" /> Create New Shift Master
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {availableShifts.map((shift) => (
-                      <Card key={shift.id} className="hover:border-[#004B87]/50 transition-all shadow-xs relative">
-                        <CardHeader className="pb-2">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <CardTitle className="text-base font-bold text-gray-900">{shift.shiftName}</CardTitle>
-                              <Badge variant="outline" className="mt-1 text-[10px] font-mono bg-gray-50">
-                                {shift.code}
-                              </Badge>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleOpenEditShift(shift)}
-                              title="Edit Shift Template"
-                              className="h-8 w-8 text-gray-500 hover:text-[#004B87] hover:bg-blue-50"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                          </div>
-                          <CardDescription className="text-sm font-semibold text-gray-800 pt-1">
-                            {shift.startTime} - {shift.endTime}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="text-xs text-gray-500 space-y-1">
-                          {shift.breakStartTime && shift.breakEndTime ? (
-                            <p>
-                              Break: {shift.breakStartTime} - {shift.breakEndTime}
-                            </p>
-                          ) : (
-                            <p>Break: None / Flexible</p>
-                          )}
-                          <p className="text-emerald-600 font-medium">{shift.description || 'Custom Operational Shift Pattern'}</p>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              <ShiftTemplatesTab
+                availableShifts={availableShifts}
+                onOpenCreateShift={handleOpenCreateShift}
+                onOpenEditShift={handleOpenEditShift}
+              />
             ),
           },
         ]}
       />
 
       {/* Modal 1: Create or Edit Shift Master Template */}
-      <Dialog open={isCreateShiftModalOpen} onOpenChange={setIsCreateShiftModalOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">
-              {editingShiftId ? 'Edit Shift Master Template' : 'Create New Shift Master Template'}
-            </DialogTitle>
-            <DialogDescription>
-              {editingShiftId
-                ? 'Modify operational times, breaks, and location scope policy parameters.'
-                : 'Define a master shift pattern to assign across staff and doctor schedules.'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Shift Name *</Label>
-                <Input
-                  placeholder="e.g. Afternoon OPD Slot"
-                  value={newShiftForm.shiftName}
-                  onChange={(e) => setNewShiftForm({ ...newShiftForm, shiftName: e.target.value })}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label>Shift Code *</Label>
-                <Input
-                  placeholder="e.g. OPD-AFT"
-                  value={newShiftForm.code}
-                  onChange={(e) => setNewShiftForm({ ...newShiftForm, code: e.target.value })}
-                  className="mt-1"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Start Time *</Label>
-                <Input
-                  type="time"
-                  value={newShiftForm.startTime}
-                  onChange={(e) => setNewShiftForm({ ...newShiftForm, startTime: e.target.value })}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label>End Time *</Label>
-                <Input
-                  type="time"
-                  value={newShiftForm.endTime}
-                  onChange={(e) => setNewShiftForm({ ...newShiftForm, endTime: e.target.value })}
-                  className="mt-1"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Break Start Time</Label>
-                <Input
-                  type="time"
-                  value={newShiftForm.breakStartTime}
-                  onChange={(e) => setNewShiftForm({ ...newShiftForm, breakStartTime: e.target.value })}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label>Break End Time</Label>
-                <Input
-                  type="time"
-                  value={newShiftForm.breakEndTime}
-                  onChange={(e) => setNewShiftForm({ ...newShiftForm, breakEndTime: e.target.value })}
-                  className="mt-1"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label>Description / Operational Notes</Label>
-              <Input
-                placeholder="e.g. Mandatory for Memory Care floor coverage."
-                value={newShiftForm.description}
-                onChange={(e) => setNewShiftForm({ ...newShiftForm, description: e.target.value })}
-                className="mt-1"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateShiftModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveShift} disabled={isSubmittingShift} className="bg-[#004B87] hover:bg-[#003865]">
-              {isSubmittingShift ? 'Saving...' : editingShiftId ? 'Update Shift Master' : 'Create Shift Master'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CreateCustomShiftModal
+        isOpen={isCreateShiftModalOpen}
+        onOpenChange={setIsCreateShiftModalOpen}
+        editingShiftId={editingShiftId}
+        formState={newShiftForm}
+        onFormChange={setNewShiftForm}
+        onSave={handleSaveShift}
+        isSubmitting={isSubmittingShift}
+      />
 
       {/* Modal 2: Request Duty Replacement / Substitution */}
       <Dialog open={isReplacementModalOpen} onOpenChange={setIsReplacementModalOpen}>
@@ -3252,86 +2994,34 @@ export default function ShiftRosterPage() {
       )}
 
       {/* Quick Add Location / Department Modal */}
-      <Dialog open={isAddLocationModalOpen} onOpenChange={setIsAddLocationModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-bold text-gray-900">
-              <Plus className="h-5 w-5 text-[#004B87]" /> Add New Location / Department
-            </DialogTitle>
-            <DialogDescription className="text-xs text-gray-500">
-              Create a new operational location or department to target in duty roster assignments.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            <div>
-              <Label className="text-xs font-semibold text-gray-700">Location / Department Name *</Label>
-              <Input
-                value={newLocationForm.name}
-                onChange={(e) => setNewLocationForm({ ...newLocationForm, name: e.target.value })}
-                placeholder="e.g. Cardiology OPD Dept, Flat 501, West Wing"
-                className="mt-1 text-sm"
-              />
-            </div>
-
-            <div>
-              <Label className="text-xs font-semibold text-gray-700">Target Category Scope *</Label>
-              <Select
-                value={newLocationForm.type}
-                onValueChange={(val: any) => setNewLocationForm({ ...newLocationForm, type: val })}
-              >
-                <SelectTrigger className="mt-1 h-10">
-                  <SelectValue placeholder="Select scope category..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ROOM_UNIT">Flat / Unit (Resident Apartment)</SelectItem>
-                  <SelectItem value="FLOOR">Floor / Wing (Caregiver Zone)</SelectItem>
-                  <SelectItem value="CLINIC_VENUE">Clinic Suite (OPD Consultation Room)</SelectItem>
-                  <SelectItem value="DEPARTMENT">Department (Clinical & Med Dept)</SelectItem>
-                  <SelectItem value="BLOCK">Block Tower (Building Complex)</SelectItem>
-                  <SelectItem value="AREA">Area Zone (Facility Area)</SelectItem>
-                  <SelectItem value="PROPERTY">Property Campus (Main Campus)</SelectItem>
-                  <SelectItem value="SERVICE">Service (Specialty Service Pool)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setIsAddLocationModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                if (!newLocationForm.name.trim()) {
-                  toast.error('Please enter a location or department name')
-                  return
-                }
-                const newId = `target-custom-${Date.now()}`
-                const createdLoc: TargetLocation = {
-                  id: newId,
-                  name: newLocationForm.name.trim(),
-                  type: newLocationForm.type,
-                }
-                setCustomLocations((prev) => [...prev, createdLoc])
-                setBuilderForm((prev) => ({
-                  ...prev,
-                  targetScopeType: newLocationForm.type,
-                  selectedTargetId: newId,
-                  selectedTargetName: createdLoc.name,
-                }))
-                setIsAddLocationModalOpen(false)
-                setNewLocationForm({ name: '', type: 'DEPARTMENT' })
-                toast.success(`Location "${createdLoc.name}" created and selected!`)
-              }}
-              className="bg-[#004B87] hover:bg-[#003865] gap-2 shadow-xs"
-            >
-              <Plus className="w-4 h-4" />
-              Save & Select Target
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddTargetLocationModal
+        isOpen={isAddLocationModalOpen}
+        onOpenChange={setIsAddLocationModalOpen}
+        formState={newLocationForm}
+        onFormChange={setNewLocationForm}
+        onSave={() => {
+          if (!newLocationForm.name.trim()) {
+            toast.error('Please enter a location or department name')
+            return
+          }
+          const newId = `target-custom-${Date.now()}`
+          const createdLoc: TargetLocation = {
+            id: newId,
+            name: newLocationForm.name.trim(),
+            type: newLocationForm.type,
+          }
+          setCustomLocations((prev) => [...prev, createdLoc])
+          setBuilderForm((prev) => ({
+            ...prev,
+            targetScopeType: newLocationForm.type,
+            selectedTargetId: newId,
+            selectedTargetName: createdLoc.name,
+          }))
+          setIsAddLocationModalOpen(false)
+          setNewLocationForm({ name: '', type: 'DEPARTMENT' })
+          toast.success(`Location "${createdLoc.name}" created and selected!`)
+        }}
+      />
 
       {/* Medical Onboarding & Specializations Modal */}
       <MedicalSpecializationModal
