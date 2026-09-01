@@ -14,6 +14,7 @@ import SetupPage from '@/pages/Setup'
 import AssetManagementPage from '@/pages/AssetManagement'
 import FnbManagementPage from '@/pages/FnbManagement'
 import UserProfilePage from '@/pages/Profile'
+import TicketsPage from '@/pages/Tickets'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
 export default function RootRouter() {
@@ -261,7 +262,15 @@ export default function RootRouter() {
           path="admin/tickets"
           element={
             <ProtectedRoute resourceKey="TICKETS" action="view">
-              <SectionPage title="Ticket Management (R&M, Concierge, Housekeeping, Food)" />
+              <TicketsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="tickets"
+          element={
+            <ProtectedRoute resourceKey="TICKETS" action="view">
+              <TicketsPage />
             </ProtectedRoute>
           }
         />
