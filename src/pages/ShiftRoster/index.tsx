@@ -41,7 +41,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -349,6 +349,27 @@ export default function ShiftRosterPage() {
 
     return list
   }, [liveProperties, accessibleLocations, selectedLocationName, specializations, staffList, customLocations])
+
+  // Categorized Target Locations for dropdowns
+  const groupedTargetLocations = useMemo(() => {
+    const groups: { [key: string]: { label: string; items: TargetLocation[] } } = {
+      PROPERTY: { label: '🏢 Facilities / Properties', items: [] },
+      BLOCK: { label: '🏬 Blocks & Buildings', items: [] },
+      FLOOR: { label: '🪜 Floors & Wings', items: [] },
+      ROOM_UNIT: { label: '🚪 Resident Units & Rooms', items: [] },
+      CLINIC_VENUE: { label: '🏥 OPD Clinics & Venues', items: [] },
+      DEPARTMENT: { label: '📋 Departments & Specializations', items: [] },
+    }
+    targetLocations.forEach((t) => {
+      if (groups[t.type]) {
+        groups[t.type].items.push(t)
+      } else {
+        if (!groups.DEPARTMENT) groups.DEPARTMENT = { label: '📋 Departments & Other', items: [] }
+        groups.DEPARTMENT.items.push(t)
+      }
+    })
+    return Object.values(groups).filter((g) => g.items.length > 0)
+  }, [targetLocations])
 
   // Quick Add Location / Department Modal State
   const [isAddLocationModalOpen, setIsAddLocationModalOpen] = useState(false)
@@ -1684,8 +1705,8 @@ export default function ShiftRosterPage() {
                                             : 'bg-emerald-50 text-emerald-900 border-emerald-200'
                                     }`}
                                   >
-                                    <p className="truncate">{assignment.resource}</p>
-                                    <p className="text-[9px] font-normal text-gray-500 truncate">{assignment.shift}</p>
+                                    <p className="font-bold truncate text-gray-900 leading-tight">{assignment.shift}</p>
+                                    <p className="text-[9.5px] font-medium text-gray-600 truncate mt-0.5">{assignment.resource}</p>
                                   </div>
                                 ))}
                                 {dateAssignments.length > 2 && (
@@ -2062,13 +2083,24 @@ export default function ShiftRosterPage() {
                                   <SelectValue placeholder="Select specific location target..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {targetLocations
-                                    .filter((target) => target.type === builderForm.targetScopeType)
-                                    .map((target) => (
-                                      <SelectItem key={target.id} value={target.id}>
-                                        {target.name} ({target.type})
-                                      </SelectItem>
-                                    ))}
+                                  {groupedTargetLocations
+                                    .map((group) => {
+                                      const matchingItems = group.items.filter((target) => target.type === builderForm.targetScopeType)
+                                      if (matchingItems.length === 0) return null
+                                      return (
+                                        <SelectGroup key={group.label}>
+                                          <SelectLabel className="font-bold text-[#004B87] uppercase text-[10px] tracking-wider px-2 py-1 bg-gray-50/80 my-1 rounded-sm">
+                                            {group.label}
+                                          </SelectLabel>
+                                          {matchingItems.map((target) => (
+                                            <SelectItem key={target.id} value={target.id}>
+                                              {target.name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectGroup>
+                                      )
+                                    })
+                                    .filter(Boolean)}
                                 </SelectContent>
                               </Select>
                             </div>
@@ -2938,10 +2970,17 @@ export default function ShiftRosterPage() {
                   <SelectValue placeholder="Select target..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {targetLocations.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name} ({t.type})
-                    </SelectItem>
+                  {groupedTargetLocations.map((group) => (
+                    <SelectGroup key={group.label}>
+                      <SelectLabel className="font-bold text-[#004B87] uppercase text-[10px] tracking-wider px-2 py-1 bg-gray-50/80 my-1 rounded-sm">
+                        {group.label}
+                      </SelectLabel>
+                      {group.items.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   ))}
                 </SelectContent>
               </Select>
