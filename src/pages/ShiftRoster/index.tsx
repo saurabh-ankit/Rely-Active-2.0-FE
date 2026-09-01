@@ -845,11 +845,12 @@ export default function ShiftRosterPage() {
     } catch {
       // Local optimistic cancellation transition
     } finally {
-      setLiveRosterDates((prev) =>
-        prev.map((item) =>
+      setLiveRosterDates((prev) => {
+        const base = prev.length > 0 ? prev : displayRosterDates
+        return base.map((item) =>
           item.id === selectedDateForCancel.id ? { ...item, status: 'CANCELLED' } : item
         )
-      )
+      })
       setIsCancelModalOpen(false)
       setIsSubmittingCancel(false)
       toast.success(`Duty for ${selectedDateForCancel.resource} on ${selectedDateForCancel.date} set to CANCELLED!`)
@@ -880,7 +881,10 @@ export default function ShiftRosterPage() {
         target: addStaffForm.targetName,
         status: 'UPCOMING',
       }
-      setLiveRosterDates((prev) => [newRow, ...prev])
+      setLiveRosterDates((prev) => {
+        const base = prev.length > 0 ? prev : displayRosterDates
+        return [newRow, ...base]
+      })
       setIsAddStaffModalOpen(false)
       setIsSubmittingAddStaff(false)
       toast.success(`Assigned ${addStaffForm.resourceName} to ${addStaffForm.shiftName} on ${addStaffForm.date}`)
