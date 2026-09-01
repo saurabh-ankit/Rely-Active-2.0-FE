@@ -81,6 +81,8 @@ export const useLocation = () => {
           setSelectedLocation(savedLoc.id, savedLoc.property_name)
         } else if (uniqueLocations.length > 0) {
           setSelectedLocation(uniqueLocations[0].id, uniqueLocations[0].property_name)
+        } else {
+          setSelectedLocation(null, null)
         }
       } catch (err: unknown) {
         console.warn('Error loading accessible properties:', err)
