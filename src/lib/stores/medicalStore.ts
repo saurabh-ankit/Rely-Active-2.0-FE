@@ -13,8 +13,9 @@ export interface MedicalSpecialization {
 export interface OnboardedMedicalStaff {
   id: string
   name: string
-  role: 'DOCTOR' | 'NURSE' | 'CARETAKER' | 'EMPLOYEE'
+  role: string
   doctorType?: 'IN_HOUSE' | 'VISITING'
+
   specialization: string
   medicalLicenseNumber?: string
   assignedClinicRoom?: string
