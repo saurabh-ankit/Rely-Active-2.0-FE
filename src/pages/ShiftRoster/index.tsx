@@ -589,15 +589,36 @@ export default function ShiftRosterPage() {
       const rawDate = d.assignmentDate || d.date || ''
       const formattedDate = typeof rawDate === 'string' ? rawDate.split('T')[0] : rawDate
 
+      let resourceName = 'Staff Member'
+      if (typeof d.resource === 'string' && d.resource.trim()) {
+        resourceName = d.resource
+      } else if (d.resourceSnapshot && d.resourceSnapshot !== 'Unknown Resource') {
+        resourceName = d.resourceSnapshot
+      } else if (d.resource && typeof d.resource === 'object') {
+        resourceName = d.resource.user?.username || d.resource.user?.email || d.resource.user?.firstName || `Staff (${d.schedulingResourceId?.substring(0, 6) || 'Resource'})`
+      } else if (d.resourceSnapshot) {
+        resourceName = d.resourceSnapshot
+      }
+
+      let shiftName = 'Scheduled Shift'
+      if (typeof d.shift === 'string' && d.shift.trim()) {
+        shiftName = d.shift
+      } else if (typeof d.shift === 'object' && d.shift?.shiftName) {
+        shiftName = d.shift.shiftName
+      } else if (d.shiftNameSnapshot) {
+        shiftName = d.shiftNameSnapshot
+      }
+
       return {
         id: d.id,
         date: formattedDate,
-        resource: d.resource || d.resourceSnapshot || 'Staff Member',
-        type: d.type || d.resource?.resourceType || 'EMPLOYEE',
+        resource: resourceName,
+        resourceName: resourceName,
+        type: typeof d.type === 'string' ? d.type : d.resource?.resourceType || 'EMPLOYEE',
         dutyType: d.dutyType || 'SHIFT',
-        shift: d.shift || d.shiftNameSnapshot || 'Scheduled Shift',
+        shift: shiftName,
         time: d.time || d.slotTimeRange || '08:00 - 16:00',
-        target: d.target || d.targetSnapshot || 'Location Target',
+        target: typeof d.target === 'string' ? d.target : d.targetSnapshot || 'Location Target',
         status: d.status || 'UPCOMING',
       }
     })
