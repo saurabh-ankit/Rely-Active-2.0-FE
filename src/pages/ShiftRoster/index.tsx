@@ -1895,6 +1895,7 @@ export default function ShiftRosterPage() {
                               <Sparkles className="w-4 h-4 text-purple-700" />
                               <span>{aiOptimizationMessage}</span>
                             </div>
+                          )}
                            {/* Duty Type Selector */}
                           <div className="space-y-2">
                             <Label className="text-sm font-semibold text-gray-900">Operational Duty Type *</Label>
