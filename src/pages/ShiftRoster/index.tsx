@@ -621,12 +621,19 @@ export default function ShiftRosterPage() {
     const year = today.getFullYear()
     const month = String(today.getMonth() + 1).padStart(2, '0')
 
+    const primaryResourceName = sampleResources[0]?.name || 'Dr. Manish Jagtap'
+    const primaryResourceType = sampleResources[0]?.type || 'DOCTOR'
+
+    const secondResource = sampleResources[1] || sampleResources[0]
+    const secondResourceName = secondResource?.name || primaryResourceName
+    const secondResourceType = secondResource?.type || primaryResourceType
+
     return [
       {
         id: 'seed-1',
         date: `${year}-${month}-01`,
-        resource: 'Dr. Aarav Sharma',
-        type: 'DOCTOR',
+        resource: primaryResourceName,
+        type: primaryResourceType,
         dutyType: 'OPD_SESSION',
         shift: 'Morning OPD Consultation',
         time: '09:00 - 13:00',
@@ -636,8 +643,8 @@ export default function ShiftRosterPage() {
       {
         id: 'seed-2',
         date: `${year}-${month}-01`,
-        resource: 'Nurse Sunita Verma',
-        type: 'EMPLOYEE',
+        resource: secondResourceName,
+        type: secondResourceType,
         dutyType: 'SHIFT',
         shift: 'General Day Duty',
         time: '08:00 - 16:00',
@@ -647,8 +654,8 @@ export default function ShiftRosterPage() {
       {
         id: 'seed-3',
         date: `${year}-${month}-02`,
-        resource: 'Dr. Meera Nambiar',
-        type: 'DOCTOR',
+        resource: primaryResourceName,
+        type: primaryResourceType,
         dutyType: 'ON_CALL',
         shift: 'Emergency On-Call Duty',
         time: '20:00 - 08:00',
@@ -657,20 +664,9 @@ export default function ShiftRosterPage() {
       },
       {
         id: 'seed-4',
-        date: `${year}-${month}-02`,
-        resource: 'Nurse Sunita Verma',
-        type: 'EMPLOYEE',
-        dutyType: 'SHIFT',
-        shift: 'General Day Duty',
-        time: '08:00 - 16:00',
-        target: 'Resident Ward A',
-        status: 'PUBLISHED',
-      },
-      {
-        id: 'seed-5',
         date: `${year}-${month}-03`,
-        resource: 'Dr. Aarav Sharma',
-        type: 'DOCTOR',
+        resource: primaryResourceName,
+        type: primaryResourceType,
         dutyType: 'OPD_SESSION',
         shift: 'Morning OPD Consultation',
         time: '09:00 - 13:00',
@@ -678,18 +674,18 @@ export default function ShiftRosterPage() {
         status: 'PUBLISHED',
       },
       {
-        id: 'seed-6',
+        id: 'seed-5',
         date: `${year}-${month}-05`,
-        resource: 'Nurse Rajesh Kumar',
-        type: 'EMPLOYEE',
+        resource: secondResourceName,
+        type: secondResourceType,
         dutyType: 'SHIFT',
-        shift: 'Night Duty',
+        shift: 'Night Caregiver Duty',
         time: '20:00 - 08:00',
         target: 'Resident Ward B',
         status: 'PUBLISHED',
       },
     ]
-  }, [])
+  }, [sampleResources])
 
   const displayRosterDates: RosterGridRow[] = useMemo(() => {
     const rawList = liveRosterDates.length > 0 ? liveRosterDates : defaultRosterSeed
