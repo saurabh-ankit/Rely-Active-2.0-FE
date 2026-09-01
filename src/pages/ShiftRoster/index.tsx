@@ -179,18 +179,32 @@ export default function ShiftRosterPage() {
   // Location Context & Dynamic Schedulable Target Locations Pool
   const { selectedLocationId, accessibleLocations, selectedLocationName } = useLocationContext()
 
-  // Context IDs — resolved from auth session / location context with fallback
+  // Context IDs — resolved from active location context with localStorage/default fallback
   const companyId = localStorage.getItem('rely_active_company_id') || 'default-company-id'
-  const locationId = localStorage.getItem('rely_active_property_id') || selectedLocationId || 'default-property-id'
+  const locationId = selectedLocationId || localStorage.getItem('rely_active_property_id') || 'default-property-id'
 
-  // Dynamic API state with sessionStorage persistence fallback
-  const [liveShifts, setLiveShifts] = useState<any[]>([])
-  const [liveRosterDates, setLiveRosterDates] = useState<any[]>(() => {
-    const saved = sessionStorage.getItem('rely_live_roster_dates')
+  // Dynamic API state with location-scoped sessionStorage persistence fallback
+  const [liveShifts, setLiveShifts] = useState<any[]>(() => {
+    if (!locationId) return []
+    const saved = sessionStorage.getItem(`rely_live_shifts_${locationId}`)
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) return parsed
+      } catch {
+        // Fallback
+      }
+    }
+    return []
+  })
+
+  const [liveRosterDates, setLiveRosterDates] = useState<any[]>(() => {
+    if (!locationId) return []
+    const saved = sessionStorage.getItem(`rely_live_roster_dates_${locationId}`)
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed)) {
           return parsed.filter((item: any) => !item.id || !String(item.id).startsWith('seed-'))
         }
       } catch {
@@ -199,16 +213,24 @@ export default function ShiftRosterPage() {
     }
     return []
   })
+
   const [liveProperties, setLiveProperties] = useState<Property[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
 
-  // Persist liveRosterDates to sessionStorage whenever updated
+  // Persist liveRosterDates and liveShifts to location-scoped sessionStorage whenever updated
   useEffect(() => {
-    if (liveRosterDates.length > 0) {
-      sessionStorage.setItem('rely_live_roster_dates', JSON.stringify(liveRosterDates))
+    if (locationId) {
+      sessionStorage.setItem(`rely_live_roster_dates_${locationId}`, JSON.stringify(liveRosterDates))
     }
-  }, [liveRosterDates])
+  }, [liveRosterDates, locationId])
+
+  useEffect(() => {
+    if (locationId) {
+      sessionStorage.setItem(`rely_live_shifts_${locationId}`, JSON.stringify(liveShifts))
+    }
+  }, [liveShifts, locationId])
+
 
   // Live API Users & Medical Store Staff
   const { data: apiUsers = [], isLoading: isLoadingUsers } = useUsersQuery()
@@ -501,7 +523,7 @@ export default function ShiftRosterPage() {
     )
   }, [builderForm.dutyType, builderForm.selectedShiftTime, builderForm.opdSlotDurationMinutes, builderForm.opdBufferMinutes])
 
-  // Fetch live roster dates, shifts, and properties
+  // Fetch live roster dates, shifts, and properties for active locationId
   const fetchLiveData = async () => {
     if (!companyId || !locationId) return
     setIsLoading(true)
@@ -512,25 +534,44 @@ export default function ShiftRosterPage() {
         getPropertiesAPI(companyId),
       ])
 
-      if (shiftsRes.status === 'fulfilled' && shiftsRes.value?.data && shiftsRes.value.data.length > 0) {
-        setLiveShifts(shiftsRes.value.data)
+      if (shiftsRes.status === 'fulfilled' && shiftsRes.value?.data) {
+        const fetchedShifts = Array.isArray(shiftsRes.value.data) ? shiftsRes.value.data : []
+        setLiveShifts(fetchedShifts)
+        sessionStorage.setItem(`rely_live_shifts_${locationId}`, JSON.stringify(fetchedShifts))
       }
-      if (datesRes.status === 'fulfilled' && datesRes.value?.data && Array.isArray(datesRes.value.data) && datesRes.value.data.length > 0) {
-        setLiveRosterDates(datesRes.value.data)
+
+      if (datesRes.status === 'fulfilled' && datesRes.value?.data) {
+        const fetchedDates = Array.isArray(datesRes.value.data) ? datesRes.value.data : []
+        setLiveRosterDates(fetchedDates)
+        sessionStorage.setItem(`rely_live_roster_dates_${locationId}`, JSON.stringify(fetchedDates))
       }
+
       if (propsRes.status === 'fulfilled' && propsRes.value) {
         setLiveProperties(Array.isArray(propsRes.value) ? propsRes.value : [])
       }
     } catch {
-      // Fallback silently to local state if API is offline
+      // Fallback silently to location-specific cached state if API is offline
+      const cachedShifts = sessionStorage.getItem(`rely_live_shifts_${locationId}`)
+      setLiveShifts(cachedShifts ? JSON.parse(cachedShifts) : [])
+
+      const cachedDates = sessionStorage.getItem(`rely_live_roster_dates_${locationId}`)
+      setLiveRosterDates(cachedDates ? JSON.parse(cachedDates) : [])
     } finally {
       setIsLoading(false)
     }
   }
 
   useEffect(() => {
+    if (locationId) {
+      const cachedShifts = sessionStorage.getItem(`rely_live_shifts_${locationId}`)
+      setLiveShifts(cachedShifts ? JSON.parse(cachedShifts) : [])
+
+      const cachedDates = sessionStorage.getItem(`rely_live_roster_dates_${locationId}`)
+      setLiveRosterDates(cachedDates ? JSON.parse(cachedDates) : [])
+    }
     fetchLiveData()
   }, [companyId, locationId])
+
 
   // Auto-sync builderForm default selection with live available sampleResources and targetLocations
   useEffect(() => {
