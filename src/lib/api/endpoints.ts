@@ -193,4 +193,23 @@ export const API_ENDPOINTS = {
       get: `${BASE_URL}/location/:locationId/assets/compliance/status`,
     },
   },
+
+  // Roster Module Endpoints
+  roster: {
+    onboardDoctor: (companyId: string, locationId: string) => `${BASE_URL}/roster/companies/${companyId}/locations/${locationId}/doctors/onboard`,
+    getDoctors: (companyId: string, locationId: string) => `${BASE_URL}/roster/companies/${companyId}/locations/${locationId}/doctors`,
+    addDoctorLocation: (doctorProfileId: string) => `${BASE_URL}/roster/doctors/${doctorProfileId}/locations`,
+    addDoctorEngagement: (doctorProfileId: string) => `${BASE_URL}/roster/doctors/${doctorProfileId}/engagements`,
+    createShift: (companyId: string, locationId: string) => `${BASE_URL}/roster/companies/${companyId}/locations/${locationId}/shifts`,
+    getShifts: (companyId: string, locationId: string) => `${BASE_URL}/roster/companies/${companyId}/locations/${locationId}/shifts`,
+    createFrequency: (companyId: string, locationId: string) => `${BASE_URL}/roster/companies/${companyId}/locations/${locationId}/frequencies`,
+    getFrequencies: (companyId: string, locationId: string) => `${BASE_URL}/roster/companies/${companyId}/locations/${locationId}/frequencies`,
+    validateAssignment: (companyId: string, locationId: string) => `${BASE_URL}/roster/companies/${companyId}/locations/${locationId}/assignments/validate`,
+    createAssignment: (companyId: string, locationId: string) => `${BASE_URL}/roster/companies/${companyId}/locations/${locationId}/assignments`,
+    publishAssignment: (companyId: string, locationId: string, id: string) => `${BASE_URL}/roster/companies/${companyId}/locations/${locationId}/assignments/${id}/publish`,
+    copyAssignment: (companyId: string, locationId: string, id: string) => `${BASE_URL}/roster/companies/${companyId}/locations/${locationId}/assignments/${id}/copy-forward`,
+    getRosterDates: (companyId: string, locationId: string) => `${BASE_URL}/roster/companies/${companyId}/locations/${locationId}/roster-dates`,
+    requestReplacement: (companyId: string, locationId: string, dateId: string) => `${BASE_URL}/roster/companies/${companyId}/locations/${locationId}/roster-dates/${dateId}/replace`,
+  },
 }
+

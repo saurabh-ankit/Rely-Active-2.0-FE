@@ -57,17 +57,30 @@ export const useLocation = () => {
       inFlightLocationsUserId = user.id
       try {
         setIsLoadingLocations(true)
-        const locations = await getUserAccessiblePropertiesAPI()
-        setAccessibleLocations(locations)
+        const rawLocations = await getUserAccessiblePropertiesAPI()
+
+        // Deduplicate accessible locations by unique id & name
+        const seenIds = new Set<string>()
+        const uniqueLocations: PropertyLocationItem[] = []
+        for (const item of rawLocations || []) {
+          const name = item.property_name || (item as any).name || 'Property Location'
+          const key = item.id || name.trim().toLowerCase()
+          if (!seenIds.has(key)) {
+            seenIds.add(key)
+            uniqueLocations.push({ id: item.id, property_name: name })
+          }
+        }
+
+        setAccessibleLocations(uniqueLocations)
         fetchedLocationsUserId = user.id
 
         const savedLocId = localStorage.getItem(ACTIVE_PROP_ID_KEY)
-        const savedLoc = locations.find((l) => l.id === savedLocId)
+        const savedLoc = uniqueLocations.find((l) => l.id === savedLocId)
 
         if (savedLoc) {
           setSelectedLocation(savedLoc.id, savedLoc.property_name)
-        } else if (locations.length > 0) {
-          setSelectedLocation(locations[0].id, locations[0].property_name)
+        } else if (uniqueLocations.length > 0) {
+          setSelectedLocation(uniqueLocations[0].id, uniqueLocations[0].property_name)
         }
       } catch (err: unknown) {
         console.warn('Error loading accessible properties:', err)

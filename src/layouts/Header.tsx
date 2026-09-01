@@ -62,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
             <button
               type="button"
               onClick={() => setShowLocationDropdown(!showLocationDropdown)}
-              className="flex items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 shadow-lg rounded-full px-4 py-1.5 text-xs font-semibold text-gray-800 transition-all hover:bg-white/30 cursor-pointer"
+              className="flex items-center gap-2 bg-white/40 backdrop-blur-md border border-white/60 shadow-md hover:shadow-lg rounded-full px-4 py-1.5 text-xs font-bold text-gray-800 transition-all hover:bg-white/60 cursor-pointer"
             >
               <Building2 className="h-3.5 w-3.5 text-[#005390]" />
               <span>{selectedLocationName || 'Select Property'}</span>
@@ -70,43 +70,45 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
             </button>
 
             {showLocationDropdown && (
-              <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-white/40 bg-white/95 p-2 shadow-2xl backdrop-blur-xl z-50">
-                <div className="px-3 py-1.5 text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <Building2 className="h-3.5 w-3.5 text-[#005390]" />
-                    Properties
-                  </span>
-                  {isSuperAdmin && <span className="text-[9px] text-[#005390] font-extrabold">GLOBAL</span>}
+              <div className="absolute right-0 mt-2.5 w-72 rounded-2xl border border-white/60 bg-white/95 p-2.5 shadow-2xl backdrop-blur-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="px-3 py-1.5 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider flex items-center justify-between border-b border-gray-100 pb-2 mb-1.5">
+                  <span>ACCESSIBLE PROPERTIES</span>
+                  {isSuperAdmin && (
+                    <span className="text-[9px] bg-[#005390]/10 text-[#005390] px-2 py-0.5 rounded-md font-extrabold border border-[#005390]/20">
+                      GLOBAL ACCESS
+                    </span>
+                  )}
                 </div>
 
                 {accessibleLocations.length === 0 ? (
-                  <div className="px-3 py-2 text-xs text-gray-400">No properties available</div>
+                  <div className="px-3 py-3 text-xs text-gray-400 text-center">No properties available</div>
                 ) : (
-                  accessibleLocations.map((p: PropertyLocationItem) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => {
-                        selectLocation(p)
-                        setShowLocationDropdown(false)
-                      }}
-                      className={`w-full text-left px-3 py-2 text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-between gap-2 ${
-                        selectedLocationName === p.property_name
-                          ? 'bg-[#005390] font-semibold text-white shadow-sm'
-                          : 'hover:bg-[#005390]/10 hover:text-[#005390] text-gray-700'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <Building2
-                          className={`h-3.5 w-3.5 shrink-0 ${
-                            selectedLocationName === p.property_name ? 'text-white' : 'text-[#005390]'
+                  <div className="space-y-1 max-h-64 overflow-y-auto pr-0.5">
+                    {accessibleLocations.map((p: PropertyLocationItem) => {
+                      const isSelected = selectedLocationName === p.property_name
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => {
+                            selectLocation(p)
+                            setShowLocationDropdown(false)
+                          }}
+                          className={`w-full text-left px-3 py-2.5 text-xs rounded-xl transition-all cursor-pointer flex items-center justify-between font-medium ${
+                            isSelected
+                              ? 'bg-[#005390] text-white shadow-md font-bold'
+                              : 'text-gray-700 hover:bg-[#005390]/10 hover:text-[#005390]'
                           }`}
-                        />
-                        <span className="truncate">{p.property_name}</span>
-                      </div>
-                      {selectedLocationName === p.property_name && <span className="text-[10px] shrink-0">✓</span>}
-                    </button>
-                  ))
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <Building2 className={`w-3.5 h-3.5 flex-shrink-0 ${isSelected ? 'text-white' : 'text-gray-400'}`} />
+                            <span className="truncate">{p.property_name}</span>
+                          </div>
+                          {isSelected && <span className="text-xs font-bold ml-2">✓</span>}
+                        </button>
+                      )
+                    })}
+                  </div>
                 )}
               </div>
             )}

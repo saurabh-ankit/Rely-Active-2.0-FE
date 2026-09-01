@@ -18,10 +18,12 @@ import {
   Plus,
   Shield,
   ShieldCheck,
+  Stethoscope,
   User,
   UserCheck,
   UserPlus,
 } from 'lucide-react'
+import { useMedicalStore } from '@/lib/stores/medicalStore'
 import { useDebounce } from '@/hooks/useDebounce'
 import { usePropertiesQuery } from '@/hooks/react-query/property'
 import { useDepartmentsQuery, useRolesQuery } from '@/hooks/react-query/rbac'
@@ -105,6 +107,10 @@ const userFormSchema = z
     selectedDepartmentId: z.string().optional(),
     selectedJobCategoryId: z.string().optional(),
     selectedManagerId: z.string().optional(),
+    doctorType: z.string().optional(),
+    medicalSpecialization: z.string().optional(),
+    medicalLicenseNumber: z.string().optional(),
+    assignedClinicRoom: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     const isSpecialRole = ['SUPER_ADMIN', 'ADMIN'].includes((data.selectedRoleCode || '').toUpperCase())
@@ -198,9 +204,14 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
       selectedDepartmentId: '',
       selectedJobCategoryId: '',
       selectedManagerId: '',
+      doctorType: 'IN_HOUSE',
+      medicalSpecialization: 'Geriatric Medicine',
+      medicalLicenseNumber: '',
+      assignedClinicRoom: 'OPD Clinic Room #102',
     },
   })
 
+  const specializations = useMedicalStore((state) => state.specializations)
   const selectedRoleCode = useWatch({ control, name: 'selectedRoleCode' })
   const isMultiPropertyRole = ['SUPER_ADMIN', 'ADMIN'].includes((selectedRoleCode || '').toUpperCase())
   const selectedDepartmentId = useWatch({ control, name: 'selectedDepartmentId' })
@@ -417,6 +428,19 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
       } else {
         await createUserMutation.mutateAsync(payload)
         notifySuccess(`Employee ${values.firstName} created successfully!`)
+      }
+
+      if (['DOCTOR', 'NURSE', 'CARETAKER'].includes((values.selectedRoleCode || '').toUpperCase())) {
+        useMedicalStore.getState().addStaff({
+          name: `${values.selectedRoleCode.toUpperCase() === 'DOCTOR' ? 'Dr. ' : ''}${values.firstName} ${values.lastName}`,
+          role: values.selectedRoleCode.toUpperCase() as any,
+          doctorType: (values.doctorType as any) || 'IN_HOUSE',
+          specialization: values.medicalSpecialization || 'Geriatric Medicine',
+          medicalLicenseNumber: values.medicalLicenseNumber || undefined,
+          assignedClinicRoom: values.assignedClinicRoom || 'OPD Clinic Room #102',
+          phone: values.phone,
+          email: values.email,
+        })
       }
 
       resetForm()
@@ -722,6 +746,67 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                           {errors.selectedJobCategoryId.message}
                         </p>
                       )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Medical & Clinical Profile Fields (Doctor Type, Specialization, License, Clinic Room) */}
+              {['DOCTOR', 'NURSE', 'CARETAKER'].includes((selectedRoleCode || '').toUpperCase()) && (
+                <div className="mt-4 pt-4 border-t border-blue-100/80 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold text-[#005390] uppercase tracking-wider flex items-center gap-1.5">
+                      <Stethoscope className="w-4 h-4 text-[#005390]" />
+                      Medical & Clinical Specialization Profile
+                    </h3>
+                    <span className="text-[10px] bg-blue-50 text-[#005390] px-2 py-0.5 rounded-md font-semibold border border-blue-200">
+                      Medical Staff Setup
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Doctor Engagement Type */}
+                    {(selectedRoleCode || '').toUpperCase() === 'DOCTOR' && (
+                      <div>
+                        <label htmlFor="doc-type-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                          Doctor Engagement Type <span className="text-red-500 font-bold">*</span>
+                        </label>
+                        <select
+                          id="doc-type-select"
+                          {...register('doctorType')}
+                          className="w-full rounded-xl border border-gray-200 bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 font-medium shadow-2xs"
+                        >
+                          <option value="IN_HOUSE">In-House Resident Doctor</option>
+                          <option value="VISITING">Visiting Specialist Consultant</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Medical Specialization Selection */}
+                    <div>
+                      <label htmlFor="spec-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                        Medical Specialization / Clinical Focus <span className="text-red-500 font-bold">*</span>
+                      </label>
+                      <select
+                        id="spec-select"
+                        {...register('medicalSpecialization')}
+                        className="w-full rounded-xl border border-gray-200 bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 font-medium shadow-2xs"
+                      >
+                        {specializations.map((spec) => (
+                          <option key={spec.id} value={spec.name}>
+                            {spec.name} ({spec.category})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* License Number */}
+                    <div>
+                      <Input
+                        label="Medical License / Registration Number"
+                        {...register('medicalLicenseNumber')}
+                        placeholder="e.g. MCI-984210 / RN-48190"
+                      />
                     </div>
                   </div>
                 </div>
