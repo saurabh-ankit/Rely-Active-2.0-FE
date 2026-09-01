@@ -2859,52 +2859,17 @@ export default function ShiftRosterPage() {
               <UserPlus className="w-5 h-5 text-[#004B87]" /> Add Staff / Duty to Roster
             </DialogTitle>
             <DialogDescription>
-              Assign a new employee or doctor directly into an existing roster schedule.
+              {addStaffForm.isEmployeeLocked ? (
+                <span className="flex items-center gap-1.5 mt-1 text-xs text-gray-700 font-medium">
+                  Assigning roster duty for <Badge className="bg-[#004B87] text-white text-xs px-2 py-0.5">{addStaffForm.resourceName}</Badge> ({addStaffForm.resourceType})
+                </span>
+              ) : (
+                'Assign a new employee or doctor directly into an existing roster schedule.'
+              )}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <div>
-              <Label>Select Staff Member / Doctor *</Label>
-              {addStaffForm.isEmployeeLocked ? (
-                <div className="mt-1 p-2.5 bg-blue-50/80 border border-blue-200 rounded-lg flex items-center justify-between text-xs font-semibold text-gray-900">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-[#004B87] text-white flex items-center justify-center text-[10px] font-bold">
-                      {addStaffForm.resourceName ? addStaffForm.resourceName.charAt(0) : 'S'}
-                    </div>
-                    <span>{addStaffForm.resourceName}</span>
-                  </div>
-                  <Badge className="text-[10px] bg-[#004B87] text-white">
-                    {addStaffForm.resourceType}
-                  </Badge>
-                </div>
-              ) : (
-                <Select
-                  value={addStaffForm.resourceId}
-                  onValueChange={(val: string) => {
-                    const res = sampleResources.find((r) => r.id === val)
-                    setAddStaffForm({
-                      ...addStaffForm,
-                      resourceId: val,
-                      resourceName: res?.name || val,
-                      resourceType: res?.type || 'EMPLOYEE',
-                    })
-                  }}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select staff..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sampleResources.map((res) => (
-                      <SelectItem key={res.id} value={res.id}>
-                        {res.name} ({res.role})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-
             <div>
               <Label>Duty Date *</Label>
               <Input
@@ -2930,6 +2895,35 @@ export default function ShiftRosterPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {!addStaffForm.isEmployeeLocked && (
+              <div>
+                <Label>Select Staff Member / Doctor *</Label>
+                <Select
+                  value={addStaffForm.resourceId}
+                  onValueChange={(val: string) => {
+                    const res = sampleResources.find((r) => r.id === val)
+                    setAddStaffForm({
+                      ...addStaffForm,
+                      resourceId: val,
+                      resourceName: res?.name || val,
+                      resourceType: res?.type || 'EMPLOYEE',
+                    })
+                  }}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select staff..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sampleResources.map((res) => (
+                      <SelectItem key={res.id} value={res.id}>
+                        {res.name} ({res.role})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
 
             <div>
