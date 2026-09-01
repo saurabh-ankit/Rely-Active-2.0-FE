@@ -664,6 +664,22 @@ export default function ShiftRosterPage() {
     })
   }, [liveRosterDates, sampleResources])
 
+  const totalRosterConflicts = useMemo(() => {
+    const seenMap: Record<string, number> = {}
+    let count = 0
+    displayRosterDates.forEach((duty) => {
+      if (duty.status === 'CANCELLED') return
+      const resId = duty.schedulingResourceId || duty.resourceUserId || (duty.resource ? duty.resource.toLowerCase() : '')
+      if (!resId || !duty.date) return
+      const key = `${resId}_${duty.date}`
+      seenMap[key] = (seenMap[key] || 0) + 1
+      if (seenMap[key] === 2) {
+        count += 1
+      }
+    })
+    return count
+  }, [displayRosterDates])
+
   // Conflict Prevention & Staff Availability Checker
   const getStaffAvailabilityStatus = (staffIdOrName: string, dateStr: string) => {
     if (!dateStr || !staffIdOrName) {
@@ -1356,11 +1372,11 @@ export default function ShiftRosterPage() {
           isLoading={isLoadingUsers}
         />
         <StatCard
-          title="Validation Status"
-          value="100% Valid"
-          description="MySQL transaction locked"
+          title="Roster Conflict Status"
+          value={totalRosterConflicts === 0 ? '0 Conflicts' : `${totalRosterConflicts} Conflict${totalRosterConflicts > 1 ? 's' : ''}`}
+          description={totalRosterConflicts === 0 ? '100% Policy Compliant' : 'Overlapping duties detected'}
           icon={ShieldCheck}
-          color="cyan"
+          color={totalRosterConflicts === 0 ? 'green' : 'yellow'}
           isLoading={isLoading}
         />
       </StatsGrid>
