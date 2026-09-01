@@ -474,12 +474,13 @@ export default function ShiftRosterPage() {
 
   // Fetch live roster dates, shifts, and properties
   const fetchLiveData = async () => {
+    if (!companyId || !locationId) return
     setIsLoading(true)
     try {
       const [shiftsRes, datesRes, propsRes] = await Promise.allSettled([
         rosterService.getShifts(companyId, locationId),
         rosterService.getRosterDates(companyId, locationId),
-        getPropertiesAPI(companyId !== 'default-company-id' ? companyId : undefined),
+        getPropertiesAPI(companyId),
       ])
 
       if (shiftsRes.status === 'fulfilled' && shiftsRes.value?.data && shiftsRes.value.data.length > 0) {
@@ -492,7 +493,7 @@ export default function ShiftRosterPage() {
         setLiveProperties(Array.isArray(propsRes.value) ? propsRes.value : [])
       }
     } catch {
-      // Fallback silently to mock demo state if API is offline
+      // Fallback silently to local state if API is offline
     } finally {
       setIsLoading(false)
     }
@@ -500,7 +501,7 @@ export default function ShiftRosterPage() {
 
   useEffect(() => {
     fetchLiveData()
-  }, [])
+  }, [companyId, locationId])
 
   // Auto-sync builderForm default selection with live available sampleResources and targetLocations
   useEffect(() => {
@@ -592,17 +593,22 @@ export default function ShiftRosterPage() {
 
   const displayRosterDates: RosterGridRow[] = useMemo(() => {
     if (liveRosterDates.length > 0) {
-      return liveRosterDates.map((d: any) => ({
-        id: d.id,
-        date: d.assignmentDate,
-        resource: d.resourceSnapshot || 'Staff Member',
-        type: d.resource?.resourceType || 'EMPLOYEE',
-        dutyType: d.dutyType || 'SHIFT',
-        shift: d.shiftNameSnapshot || 'Scheduled Shift',
-        time: d.slotTimeRange || '08:00 - 16:00',
-        target: d.targetSnapshot || 'Location Target',
-        status: d.status || 'UPCOMING',
-      }))
+      return liveRosterDates.map((d: any) => {
+        const rawDate = d.assignmentDate || d.date || ''
+        const formattedDate = typeof rawDate === 'string' ? rawDate.split('T')[0] : rawDate
+
+        return {
+          id: d.id,
+          date: formattedDate,
+          resource: d.resource || d.resourceSnapshot || 'Staff Member',
+          type: d.type || d.resource?.resourceType || 'EMPLOYEE',
+          dutyType: d.dutyType || 'SHIFT',
+          shift: d.shift || d.shiftNameSnapshot || 'Scheduled Shift',
+          time: d.time || d.slotTimeRange || '08:00 - 16:00',
+          target: d.target || d.targetSnapshot || 'Location Target',
+          status: d.status || 'UPCOMING',
+        }
+      })
     }
     return []
   }, [liveRosterDates])
