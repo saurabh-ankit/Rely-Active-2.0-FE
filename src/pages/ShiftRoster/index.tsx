@@ -68,7 +68,7 @@ export interface RosterGridRow {
   date: string
   resource: string
   type: string
-  dutyType: 'SHIFT' | 'OPD_SESSION' | 'ON_CALL' | 'EMERGENCY' | 'AD_HOC'
+  dutyType: 'SHIFT' | 'OPD_SESSION'
   shift: string
   time: string
   target: string
@@ -146,7 +146,7 @@ function calculateOpdSlots(
 
 export interface RosterBuilderState {
   rosterName: string
-  dutyType: 'SHIFT' | 'OPD_SESSION' | 'ON_CALL' | 'EMERGENCY' | 'AD_HOC'
+  dutyType: 'SHIFT' | 'OPD_SESSION'
   resourceType: 'EMPLOYEE' | 'DOCTOR'
   selectedResourceIds: string[]
   selectedResourceNames: string[]
@@ -408,7 +408,7 @@ export default function ShiftRosterPage() {
   const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false)
   const [addStaffForm, setAddStaffForm] = useState({
     date: new Date().toISOString().split('T')[0],
-    dutyType: 'SHIFT' as const,
+    dutyType: 'SHIFT' as 'SHIFT' | 'OPD_SESSION',
     resourceId: '',
     resourceName: '',
     resourceType: 'EMPLOYEE',
@@ -417,6 +417,7 @@ export default function ShiftRosterPage() {
     shiftTime: '',
     targetId: '',
     targetName: '',
+    isEmployeeLocked: false,
   })
   const [isSubmittingAddStaff, setIsSubmittingAddStaff] = useState(false)
 
@@ -1533,7 +1534,21 @@ export default function ShiftRosterPage() {
 
                     {/* Quick Action Controls */}
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setIsAddStaffModalOpen(true)} className="h-8 text-xs font-semibold gap-1.5 border-gray-200">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setAddStaffForm((prev) => ({
+                            ...prev,
+                            resourceId: sampleResources[0]?.id || '',
+                            resourceName: sampleResources[0]?.name || '',
+                            resourceType: sampleResources[0]?.type || 'EMPLOYEE',
+                            isEmployeeLocked: false,
+                          }))
+                          setIsAddStaffModalOpen(true)
+                        }}
+                        className="h-8 text-xs font-semibold gap-1.5 border-gray-200"
+                      >
                         <UserPlus className="h-3.5 w-3.5 text-[#004B87]" /> Add Staff to Duty
                       </Button>
                       <Button variant="outline" size="sm" onClick={fetchLiveData} disabled={isLoading} className="h-8 text-xs font-semibold gap-1.5 border-gray-200">
@@ -1645,9 +1660,7 @@ export default function ShiftRosterPage() {
                                                 ? 'bg-rose-50 text-rose-800 border-rose-200 line-through opacity-60'
                                                 : duty.dutyType === 'OPD_SESSION'
                                                   ? 'bg-purple-50 text-purple-900 border-purple-200 hover:border-purple-400 hover:shadow-xs'
-                                                  : duty.dutyType === 'ON_CALL'
-                                                    ? 'bg-amber-50 text-amber-900 border-amber-200 hover:border-amber-400 hover:shadow-xs'
-                                                    : 'bg-blue-50 text-[#004B87] border-blue-200 hover:border-blue-400 hover:shadow-xs'
+                                                  : 'bg-blue-50 text-[#004B87] border-blue-200 hover:border-blue-400 hover:shadow-xs'
                                             }`}
                                             title={`${duty.resource} — ${duty.shift} (${duty.time}) @ ${duty.target}`}
                                           >
@@ -1661,8 +1674,10 @@ export default function ShiftRosterPage() {
                                               setAddStaffForm((prev) => ({
                                                 ...prev,
                                                 date: c.dateString,
+                                                resourceId: staff.id,
                                                 resourceName: staff.name,
                                                 resourceType: staff.type,
+                                                isEmployeeLocked: true,
                                               }))
                                               setIsAddStaffModalOpen(true)
                                             }}
@@ -2950,39 +2965,51 @@ export default function ShiftRosterPage() {
                 <SelectContent>
                   <SelectItem value="SHIFT">SHIFT (Regular Operational Duty)</SelectItem>
                   <SelectItem value="OPD_SESSION">OPD_SESSION (Doctor Consultation Session)</SelectItem>
-                  <SelectItem value="ON_CALL">ON_CALL (On-Call Standby Coverage)</SelectItem>
-                  <SelectItem value="EMERGENCY">EMERGENCY (Urgent Emergency Staffing)</SelectItem>
-                  <SelectItem value="AD_HOC">AD_HOC (Ad-Hoc One-Off Duty)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
               <Label>Select Staff Member / Doctor *</Label>
-              <Select
-                value={addStaffForm.resourceId}
-                onValueChange={(val: string) => {
-                  const res = sampleResources.find((r) => r.id === val)
-                  setAddStaffForm({
-                    ...addStaffForm,
-                    resourceId: val,
-                    resourceName: res?.name || val,
-                    resourceType: res?.type || 'EMPLOYEE',
-                  })
-                }}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select staff..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {sampleResources.map((res) => (
-                    <SelectItem key={res.id} value={res.id}>
-                      {res.name} ({res.role})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {addStaffForm.isEmployeeLocked ? (
+                <div className="mt-1 p-2.5 bg-blue-50/80 border border-blue-200 rounded-lg flex items-center justify-between text-xs font-semibold text-gray-900">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-[#004B87] text-white flex items-center justify-center text-[10px] font-bold">
+                      {addStaffForm.resourceName ? addStaffForm.resourceName.charAt(0) : 'S'}
+                    </div>
+                    <span>{addStaffForm.resourceName}</span>
+                  </div>
+                  <Badge className="text-[10px] bg-[#004B87] text-white">
+                    {addStaffForm.resourceType}
+                  </Badge>
+                </div>
+              ) : (
+                <Select
+                  value={addStaffForm.resourceId}
+                  onValueChange={(val: string) => {
+                    const res = sampleResources.find((r) => r.id === val)
+                    setAddStaffForm({
+                      ...addStaffForm,
+                      resourceId: val,
+                      resourceName: res?.name || val,
+                      resourceType: res?.type || 'EMPLOYEE',
+                    })
+                  }}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select staff..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sampleResources.map((res) => (
+                      <SelectItem key={res.id} value={res.id}>
+                        {res.name} ({res.role})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
+
 
             <div>
               <Label>Shift Pattern *</Label>
