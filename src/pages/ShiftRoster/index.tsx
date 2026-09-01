@@ -35,6 +35,7 @@ import {
   Filter,
   X,
   Users,
+  AlertTriangle,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -662,6 +663,39 @@ export default function ShiftRosterPage() {
       }
     })
   }, [liveRosterDates, sampleResources])
+
+  // Conflict Prevention & Staff Availability Checker
+  const getStaffAvailabilityStatus = (staffIdOrName: string, dateStr: string) => {
+    if (!dateStr || !staffIdOrName) {
+      return { isAvailable: true, statusText: 'Available', badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+    }
+
+    const conflicts = displayRosterDates.filter((item) => {
+      if (item.status === 'CANCELLED') return false
+      if (item.date !== dateStr) return false
+      const matchName = item.resource && item.resource.toLowerCase() === staffIdOrName.toLowerCase()
+      const matchResId = item.schedulingResourceId === staffIdOrName
+      const matchUserId = item.resourceUserId === staffIdOrName
+      return matchName || matchResId || matchUserId
+    })
+
+    if (conflicts.length > 0) {
+      const firstConflict = conflicts[0]
+      return {
+        isAvailable: false,
+        conflictDetails: `${firstConflict.shift} (${firstConflict.time}) @ ${firstConflict.target}`,
+        statusText: `Busy: ${firstConflict.shift}`,
+        badgeColor: 'bg-amber-100 text-amber-800 border-amber-300 font-bold',
+      }
+    }
+
+    return {
+      isAvailable: true,
+      conflictDetails: null,
+      statusText: 'Free / Available',
+      badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold',
+    }
+  }
 
 
   const filteredPersonnelOptions = useMemo(() => {
@@ -1548,6 +1582,23 @@ export default function ShiftRosterPage() {
                                           <span className="text-[10px] text-gray-500 font-semibold">({activeCount} shifts)</span>
                                         </div>
                                       </div>
+                                      {(() => {
+                                       const dutyCount = displayRosterDates.filter(
+                                         (d) => d.status !== 'CANCELLED' && (d.resource.toLowerCase() === staff.name.toLowerCase() || d.schedulingResourceId === staff.id || d.resourceUserId === staff.id)
+                                       ).length
+                                       if (dutyCount > 0) {
+                                         return (
+                                           <Badge variant="outline" className="text-[9.5px] px-2 py-0.5 bg-amber-50 text-amber-800 border-amber-300 font-bold shrink-0">
+                                             {dutyCount} Scheduled {dutyCount === 1 ? 'Duty' : 'Duties'}
+                                           </Badge>
+                                         )
+                                       }
+                                       return (
+                                         <Badge variant="outline" className="text-[9.5px] px-2 py-0.5 bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold shrink-0">
+                                           Free / Available
+                                         </Badge>
+                                       )
+                                     })()}
                                     </div>
                                   </td>
 
@@ -2009,6 +2060,23 @@ export default function ShiftRosterPage() {
                                         </p>
                                       </div>
                                     </div>
+                                    {(() => {
+                                      const dutyCount = displayRosterDates.filter(
+                                        (d) => d.status !== 'CANCELLED' && (d.resource.toLowerCase() === res.name.toLowerCase() || d.schedulingResourceId === res.id || d.resourceUserId === res.id)
+                                      ).length
+                                      if (dutyCount > 0) {
+                                        return (
+                                          <Badge variant="outline" className="text-[9.5px] px-2 py-0.5 bg-amber-50 text-amber-800 border-amber-300 font-bold shrink-0">
+                                            {dutyCount} Scheduled {dutyCount === 1 ? 'Duty' : 'Duties'}
+                                          </Badge>
+                                        )
+                                      }
+                                      return (
+                                        <Badge variant="outline" className="text-[9.5px] px-2 py-0.5 bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold shrink-0">
+                                          🟢 Free / Available
+                                        </Badge>
+                                      )
+                                    })()}
                                   </div>
                                 )
                               })}
@@ -2915,11 +2983,19 @@ export default function ShiftRosterPage() {
                     <SelectValue placeholder="Select staff..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {sampleResources.map((res) => (
-                      <SelectItem key={res.id} value={res.id}>
-                        {res.name} ({res.role})
-                      </SelectItem>
-                    ))}
+                    {sampleResources.map((res) => {
+                      const avail = getStaffAvailabilityStatus(res.name, addStaffForm.date)
+                      return (
+                        <SelectItem key={res.id} value={res.id}>
+                          <div className="flex items-center justify-between w-full gap-3 py-0.5 min-w-[260px]">
+                            <span className="font-medium text-gray-900">{res.name} ({res.role})</span>
+                            <Badge variant="outline" className={`text-[9.5px] px-2 py-0.5 font-bold ${avail.badgeColor}`}>
+                              {avail.statusText}
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -2985,6 +3061,32 @@ export default function ShiftRosterPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Overlap / Double-Booking Conflict Warning */}
+            {(() => {
+              const staffTarget = addStaffForm.resourceName || addStaffForm.resourceId
+              const avail = getStaffAvailabilityStatus(staffTarget, addStaffForm.date)
+              if (!avail.isAvailable) {
+                return (
+                  <div className="p-3 bg-amber-50/90 border border-amber-300 rounded-xl flex items-start gap-2.5 text-xs text-amber-900 shadow-2xs mt-3">
+                    <AlertTriangle className="w-4.5 h-4.5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="font-bold text-amber-900">⚠️ Double-Booking Conflict Detected</p>
+                      <p className="text-[11px] text-amber-800 leading-snug">
+                        <strong>{addStaffForm.resourceName || 'Selected Staff'}</strong> is already scheduled on <strong>{addStaffForm.date}</strong>:
+                      </p>
+                      <p className="text-[11px] font-bold text-amber-950 bg-amber-100/80 px-2.5 py-1 rounded border border-amber-200 inline-block">
+                        📍 {avail.conflictDetails}
+                      </p>
+                      <p className="text-[10px] text-amber-700 italic">
+                        Assigning will create an overlapping shift for this staff member.
+                      </p>
+                    </div>
+                  </div>
+                )
+              }
+              return null
+            })()}
           </div>
 
           <DialogFooter>
@@ -2994,9 +3096,17 @@ export default function ShiftRosterPage() {
             <Button
               onClick={handleAddStaffToRoster}
               disabled={isSubmittingAddStaff}
-              className="bg-[#004B87] hover:bg-[#003865]"
+              className={`${
+                !getStaffAvailabilityStatus(addStaffForm.resourceName || addStaffForm.resourceId, addStaffForm.date).isAvailable
+                  ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                  : 'bg-[#004B87] hover:bg-[#003865]'
+              }`}
             >
-              {isSubmittingAddStaff ? 'Adding...' : 'Assign Staff to Roster'}
+              {isSubmittingAddStaff
+                ? 'Adding...'
+                : !getStaffAvailabilityStatus(addStaffForm.resourceName || addStaffForm.resourceId, addStaffForm.date).isAvailable
+                  ? 'Assign Staff (Override Conflict)'
+                  : 'Assign Staff to Roster'}
             </Button>
           </DialogFooter>
         </DialogContent>
