@@ -2949,60 +2949,6 @@ export default function ShiftRosterPage() {
             </div>
 
             <div>
-              <Label>Operational Duty Type *</Label>
-              <Select
-                value={addStaffForm.dutyType}
-                onValueChange={(val: any) => setAddStaffForm({ ...addStaffForm, dutyType: val })}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select duty type..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="SHIFT">SHIFT (Regular Operational Duty)</SelectItem>
-                  <SelectItem value="OPD_SESSION">OPD_SESSION (Doctor Consultation Session)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {!addStaffForm.isEmployeeLocked && (
-              <div>
-                <Label>Select Staff Member / Doctor *</Label>
-                <Select
-                  value={addStaffForm.resourceId}
-                  onValueChange={(val: string) => {
-                    const res = sampleResources.find((r) => r.id === val)
-                    setAddStaffForm({
-                      ...addStaffForm,
-                      resourceId: val,
-                      resourceName: res?.name || val,
-                      resourceType: res?.type || 'EMPLOYEE',
-                    })
-                  }}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select staff..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sampleResources.map((res) => {
-                      const avail = getStaffAvailabilityStatus(res.name, addStaffForm.date)
-                      return (
-                        <SelectItem key={res.id} value={res.id}>
-                          <div className="flex items-center justify-between w-full gap-3 py-0.5 min-w-[260px]">
-                            <span className="font-medium text-gray-900">{res.name} ({res.role})</span>
-                            <Badge variant="outline" className={`text-[9.5px] px-2 py-0.5 font-bold ${avail.badgeColor}`}>
-                              {avail.statusText}
-                            </Badge>
-                          </div>
-                        </SelectItem>
-                      )
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-
-            <div>
               <Label>Shift Pattern *</Label>
               <Select
                 value={addStaffForm.shiftId}
@@ -3061,6 +3007,65 @@ export default function ShiftRosterPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div>
+              <Label>Operational Duty Type *</Label>
+              <Select
+                value={addStaffForm.dutyType}
+                onValueChange={(val: any) => setAddStaffForm({ ...addStaffForm, dutyType: val })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select duty type..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SHIFT">SHIFT (Regular Operational Duty)</SelectItem>
+                  <SelectItem value="OPD_SESSION">OPD_SESSION (Doctor Consultation Session)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {!addStaffForm.isEmployeeLocked && (
+              <div>
+                <Label>Select Staff Member / Doctor *</Label>
+                <Select
+                  value={addStaffForm.resourceId}
+                  onValueChange={(val: string) => {
+                    const res = sampleResources.find((r) => r.id === val)
+                    setAddStaffForm({
+                      ...addStaffForm,
+                      resourceId: val,
+                      resourceName: res?.name || val,
+                      resourceType: res?.type || 'EMPLOYEE',
+                    })
+                  }}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select staff..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[...sampleResources]
+                      .sort((a, b) => {
+                        const availA = getStaffAvailabilityStatus(a.name, addStaffForm.date).isAvailable ? 0 : 1
+                        const availB = getStaffAvailabilityStatus(b.name, addStaffForm.date).isAvailable ? 0 : 1
+                        return availA - availB
+                      })
+                      .map((res) => {
+                        const avail = getStaffAvailabilityStatus(res.name, addStaffForm.date)
+                        return (
+                          <SelectItem key={res.id} value={res.id}>
+                            <div className="flex items-center justify-between w-full gap-3 py-0.5 min-w-[260px]">
+                              <span className="font-medium text-gray-900">{res.name} ({res.role})</span>
+                              <Badge variant="outline" className={`text-[9.5px] px-2 py-0.5 font-bold ${avail.badgeColor}`}>
+                                {avail.statusText}
+                              </Badge>
+                            </div>
+                          </SelectItem>
+                        )
+                      })}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Overlap / Double-Booking Conflict Warning */}
             {(() => {
