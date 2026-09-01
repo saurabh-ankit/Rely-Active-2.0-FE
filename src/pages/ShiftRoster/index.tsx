@@ -862,42 +862,8 @@ export default function ShiftRosterPage() {
       }
       setIsCreateShiftModalOpen(false)
       fetchLiveData()
-    } catch {
-      if (editingShiftId) {
-        setLiveShifts((prev) =>
-          prev.map((s) =>
-            s.id === editingShiftId
-              ? {
-                  ...s,
-                  shiftName: newShiftForm.shiftName,
-                  code: newShiftForm.code,
-                  startTime: newShiftForm.startTime,
-                  endTime: newShiftForm.endTime,
-                  description: newShiftForm.description,
-                  breakStartTime: newShiftForm.breakStartTime,
-                  breakEndTime: newShiftForm.breakEndTime,
-                }
-              : s
-          )
-        )
-        toast.success(`Shift "${newShiftForm.shiftName}" updated!`)
-      } else {
-        setLiveShifts((prev) => [
-          ...prev,
-          {
-            id: `shift-${Date.now()}`,
-            shiftName: newShiftForm.shiftName,
-            code: newShiftForm.code,
-            startTime: newShiftForm.startTime,
-            endTime: newShiftForm.endTime,
-            description: newShiftForm.description,
-            breakStartTime: newShiftForm.breakStartTime,
-            breakEndTime: newShiftForm.breakEndTime,
-          },
-        ])
-        toast.success(`Shift "${newShiftForm.shiftName}" created!`)
-      }
-      setIsCreateShiftModalOpen(false)
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to save shift in database.')
     } finally {
       setIsSubmittingShift(false)
     }
@@ -1030,33 +996,18 @@ export default function ShiftRosterPage() {
         instructions: builderForm.instructions,
         targets: [{ targetType: builderForm.targetScopeType, targetId: builderForm.selectedTargetId }],
       })
-    } catch {
-      // Optimistic fall-through
-    } finally {
-      setIsPublishing(false)
       setIsPublished(true)
-
-      // Inject generated dates for ALL selected resources dynamically into liveRosterDates state
-      const newGeneratedRows: RosterGridRow[] = generatedDateInstancesPreview.map((item, idx) => ({
-        id: `gen-${Date.now()}-${idx}`,
-        date: item.date,
-        resource: item.resourceName,
-        type: builderForm.resourceType === 'DOCTOR' ? 'DOCTOR (IN_HOUSE)' : 'EMPLOYEE',
-        dutyType: builderForm.dutyType,
-        shift: builderForm.selectedShiftName,
-        time: builderForm.selectedShiftTime,
-        target: builderForm.selectedTargetName,
-        status: 'UPCOMING',
-      }))
-
-      setLiveRosterDates((prev) => [...newGeneratedRows, ...prev])
-
+      toast.success(`Published roster assignment across ${builderForm.selectedResourceIds.length} staff!`)
+      fetchLiveData()
       setTimeout(() => {
         setWizardStep(1)
         setIsPublished(false)
         setActiveTab('grid')
-        toast.success(`Published ${newGeneratedRows.length} roster date instances across ${builderForm.selectedResourceIds.length} staff!`)
-      }, 2500)
+      }, 1500)
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to publish roster assignment to database.')
+    } finally {
+      setIsPublishing(false)
     }
   }
 
