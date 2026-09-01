@@ -32,6 +32,9 @@ import {
   Copy,
   Download,
   Bot,
+  Filter,
+  X,
+  Users,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -168,7 +171,9 @@ export interface RosterBuilderState {
 
 export default function ShiftRosterPage() {
   const [activeTab, setActiveTab] = useState('grid')
-  const [viewMode, setViewMode] = useState<'table' | 'calendar'>('calendar')
+  const [viewMode, setViewMode] = useState<'calendar' | 'table' | 'employee'>('calendar')
+  const [selectedEmployeeFilter, setSelectedEmployeeFilter] = useState<string>('ALL')
+  const [selectedDutyTypeFilter, setSelectedDutyTypeFilter] = useState<string>('ALL')
 
   // Context IDs — resolved from auth session; null means not yet available (queries stay disabled)
   const companyId = localStorage.getItem('rely_active_company_id') ?? null
@@ -614,17 +619,36 @@ export default function ShiftRosterPage() {
   }, [liveRosterDates])
 
   const filteredDates = useMemo(() => {
-    if (!searchTerm) return displayRosterDates
-    const term = searchTerm.toLowerCase()
-    return displayRosterDates.filter(
-      (item) =>
-        item.resource.toLowerCase().includes(term) ||
-        item.shift.toLowerCase().includes(term) ||
-        item.target.toLowerCase().includes(term) ||
-        item.type.toLowerCase().includes(term) ||
-        item.dutyType.toLowerCase().includes(term)
-    )
-  }, [displayRosterDates, searchTerm])
+    return displayRosterDates.filter((item) => {
+      const matchesSearch =
+        !searchTerm ||
+        item.resource.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.shift.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.target.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.dutyType.toLowerCase().includes(searchTerm.toLowerCase())
+
+      const matchesEmployee =
+        selectedEmployeeFilter === 'ALL' ||
+        item.resource.toLowerCase() === selectedEmployeeFilter.toLowerCase()
+
+      const matchesDutyType =
+        selectedDutyTypeFilter === 'ALL' || item.dutyType === selectedDutyTypeFilter
+
+      return matchesSearch && matchesEmployee && matchesDutyType
+    })
+  }, [displayRosterDates, searchTerm, selectedEmployeeFilter, selectedDutyTypeFilter])
+
+  const displayStaffList = useMemo(() => {
+    if (selectedEmployeeFilter !== 'ALL') {
+      return sampleResources.filter(
+        (r) =>
+          r.name.toLowerCase() === selectedEmployeeFilter.toLowerCase() ||
+          r.id === selectedEmployeeFilter
+      )
+    }
+    return sampleResources
+  }, [sampleResources, selectedEmployeeFilter])
 
   // Filtered Schedulable Resources for Step 1
   const availableResources = useMemo(() => {
@@ -1280,12 +1304,12 @@ export default function ShiftRosterPage() {
                       <CardDescription className="text-xs">View, filter, edit, and manage scheduled shift instances.</CardDescription>
                     </div>
 
-                    {/* View Switcher: Calendar vs Table */}
-                    <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl">
+                    {/* View Switcher: Calendar vs Table vs Employee Matrix */}
+                    <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl">
                       <button
                         type="button"
                         onClick={() => setViewMode('calendar')}
-                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                           viewMode === 'calendar'
                             ? 'bg-white text-[#004B87] shadow-xs'
                             : 'text-gray-600 hover:text-gray-900'
@@ -1296,16 +1320,92 @@ export default function ShiftRosterPage() {
                       <button
                         type="button"
                         onClick={() => setViewMode('table')}
-                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                           viewMode === 'table' ? 'bg-white text-[#004B87] shadow-xs' : 'text-gray-600 hover:text-gray-900'
                         }`}
                       >
                         <LayoutList className="w-4 h-4" /> Table View
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('employee')}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                          viewMode === 'employee' ? 'bg-white text-[#004B87] shadow-xs' : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        <Users className="w-4 h-4" /> By Employee
+                      </button>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="p-6">
+                  {/* Universal Filter Toolbar */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-3 mb-5 bg-gray-50/80 rounded-xl border border-gray-200">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        <Filter className="w-3.5 h-3.5 text-[#004B87]" /> Filter Roster:
+                      </div>
+
+                      {/* Employee / Doctor Filter */}
+                      <div className="min-w-[210px]">
+                        <Select value={selectedEmployeeFilter} onValueChange={setSelectedEmployeeFilter}>
+                          <SelectTrigger className="h-8 text-xs bg-white border-gray-200 font-semibold">
+                            <SelectValue placeholder="All Staff Members" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ALL">All Staff & Doctors ({sampleResources.length})</SelectItem>
+                            {sampleResources.map((res) => (
+                              <SelectItem key={res.id} value={res.name}>
+                                {res.name} ({res.role})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Duty Type Filter */}
+                      <div className="min-w-[170px]">
+                        <Select value={selectedDutyTypeFilter} onValueChange={setSelectedDutyTypeFilter}>
+                          <SelectTrigger className="h-8 text-xs bg-white border-gray-200 font-semibold">
+                            <SelectValue placeholder="All Duty Types" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ALL">All Duty Types</SelectItem>
+                            <SelectItem value="SHIFT">Standard Shift</SelectItem>
+                            <SelectItem value="OPD_SESSION">OPD Session</SelectItem>
+                            <SelectItem value="ON_CALL">On Call / Emergency</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Clear Filters button */}
+                      {(selectedEmployeeFilter !== 'ALL' || selectedDutyTypeFilter !== 'ALL' || searchTerm) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedEmployeeFilter('ALL')
+                            setSelectedDutyTypeFilter('ALL')
+                            setSearchTerm('')
+                          }}
+                          className="h-8 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 gap-1 font-semibold"
+                        >
+                          <X className="w-3.5 h-3.5" /> Reset Filters
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Quick Action Controls */}
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setIsAddStaffModalOpen(true)} className="h-8 text-xs font-semibold gap-1.5 border-gray-200">
+                        <UserPlus className="h-3.5 w-3.5 text-[#004B87]" /> Add Staff to Duty
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={fetchLiveData} disabled={isLoading} className="h-8 text-xs font-semibold gap-1.5 border-gray-200">
+                        <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} /> Refresh
+                      </Button>
+                    </div>
+                  </div>
+
                   {viewMode === 'table' ? (
                     <DataTable
                       columns={columns}
@@ -1313,19 +1413,142 @@ export default function ShiftRosterPage() {
                       isLoading={isLoading}
                       searchValue={searchTerm}
                       onSearchChange={setSearchTerm}
-                      searchPlaceholder="Search roster instances..."
-                      filterActions={
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm" onClick={() => setIsAddStaffModalOpen(true)} className="gap-2">
-                            <UserPlus className="h-4 w-4" /> Add Employee
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={fetchLiveData} disabled={isLoading} className="gap-2">
-                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /> Refresh Engine
-                          </Button>
-                        </div>
-                      }
+                      searchPlaceholder="Search roster instances by staff name, shift, target venue..."
                     />
+                  ) : viewMode === 'employee' ? (
+                    /* Employee-Wise Roster Matrix View */
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-blue-50/60 p-3.5 rounded-xl border border-blue-100">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-[#004B87]" />
+                          <span className="text-xs font-bold text-gray-900">
+                            Employee-Wise Roster Matrix — {displayStaffList.length} Active Staff Members
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-gray-600 font-medium">
+                          Click on any duty to manage replacement/cancel, or click '+' on an empty day to assign a shift.
+                        </span>
+                      </div>
+
+                      <div className="border border-gray-200 rounded-xl overflow-x-auto bg-white shadow-xs">
+                        <table className="w-full text-left border-collapse min-w-[1100px]">
+                          <thead>
+                            <tr className="bg-gray-50 text-gray-600 text-[11px] font-bold uppercase tracking-wider border-b border-gray-200">
+                              <th className="p-3 sticky left-0 z-20 bg-gray-50 border-r border-gray-200 min-w-[230px] shadow-xs">
+                                Staff Member / Specialist
+                              </th>
+                              {calendarDays.map((c) => (
+                                <th
+                                  key={c.dateString}
+                                  className={`p-2 text-center border-r border-gray-100 min-w-[75px] ${
+                                    !c.isCurrentMonth ? 'bg-gray-100/50 text-gray-400' : ''
+                                  }`}
+                                >
+                                  <div className="text-[10px] text-gray-400 uppercase font-mono">
+                                    {new Date(c.dateString + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' })}
+                                  </div>
+                                  <div className="text-xs font-extrabold text-gray-900">{c.dayNumber}</div>
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 text-xs">
+                            {displayStaffList.map((staff) => {
+                              const staffAssignments = displayRosterDates.filter(
+                                (d) => d.resource.toLowerCase() === staff.name.toLowerCase()
+                              )
+                              const activeCount = staffAssignments.filter((d) => d.status !== 'CANCELLED').length
+
+                              return (
+                                <tr key={staff.id} className="hover:bg-gray-50/80 transition-colors">
+                                  {/* Sticky Staff Info Column */}
+                                  <td className="p-3 sticky left-0 z-10 bg-white border-r border-gray-200 min-w-[230px] shadow-xs">
+                                    <div className="flex items-center gap-2.5">
+                                      <div
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-2xs ${
+                                          staff.type === 'DOCTOR' ? 'bg-[#004B87]' : 'bg-emerald-600'
+                                        }`}
+                                      >
+                                        {staff.name.charAt(0)}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="font-bold text-gray-900 truncate text-xs">{staff.name}</p>
+                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                          <Badge
+                                            variant="outline"
+                                            className={`text-[9px] px-1.5 py-0 font-semibold ${
+                                              staff.type === 'DOCTOR'
+                                                ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                                : 'bg-blue-50 text-blue-700 border-blue-200'
+                                            }`}
+                                          >
+                                            {staff.role}
+                                          </Badge>
+                                          <span className="text-[10px] text-gray-500 font-semibold">({activeCount} shifts)</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+
+                                  {/* Daily Shift Cells */}
+                                  {calendarDays.map((c) => {
+                                    const duty = staffAssignments.find((d) => d.date === c.dateString)
+
+                                    return (
+                                      <td
+                                        key={c.dateString}
+                                        className={`p-1 text-center border-r border-gray-100 align-middle ${
+                                          !c.isCurrentMonth ? 'bg-gray-50/50' : ''
+                                        }`}
+                                      >
+                                        {duty ? (
+                                          <div
+                                            onClick={() => setSelectedDateForReplacement(duty)}
+                                            className={`p-1.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer truncate shadow-2xs ${
+                                              duty.status === 'CANCELLED'
+                                                ? 'bg-rose-50 text-rose-800 border-rose-200 line-through opacity-60'
+                                                : duty.dutyType === 'OPD_SESSION'
+                                                  ? 'bg-purple-50 text-purple-900 border-purple-200 hover:border-purple-400 hover:shadow-xs'
+                                                  : duty.dutyType === 'ON_CALL'
+                                                    ? 'bg-amber-50 text-amber-900 border-amber-200 hover:border-amber-400 hover:shadow-xs'
+                                                    : 'bg-blue-50 text-[#004B87] border-blue-200 hover:border-blue-400 hover:shadow-xs'
+                                            }`}
+                                            title={`${duty.resource} — ${duty.shift} (${duty.time}) @ ${duty.target}`}
+                                          >
+                                            <p className="truncate font-extrabold">{duty.shift}</p>
+                                            <p className="text-[9px] font-normal opacity-80 truncate">{duty.time}</p>
+                                          </div>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setAddStaffForm((prev) => ({
+                                                ...prev,
+                                                date: c.dateString,
+                                                resourceName: staff.name,
+                                                resourceType: staff.type,
+                                              }))
+                                              setIsAddStaffModalOpen(true)
+                                            }}
+                                            className="w-full h-8 rounded-md text-gray-300 hover:text-[#004B87] hover:bg-blue-50/60 transition-all flex items-center justify-center font-bold text-xs group"
+                                            title={`Assign shift to ${staff.name} on ${c.dateString}`}
+                                          >
+                                            <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold">+</span>
+                                            <span className="group-hover:hidden text-gray-300 text-xs">—</span>
+                                          </button>
+                                        )}
+                                      </td>
+                                    )
+                                  })}
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   ) : (
+
                     /* Full Interactive Calendar View */
                     <div className="space-y-4">
                       {/* Calendar Navigation */}
