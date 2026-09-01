@@ -1131,8 +1131,8 @@ export default function ShiftRosterPage() {
 
   // Wizard Step Navigation Rules
   const canAdvanceStep = useMemo(() => {
-    if (wizardStep === 1) return builderForm.selectedResourceIds.length > 0 && !!builderForm.rosterName && !!builderForm.selectedTargetId
-    if (wizardStep === 2) return !!builderForm.selectedShiftId && !!builderForm.effectiveFrom && !!builderForm.effectiveUntil && builderForm.selectedDaysOfWeek.length > 0
+    if (wizardStep === 1) return !!builderForm.rosterName && !!builderForm.selectedShiftId && !!builderForm.selectedTargetId && !!builderForm.effectiveFrom && !!builderForm.effectiveUntil && builderForm.selectedDaysOfWeek.length > 0
+    if (wizardStep === 2) return builderForm.selectedResourceIds.length > 0
     if (wizardStep === 3) return generatedDateInstancesPreview.length > 0
     return true
   }, [wizardStep, builderForm, generatedDateInstancesPreview])
@@ -1292,8 +1292,8 @@ export default function ShiftRosterPage() {
   }
 
   const stepNames = [
-    'Who & Where (Staff & Scope)',
-    'When & Shift Pattern',
+    'When, Shift & Scope (Date & Target)',
+    'Who (Select Available Staff)',
     'Validation & Preview',
     'Review & Publish',
   ]
@@ -1863,7 +1863,7 @@ export default function ShiftRosterPage() {
                     {/* LEFT COLUMN: Active Step Controls (8 cols) */}
                     <div className="lg:col-span-8 space-y-6">
                       
-                      {/* STEP 1: Who & Where (Staff & Target Scope) */}
+                      {/* STEP 1: When, Shift & Scope (Date & Target) */}
                       {wizardStep === 1 && (
                         <div className="space-y-6">
                           <div className="flex items-center justify-between gap-4">
@@ -1950,161 +1950,97 @@ export default function ShiftRosterPage() {
                                 </button>
                               ))}
                             </div>
-                          </div>
-
-                          {/* Staff Selection Category */}
-                          <div className="space-y-3 pt-2">
-                            <Label className="text-sm font-semibold text-gray-900">Select Resource Category</Label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const employees = sampleResources.filter((r) => r.type === 'EMPLOYEE')
-                                  const matchingFloor = targetLocations.find((t) => t.type === 'FLOOR' || t.type === 'PROPERTY') || targetLocations[0]
-                                  const selEmps = employees.slice(0, 2)
-                                  setBuilderForm({
-                                    ...builderForm,
-                                    resourceType: 'EMPLOYEE',
-                                    selectedResourceIds: selEmps.map((e) => e.id),
-                                    selectedResourceNames: selEmps.map((e) => e.name),
-                                    targetScopeType: matchingFloor ? matchingFloor.type : builderForm.targetScopeType,
-                                    selectedTargetId: matchingFloor ? matchingFloor.id : builderForm.selectedTargetId,
-                                    selectedTargetName: matchingFloor ? matchingFloor.name : builderForm.selectedTargetName,
-                                  })
-                                }}
-                                className={`p-4 border rounded-xl flex items-center gap-3 transition-all ${
-                                  builderForm.resourceType === 'EMPLOYEE'
-                                    ? 'border-[#004B87] bg-blue-50/70 text-[#004B87] ring-2 ring-[#004B87]/20 shadow-xs'
-                                    : 'border-gray-200 hover:bg-gray-50'
-                                }`}
-                              >
-                                <UserCheck className="w-6 h-6 text-[#004B87]" />
-                                <div className="text-left">
-                                  <p className="font-bold text-sm">Staff Employees</p>
-                                  <p className="text-xs text-gray-500 font-normal">Nurses & Caregivers</p>
-                                </div>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const doctors = sampleResources.filter((r) => r.type === 'DOCTOR')
-                                  const matchingClinic = targetLocations.find((t) => t.type === 'CLINIC_VENUE' || t.type === 'DEPARTMENT') || targetLocations[0]
-                                  const firstDoc = doctors[0]
-                                  setBuilderForm({
-                                    ...builderForm,
-                                    resourceType: 'DOCTOR',
-                                    selectedResourceIds: firstDoc ? [firstDoc.id] : [],
-                                    selectedResourceNames: firstDoc ? [firstDoc.name] : [],
-                                    targetScopeType: matchingClinic ? matchingClinic.type : builderForm.targetScopeType,
-                                    selectedTargetId: matchingClinic ? matchingClinic.id : builderForm.selectedTargetId,
-                                    selectedTargetName: matchingClinic ? matchingClinic.name : builderForm.selectedTargetName,
-                                  })
-                                }}
-                                className={`p-4 border rounded-xl flex items-center gap-3 transition-all ${
-                                  builderForm.resourceType === 'DOCTOR'
-                                    ? 'border-[#004B87] bg-blue-50/70 text-[#004B87] ring-2 ring-[#004B87]/20 shadow-xs'
-                                    : 'border-gray-200 hover:bg-gray-50'
-                                }`}
-                              >
-                                <Stethoscope className="w-6 h-6 text-[#004B87]" />
-                                <div className="text-left">
-                                  <p className="font-bold text-sm">Doctor Resources</p>
-                                  <p className="text-xs text-gray-500 font-normal">In-House or Visiting Specialists</p>
-                                </div>
-                              </button>
+                               {/* Dates */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <Label className="text-xs font-semibold">Effective From Date *</Label>
+                              <Input
+                                type="date"
+                                value={builderForm.effectiveFrom}
+                                onChange={(e) => setBuilderForm({ ...builderForm, effectiveFrom: e.target.value })}
+                                className="mt-1.5 h-10"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs font-semibold">Effective Until Date *</Label>
+                              <Input
+                                type="date"
+                                value={builderForm.effectiveUntil}
+                                onChange={(e) => setBuilderForm({ ...builderForm, effectiveUntil: e.target.value })}
+                                className="mt-1.5 h-10"
+                              />
                             </div>
                           </div>
 
-                          {/* Multi-Resource Selection List */}
+                          {/* Working Days */}
                           <div className="space-y-3">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                              <Label className="text-sm font-semibold text-gray-900">
-                                Choose Staff ({builderForm.selectedResourceIds.length} Selected) *
-                              </Label>
-                              <div className="flex items-center gap-2">
-                                <Button variant="ghost" size="sm" onClick={handleSelectAllResources} className="text-xs h-7 text-[#004B87]">
-                                  Select All
-                                </Button>
-                                <Button variant="ghost" size="sm" onClick={handleClearAllResources} className="text-xs h-7 text-gray-500">
-                                  Clear
-                                </Button>
-                                <div className="relative w-48">
-                                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-gray-400" />
-                                  <Input
-                                    placeholder="Search staff..."
-                                    value={resourceSearch}
-                                    onChange={(e) => setResourceSearch(e.target.value)}
-                                    className="pl-8 h-8 text-xs"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-52 overflow-y-auto pr-1">
-                              {availableResources.map((res) => {
-                                const isSelected = builderForm.selectedResourceIds.includes(res.id)
+                            <Label className="text-xs font-semibold">Working Days *</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => {
+                                const isSelected = builderForm.selectedDaysOfWeek.includes(day)
                                 return (
-                                  <div
-                                    key={res.id}
-                                    onClick={() => handleToggleResourceSelection(res)}
-                                    className={`p-3 border rounded-xl cursor-pointer flex items-center justify-between transition-all ${
+                                  <button
+                                    key={day}
+                                    type="button"
+                                    onClick={() => toggleDayOfWeek(day)}
+                                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
                                       isSelected
-                                        ? 'border-[#004B87] bg-blue-50/80 text-[#004B87] font-semibold ring-1 ring-[#004B87]'
-                                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                                        ? 'bg-[#004B87] text-white border-[#004B87] shadow-xs'
+                                        : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                                     }`}
                                   >
-                                    <div className="flex items-center gap-3">
-                                      {isSelected ? (
-                                        <CheckSquare className="w-5 h-5 text-[#004B87]" />
-                                      ) : (
-                                        <Square className="w-5 h-5 text-gray-300" />
-                                      )}
-                                      <div>
-                                        <div className="flex items-center gap-1.5">
-                                          <p className="text-xs font-bold text-gray-900">{res.name}</p>
-                                          {res.type === 'DOCTOR' && res.subType && (
-                                            <Badge
-                                              variant="outline"
-                                              className={`text-[9px] px-1.5 py-0 ${
-                                                res.subType === 'VISITING'
-                                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                              }`}
-                                            >
-                                              {res.subType === 'VISITING' ? 'Visiting' : 'In-House'}
-                                            </Badge>
-                                          )}
-                                        </div>
-                                        <p className="text-[11px] text-gray-500 flex items-center gap-1">
-                                          <span>{res.role}</span>
-                                          {res.specialization && (
-                                            <span className="font-semibold text-[#004B87]">• {res.specialization}</span>
-                                          )}
-                                        </p>
-                                      </div>
-                                    </div>
-                                    {(() => {
-                                      const dutyCount = displayRosterDates.filter(
-                                        (d) => d.status !== 'CANCELLED' && (d.resource.toLowerCase() === res.name.toLowerCase() || d.schedulingResourceId === res.id || d.resourceUserId === res.id)
-                                      ).length
-                                      if (dutyCount > 0) {
-                                        return (
-                                          <Badge variant="outline" className="text-[9.5px] px-2 py-0.5 bg-amber-50 text-amber-800 border-amber-300 font-bold shrink-0">
-                                            {dutyCount} Scheduled {dutyCount === 1 ? 'Duty' : 'Duties'}
-                                          </Badge>
-                                        )
-                                      }
-                                      return (
-                                        <Badge variant="outline" className="text-[9.5px] px-2 py-0.5 bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold shrink-0">
-                                          🟢 Free / Available
-                                        </Badge>
-                                      )
-                                    })()}
-                                  </div>
+                                    {day}
+                                  </button>
                                 )
                               })}
                             </div>
+                          </div>
+
+                          {/* Shift Templates */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-sm font-semibold text-gray-900">Shift Template *</Label>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleOpenCreateShift}
+                                className="text-xs h-7 text-[#004B87] gap-1 hover:bg-blue-50 font-semibold"
+                              >
+                                <Plus className="w-3.5 h-3.5" /> Create Custom Shift
+                              </Button>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              {availableShifts.map((shift) => (
+                                <div
+                                  key={shift.id}
+                                  onClick={() =>
+                                    setBuilderForm({
+                                      ...builderForm,
+                                      selectedShiftId: shift.id,
+                                      selectedShiftName: shift.shiftName,
+                                      selectedShiftTime: `${shift.startTime} - ${shift.endTime}`,
+                                    })
+                                  }
+                                  className={`p-3.5 border rounded-xl cursor-pointer transition-all ${
+                                    builderForm.selectedShiftId === shift.id
+                                      ? 'border-[#004B87] bg-blue-50/70 ring-2 ring-[#004B87]/20 shadow-xs'
+                                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <p className="font-bold text-xs text-gray-900">{shift.shiftName}</p>
+                                    {builderForm.selectedShiftId === shift.id && (
+                                      <CheckCircle2 className="w-4 h-4 text-[#004B87]" />
+                                    )}
+                                  </div>
+                                  <p className="text-xs font-bold text-[#004B87] mt-2">
+                                    {shift.startTime} - {shift.endTime}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>>
                           </div>
 
                           {/* Duty Target Scope (Simplified Core Hierarchy) */}
@@ -2206,190 +2142,164 @@ export default function ShiftRosterPage() {
                         </div>
                       )}
 
-                      {/* STEP 2: When & Shift Pattern */}
+                      {/* STEP 2: Who (Select Available Staff & Doctors) */}
                       {wizardStep === 2 && (
                         <div className="space-y-6">
                           <div>
-                            <h3 className="text-base font-bold text-gray-900">Step 2: Select Shift Pattern & Recurrence</h3>
-                            <p className="text-xs text-gray-500 mt-1">Bind duty timings, date boundaries, and holiday rules.</p>
+                            <h3 className="text-base font-bold text-gray-900">Step 2: Choose Available Personnel & Doctors</h3>
+                            <p className="text-xs text-gray-500 mt-1">Select personnel to assign for <strong>{builderForm.selectedShiftName} ({builderForm.selectedShiftTime})</strong> from <strong>{builderForm.effectiveFrom} to {builderForm.effectiveUntil}</strong>.</p>
                           </div>
 
-                          {/* Shift Templates */}
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <Label className="text-sm font-semibold text-gray-900">Shift Template *</Label>
-                              <Button
+                          {/* Staff Selection Category */}
+                          <div className="space-y-3 pt-2">
+                            <Label className="text-sm font-semibold text-gray-900">Select Resource Category</Label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <button
                                 type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleOpenCreateShift}
-                                className="text-xs h-7 text-[#004B87] gap-1 hover:bg-blue-50 font-semibold"
+                                onClick={() => {
+                                  const employees = sampleResources.filter((r) => r.type === 'EMPLOYEE')
+                                  const matchingFloor = targetLocations.find((t) => t.type === 'FLOOR' || t.type === 'PROPERTY') || targetLocations[0]
+                                  const selEmps = employees.slice(0, 2)
+                                  setBuilderForm({
+                                    ...builderForm,
+                                    resourceType: 'EMPLOYEE',
+                                    selectedResourceIds: selEmps.map((e) => e.id),
+                                    selectedResourceNames: selEmps.map((e) => e.name),
+                                    targetScopeType: matchingFloor ? matchingFloor.type : builderForm.targetScopeType,
+                                    selectedTargetId: matchingFloor ? matchingFloor.id : builderForm.selectedTargetId,
+                                    selectedTargetName: matchingFloor ? matchingFloor.name : builderForm.selectedTargetName,
+                                  })
+                                }}
+                                className={`p-4 border rounded-xl flex items-center gap-3 transition-all ${
+                                  builderForm.resourceType === 'EMPLOYEE'
+                                    ? 'border-[#004B87] bg-blue-50/70 text-[#004B87] ring-2 ring-[#004B87]/20 shadow-xs'
+                                    : 'border-gray-200 hover:bg-gray-50'
+                                }`}
                               >
-                                <Plus className="w-3.5 h-3.5" /> Create Custom Shift
-                              </Button>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                              {availableShifts.map((shift) => (
-                                <div
-                                  key={shift.id}
-                                  onClick={() =>
-                                    setBuilderForm({
-                                      ...builderForm,
-                                      selectedShiftId: shift.id,
-                                      selectedShiftName: shift.shiftName,
-                                      selectedShiftTime: `${shift.startTime} - ${shift.endTime}`,
-                                    })
-                                  }
-                                  className={`p-3.5 border rounded-xl cursor-pointer transition-all ${
-                                    builderForm.selectedShiftId === shift.id
-                                      ? 'border-[#004B87] bg-blue-50/70 ring-2 ring-[#004B87]/20 shadow-xs'
-                                      : 'border-gray-200 hover:border-gray-300 bg-white'
-                                  }`}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <p className="font-bold text-xs text-gray-900">{shift.shiftName}</p>
-                                    {builderForm.selectedShiftId === shift.id && (
-                                      <CheckCircle2 className="w-4 h-4 text-[#004B87]" />
-                                    )}
-                                  </div>
-                                  <p className="text-xs font-bold text-[#004B87] mt-2">
-                                    {shift.startTime} - {shift.endTime}
-                                  </p>
+                                <UserCheck className="w-6 h-6 text-[#004B87]" />
+                                <div className="text-left">
+                                  <p className="font-bold text-sm">Staff Employees</p>
+                                  <p className="text-xs text-gray-500 font-normal">Nurses & Caregivers</p>
                                 </div>
-                              ))}
-                            </div>
-                          </div>
+                              </button>
 
-                          {/* OPD Session Consultation Time Slot Division */}
-                          {builderForm.dutyType === 'OPD_SESSION' && (
-                            <div className="p-4 border border-blue-200 bg-blue-50/50 rounded-2xl space-y-4">
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                <div className="flex items-center gap-2.5">
-                                  <div className="p-2 rounded-xl bg-[#004B87] text-white shadow-xs">
-                                    <Clock className="w-4 h-4" />
-                                  </div>
-                                  <div>
-                                    <h4 className="text-sm font-bold text-gray-900">OPD Consultation Time Slot Division</h4>
-                                    <p className="text-xs text-gray-500">Automatically divide shift duration into patient consultation slots.</p>
-                                  </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const doctors = sampleResources.filter((r) => r.type === 'DOCTOR')
+                                  const matchingClinic = targetLocations.find((t) => t.type === 'CLINIC_VENUE' || t.type === 'DEPARTMENT') || targetLocations[0]
+                                  const firstDoc = doctors[0]
+                                  setBuilderForm({
+                                    ...builderForm,
+                                    resourceType: 'DOCTOR',
+                                    selectedResourceIds: firstDoc ? [firstDoc.id] : [],
+                                    selectedResourceNames: firstDoc ? [firstDoc.name] : [],
+                                    targetScopeType: matchingClinic ? matchingClinic.type : builderForm.targetScopeType,
+                                    selectedTargetId: matchingClinic ? matchingClinic.id : builderForm.selectedTargetId,
+                                    selectedTargetName: matchingClinic ? matchingClinic.name : builderForm.selectedTargetName,
+                                  })
+                                }}
+                                className={`p-4 border rounded-xl flex items-center gap-3 transition-all ${
+                                  builderForm.resourceType === 'DOCTOR'
+                                    ? 'border-[#004B87] bg-blue-50/70 text-[#004B87] ring-2 ring-[#004B87]/20 shadow-xs'
+                                    : 'border-gray-200 hover:bg-gray-50'
+                                }`}
+                              >
+                                <Stethoscope className="w-6 h-6 text-[#004B87]" />
+                                <div className="text-left">
+                                  <p className="font-bold text-sm">Doctor Resources</p>
+                                  <p className="text-xs text-gray-500 font-normal">In-House or Visiting Specialists</p>
                                 </div>
-                                <Badge className="bg-[#004B87] text-white font-mono text-xs px-3 py-1 self-start sm:self-auto">
-                                  {generatedOpdSlots.length} Patient Slots Generated
-                                </Badge>
-                              </div>
-
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                                <div>
-                                  <Label className="text-xs font-semibold text-gray-700">Consultation Slot Duration *</Label>
-                                  <Select
-                                    value={String(builderForm.opdSlotDurationMinutes || 15)}
-                                    onValueChange={(val) =>
-                                      setBuilderForm((prev) => ({ ...prev, opdSlotDurationMinutes: Number(val) }))
-                                    }
-                                  >
-                                    <SelectTrigger className="mt-1.5 h-10 bg-white">
-                                      <SelectValue placeholder="Select duration..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="10">10 Minutes (Express Consult)</SelectItem>
-                                      <SelectItem value="15">15 Minutes (Standard Consult)</SelectItem>
-                                      <SelectItem value="20">20 Minutes (Detailed Consult)</SelectItem>
-                                      <SelectItem value="30">30 Minutes (Comprehensive Consult)</SelectItem>
-                                      <SelectItem value="45">45 Minutes (Specialist Review)</SelectItem>
-                                      <SelectItem value="60">60 Minutes (Initial Assessment)</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-
-                                <div>
-                                  <Label className="text-xs font-semibold text-gray-700">Buffer Time Between Slots</Label>
-                                  <Select
-                                    value={String(builderForm.opdBufferMinutes || 0)}
-                                    onValueChange={(val) =>
-                                      setBuilderForm((prev) => ({ ...prev, opdBufferMinutes: Number(val) }))
-                                    }
-                                  >
-                                    <SelectTrigger className="mt-1.5 h-10 bg-white">
-                                      <SelectValue placeholder="Select buffer..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="0">0 Minutes (Continuous)</SelectItem>
-                                      <SelectItem value="5">5 Minutes (Short Rest / Prep)</SelectItem>
-                                      <SelectItem value="10">10 Minutes (Sanitization / Notes)</SelectItem>
-                                      <SelectItem value="15">15 Minutes (Intermission)</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              </div>
-
-                              {/* Generated Slots Live Preview */}
-                              {generatedOpdSlots.length > 0 && (
-                                <div className="space-y-2 pt-2 border-t border-blue-100">
-                                  <div className="flex items-center justify-between text-xs">
-                                    <span className="font-bold text-gray-700">
-                                      Computed OPD Patient Slots ({builderForm.selectedShiftTime}):
-                                    </span>
-                                    <span className="text-[#004B87] font-bold">
-                                      {builderForm.opdSlotDurationMinutes || 15} mins / slot
-                                    </span>
-                                  </div>
-                                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2.5 bg-white rounded-xl border border-gray-200">
-                                    {generatedOpdSlots.map((slot) => (
-                                      <Badge
-                                        key={slot.slotNumber}
-                                        variant="outline"
-                                        className="text-[11px] font-mono bg-blue-50/70 text-[#004B87] border-blue-200 px-2 py-0.5"
-                                      >
-                                        #{slot.slotNumber}: {slot.startTime} - {slot.endTime}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Dates */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                              <Label className="text-xs font-semibold">Effective From Date *</Label>
-                              <Input
-                                type="date"
-                                value={builderForm.effectiveFrom}
-                                onChange={(e) => setBuilderForm({ ...builderForm, effectiveFrom: e.target.value })}
-                                className="mt-1.5 h-10"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs font-semibold">Effective Until Date *</Label>
-                              <Input
-                                type="date"
-                                value={builderForm.effectiveUntil}
-                                onChange={(e) => setBuilderForm({ ...builderForm, effectiveUntil: e.target.value })}
-                                className="mt-1.5 h-10"
-                              />
+                              </button>
                             </div>
                           </div>
 
-                          {/* Working Days */}
+                          {/* Multi-Resource Selection List */}
                           <div className="space-y-3">
-                            <Label className="text-xs font-semibold">Working Days *</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => {
-                                const isSelected = builderForm.selectedDaysOfWeek.includes(day)
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <Label className="text-sm font-semibold text-gray-900">
+                                Choose Staff ({builderForm.selectedResourceIds.length} Selected) *
+                              </Label>
+                              <div className="flex items-center gap-2">
+                                <Button variant="ghost" size="sm" onClick={handleSelectAllResources} className="text-xs h-7 text-[#004B87]">
+                                  Select All
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={handleClearAllResources} className="text-xs h-7 text-gray-500">
+                                  Clear
+                                </Button>
+                                <div className="relative w-48">
+                                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-gray-400" />
+                                  <Input
+                                    placeholder="Search staff..."
+                                    value={resourceSearch}
+                                    onChange={(e) => setResourceSearch(e.target.value)}
+                                    className="pl-8 h-8 text-xs"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
+                              {availableResources.map((res) => {
+                                const isSelected = builderForm.selectedResourceIds.includes(res.id)
                                 return (
-                                  <button
-                                    key={day}
-                                    type="button"
-                                    onClick={() => toggleDayOfWeek(day)}
-                                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                                  <div
+                                    key={res.id}
+                                    onClick={() => handleToggleResourceSelection(res)}
+                                    className={`p-3 border rounded-xl cursor-pointer flex items-center justify-between transition-all ${
                                       isSelected
-                                        ? 'bg-[#004B87] text-white border-[#004B87] shadow-xs'
-                                        : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                                        ? 'border-[#004B87] bg-blue-50/80 text-[#004B87] font-semibold ring-1 ring-[#004B87]'
+                                        : 'border-gray-200 hover:border-gray-300 bg-white'
                                     }`}
                                   >
-                                    {day}
-                                  </button>
+                                    <div className="flex items-center gap-3">
+                                      {isSelected ? (
+                                        <CheckSquare className="w-5 h-5 text-[#004B87]" />
+                                      ) : (
+                                        <Square className="w-5 h-5 text-gray-300" />
+                                      )}
+                                      <div>
+                                        <div className="flex items-center gap-1.5">
+                                          <p className="text-xs font-bold text-gray-900">{res.name}</p>
+                                          {res.type === 'DOCTOR' && res.subType && (
+                                            <Badge
+                                              variant="outline"
+                                              className={`text-[9px] px-1.5 py-0 ${
+                                                res.subType === 'VISITING'
+                                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                              }`}
+                                            >
+                                              {res.subType === 'VISITING' ? 'Visiting' : 'In-House'}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <p className="text-[11px] text-gray-500 flex items-center gap-1">
+                                          <span>{res.role}</span>
+                                          {res.specialization && (
+                                            <span className="font-semibold text-[#004B87]">• {res.specialization}</span>
+                                          )}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    {(() => {
+                                      const dutyCount = displayRosterDates.filter(
+                                        (d) => d.status !== 'CANCELLED' && (d.resource.toLowerCase() === res.name.toLowerCase() || d.schedulingResourceId === res.id || d.resourceUserId === res.id)
+                                      ).length
+                                      if (dutyCount > 0) {
+                                        return (
+                                          <Badge variant="outline" className="text-[9.5px] px-2 py-0.5 bg-amber-50 text-amber-800 border-amber-300 font-bold shrink-0">
+                                            {dutyCount} Scheduled {dutyCount === 1 ? 'Duty' : 'Duties'}
+                                          </Badge>
+                                        )
+                                      }
+                                      return (
+                                        <Badge variant="outline" className="text-[9.5px] px-2 py-0.5 bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold shrink-0">
+                                          🟢 Free / Available
+                                        </Badge>
+                                      )
+                                    })()}
+                                  </div>
                                 )
                               })}
                             </div>
