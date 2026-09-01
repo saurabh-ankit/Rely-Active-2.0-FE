@@ -1217,10 +1217,9 @@ export default function ShiftRosterPage() {
   }
 
   const stepNames = [
-    'When, Shift & Scope (Date & Target)',
-    'Who (Select Available Staff)',
-    'Validation & Preview',
-    'Review & Publish',
+    'Scope & Schedule (Dates & Shift)',
+    'Personnel Selection (Available Staff)',
+    'Validation, Preview & Publish',
   ]
 
   return (
@@ -1713,18 +1712,18 @@ export default function ShiftRosterPage() {
                 <CardHeader className="border-b border-gray-100 pb-4">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                      <CardTitle className="text-xl font-bold text-gray-900">Express 4-Step Roster Builder</CardTitle>
+                      <CardTitle className="text-xl font-bold text-gray-900">Express 3-Step Roster Builder</CardTitle>
                       <CardDescription className="text-xs">
-                        Simple 4-step workflow to configure duty patterns, select target venues, run instant policy checks, and publish rosters.
+                        Streamlined 3-step workflow to configure shift schedules, assign staff, validate policies, and publish rosters.
                       </CardDescription>
                     </div>
                     <Badge variant="outline" className="text-xs font-mono px-3.5 py-1.5 bg-blue-50 text-[#004B87] border-blue-200 font-bold self-start md:self-auto">
-                      Step {wizardStep} of 4: {stepNames[wizardStep - 1]}
+                      Step {wizardStep} of 3: {stepNames[wizardStep - 1]}
                     </Badge>
                   </div>
 
-                  {/* 4-Step Progress Chips Header */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-4">
+                  {/* 3-Step Progress Chips Header */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-4">
                     {stepNames.map((name, idx) => {
                       const stepNum = idx + 1
                       const isCurrent = stepNum === wizardStep
@@ -2204,103 +2203,124 @@ export default function ShiftRosterPage() {
                         </div>
                       )}
 
-                      {/* STEP 3: Instant Validation & Preview */}
+                      {/* STEP 3: Validation, Duty Preview & Publish */}
                       {wizardStep === 3 && (
                         <div className="space-y-6">
                           <div>
-                            <h3 className="text-base font-bold text-gray-900">Step 3: Validation & Duty Preview</h3>
-                            <p className="text-xs text-gray-500 mt-1">Pre-flight policy evaluation & calculated duty schedule preview.</p>
+                            <h3 className="text-base font-bold text-gray-900">Step 3: Validation, Preview & Publish Roster</h3>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Pre-flight policy evaluation, duty schedule preview, and live roster submission.
+                            </p>
                           </div>
 
-                          {/* Pre-Flight Status */}
-                          <div className="p-4 border border-emerald-200 bg-emerald-50 rounded-xl flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <CheckCircle2 className="w-6 h-6 text-emerald-600" />
-                              <div>
-                                <p className="font-bold text-sm text-emerald-900">0 Constraint Violations</p>
-                                <p className="text-xs text-emerald-700">All {builderForm.selectedResourceIds.length} staff pass overlap checks and rest period policy benchmarks.</p>
-                              </div>
-                            </div>
-                            <Badge className="bg-emerald-600 text-white">PASSED</Badge>
-                          </div>
-
-                          {/* Optional Override */}
-                          <div className="p-4 border border-gray-200 bg-gray-50 rounded-xl space-y-2">
-                            <Label className="text-xs font-bold text-gray-800">Operational Notes / Special Instructions</Label>
-                            <Input
-                              value={builderForm.instructions}
-                              onChange={(e) => setBuilderForm({ ...builderForm, instructions: e.target.value })}
-                              placeholder="e.g. Conduct medication checks at 09:00 and 14:00."
-                              className="h-9 text-xs bg-white"
-                            />
-                          </div>
-
-                          {/* Preview Table */}
-                          <div className="space-y-2">
-                            <Label className="text-xs font-bold text-gray-900">
-                              Calculated Duty Dates Preview ({generatedDateInstancesPreview.length} Instances)
-                            </Label>
-                            <div className="border rounded-xl overflow-hidden max-h-56 overflow-y-auto">
-                              <table className="w-full text-xs text-left">
-                                <thead className="bg-gray-100 text-gray-600 font-bold uppercase sticky top-0">
-                                  <tr>
-                                    <th className="p-2.5">Date</th>
-                                    <th className="p-2.5">Resource</th>
-                                    <th className="p-2.5">Shift</th>
-                                    <th className="p-2.5">Target Location</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100 bg-white">
-                                  {generatedDateInstancesPreview.map((item, idx) => (
-                                    <tr key={idx} className="hover:bg-gray-50">
-                                      <td className="p-2.5 font-bold text-gray-900">
-                                        {item.date} ({item.dayName})
-                                      </td>
-                                      <td className="p-2.5 font-semibold text-gray-800">{item.resourceName}</td>
-                                      <td className="p-2.5 text-[#004B87] font-medium">{builderForm.selectedShiftName}</td>
-                                      <td className="p-2.5 text-gray-600">{builderForm.selectedTargetName}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* STEP 4: Review & Publish */}
-                      {wizardStep === 4 && (
-                        <div className="space-y-6 text-center py-4">
                           {isPublished ? (
-                            <div className="space-y-4 p-8 border border-emerald-200 bg-emerald-50/50 rounded-2xl">
-                              <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto animate-bounce" />
+                            <div className="space-y-5 p-8 border border-emerald-200 bg-emerald-50/70 rounded-2xl text-center">
+                              <CheckCircle2 className="w-16 h-16 text-emerald-600 mx-auto animate-bounce" />
                               <div>
-                                <h3 className="text-xl font-bold text-emerald-800">Roster Assignment Successfully Published!</h3>
+                                <h3 className="text-xl font-bold text-emerald-900">Roster Assignment Successfully Published!</h3>
                                 <p className="text-xs text-emerald-700 mt-1">
-                                  Committed {generatedDateInstancesPreview.length} date instances across {builderForm.selectedResourceIds.length} staff.
+                                  Committed {generatedDateInstancesPreview.length} date instances across {builderForm.selectedResourceIds.length} personnel.
                                 </p>
+                              </div>
+                              <div className="flex items-center justify-center gap-3 pt-2">
+                                <Button
+                                  variant="outline"
+                                  onClick={() => {
+                                    setIsPublished(false)
+                                    setWizardStep(1)
+                                  }}
+                                  className="text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-semibold"
+                                >
+                                  <RefreshCw className="w-3.5 h-3.5 mr-1" /> Create Another Roster
+                                </Button>
+                                <Button
+                                  onClick={() => setActiveTab('grid')}
+                                  className="bg-[#004B87] hover:bg-[#003865] text-xs font-bold gap-1.5"
+                                >
+                                  <LayoutList className="w-3.5 h-3.5" /> View Duty Grid
+                                </Button>
                               </div>
                             </div>
                           ) : (
-                            <div className="space-y-5 p-6 border rounded-2xl bg-gray-50/80 shadow-xs">
-                              <Lock className="w-12 h-12 text-[#004B87] mx-auto" />
-                              <div>
-                                <h3 className="text-lg font-bold text-gray-900">Review & Publish Roster</h3>
-                                <p className="text-xs text-gray-500 max-w-md mx-auto mt-1">
-                                  Publishing will commit {generatedDateInstancesPreview.length} dates to the live duty roster with optimistic transaction locking.
-                                </p>
+                            <>
+                              {/* Pre-Flight Status */}
+                              {totalRosterConflicts === 0 ? (
+                                <div className="p-4 border border-emerald-200 bg-emerald-50 rounded-xl flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
+                                    <div>
+                                      <p className="font-bold text-sm text-emerald-900">0 Policy Conflicts Detected</p>
+                                      <p className="text-xs text-emerald-700">
+                                        All {builderForm.selectedResourceIds.length} staff pass overlap checks and rest period policy benchmarks.
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Badge className="bg-emerald-600 text-white shrink-0">PASSED</Badge>
+                                </div>
+                              ) : (
+                                <div className="p-4 border border-amber-200 bg-amber-50 rounded-xl flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0" />
+                                    <div>
+                                      <p className="font-bold text-sm text-amber-900">{totalRosterConflicts} Overlap Conflict{totalRosterConflicts > 1 ? 's' : ''} Detected</p>
+                                      <p className="text-xs text-amber-700">
+                                        Some selected personnel already have duties scheduled in this timeframe. You can review preview below or proceed with override.
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 font-bold shrink-0">
+                                    ATTENTION
+                                  </Badge>
+                                </div>
+                              )}
+
+                              {/* Operational Notes */}
+                              <div className="p-4 border border-gray-200 bg-gray-50 rounded-xl space-y-2">
+                                <Label className="text-xs font-bold text-gray-800">Operational Notes / Special Instructions</Label>
+                                <Input
+                                  value={builderForm.instructions}
+                                  onChange={(e) => setBuilderForm({ ...builderForm, instructions: e.target.value })}
+                                  placeholder="e.g. Conduct medication checks at 09:00 and 14:00."
+                                  className="h-9 text-xs bg-white"
+                                />
                               </div>
 
-                              <Button
-                                size="lg"
-                                onClick={handleFinalPublishRoster}
-                                disabled={isPublishing}
-                                className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 text-sm"
-                              >
-                                <CheckCircle2 className="w-5 h-5" />
-                                {isPublishing ? 'Publishing Roster...' : 'Publish & Commit Roster Dates'}
-                              </Button>
-                            </div>
+                              {/* Duty Dates Preview Table */}
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <Label className="text-xs font-bold text-gray-900">
+                                    Calculated Duty Dates Preview ({generatedDateInstancesPreview.length} Instances)
+                                  </Label>
+                                  <span className="text-[11px] text-gray-500 font-mono">
+                                    {generatedDateInstancesPreview.length * 8} Total Hours
+                                  </span>
+                                </div>
+                                <div className="border rounded-xl overflow-hidden max-h-56 overflow-y-auto">
+                                  <table className="w-full text-xs text-left">
+                                    <thead className="bg-gray-100 text-gray-600 font-bold uppercase sticky top-0">
+                                      <tr>
+                                        <th className="p-2.5">Date</th>
+                                        <th className="p-2.5">Resource</th>
+                                        <th className="p-2.5">Shift</th>
+                                        <th className="p-2.5">Target Location</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 bg-white">
+                                      {generatedDateInstancesPreview.map((item, idx) => (
+                                        <tr key={idx} className="hover:bg-gray-50">
+                                          <td className="p-2.5 font-bold text-gray-900">
+                                            {item.date} ({item.dayName})
+                                          </td>
+                                          <td className="p-2.5 font-semibold text-gray-800">{item.resourceName}</td>
+                                          <td className="p-2.5 text-[#004B87] font-medium">{builderForm.selectedShiftName}</td>
+                                          <td className="p-2.5 text-gray-600">{builderForm.selectedTargetName}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            </>
                           )}
                         </div>
                       )}
@@ -2315,13 +2335,25 @@ export default function ShiftRosterPage() {
                         >
                           Previous Step
                         </Button>
-                        {wizardStep < 4 && (
+
+                        {wizardStep < 3 && (
                           <Button
-                            onClick={() => setWizardStep((prev) => Math.min(4, prev + 1))}
+                            onClick={() => setWizardStep((prev) => Math.min(3, prev + 1))}
                             disabled={!canAdvanceStep}
                             className="gap-2 bg-[#004B87] hover:bg-[#003865] h-10 px-6 font-bold"
                           >
                             Next Step <ArrowRight className="w-4 h-4" />
+                          </Button>
+                        )}
+
+                        {wizardStep === 3 && !isPublished && (
+                          <Button
+                            onClick={handleFinalPublishRoster}
+                            disabled={isPublishing || !canAdvanceStep}
+                            className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white h-10 px-6 font-bold shadow-xs"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            {isPublishing ? 'Publishing Roster...' : `Publish & Commit Roster (${generatedDateInstancesPreview.length} Dates)`}
                           </Button>
                         )}
                       </div>
@@ -2439,12 +2471,14 @@ export default function ShiftRosterPage() {
                           <div className="p-3 border rounded-xl bg-white space-y-1">
                             <div className="flex items-center justify-between">
                               <span className="text-gray-500 flex items-center gap-1 font-semibold">
-                                <ShieldCheck className="w-3.5 h-3.5 text-[#004B87]" /> Validation Status
+                                <ShieldCheck className="w-3.5 h-3.5 text-[#004B87]" /> Policy Check
                               </span>
-                              <Badge className="bg-emerald-100 text-emerald-800 text-[10px]">Auto-Verified</Badge>
+                              <Badge className={totalRosterConflicts === 0 ? 'bg-emerald-100 text-emerald-800 text-[10px]' : 'bg-amber-100 text-amber-800 text-[10px]'}>
+                                {totalRosterConflicts === 0 ? 'Auto-Verified' : 'Conflicts Detected'}
+                              </Badge>
                             </div>
                             <p className="text-gray-600 font-medium">
-                              0 Constraint Errors | 100% Policy Compliant
+                              {totalRosterConflicts === 0 ? '0 Constraint Errors | 100% Policy Compliant' : `${totalRosterConflicts} overlap conflict(s) require review`}
                             </p>
                           </div>
 
