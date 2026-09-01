@@ -2039,8 +2039,7 @@ export default function ShiftRosterPage() {
                                   </p>
                                 </div>
                               ))}
-                            </div>
-                          </div>>
+                          </div>
                           </div>
 
                           {/* Duty Target Scope (Simplified Core Hierarchy) */}
