@@ -1,12 +1,13 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { rosterService } from '@/lib/services/rosterService'
 
 export interface MedicalSpecialization {
   id: string
   name: string
   code: string
   description?: string
-  category: 'DOCTOR' | 'NURSE' | 'ALL'
+  category: 'DOCTOR' | 'NURSE' | 'ALL' | 'OTHER'
 }
 
 export interface OnboardedMedicalStaff {
@@ -25,41 +26,70 @@ export interface OnboardedMedicalStaff {
 interface MedicalStoreState {
   specializations: MedicalSpecialization[]
   staffList: OnboardedMedicalStaff[]
-  addSpecialization: (spec: Omit<MedicalSpecialization, 'id'>) => void
-  removeSpecialization: (id: string) => void
+  isLoadingSpecializations: boolean
+  fetchSpecializations: () => Promise<void>
+  addSpecialization: (spec: Omit<MedicalSpecialization, 'id' | 'code'> & { code?: string }) => Promise<void>
+  removeSpecialization: (id: string) => Promise<void>
   addStaff: (staff: Omit<OnboardedMedicalStaff, 'id'>) => void
   removeStaff: (id: string) => void
 }
 
-const DEFAULT_SPECIALIZATIONS: MedicalSpecialization[] = [
-  { id: 'spec-1', name: 'Geriatric Medicine', code: 'GERIATRICS', category: 'DOCTOR', description: 'Elderly care & dementia management' },
-  { id: 'spec-2', name: 'Cardiology', code: 'CARDIOLOGY', category: 'DOCTOR', description: 'Cardiovascular healthcare' },
-  { id: 'spec-3', name: 'Neurology', code: 'NEUROLOGY', category: 'DOCTOR', description: 'Brain & memory disorders' },
-  { id: 'spec-4', name: 'General Practice', code: 'GP', category: 'DOCTOR', description: 'Primary health consultations' },
-  { id: 'spec-5', name: 'Palliative Nursing', code: 'PALLIATIVE', category: 'NURSE', description: 'Comfort & long-term palliative care' },
-  { id: 'spec-6', name: 'ICU & Critical Care', code: 'CRITICAL_CARE', category: 'NURSE', description: 'High dependency unit support' },
-  { id: 'spec-7', name: 'Memory Care & ADL', code: 'MEMORY_CARE', category: 'ALL', description: 'Assisted living & resident caregiver' },
-  { id: 'spec-8', name: 'Physiotherapy & Wellness', code: 'PHYSIO', category: 'ALL', description: 'Physical rehabilitation & mobility' },
-]
-
 export const useMedicalStore = create<MedicalStoreState>()(
   persist(
-    (set) => ({
-      specializations: DEFAULT_SPECIALIZATIONS,
+    (set, get) => ({
+      specializations: [],
       staffList: [],
+      isLoadingSpecializations: false,
 
-      addSpecialization: (spec) =>
-        set((state) => ({
-          specializations: [
-            ...state.specializations,
-            { ...spec, id: `spec-${Date.now()}` },
-          ],
-        })),
+      fetchSpecializations: async () => {
+        set({ isLoadingSpecializations: true })
+        try {
+          const res = await rosterService.getSpecializations()
+          if (res?.data && Array.isArray(res.data)) {
+            set({ specializations: res.data })
+          }
+        } catch (err) {
+          console.error('Failed to fetch medical specializations:', err)
+        } finally {
+          set({ isLoadingSpecializations: false })
+        }
+      },
 
-      removeSpecialization: (id) =>
-        set((state) => ({
-          specializations: state.specializations.filter((s) => s.id !== id),
-        })),
+      addSpecialization: async (spec) => {
+        try {
+          const res = await rosterService.createSpecialization({
+            name: spec.name,
+            code: spec.code,
+            category: spec.category,
+            description: spec.description,
+          })
+          if (res?.data) {
+            await get().fetchSpecializations()
+          }
+        } catch (err) {
+          console.error('Failed to create medical specialization:', err)
+          const tempId = `spec-${Date.now()}`
+          const code = spec.code || spec.name.toUpperCase().replace(/\s+/g, '_')
+          set((state) => ({
+            specializations: [
+              ...state.specializations,
+              { id: tempId, name: spec.name, code, category: spec.category, description: spec.description },
+            ],
+          }))
+        }
+      },
+
+      removeSpecialization: async (id) => {
+        try {
+          await rosterService.deleteSpecialization(id)
+          await get().fetchSpecializations()
+        } catch (err) {
+          console.error('Failed to delete medical specialization:', err)
+          set((state) => ({
+            specializations: state.specializations.filter((s) => s.id !== id),
+          }))
+        }
+      },
 
       addStaff: (staff) =>
         set((state) => ({
@@ -73,6 +103,7 @@ export const useMedicalStore = create<MedicalStoreState>()(
     }),
     {
       name: 'rely_active_medical_store',
+      partialize: (state) => ({ staffList: state.staffList }),
     }
   )
 )

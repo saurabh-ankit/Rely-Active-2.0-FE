@@ -295,8 +295,13 @@ export default function ShiftRosterPage() {
   }, [sampleResources])
 
   // Dynamic Schedulable Target Locations Pool
-  const { specializations } = useMedicalStore()
+  const { specializations, fetchSpecializations } = useMedicalStore()
   const [customLocations, setCustomLocations] = useState<TargetLocation[]>([])
+
+  useEffect(() => {
+    fetchSpecializations()
+  }, [fetchSpecializations])
+
 
   const targetLocations: TargetLocation[] = useMemo(() => {
     const list: TargetLocation[] = []

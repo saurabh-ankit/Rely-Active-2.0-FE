@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Stethoscope, Plus, Trash2, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,7 +9,12 @@ import { useMedicalStore } from '@/lib/stores/medicalStore'
 import { toast } from 'sonner'
 
 export function MedicalSpecializationsTab() {
-  const { specializations, staffList, addSpecialization, removeSpecialization } = useMedicalStore()
+  const { specializations, staffList, fetchSpecializations, addSpecialization, removeSpecialization } = useMedicalStore()
+
+  useEffect(() => {
+    fetchSpecializations()
+  }, [fetchSpecializations])
+
 
   // New Specialization Form
   const [name, setName] = useState('')

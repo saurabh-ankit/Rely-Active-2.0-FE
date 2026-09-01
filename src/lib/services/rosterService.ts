@@ -132,4 +132,21 @@ export const rosterService = {
     const res = await api.post(API_ENDPOINTS.roster.requestReplacement(companyId, locationId, dateInstanceId), payload)
     return res.data
   },
+
+  // Medical Specializations Master
+  getSpecializations: async () => {
+    const res = await api.get('/roster/specializations')
+    return res.data
+  },
+
+  createSpecialization: async (payload: { name: string; code?: string; category?: string; description?: string }) => {
+    const res = await api.post('/roster/specializations', payload)
+    return res.data
+  },
+
+  deleteSpecialization: async (id: string) => {
+    const res = await api.delete(`/roster/specializations/${id}`)
+    return res.data
+  },
 }
+

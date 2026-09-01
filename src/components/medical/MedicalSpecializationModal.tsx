@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Stethoscope, Trash2, UserPlus, ExternalLink } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
@@ -17,7 +17,14 @@ interface MedicalSpecializationModalProps {
 
 export function MedicalSpecializationModal({ open, onOpenChange }: MedicalSpecializationModalProps) {
   const navigate = useNavigate()
-  const { specializations, addSpecialization, removeSpecialization } = useMedicalStore()
+  const { specializations, fetchSpecializations, addSpecialization, removeSpecialization } = useMedicalStore()
+
+  useEffect(() => {
+    if (open) {
+      fetchSpecializations()
+    }
+  }, [open, fetchSpecializations])
+
 
   // New Specialization Form
   const [newSpecName, setNewSpecName] = useState('')
