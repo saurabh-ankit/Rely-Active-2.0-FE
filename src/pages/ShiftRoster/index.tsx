@@ -170,9 +170,9 @@ export default function ShiftRosterPage() {
   const [activeTab, setActiveTab] = useState('grid')
   const [viewMode, setViewMode] = useState<'table' | 'calendar'>('calendar')
 
-  // Context IDs
-  const companyId = localStorage.getItem('rely_active_company_id') || 'default-company-id'
-  const locationId = localStorage.getItem('rely_active_property_id') || 'default-location-id'
+  // Context IDs — resolved from auth session; null means not yet available (queries stay disabled)
+  const companyId = localStorage.getItem('rely_active_company_id') ?? null
+  const locationId = localStorage.getItem('rely_active_property_id') ?? null
 
   // Dynamic API state
   const [liveShifts, setLiveShifts] = useState<any[]>([])

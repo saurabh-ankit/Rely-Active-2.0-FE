@@ -42,62 +42,6 @@ const DEFAULT_SPECIALIZATIONS: MedicalSpecialization[] = [
   { id: 'spec-8', name: 'Physiotherapy & Wellness', code: 'PHYSIO', category: 'ALL', description: 'Physical rehabilitation & mobility' },
 ]
 
-export const DEFAULT_STAFF: OnboardedMedicalStaff[] = [
-  {
-    id: 'res-5',
-    name: 'Dr. Aarav Sharma',
-    role: 'DOCTOR',
-    doctorType: 'IN_HOUSE',
-    specialization: 'Geriatric Medicine',
-    medicalLicenseNumber: 'MCI-884920',
-    assignedClinicRoom: 'OPD Clinic Room #102',
-    department: 'Geriatric OPD',
-  },
-  {
-    id: 'res-6',
-    name: 'Dr. Priya Nair',
-    role: 'DOCTOR',
-    doctorType: 'VISITING',
-    specialization: 'Cardiology',
-    medicalLicenseNumber: 'MCI-772109',
-    assignedClinicRoom: 'Cardiology OPD Room #105',
-    department: 'Cardiology Suite',
-  },
-  {
-    id: 'res-7',
-    name: 'Dr. Vikram Seth',
-    role: 'DOCTOR',
-    doctorType: 'VISITING',
-    specialization: 'Neurology',
-    medicalLicenseNumber: 'MCI-994112',
-    assignedClinicRoom: 'Geriatric Consultation Suite #201',
-    department: 'Neurology Dept',
-  },
-  {
-    id: 'res-1',
-    name: 'Nurse Sunita Verma',
-    role: 'NURSE',
-    specialization: 'Palliative Nursing',
-    medicalLicenseNumber: 'RN-48190',
-    department: 'Clinical Nursing Department',
-  },
-  {
-    id: 'res-3',
-    name: 'Nurse Anita Roy',
-    role: 'NURSE',
-    specialization: 'ICU & Critical Care',
-    medicalLicenseNumber: 'RN-51204',
-    department: 'High Dependency Unit',
-  },
-  {
-    id: 'res-2',
-    name: 'Ramesh Caregiver',
-    role: 'CARETAKER',
-    specialization: 'Memory Care & ADL',
-    department: 'Assisted Living Wing',
-  },
-]
-
 export const useMedicalStore = create<MedicalStoreState>()(
   persist(
     (set) => ({
