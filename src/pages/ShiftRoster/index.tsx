@@ -172,6 +172,7 @@ export interface RosterBuilderState {
 export default function ShiftRosterPage() {
   const [activeTab, setActiveTab] = useState('grid')
   const [viewMode, setViewMode] = useState<'calendar' | 'table' | 'employee'>('calendar')
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<'ALL' | 'EMPLOYEE' | 'DOCTOR'>('ALL')
   const [selectedEmployeeFilter, setSelectedEmployeeFilter] = useState<string>('ALL')
   const [selectedDutyTypeFilter, setSelectedDutyTypeFilter] = useState<string>('ALL')
 
@@ -656,9 +657,9 @@ export default function ShiftRosterPage() {
         date: `${year}-${month}-02`,
         resource: primaryResourceName,
         type: primaryResourceType,
-        dutyType: 'ON_CALL',
-        shift: 'Emergency On-Call Duty',
-        time: '20:00 - 08:00',
+        dutyType: 'SHIFT',
+        shift: 'Evening Nursing Shift',
+        time: '16:00 - 00:00',
         target: 'Care & ICU Center',
         status: 'PUBLISHED',
       },
@@ -707,6 +708,16 @@ export default function ShiftRosterPage() {
     })
   }, [liveRosterDates, defaultRosterSeed])
 
+  const filteredPersonnelOptions = useMemo(() => {
+    if (selectedCategoryFilter === 'DOCTOR') {
+      return sampleResources.filter((r) => r.type === 'DOCTOR')
+    }
+    if (selectedCategoryFilter === 'EMPLOYEE') {
+      return sampleResources.filter((r) => r.type === 'EMPLOYEE')
+    }
+    return sampleResources
+  }, [sampleResources, selectedCategoryFilter])
+
   const filteredDates = useMemo(() => {
     return displayRosterDates.filter((item) => {
       const matchesSearch =
@@ -717,6 +728,11 @@ export default function ShiftRosterPage() {
         item.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.dutyType.toLowerCase().includes(searchTerm.toLowerCase())
 
+      const matchesCategory =
+        selectedCategoryFilter === 'ALL' ||
+        (selectedCategoryFilter === 'DOCTOR' && item.type.includes('DOCTOR')) ||
+        (selectedCategoryFilter === 'EMPLOYEE' && !item.type.includes('DOCTOR'))
+
       const matchesEmployee =
         selectedEmployeeFilter === 'ALL' ||
         item.resource.toLowerCase() === selectedEmployeeFilter.toLowerCase()
@@ -724,20 +740,27 @@ export default function ShiftRosterPage() {
       const matchesDutyType =
         selectedDutyTypeFilter === 'ALL' || item.dutyType === selectedDutyTypeFilter
 
-      return matchesSearch && matchesEmployee && matchesDutyType
+      return matchesSearch && matchesCategory && matchesEmployee && matchesDutyType
     })
-  }, [displayRosterDates, searchTerm, selectedEmployeeFilter, selectedDutyTypeFilter])
+  }, [displayRosterDates, searchTerm, selectedCategoryFilter, selectedEmployeeFilter, selectedDutyTypeFilter])
 
   const displayStaffList = useMemo(() => {
+    let list = sampleResources
+    if (selectedCategoryFilter === 'DOCTOR') {
+      list = list.filter((r) => r.type === 'DOCTOR')
+    } else if (selectedCategoryFilter === 'EMPLOYEE') {
+      list = list.filter((r) => r.type === 'EMPLOYEE')
+    }
+
     if (selectedEmployeeFilter !== 'ALL') {
-      return sampleResources.filter(
+      list = list.filter(
         (r) =>
           r.name.toLowerCase() === selectedEmployeeFilter.toLowerCase() ||
           r.id === selectedEmployeeFilter
       )
     }
-    return sampleResources
-  }, [sampleResources, selectedEmployeeFilter])
+    return list
+  }, [sampleResources, selectedCategoryFilter, selectedEmployeeFilter])
 
   // Filtered Schedulable Resources for Step 1
   const availableResources = useMemo(() => {
@@ -1439,15 +1462,35 @@ export default function ShiftRosterPage() {
                         <Filter className="w-3.5 h-3.5 text-[#004B87]" /> Filter Roster:
                       </div>
 
-                      {/* Employee / Doctor Filter */}
+                      {/* Category / Role Filter */}
+                      <div className="min-w-[175px]">
+                        <Select
+                          value={selectedCategoryFilter}
+                          onValueChange={(val: 'ALL' | 'EMPLOYEE' | 'DOCTOR') => {
+                            setSelectedCategoryFilter(val)
+                            setSelectedEmployeeFilter('ALL')
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs bg-white border-gray-200 font-semibold">
+                            <SelectValue placeholder="All Categories" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ALL">All Staff & Doctors</SelectItem>
+                            <SelectItem value="EMPLOYEE">Staff / Employee</SelectItem>
+                            <SelectItem value="DOCTOR">Doctor / Specialist</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Specific Personnel Filter */}
                       <div className="min-w-[210px]">
                         <Select value={selectedEmployeeFilter} onValueChange={setSelectedEmployeeFilter}>
                           <SelectTrigger className="h-8 text-xs bg-white border-gray-200 font-semibold">
-                            <SelectValue placeholder="All Staff Members" />
+                            <SelectValue placeholder="All Personnel" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="ALL">All Staff & Doctors ({sampleResources.length})</SelectItem>
-                            {sampleResources.map((res) => (
+                            <SelectItem value="ALL">All Personnel ({filteredPersonnelOptions.length})</SelectItem>
+                            {filteredPersonnelOptions.map((res) => (
                               <SelectItem key={res.id} value={res.name}>
                                 {res.name} ({res.role})
                               </SelectItem>
@@ -1456,34 +1499,34 @@ export default function ShiftRosterPage() {
                         </Select>
                       </div>
 
-                      {/* Duty Type Filter */}
-                      <div className="min-w-[170px]">
+                      {/* Consistent 2 Duty Types Filter */}
+                      <div className="min-w-[160px]">
                         <Select value={selectedDutyTypeFilter} onValueChange={setSelectedDutyTypeFilter}>
                           <SelectTrigger className="h-8 text-xs bg-white border-gray-200 font-semibold">
                             <SelectValue placeholder="All Duty Types" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="ALL">All Duty Types</SelectItem>
-                            <SelectItem value="SHIFT">Standard Shift</SelectItem>
+                            <SelectItem value="SHIFT">Regular Shift</SelectItem>
                             <SelectItem value="OPD_SESSION">OPD Session</SelectItem>
-                            <SelectItem value="ON_CALL">On Call / Emergency</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
                       {/* Clear Filters button */}
-                      {(selectedEmployeeFilter !== 'ALL' || selectedDutyTypeFilter !== 'ALL' || searchTerm) && (
+                      {(selectedCategoryFilter !== 'ALL' || selectedEmployeeFilter !== 'ALL' || selectedDutyTypeFilter !== 'ALL' || searchTerm) && (
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => {
+                            setSelectedCategoryFilter('ALL')
                             setSelectedEmployeeFilter('ALL')
                             setSelectedDutyTypeFilter('ALL')
                             setSearchTerm('')
                           }}
                           className="h-8 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 gap-1 font-semibold"
                         >
-                          <X className="w-3.5 h-3.5" /> Reset Filters
+                          <X className="w-3.5 h-3.5" /> Clear Filters
                         </Button>
                       )}
                     </div>
