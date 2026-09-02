@@ -49,7 +49,6 @@ const ROLE_HIERARCHY_ORDER: Record<string, number> = {
   EMPLOYEE: 6,
   CARETAKER: 7,
   VENDOR: 8,
-  RESIDENT: 9,
 }
 
 const sortRolesByHierarchy = (roleList: RoleItem[]) => {
@@ -662,7 +661,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                   className={`w-full rounded-xl border ${errors.selectedRoleCode?.message ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:outline-none focus:ring-2 font-medium shadow-2xs`}
                 >
                   {roles
-                    .filter((r) => r.code !== 'SUPER_ADMIN')
+                    .filter((r) => !['SUPER_ADMIN', 'RESIDENT'].includes((r.code || '').toUpperCase()))
                     .map((r) => (
                       <option key={r.id} value={r.code}>
                         {r.name} ({r.code})
