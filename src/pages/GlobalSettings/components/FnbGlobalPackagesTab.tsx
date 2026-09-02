@@ -16,6 +16,7 @@ import {
 import api from '@/lib/api/axios'
 import { getPropertiesAPI } from '@/lib/services/propertyService'
 import { notifyError, notifySuccess } from '@/utils/toast'
+import type { GlobalMealSlot } from './FnbGlobalMealSlotsTab'
 
 export interface Property {
   id: string
