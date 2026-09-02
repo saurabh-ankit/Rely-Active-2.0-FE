@@ -28,7 +28,7 @@ export interface LocationState {
   resetLocationState: () => void
 }
 
-export const useLocationStore = create<LocationState>()((set) => ({
+export const useLocationStore = create<LocationState>()((set, get) => ({
   selectedLocationId: localStorage.getItem(ACTIVE_PROP_ID_KEY),
   selectedLocationName: localStorage.getItem(ACTIVE_PROP_NAME_KEY),
   accessibleLocations: [],
@@ -38,6 +38,10 @@ export const useLocationStore = create<LocationState>()((set) => ({
   isLoadingPermissions: false,
 
   setSelectedLocation: (id, name) => {
+    const currentId = get().selectedLocationId
+    const currentName = get().selectedLocationName
+    if (currentId === id && currentName === name) return
+
     if (id) localStorage.setItem(ACTIVE_PROP_ID_KEY, id)
     else localStorage.removeItem(ACTIVE_PROP_ID_KEY)
 
@@ -47,11 +51,32 @@ export const useLocationStore = create<LocationState>()((set) => ({
     set({ selectedLocationId: id, selectedLocationName: name })
   },
 
-  setAccessibleLocations: (accessibleLocations) => set({ accessibleLocations }),
-  setLocationPermissions: (locationPermissions) => set({ locationPermissions }),
-  setShowLocationModal: (showLocationModal) => set({ showLocationModal }),
-  setIsLoadingLocations: (isLoadingLocations) => set({ isLoadingLocations }),
-  setIsLoadingPermissions: (isLoadingPermissions) => set({ isLoadingPermissions }),
+  setAccessibleLocations: (accessibleLocations) => {
+    const current = get().accessibleLocations
+    if (JSON.stringify(current) === JSON.stringify(accessibleLocations)) return
+    set({ accessibleLocations })
+  },
+
+  setLocationPermissions: (locationPermissions) => {
+    const current = get().locationPermissions
+    if (JSON.stringify(current) === JSON.stringify(locationPermissions)) return
+    set({ locationPermissions })
+  },
+
+  setShowLocationModal: (showLocationModal) => {
+    if (get().showLocationModal === showLocationModal) return
+    set({ showLocationModal })
+  },
+
+  setIsLoadingLocations: (isLoadingLocations) => {
+    if (get().isLoadingLocations === isLoadingLocations) return
+    set({ isLoadingLocations })
+  },
+
+  setIsLoadingPermissions: (isLoadingPermissions) => {
+    if (get().isLoadingPermissions === isLoadingPermissions) return
+    set({ isLoadingPermissions })
+  },
 
   resetLocationState: () => {
     localStorage.removeItem(ACTIVE_PROP_ID_KEY)

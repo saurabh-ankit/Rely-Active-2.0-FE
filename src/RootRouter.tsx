@@ -16,6 +16,7 @@ import FnbManagementPage from '@/pages/FnbManagement'
 import EventsPage from '@/pages/Events'
 import EventForm from '@/pages/Events/EventForm'
 import EventRegistrationsPage from '@/pages/Events/EventRegistrations'
+import UserProfilePage from '@/pages/Profile'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
 export default function RootRouter() {
@@ -34,6 +35,8 @@ export default function RootRouter() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="my-profile" element={<UserProfilePage />} />
+        <Route path="profile" element={<UserProfilePage />} />
         <Route path="company" element={<CompanyPage />} />
         <Route path="property" element={<PropertyPage />} />
         <Route path="property/create" element={<CreatePropertyPage />} />
@@ -159,8 +162,140 @@ export default function RootRouter() {
         <Route path="admin/inventory/*" element={<SectionPage title="Inventory Management" />} />
         <Route path="admin/asset-management" element={<AssetManagementPage />} />
         <Route
+          path="admin/residents"
+          element={
+            <ProtectedRoute resourceKey="RESIDENT" action="view">
+              <ResidentPage initialView="list" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/residents/create"
+          element={
+            <ProtectedRoute resourceKey="RESIDENT" action="create">
+              <ResidentPage initialView="create" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/residents/edit/:id"
+          element={
+            <ProtectedRoute resourceKey="RESIDENT" action="update">
+              <ResidentPage initialView="edit" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/residents/details/:id"
+          element={
+            <ProtectedRoute resourceKey="RESIDENT" action="view">
+              <ResidentPage initialView="view" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/employees"
+          element={
+            <ProtectedRoute resourceKey="EMPLOYEE" action="view">
+              <EmployeeDirectoryPage initialView="list" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/employees/create"
+          element={
+            <ProtectedRoute resourceKey="EMPLOYEE" action="create">
+              <EmployeeDirectoryPage initialView="create" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/employees/edit/:id"
+          element={
+            <ProtectedRoute resourceKey="EMPLOYEE" action="update">
+              <EmployeeDirectoryPage initialView="edit" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/medical/*"
+          element={
+            <ProtectedRoute resourceKey="MEDICAL" action="view">
+              <SectionPage title="Medical Management" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/billing-management/*"
+          element={
+            <ProtectedRoute resourceKey="BILLING" action="view">
+              <SectionPage title="Billing Management" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/shift-roster-management"
+          element={
+            <ProtectedRoute resourceKey="ROSTER" action="view">
+              <SectionPage title="Shift & Roster Management" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/visitor-history"
+          element={
+            <ProtectedRoute resourceKey="GNS" action="view">
+              <SectionPage title="Visitors Management" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/events"
+          element={
+            <ProtectedRoute resourceKey="EVENTS" action="view">
+              <SectionPage title="Event Management" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/fnb-history"
+          element={
+            <ProtectedRoute resourceKey="FNB" action="view">
+              <FnbManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="fnb-management"
+          element={
+            <ProtectedRoute resourceKey="FNB" action="view">
+              <FnbManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/inventory/*"
+          element={
+            <ProtectedRoute resourceKey="INVENTORY" action="view">
+              <SectionPage title="Inventory Management" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/asset-management"
+          element={
+            <ProtectedRoute resourceKey="ASSET" action="view">
+              <AssetManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="admin/tickets"
-          element={<SectionPage title="Ticket Management (R&M, Concierge, Housekeeping, Food)" />}
+          element={
+            <ProtectedRoute resourceKey="TICKETS" action="view">
+              <SectionPage title="Ticket Management (R&M, Concierge, Housekeeping, Food)" />
+            </ProtectedRoute>
+          }
         />
         <Route path="admin/feedback-and-training" element={<SectionPage title="Feedback And Training" />} />
 

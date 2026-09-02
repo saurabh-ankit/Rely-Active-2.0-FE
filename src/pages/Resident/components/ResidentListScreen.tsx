@@ -49,7 +49,11 @@ export interface ResidentListScreenProps {
 
 export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobalMode = false }) => {
   const navigate = useNavigate()
-  const { selectedLocationId } = useLocationContext()
+  const { selectedLocationId, hasResourcePermission } = useLocationContext()
+  const canCreateResident = hasResourcePermission('RESIDENT', 'create')
+  const canUpdateResident = hasResourcePermission('RESIDENT', 'update')
+  const canDeleteResident = hasResourcePermission('RESIDENT', 'delete')
+  const canViewResident = hasResourcePermission('RESIDENT', 'view')
 
   const [residents, setResidents] = useState<ResidentItem[]>([])
   const [properties, setProperties] = useState<Property[]>([])
@@ -308,7 +312,7 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
           </p>
         </div>
 
-        {!isGlobalMode && (
+        {!isGlobalMode && canCreateResident && (
           <Button
             variant="primary"
             icon={<UserPlus className="w-4 h-4" />}
@@ -643,41 +647,47 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                                                   align="end"
                                                   className="w-48 rounded-xl p-1 shadow-xl border border-gray-100 bg-white dark:bg-slate-900 dark:border-gray-800"
                                                 >
-                                                  <DropdownMenuItem
-                                                    onClick={() =>
-                                                      navigate(
-                                                        isGlobalMode
-                                                          ? `/global-settings/residents/details/${occ.id}`
-                                                          : `/admin/residents/details/${occ.id}`,
-                                                      )
-                                                    }
-                                                    className="flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-lg px-2.5 py-1.5 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
-                                                  >
-                                                    <UserCheck className="h-3.5 w-3.5 text-[#005390]" />
-                                                    View Profile
-                                                  </DropdownMenuItem>
+                                                  {canViewResident && (
+                                                    <DropdownMenuItem
+                                                      onClick={() =>
+                                                        navigate(
+                                                          isGlobalMode
+                                                            ? `/global-settings/residents/details/${occ.id}`
+                                                            : `/admin/residents/details/${occ.id}`,
+                                                        )
+                                                      }
+                                                      className="flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-lg px-2.5 py-1.5 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                                                    >
+                                                      <UserCheck className="h-3.5 w-3.5 text-[#005390]" />
+                                                      View Profile
+                                                    </DropdownMenuItem>
+                                                  )}
 
-                                                  <DropdownMenuItem
-                                                    onClick={() =>
-                                                      navigate(
-                                                        isGlobalMode
-                                                          ? `/global-settings/residents/edit/${occ.id}`
-                                                          : `/admin/residents/edit/${occ.id}`,
-                                                      )
-                                                    }
-                                                    className="flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-lg px-2.5 py-1.5 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
-                                                  >
-                                                    <Edit className="h-3.5 w-3.5 text-[#005390]" />
-                                                    Edit Profile
-                                                  </DropdownMenuItem>
+                                                  {canUpdateResident && (
+                                                    <DropdownMenuItem
+                                                      onClick={() =>
+                                                        navigate(
+                                                          isGlobalMode
+                                                            ? `/global-settings/residents/edit/${occ.id}`
+                                                            : `/admin/residents/edit/${occ.id}`,
+                                                        )
+                                                      }
+                                                      className="flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-lg px-2.5 py-1.5 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                                                    >
+                                                      <Edit className="h-3.5 w-3.5 text-[#005390]" />
+                                                      Edit Profile
+                                                    </DropdownMenuItem>
+                                                  )}
 
-                                                  <DropdownMenuItem
-                                                    onClick={() => handleDelete(occ.id, fullName)}
-                                                    className="flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-lg px-2.5 py-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50"
-                                                  >
-                                                    <Trash2 className="h-3.5 w-3.5 text-rose-600" />
-                                                    Remove Resident
-                                                  </DropdownMenuItem>
+                                                  {canDeleteResident && (
+                                                    <DropdownMenuItem
+                                                      onClick={() => handleDelete(occ.id, fullName)}
+                                                      className="flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-lg px-2.5 py-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50"
+                                                    >
+                                                      <Trash2 className="h-3.5 w-3.5 text-rose-600" />
+                                                      Remove Resident
+                                                    </DropdownMenuItem>
+                                                  )}
                                                 </DropdownMenuContent>
                                               </DropdownMenu>
                                             </td>

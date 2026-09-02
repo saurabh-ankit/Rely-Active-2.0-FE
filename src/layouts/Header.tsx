@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Bell, Building2, ChevronDown, LogOut, Menu, Settings, Shield } from 'lucide-react'
+import { Bell, Building2, ChevronDown, LogOut, Menu, Settings, Shield, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocationContext, type PropertyLocationItem } from '@/hooks/useLocation'
@@ -23,6 +23,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
     : user?.email || 'Admin User'
 
   const userInitial = fullName.charAt(0).toUpperCase()
+  const userPhoto = user?.profile?.photoUrl || user?.avatar_url || null
   const roleTitle = isSuperAdmin ? 'Super Admin' : user?.roles?.includes('ADMIN') ? 'Property Admin' : 'Admin'
 
   const handleLogout = () => {
@@ -71,7 +72,10 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
             {showLocationDropdown && (
               <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-white/40 bg-white/95 p-2 shadow-2xl backdrop-blur-xl z-50">
                 <div className="px-3 py-1.5 text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center justify-between">
-                  <span>Accessible Properties</span>
+                  <span className="flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5 text-[#005390]" />
+                    Properties
+                  </span>
                   {isSuperAdmin && <span className="text-[9px] text-[#005390] font-extrabold">GLOBAL</span>}
                 </div>
 
@@ -86,14 +90,21 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
                         selectLocation(p)
                         setShowLocationDropdown(false)
                       }}
-                      className={`w-full text-left px-3 py-2 text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-between ${
+                      className={`w-full text-left px-3 py-2 text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-between gap-2 ${
                         selectedLocationName === p.property_name
                           ? 'bg-[#005390] font-semibold text-white shadow-sm'
                           : 'hover:bg-[#005390]/10 hover:text-[#005390] text-gray-700'
                       }`}
                     >
-                      <span className="truncate">{p.property_name}</span>
-                      {selectedLocationName === p.property_name && <span className="text-[10px]">✓</span>}
+                      <div className="flex items-center gap-2 truncate">
+                        <Building2
+                          className={`h-3.5 w-3.5 shrink-0 ${
+                            selectedLocationName === p.property_name ? 'text-white' : 'text-[#005390]'
+                          }`}
+                        />
+                        <span className="truncate">{p.property_name}</span>
+                      </div>
+                      {selectedLocationName === p.property_name && <span className="text-[10px] shrink-0">✓</span>}
                     </button>
                   ))
                 )}
@@ -119,7 +130,11 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
               className="relative h-10 w-10 rounded-full p-0 cursor-pointer overflow-hidden shadow-lg ring-4 ring-white/80 transition-transform hover:scale-105"
             >
               <div className="flex h-full w-full items-center justify-center bg-[#005390] text-white font-bold text-sm shadow-[#005390]/20">
-                {userInitial}
+                {userPhoto ? (
+                  <img src={userPhoto} alt={fullName} className="w-full h-full object-cover" />
+                ) : (
+                  <span>{userInitial}</span>
+                )}
               </div>
             </button>
 
@@ -134,20 +149,31 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
                     </span>
                   </div>
                 </div>
+
+                {/* My Profile */}
+                <Link
+                  to="/my-profile"
+                  onClick={() => setShowProfileDropdown(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-100 rounded-xl font-medium cursor-pointer transition-colors"
+                >
+                  <User className="h-4 w-4 text-gray-500" />
+                  My Profile
+                </Link>
+
                 {isSuperAdmin && (
                   <Link
                     to="/global-settings"
                     onClick={() => setShowProfileDropdown(false)}
-                    className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-100 rounded-xl font-medium"
+                    className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-100 rounded-xl font-medium transition-colors"
                   >
-                    <Settings className="h-4 w-4" />
+                    <Settings className="h-4 w-4 text-gray-500" />
                     Global Settings
                   </Link>
                 )}
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 rounded-xl font-medium mt-1 border-t border-gray-100 cursor-pointer"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 rounded-xl font-medium mt-1 border-t border-gray-100 cursor-pointer transition-colors"
                 >
                   <LogOut className="h-4 w-4" />
                   Sign Out

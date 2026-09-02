@@ -79,7 +79,7 @@ const userFormSchema = z
       .string()
       .min(1, 'Phone number is required')
       .refine((val) => PHONE_REGEX.test(val.trim()) && val.trim().length === 10, {
-        message: 'Contact number must start with a digit between 6-9 and be exactly 10 digits',
+        message: 'Phone number must be 10 digits starting with 6, 7, 8, or 9',
       }),
     password: z
       .string()
@@ -176,6 +176,8 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
     formState: { errors },
   } = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
+    mode: 'onChange',
+    reValidateMode: 'onChange',
     defaultValues: {
       username: '',
       firstName: '',
@@ -183,7 +185,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
       email: '',
       phone: '',
       password: '',
-      dateOfJoining: new Date().toISOString().split('T')[0],
+      dateOfJoining: new Date().toISOString().split('T')[0] as string,
       employeeCode: '',
       gender: '',
       dateOfBirth: '',
@@ -200,9 +202,21 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
   })
 
   const selectedRoleCode = useWatch({ control, name: 'selectedRoleCode' })
+  const isMultiPropertyRole = ['SUPER_ADMIN', 'ADMIN'].includes((selectedRoleCode || '').toUpperCase())
   const selectedDepartmentId = useWatch({ control, name: 'selectedDepartmentId' })
   const selectedDepartment = departments.find((d) => d.id === selectedDepartmentId)
   const availableJobCategories = selectedDepartment?.jobCategories || []
+
+  useEffect(() => {
+    if (!isMultiPropertyRole && selectedPropertyIds.size > 1) {
+      const timer = setTimeout(() => {
+        const firstId = Array.from(selectedPropertyIds)[0]
+        setSelectedPropertyIds(new Set(firstId ? [firstId] : []))
+        setPropertySelectionError(null)
+      }, 0)
+      return () => clearTimeout(timer)
+    }
+  }, [isMultiPropertyRole, selectedPropertyIds])
 
   const populateFormForUser = (u: UserItem) => {
     setEditingUserId(u.id)
@@ -214,7 +228,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
     setValue('password', '')
     setValue(
       'dateOfJoining',
-      u.profile?.dateOfJoining || u.profile?.date_of_joining || new Date().toISOString().split('T')[0],
+      u.profile?.dateOfJoining || u.profile?.date_of_joining || (new Date().toISOString().split('T')[0] as string),
     )
     setValue('employeeCode', u.profile?.employeeCode || u.profile?.employee_code || '')
     setValue('gender', u.profile?.gender || '')
@@ -314,16 +328,29 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
   }
 
   const togglePropertySelection = (pId: string) => {
+    const isMulti = ['SUPER_ADMIN', 'ADMIN'].includes((selectedRoleCode || '').toUpperCase())
+
     setSelectedPropertyIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(pId)) next.delete(pId)
-      else next.add(pId)
-      if (next.size === 0) {
-        setPropertySelectionError('At least one property location is mandatory.')
+      if (!isMulti) {
+        if (prev.has(pId)) {
+          const next = new Set<string>()
+          setPropertySelectionError('At least one property location is mandatory.')
+          return next
+        } else {
+          setPropertySelectionError(null)
+          return new Set([pId])
+        }
       } else {
-        setPropertySelectionError(null)
+        const next = new Set(prev)
+        if (next.has(pId)) next.delete(pId)
+        else next.add(pId)
+        if (next.size === 0) {
+          setPropertySelectionError('At least one property location is mandatory.')
+        } else {
+          setPropertySelectionError(null)
+        }
+        return next
       }
-      return next
     })
   }
 
@@ -331,9 +358,18 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
     setErrorMsg(null)
 
     const propertyIdsToSave = Array.from(selectedPropertyIds)
+    const isMultiRole = ['SUPER_ADMIN', 'ADMIN'].includes((values.selectedRoleCode || '').toUpperCase())
 
     if (propertyIdsToSave.length === 0) {
       const msg = 'At least one property location is mandatory.'
+      setErrorMsg(msg)
+      setPropertySelectionError(msg)
+      notifyError('Validation Error', msg)
+      return
+    }
+
+    if (!isMultiRole && propertyIdsToSave.length > 1) {
+      const msg = `Users with role '${values.selectedRoleCode}' can only be assigned to a single property location. Only Super Admin and Property Admin can have multiple properties.`
       setErrorMsg(msg)
       setPropertySelectionError(msg)
       notifyError('Validation Error', msg)
@@ -350,7 +386,8 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
         email: values.email,
         phone: values.phone,
         password: values.password || undefined,
-        dateOfJoining: values.dateOfJoining || new Date().toISOString().split('T')[0],
+        employeeCode: values.employeeCode?.trim() || undefined,
+        dateOfJoining: values.dateOfJoining || (new Date().toISOString().split('T')[0] as string),
         gender: values.gender || undefined,
         date_of_birth: values.dateOfBirth || undefined,
         emergency_contact: values.emergencyContact || undefined,
@@ -459,7 +496,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
         </div>
 
         {/* Full Page Form Container (React Hook Form + Zod) */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
           {errorMsg && (
             <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs text-rose-700 font-bold flex items-center gap-2 shadow-xs">
               <span>{errorMsg}</span>
@@ -482,7 +519,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                 placeholder="e.g. Ravi"
               />
               <Input
-                label="Last Name"
+                label="Last Name *"
                 required
                 {...register('lastName')}
                 error={errors.lastName?.message}
@@ -545,9 +582,6 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                 {...register('dateOfBirth')}
                 error={errors.dateOfBirth?.message}
               />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Input
                 label="Emergency Contact"
                 {...register('emergencyContact')}
@@ -555,6 +589,9 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                 placeholder="98765 00000"
                 icon={<Phone className="h-4 w-4 text-gray-400" />}
               />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <label htmlFor="bloodgroup-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Blood Group
@@ -578,15 +615,15 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                   <p className="mt-1 text-xs font-semibold text-red-500">{errors.bloodGroup.message}</p>
                 )}
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Input
                 label="Qualification"
                 {...register('qualification')}
                 error={errors.qualification?.message}
                 placeholder="e.g. B.Sc Nursing, MBBS, MBA"
               />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Input
                 label="Experience (Years)"
                 {...register('experience')}
@@ -731,7 +768,9 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                   Assign Property <span className="text-red-500 font-bold">*</span>
                 </h2>
                 <p className="text-xs text-gray-500 mt-1">
-                  Select the property locations this user is authorized to access and operate.
+                  {isMultiPropertyRole
+                    ? 'Select the property locations this user is authorized to access and operate (multiple allowed for Super Admin & Admin).'
+                    : 'Select the single property location this user is assigned to.'}
                 </p>
                 {propertySelectionError && (
                   <p className="mt-2 text-xs font-semibold text-red-500 flex items-center gap-1">
@@ -781,11 +820,16 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                         </div>
 
                         <div
-                          className={`w-5 h-5 rounded-md flex items-center justify-center transition-colors shrink-0 ${
+                          className={`w-5 h-5 ${isMultiPropertyRole ? 'rounded-md' : 'rounded-full'} flex items-center justify-center transition-colors shrink-0 ${
                             isChecked ? 'bg-[#005390] text-white' : 'border border-gray-300 bg-white'
                           }`}
                         >
-                          {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                          {isChecked &&
+                            (isMultiPropertyRole ? (
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            ) : (
+                              <div className="w-2 h-2 rounded-full bg-white" />
+                            ))}
                         </div>
                       </button>
                     )
@@ -818,8 +862,11 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
 
   const displayUsers = users.filter((u) => {
     if (u.username === 'superadmin') return false
+    const uRecord = u as unknown as Record<string, unknown>
+    const uRoleObj = uRecord.role as { code?: string } | undefined
+    if (uRoleObj?.code === 'SUPER_ADMIN') return false
     const isSa =
-      u.userLocations?.some((ur) => ur.role?.code === 'SUPER_ADMIN') ||
+      u.userLocations?.some((ul) => ul.role?.code === 'SUPER_ADMIN') ||
       u.userRoles?.some((ur) => ur.role?.code === 'SUPER_ADMIN')
     return !isSa
   })
@@ -996,7 +1043,34 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
       header: () => <div className="text-right">Actions</div>,
       cell: ({ row }) => {
         const u = row.original
-        const isSa = u.userRoles?.some((ur) => ur.role?.code === 'SUPER_ADMIN')
+
+        const roleCodes: string[] = []
+        const roleNames: string[] = []
+
+        const uRecord = u as unknown as Record<string, unknown>
+        const uRoleObj = uRecord.role as { name?: string; code?: string } | undefined
+        if (uRoleObj?.code) roleCodes.push(uRoleObj.code.toUpperCase())
+        if (uRoleObj?.name) roleNames.push(uRoleObj.name.toUpperCase())
+
+        u.userRoles?.forEach((ur) => {
+          const urObj = ur as unknown as Record<string, unknown>
+          const code = ur.role?.code || (urObj.code as string | undefined)
+          const name = ur.role?.name || (urObj.name as string | undefined)
+          if (code) roleCodes.push(code.toUpperCase())
+          if (name) roleNames.push(name.toUpperCase())
+        })
+
+        u.userLocations?.forEach((ul) => {
+          const ulObj = ul as unknown as Record<string, unknown>
+          const code = ul.role?.code || (ulObj.code as string | undefined)
+          const name = ul.role?.name || (ulObj.name as string | undefined)
+          if (code) roleCodes.push(code.toUpperCase())
+          if (name) roleNames.push(name.toUpperCase())
+        })
+
+        const isPropertyAdmin =
+          roleCodes.includes('ADMIN') || roleNames.some((n) => n === 'PROPERTY ADMIN' || n.includes('PROPERTY ADMIN'))
+
         return (
           <div className="text-right">
             <DropdownMenu>
@@ -1019,7 +1093,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                   <Pencil className="h-3.5 w-3.5 text-[#005390]" />
                   Edit Employee Details
                 </DropdownMenuItem>
-                {!isSa && (
+                {isPropertyAdmin && (
                   <DropdownMenuItem
                     onClick={() => navigate(`/global-settings/permissions/${u.id}`)}
                     className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-[#005390]/10 hover:text-[#005390] rounded-xl cursor-pointer"

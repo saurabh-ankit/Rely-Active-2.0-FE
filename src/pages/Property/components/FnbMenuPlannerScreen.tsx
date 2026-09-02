@@ -14,6 +14,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import api from '@/lib/api/axios'
+import { getFileUrl } from '@/lib/utils'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import {
   Dialog,
@@ -35,6 +36,19 @@ interface Dish {
   dietaryType: string
   basePrice: number
   imageUrl?: string
+  image_url?: string
+  photoUrl?: string
+  photo_url?: string
+}
+
+const getDishImageUrl = (dishObj?: Dish | Record<string, unknown> | null): string | null => {
+  if (!dishObj) return null
+  const d = dishObj as Record<string, unknown>
+  const url = d.imageUrl || d.image_url || d.photoUrl || d.photo_url
+  if (typeof url === 'string' && url.trim()) {
+    return getFileUrl(url.trim())
+  }
+  return null
 }
 
 type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
@@ -712,6 +726,20 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <GripVertical className="w-4 h-4 text-gray-400 group-hover:text-[#005390] shrink-0" />
+                          {(() => {
+                            const imgUrl = getDishImageUrl(dish)
+                            return imgUrl ? (
+                              <img
+                                src={imgUrl}
+                                alt={dish.name}
+                                className="w-8 h-8 rounded-lg object-cover shrink-0 border border-gray-200"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-lg bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0 border border-orange-200/50">
+                                <Utensils className="w-3.5 h-3.5" />
+                              </div>
+                            )
+                          })()}
                           <div className="min-w-0">
                             <div className="font-bold text-xs text-gray-900 truncate">{dish.name}</div>
                             <div className="text-[10px] text-gray-500 capitalize truncate mt-0.5">
@@ -817,32 +845,51 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                           </div>
                         ) : (
                           <div className="space-y-2">
-                            {slotItems.map((item) => (
-                              <div
-                                key={item.id}
-                                className="bg-white p-3 rounded-xl border border-gray-200/80 shadow-2xs flex items-center justify-between gap-2"
-                              >
-                                <div className="space-y-0.5 flex-1 min-w-0">
-                                  <div className="font-bold text-gray-900 text-xs truncate flex items-center gap-1.5">
-                                    <Utensils className="w-3.5 h-3.5 text-[#005390] shrink-0" />
-                                    <span className="truncate">{item.dish?.name || 'Dish'}</span>
+                            {slotItems.map((item) => {
+                              const fullDish = dishes.find((d) => d.id === item.dishId) || item.dish
+                              const imgUrl = getDishImageUrl(fullDish)
+
+                              return (
+                                <div
+                                  key={item.id}
+                                  className="bg-white p-2.5 rounded-xl border border-gray-200/80 shadow-2xs flex items-center justify-between gap-2.5"
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                    {imgUrl ? (
+                                      <img
+                                        src={imgUrl}
+                                        alt={fullDish?.name || 'Dish'}
+                                        className="w-8 h-8 rounded-lg object-cover shrink-0 border border-gray-200"
+                                      />
+                                    ) : (
+                                      <div className="w-8 h-8 rounded-lg bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0 border border-orange-200/50">
+                                        <Utensils className="w-3.5 h-3.5" />
+                                      </div>
+                                    )}
+                                    <div className="space-y-0.5 flex-1 min-w-0">
+                                      <div className="font-bold text-gray-900 text-xs truncate">
+                                        {fullDish?.name || 'Dish'}
+                                      </div>
+                                      <div className="text-[10px] text-gray-400 capitalize truncate">
+                                        {fullDish?.category ? fullDish.category.replace('_', ' ') : ''} • ₹
+                                        {dishes.find((d) => d.id === item.dishId)?.basePrice ??
+                                          fullDish?.basePrice ??
+                                          0}
+                                      </div>
+                                    </div>
                                   </div>
-                                  <div className="text-[10px] text-gray-400 capitalize">
-                                    {item.dish?.category.replace('_', ' ')} • ₹
-                                    {dishes.find((d) => d.id === item.dishId)?.basePrice ?? item.dish?.basePrice ?? 0}
-                                  </div>
+                                  {!isPreviewingCustomOverride && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteMenuItem(item.id)}
+                                      className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
                                 </div>
-                                {!isPreviewingCustomOverride && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteMenuItem(item.id)}
-                                    className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                              </div>
-                            ))}
+                              )
+                            })}
                           </div>
                         )}
                       </div>
@@ -974,6 +1021,20 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <GripVertical className="w-4 h-4 text-gray-400 group-hover:text-[#005390] shrink-0" />
+                        {(() => {
+                          const imgUrl = getDishImageUrl(dish)
+                          return imgUrl ? (
+                            <img
+                              src={imgUrl}
+                              alt={dish.name}
+                              className="w-8 h-8 rounded-lg object-cover shrink-0 border border-gray-200"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-lg bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0 border border-orange-200/50">
+                              <Utensils className="w-3.5 h-3.5" />
+                            </div>
+                          )
+                        })()}
                         <div className="min-w-0">
                           <div className="font-bold text-xs text-gray-900 truncate">{dish.name}</div>
                           <div className="text-[10px] text-gray-500 capitalize truncate mt-0.5">
@@ -1049,26 +1110,47 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                         </div>
                       ) : (
                         <div className="space-y-2">
-                          {targetItems.map((item) => (
-                            <div
-                              key={item.id}
-                              className="bg-white p-2.5 rounded-xl border border-gray-200 shadow-2xs flex items-center justify-between gap-2"
-                            >
-                              <div className="space-y-0.5 flex-1 min-w-0">
-                                <div className="font-bold text-gray-900 text-xs truncate flex items-center gap-1.5">
-                                  <Utensils className="w-3.5 h-3.5 text-[#005390] shrink-0" />
-                                  <span className="truncate">{item.dish?.name || 'Dish'}</span>
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => item.id && handleDeleteMenuItem(item.id)}
-                                className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                          {targetItems.map((item) => {
+                            const fullDish = dishes.find((d) => d.id === item.dishId) || item.dish
+                            const imgUrl = getDishImageUrl(fullDish)
+
+                            return (
+                              <div
+                                key={item.id}
+                                className="bg-white p-2.5 rounded-xl border border-gray-200 shadow-2xs flex items-center justify-between gap-2.5"
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          ))}
+                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                  {imgUrl ? (
+                                    <img
+                                      src={imgUrl}
+                                      alt={fullDish?.name || 'Dish'}
+                                      className="w-8 h-8 rounded-lg object-cover shrink-0 border border-gray-200"
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-lg bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0 border border-orange-200/50">
+                                      <Utensils className="w-3.5 h-3.5" />
+                                    </div>
+                                  )}
+                                  <div className="space-y-0.5 flex-1 min-w-0">
+                                    <div className="font-bold text-gray-900 text-xs truncate">
+                                      {fullDish?.name || 'Dish'}
+                                    </div>
+                                    <div className="text-[10px] text-gray-400 capitalize truncate">
+                                      {fullDish?.category ? fullDish.category.replace('_', ' ') : ''} • ₹
+                                      {dishes.find((d) => d.id === item.dishId)?.basePrice ?? fullDish?.basePrice ?? 0}
+                                    </div>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => item.id && handleDeleteMenuItem(item.id)}
+                                  className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )
+                          })}
                         </div>
                       )}
                     </div>
