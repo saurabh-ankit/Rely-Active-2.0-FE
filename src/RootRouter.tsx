@@ -13,6 +13,9 @@ import SectionPage from '@/pages/SectionPage'
 import SetupPage from '@/pages/Setup'
 import AssetManagementPage from '@/pages/AssetManagement'
 import FnbManagementPage from '@/pages/FnbManagement'
+import EventsPage from '@/pages/Events'
+import EventForm from '@/pages/Events/EventForm'
+import EventRegistrationsPage from '@/pages/Events/EventRegistrations'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
 export default function RootRouter() {
@@ -72,6 +75,14 @@ export default function RootRouter() {
           element={
             <ProtectedRoute requireSuperAdmin>
               <GlobalSettingsPage initialView="fnb-dishes" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="global-settings/global-services"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="global-services" />
             </ProtectedRoute>
           }
         />
@@ -137,7 +148,12 @@ export default function RootRouter() {
         <Route path="admin/billing-management/*" element={<SectionPage title="Billing Management" />} />
         <Route path="admin/shift-roster-management" element={<SectionPage title="Shift & Roster Management" />} />
         <Route path="admin/visitor-history" element={<SectionPage title="Visitors Management" />} />
-        <Route path="admin/events" element={<SectionPage title="Event Management" />} />
+        <Route path="admin/events" element={<EventsPage />} />
+        <Route path="admin/events/list" element={<Navigate to="/admin/events?tab=list" replace />} />
+        <Route path="admin/events/venues" element={<Navigate to="/admin/events?tab=venues" replace />} />
+        <Route path="admin/events/create" element={<Navigate to="/admin/events" replace />} />
+        <Route path="admin/events/edit/:eventId" element={<EventForm />} />
+        <Route path="admin/events/:eventId/registrations" element={<EventRegistrationsPage />} />
         <Route path="admin/fnb-history" element={<FnbManagementPage />} />
         <Route path="fnb-management" element={<FnbManagementPage />} />
         <Route path="admin/inventory/*" element={<SectionPage title="Inventory Management" />} />

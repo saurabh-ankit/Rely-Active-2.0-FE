@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Building2, Home, ShieldCheck, UserCheck, Utensils } from 'lucide-react'
+import { ArrowLeft, Briefcase, Building2, Home, ShieldCheck, UserCheck, Utensils } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { AdminUserManagement } from './components/AdminUserManagement'
 import { ResidentListScreen } from '../Resident/components/ResidentListScreen'
@@ -7,6 +7,7 @@ import { OnboardResidentScreen } from '../Resident/components/OnboardResidentScr
 import { ResidentDetailsScreen } from '../Resident/components/ResidentDetailsScreen'
 import { FnbGlobalPackagesTab } from './components/FnbGlobalPackagesTab'
 import { FnbDishesMasterTab } from './components/FnbDishesMasterTab'
+import { GlobalServicesTab } from './components/GlobalServicesTab'
 
 interface SettingItem {
   id: string
@@ -50,6 +51,16 @@ const accessSettings: SettingItem[] = [
   },
 ]
 
+const servicesSettings: SettingItem[] = [
+  {
+    id: 'global-services',
+    name: 'Global Services',
+    description: 'Create and manage global service templates with base pricing and property assignments.',
+    icon: Briefcase,
+    link: '/global-settings/global-services',
+  },
+]
+
 const fnbSettings: SettingItem[] = [
   {
     id: 'fnb-packages',
@@ -79,6 +90,7 @@ interface GlobalSettingsPageProps {
     | 'view-resident'
     | 'fnb-packages'
     | 'fnb-dishes'
+    | 'global-services'
 }
 
 export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSettingsPageProps) {
@@ -141,6 +153,21 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
     )
   }
 
+  if (activeView === 'global-services') {
+    return (
+      <div className="space-y-6 pb-10">
+        <button
+          type="button"
+          onClick={() => navigate('/global-settings')}
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+        </button>
+        <GlobalServicesTab />
+      </div>
+    )
+  }
+
   if (activeView === 'residents') {
     return (
       <div className="space-y-6 pb-10">
@@ -189,6 +216,37 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {accessSettings.map((item) => {
+            const Icon = item.icon
+            return (
+              <button
+                type="button"
+                key={item.id}
+                onClick={() => handleCardClick(item)}
+                className="group w-full text-left cursor-pointer rounded-3xl border border-white/40 bg-white/70 p-5 shadow-lg backdrop-blur-xl transition-all duration-300 hover:scale-[1.02] hover:bg-white hover:shadow-xl"
+              >
+                <div className="flex items-center space-x-3.5 mb-3">
+                  <div className="rounded-2xl bg-[#005390]/10 p-3 text-[#005390] transition-colors group-hover:bg-[#005390] group-hover:text-white">
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-base font-bold text-gray-900 group-hover:text-[#005390] transition-colors">
+                    {item.name}
+                  </h3>
+                </div>
+                <p className="text-xs text-gray-500 leading-relaxed">{item.description}</p>
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* Services Section */}
+      <section className="space-y-4">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-gray-800">
+          <Briefcase className="h-5 w-5 text-[#005390]" />
+          Services
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {servicesSettings.map((item) => {
             const Icon = item.icon
             return (
               <button
