@@ -17,6 +17,7 @@ import EventsPage from '@/pages/Events'
 import EventForm from '@/pages/Events/EventForm'
 import EventRegistrationsPage from '@/pages/Events/EventRegistrations'
 import UserProfilePage from '@/pages/Profile'
+import TicketsPage from '@/pages/Tickets'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
 export default function RootRouter() {
@@ -253,7 +254,23 @@ export default function RootRouter() {
           path="admin/events"
           element={
             <ProtectedRoute resourceKey="EVENTS" action="view">
-              <SectionPage title="Event Management" />
+              <EventsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/events/edit/:eventId"
+          element={
+            <ProtectedRoute resourceKey="EVENTS" action="update">
+              <EventForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/events/:eventId/registrations"
+          element={
+            <ProtectedRoute resourceKey="EVENTS" action="view">
+              <EventRegistrationsPage />
             </ProtectedRoute>
           }
         />
@@ -293,7 +310,15 @@ export default function RootRouter() {
           path="admin/tickets"
           element={
             <ProtectedRoute resourceKey="TICKETS" action="view">
-              <SectionPage title="Ticket Management (R&M, Concierge, Housekeeping, Food)" />
+              <TicketsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="tickets"
+          element={
+            <ProtectedRoute resourceKey="TICKETS" action="view">
+              <TicketsPage />
             </ProtectedRoute>
           }
         />

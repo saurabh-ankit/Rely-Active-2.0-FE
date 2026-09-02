@@ -215,4 +215,33 @@ export const API_ENDPOINTS = {
     getEventCapacity: `${BASE_URL}/location/:locationId/events/:eventId/capacity`,
     updateRegistrationStatus: `${BASE_URL}/location/:locationId/events/:eventId/registrations/:registrationId/status`,
   },
+
+  // Ticket Management Endpoints
+  tickets: {
+    list: (locationId?: string | null) => buildLocationEndpoint('/tickets', locationId),
+    stats: (locationId?: string | null) => buildLocationEndpoint('/tickets/stats', locationId),
+    categories: (locationId?: string | null) => buildLocationEndpoint('/tickets/categories', locationId),
+    units: (locationId?: string | null) => buildLocationEndpoint('/tickets/units', locationId),
+    assignableEmployees: (locationId?: string | null, departmentId?: string, jobCategoryId?: string) => {
+      let endpoint = buildLocationEndpoint('/tickets/assignable-employees', locationId)
+      const params: string[] = []
+      if (departmentId) params.push(`departmentId=${encodeURIComponent(departmentId)}`)
+      if (jobCategoryId) params.push(`jobCategoryId=${encodeURIComponent(jobCategoryId)}`)
+      if (params.length > 0) {
+        endpoint += (endpoint.includes('?') ? '&' : '?') + params.join('&')
+      }
+      return endpoint
+    },
+    create: (locationId?: string | null) => buildLocationEndpoint('/tickets', locationId),
+    get: (id: string, locationId?: string | null) => buildLocationEndpoint(`/tickets/${id}`, locationId),
+    update: (id: string, locationId?: string | null) => buildLocationEndpoint(`/tickets/${id}`, locationId),
+    updateOptions: (id: string, locationId?: string | null) =>
+      buildLocationEndpoint(`/tickets/${id}/options`, locationId),
+    updateStatus: (id: string, locationId?: string | null) =>
+      buildLocationEndpoint(`/tickets/${id}/status`, locationId),
+    assign: (id: string, locationId?: string | null) => buildLocationEndpoint(`/tickets/${id}/assign`, locationId),
+    addComment: (id: string, locationId?: string | null) =>
+      buildLocationEndpoint(`/tickets/${id}/comments`, locationId),
+    delete: (id: string, locationId?: string | null) => buildLocationEndpoint(`/tickets/${id}`, locationId),
+  },
 }
