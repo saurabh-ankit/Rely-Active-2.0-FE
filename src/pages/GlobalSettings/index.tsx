@@ -7,6 +7,7 @@ import { OnboardResidentScreen } from '../Resident/components/OnboardResidentScr
 import { ResidentDetailsScreen } from '../Resident/components/ResidentDetailsScreen'
 import { FnbGlobalPackagesTab } from './components/FnbGlobalPackagesTab'
 import { FnbDishesMasterTab } from './components/FnbDishesMasterTab'
+import FnbGlobalMealSlotsTab from './components/FnbGlobalMealSlotsTab'
 
 interface SettingItem {
   id: string
@@ -52,6 +53,14 @@ const accessSettings: SettingItem[] = [
 
 const fnbSettings: SettingItem[] = [
   {
+    id: 'fnb-meal-slots',
+    name: 'Global Meal Slots',
+    description:
+      'Configure regular meal slots (timings, prices) and special meal slots with property location assignments.',
+    icon: Utensils,
+    link: '/global-settings/fnb-meal-slots',
+  },
+  {
     id: 'fnb-packages',
     name: 'Food Package Templates',
     description: 'Create and configure global food package templates with meal slot inclusions.',
@@ -77,6 +86,7 @@ interface GlobalSettingsPageProps {
     | 'residents'
     | 'edit-resident'
     | 'view-resident'
+    | 'fnb-meal-slots'
     | 'fnb-packages'
     | 'fnb-dishes'
 }
@@ -109,6 +119,21 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
 
   if (activeView === 'view-resident') {
     return <ResidentDetailsScreen isGlobalMode={true} />
+  }
+
+  if (activeView === 'fnb-meal-slots') {
+    return (
+      <div className="space-y-6 pb-10">
+        <button
+          type="button"
+          onClick={() => navigate('/global-settings')}
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+        </button>
+        <FnbGlobalMealSlotsTab />
+      </div>
+    )
   }
 
   if (activeView === 'fnb-packages') {
@@ -243,7 +268,7 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
         </div>
       </section>
 
-      {/* System Settings Grid */}
+      {/* Organization & Locations Section */}
       <section className="space-y-4">
         <h2 className="flex items-center gap-2 text-lg font-bold text-gray-800">
           <Building2 className="h-5 w-5 text-[#005390]" />

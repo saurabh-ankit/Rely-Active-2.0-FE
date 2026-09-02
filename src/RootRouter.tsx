@@ -64,6 +64,14 @@ export default function RootRouter() {
           }
         />
         <Route
+          path="global-settings/fnb-meal-slots"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="fnb-meal-slots" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="global-settings/fnb-packages"
           element={
             <ProtectedRoute requireSuperAdmin>

@@ -222,4 +222,52 @@ export const API_ENDPOINTS = {
       buildLocationEndpoint(`/tickets/${id}/comments`, locationId),
     delete: (id: string, locationId?: string | null) => buildLocationEndpoint(`/tickets/${id}`, locationId),
   },
+
+  // Food & Beverage (F&B) Management Endpoints
+  fnb: {
+    packages: {
+      list: (locId: string) => buildLocationEndpoint('/fnb/packages', locId),
+      create: `${BASE_URL}/fnb/packages`,
+      update: (id: string) => `${BASE_URL}/fnb/packages/${id}`,
+      delete: (id: string) => `${BASE_URL}/fnb/packages/${id}`,
+    },
+    mealSlots: {
+      list: (locId: string) => buildLocationEndpoint('/fnb/meal-slots', locId),
+      create: `${BASE_URL}/fnb/meal-slots`,
+      update: (id: string) => `${BASE_URL}/fnb/meal-slots/${id}`,
+      delete: (id: string) => `${BASE_URL}/fnb/meal-slots/${id}`,
+      global: `${BASE_URL}/fnb/meal-slots/global`,
+    },
+    specialSlots: {
+      list: (locId: string) => buildLocationEndpoint('/fnb/special-slots', locId),
+      create: `${BASE_URL}/fnb/special-slots`,
+      update: (id: string) => `${BASE_URL}/fnb/special-slots/${id}`,
+      delete: (id: string) => `${BASE_URL}/fnb/special-slots/${id}`,
+    },
+    dishes: {
+      list: (locId: string) => buildLocationEndpoint('/fnb/dishes', locId),
+      create: `${BASE_URL}/fnb/dishes`,
+      update: (id: string) => `${BASE_URL}/fnb/dishes/${id}`,
+      delete: (id: string) => `${BASE_URL}/fnb/dishes/${id}`,
+      master: `${BASE_URL}/fnb/dishes/master`,
+    },
+    dailyMenu: {
+      get: (locId: string, date: string) =>
+        `${BASE_URL}/fnb/daily-menu?locId=${encodeURIComponent(locId)}&date=${encodeURIComponent(date)}`,
+      publish: `${BASE_URL}/fnb/daily-menu/publish`,
+      updateItem: (id: string) => `${BASE_URL}/fnb/daily-menu/items/${id}`,
+      deleteItem: (id: string) => `${BASE_URL}/fnb/daily-menu/items/${id}`,
+    },
+    residentOrders: {
+      list: (params: string) => `${BASE_URL}/fnb/resident-orders?${params}`,
+      updateStatus: (id: string) => `${BASE_URL}/fnb/resident-orders/${id}/status`,
+      assignDelivery: (id: string) => `${BASE_URL}/fnb/resident-orders/${id}/assign-delivery`,
+      completeDelivery: (id: string) => `${BASE_URL}/fnb/resident-orders/${id}/complete-delivery`,
+    },
+    staffEmployees: (locId: string) => buildLocationEndpoint('/fnb/staff-employees', locId),
+    residentSubscriptions: {
+      assign: `${BASE_URL}/fnb/resident-subscriptions/assign`,
+      get: (residentId: string) => `${BASE_URL}/fnb/resident-subscriptions/resident/${residentId}`,
+    },
+  },
 }

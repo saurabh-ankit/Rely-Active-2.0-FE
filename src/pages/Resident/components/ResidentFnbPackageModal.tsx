@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { Utensils, AlertCircle, ShieldAlert, X, User } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { Utensils, AlertCircle, ShieldAlert, X, User, Info } from 'lucide-react'
 import api from '@/lib/api/axios'
 import type { ResidentFamilyMember } from '@/lib/types'
 import { notifyError, notifySuccess } from '@/utils/toast'
+import { useScrollLock } from '@/hooks/useScrollLock'
 
 interface PropertyPackage {
   id: string
@@ -45,46 +47,102 @@ export function ResidentFnbPackageModal({
   familyMembers = [],
 }: ResidentFnbPackageModalProps) {
   const [propertyPackages, setPropertyPackages] = useState<PropertyPackage[]>([])
+  const [globalMealSlots, setGlobalMealSlots] = useState<Array<{ id: string; name: string; code?: string }>>([])
   const [loading, setLoading] = useState(true)
 
-  // Map of personId (or 'PRIMARY') -> selected propertyPackageId
+  const getSlotDisplayName = (slot: string): string => {
+    if (!slot) return ''
+    const slotLower = slot.toLowerCase()
+    if (slotLower === 'breakfast') return 'Break Fast'
+    if (slotLower === 'lunch') return 'Lunch'
+    if (slotLower === 'snacks') return 'Evening Snacks'
+    if (slotLower === 'dinner') return 'Dinner'
+
+    const matchedGlobalSlot = globalMealSlots.find(
+      (ms) =>
+        ms.id === slot ||
+        (ms.code && ms.code.toLowerCase() === slotLower) ||
+        (ms.name && ms.name.toLowerCase() === slotLower),
+    )
+    if (matchedGlobalSlot) return matchedGlobalSlot.name
+
+    return slot
+  }
+
+  // Map of personId (or 'PRIMARY') -> selected propertyPackageId and startDate
   const [selectedPackages, setSelectedPackages] = useState<Record<string, string>>({})
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
-  const [allergiesNotes, setAllergiesNotes] = useState('')
+  const [startDates, setStartDates] = useState<Record<string, string>>({})
+  const [existingSubKeys, setExistingSubKeys] = useState<Set<string>>(new Set())
   const [errorMsg, setErrorMsg] = useState('')
   const [saving, setSaving] = useState(false)
+
+  useScrollLock(isOpen)
+
+  const handleStartDateChange = (personKey: string, date: string) => {
+    setStartDates((prev) => ({
+      ...prev,
+      [personKey]: date,
+    }))
+  }
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
-      const [pkgsRes, activeSubsRes] = await Promise.all([
-        api.get(`/fnb/properties/${locId}/packages`),
+
+      let effectiveLocId = locId
+      if (!effectiveLocId) {
+        try {
+          const resDetail = await api.get(`/residents/${residentId}`)
+          const rData = resDetail.data?.data
+          effectiveLocId = rData?.locId || rData?.loc_id || ''
+        } catch (e) {
+          console.warn('Could not fetch resident location fallback:', e)
+        }
+      }
+
+      const [pkgsResult, activeSubsResult, globalSlotsResult] = await Promise.allSettled([
+        effectiveLocId ? api.get(`/fnb/properties/${effectiveLocId}/packages`) : Promise.resolve(null),
         api.get(`/fnb/resident-package/${residentId}`),
+        api.get('/fnb/global-meal-slots'),
       ])
 
-      if (pkgsRes.data?.success) {
-        setPropertyPackages(pkgsRes.data.data || [])
+      if (pkgsResult.status === 'fulfilled' && pkgsResult.value?.data?.success) {
+        setPropertyPackages(pkgsResult.value.data.data || [])
+      }
+
+      if (globalSlotsResult.status === 'fulfilled' && globalSlotsResult.value?.data?.success) {
+        setGlobalMealSlots(globalSlotsResult.value.data.data || [])
       }
 
       const pkgMap: Record<string, string> = {}
-      if (activeSubsRes.data?.success && Array.isArray(activeSubsRes.data.data)) {
-        const subs: ActiveSubscription[] = activeSubsRes.data.data
+      const dateMap: Record<string, string> = {}
+      const existingKeys = new Set<string>()
+
+      if (activeSubsResult.status === 'fulfilled' && activeSubsResult.value?.data?.success) {
+        const subs: ActiveSubscription[] = activeSubsResult.value.data.data || []
         subs.forEach((sub) => {
-          if (sub.familyMemberId) {
-            pkgMap[sub.familyMemberId] = sub.propertyPackageId
-          } else {
-            pkgMap['PRIMARY'] = sub.propertyPackageId
-          }
-          if (sub.allergiesNotes) {
-            setAllergiesNotes(sub.allergiesNotes)
-          }
-          if (sub.startDate) {
-            setStartDate(sub.startDate.split('T')[0])
+          const famId = sub.familyMemberId || (sub as unknown as Record<string, string>).family_member_id || null
+          const propPkgId =
+            sub.propertyPackageId || (sub as unknown as Record<string, string>).property_package_id || ''
+          const sDate = sub.startDate || (sub as unknown as Record<string, string>).start_date
+
+          if (propPkgId) {
+            if (famId) {
+              pkgMap[famId] = propPkgId
+              existingKeys.add(famId)
+              if (sDate) dateMap[famId] = sDate.split('T')[0]
+            } else {
+              pkgMap['PRIMARY'] = propPkgId
+              existingKeys.add('PRIMARY')
+              if (sDate) dateMap['PRIMARY'] = sDate.split('T')[0]
+            }
           }
         })
       }
 
+      setExistingSubKeys(existingKeys)
       setSelectedPackages(pkgMap)
+      setStartDates(dateMap)
     } catch (err) {
       console.error('Failed to load resident package info:', err)
     } finally {
@@ -123,28 +181,34 @@ export function ResidentFnbPackageModal({
       setSaving(true)
       setErrorMsg('')
 
-      const subscriptionsPayload: Array<{ familyMemberId: string | null; propertyPackageId: string | null }> = []
+      const todayStr = new Date().toISOString().split('T')[0]
+      const subscriptionsPayload: Array<{
+        familyMemberId: string | null
+        propertyPackageId: string | null
+        startDate: string
+      }> = []
 
       // Primary Resident
       subscriptionsPayload.push({
         familyMemberId: null,
         propertyPackageId: selectedPackages['PRIMARY'] || null,
+        startDate: startDates['PRIMARY'] || todayStr,
       })
 
       // Family Members
       familyMembers.forEach((fm) => {
-        if (fm.id) {
+        const fmId = fm.id || (fm as unknown as Record<string, string>)._id
+        if (fmId) {
           subscriptionsPayload.push({
-            familyMemberId: fm.id,
-            propertyPackageId: selectedPackages[fm.id] || null,
+            familyMemberId: fmId,
+            propertyPackageId: selectedPackages[fmId] || null,
+            startDate: startDates[fmId] || todayStr,
           })
         }
       })
 
       const res = await api.post('/fnb/resident-package', {
         residentId,
-        startDate,
-        allergiesNotes,
         subscriptions: subscriptionsPayload,
       })
 
@@ -171,20 +235,25 @@ export function ResidentFnbPackageModal({
   if (!isOpen) return null
 
   // All members (Primary + Family)
-  const validFamilyMembers = familyMembers.filter((fm): fm is ResidentFamilyMember & { id: string } => Boolean(fm.id))
+  const validFamilyMembers = familyMembers.filter((fm) =>
+    Boolean(fm.id || (fm as unknown as Record<string, string>)._id),
+  )
 
   const allMembers = [
     { key: 'PRIMARY', name: residentName, relation: 'Primary Resident', isPrimary: true },
-    ...validFamilyMembers.map((fm) => ({
-      key: fm.id,
-      name: `${fm.firstName} ${fm.lastName || ''}`.trim(),
-      relation: fm.relation || 'Family Member',
-      isPrimary: false,
-    })),
+    ...validFamilyMembers.map((fm) => {
+      const fmId = fm.id || (fm as unknown as Record<string, string>)._id || ''
+      return {
+        key: fmId,
+        name: `${fm.firstName} ${fm.lastName || ''}`.trim(),
+        relation: fm.relation || 'Family Member',
+        isPrimary: false,
+      }
+    }),
   ]
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 sm:p-6 overflow-y-auto">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 sm:p-6 overflow-y-auto">
       <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl space-y-6 relative max-h-[90vh] flex flex-col justify-between my-auto">
         {/* Header */}
         <div className="flex items-start justify-between border-b border-gray-100 pb-4">
@@ -227,6 +296,19 @@ export function ResidentFnbPackageModal({
               </div>
             )}
 
+            {/* Note banner explaining package changes must be made from Property F&B Settings */}
+            <div className="p-3.5 rounded-2xl border border-blue-200 bg-blue-50/80 text-xs text-blue-900 flex items-start gap-2.5 font-medium shadow-2xs">
+              <Info className="w-4.5 h-4.5 text-[#005390] shrink-0 mt-0.5" />
+              <div className="leading-relaxed">
+                <span className="font-bold text-[#005390]">Note:</span> To change or update a food package for a
+                resident after it has been assigned, please do it from{' '}
+                <strong className="text-[#005390]">
+                  Food & Beverage (F&B) Management &gt; Property Packages & Pricing
+                </strong>
+                .
+              </div>
+            </div>
+
             {loading ? (
               <div className="py-12 text-center text-gray-400 text-sm">Loading food packages & subscriptions...</div>
             ) : (
@@ -234,9 +316,10 @@ export function ResidentFnbPackageModal({
                 {/* Person-wise Food Package Selection Table */}
                 <div className="border border-gray-200/80 rounded-2xl overflow-hidden shadow-2xs">
                   <div className="bg-gray-50/80 px-4 py-3 border-b border-gray-200/80 text-xs font-bold text-gray-700 uppercase tracking-wider grid grid-cols-12 gap-3 items-center">
-                    <div className="col-span-4 sm:col-span-3">Resident / Family Member</div>
-                    <div className="col-span-8 sm:col-span-4">Select Food Package</div>
-                    <div className="hidden sm:block sm:col-span-3">Included Meal Slots & Diet</div>
+                    <div className="col-span-12 sm:col-span-3">Resident / Family Member</div>
+                    <div className="col-span-12 sm:col-span-3">Select Food Package</div>
+                    <div className="col-span-12 sm:col-span-2">Start Date</div>
+                    <div className="hidden sm:block sm:col-span-2">Included Meals & Diet</div>
                     <div className="hidden sm:block sm:col-span-2 text-right">Package Price</div>
                   </div>
 
@@ -245,6 +328,8 @@ export function ResidentFnbPackageModal({
                       const selectedPkgId = selectedPackages[member.key] || ''
                       const selectedPkg = propertyPackages.find((p) => p.id === selectedPkgId)
                       const gPkg = selectedPkg?.globalPackage
+                      const isAlreadyAssigned = existingSubKeys.has(member.key)
+                      const personStartDate = startDates[member.key] || new Date().toISOString().split('T')[0]
 
                       return (
                         <div
@@ -277,36 +362,74 @@ export function ResidentFnbPackageModal({
                           </div>
 
                           {/* Food Package Dropdown */}
-                          <div className="col-span-12 sm:col-span-4">
+                          <div className="col-span-12 sm:col-span-3">
                             <select
+                              disabled={isAlreadyAssigned}
                               value={selectedPkgId}
                               onChange={(e) => handlePackageChange(member.key, e.target.value)}
-                              className="w-full px-3 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] bg-white font-medium text-gray-800"
+                              className={`w-full px-3 py-2 text-xs border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] font-medium transition-all ${
+                                isAlreadyAssigned
+                                  ? 'bg-gray-100/90 text-gray-500 cursor-not-allowed border-gray-200 shadow-2xs'
+                                  : 'bg-white text-gray-800 border-gray-200'
+                              }`}
                             >
                               <option value="">-- No Package (None) --</option>
-                              {propertyPackages.map((pkg) => (
-                                <option key={pkg.id} value={pkg.id}>
-                                  {pkg.globalPackage?.name || 'Package'} — ₹{Number(pkg.price).toLocaleString('en-IN')}
-                                  /mo
-                                </option>
-                              ))}
+                              {propertyPackages.map((pkg) => {
+                                const dietStr = pkg.globalPackage?.dietaryType
+                                  ? ` (${pkg.globalPackage.dietaryType.replace('_', ' ').toUpperCase()})`
+                                  : ''
+                                return (
+                                  <option key={pkg.id} value={pkg.id}>
+                                    {pkg.globalPackage?.name || 'Package'}
+                                    {dietStr}
+                                  </option>
+                                )
+                              })}
                             </select>
+                            {isAlreadyAssigned && (
+                              <div className="text-[10px] font-extrabold text-amber-700 mt-1 flex items-center gap-1 uppercase tracking-wider">
+                                🔒 Package Assigned
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Start Date */}
+                          <div className="col-span-12 sm:col-span-2">
+                            <input
+                              type="date"
+                              disabled={isAlreadyAssigned}
+                              value={personStartDate}
+                              onChange={(e) => handleStartDateChange(member.key, e.target.value)}
+                              className={`w-full px-2.5 py-1.5 text-xs border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] font-medium transition-all ${
+                                isAlreadyAssigned
+                                  ? 'bg-gray-100/90 text-gray-500 cursor-not-allowed border-gray-200 shadow-2xs'
+                                  : 'bg-white text-gray-800 border-gray-200'
+                              }`}
+                            />
                           </div>
 
                           {/* Meal Slots & Diet Preview */}
-                          <div className="col-span-6 sm:col-span-3 text-xs">
+                          <div className="col-span-6 sm:col-span-2 text-xs">
                             {selectedPkg ? (
                               <div className="space-y-1">
-                                <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-100 capitalize">
+                                <span
+                                  className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold capitalize border ${
+                                    gPkg?.dietaryType && gPkg.dietaryType.toLowerCase().includes('non')
+                                      ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                      : gPkg?.dietaryType && gPkg.dietaryType.toLowerCase().includes('egg')
+                                        ? 'bg-amber-100 text-amber-800 border-amber-300'
+                                        : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                  }`}
+                                >
                                   {gPkg?.dietaryType ? gPkg.dietaryType.replace('_', ' ') : 'Vegetarian'}
                                 </span>
                                 <div className="text-[11px] text-gray-500 flex flex-wrap gap-1">
                                   {gPkg?.includedMealSlots?.map((slot) => (
                                     <span
                                       key={slot}
-                                      className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[10px] font-medium capitalize"
+                                      className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-gray-200"
                                     >
-                                      {slot}
+                                      {getSlotDisplayName(slot)}
                                     </span>
                                   ))}
                                 </div>
@@ -332,37 +455,6 @@ export function ResidentFnbPackageModal({
                   </div>
                 </div>
 
-                {/* Common Subscription Details */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                  <div>
-                    <label htmlFor="fnb-start-date-input" className="block text-xs font-semibold text-gray-700 mb-1">
-                      Start Date <span className="text-red-500 font-bold ml-0.5">*</span>
-                    </label>
-                    <input
-                      id="fnb-start-date-input"
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-xs font-medium border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390]"
-                      required
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label htmlFor="fnb-allergies-input" className="block text-xs font-semibold text-gray-700 mb-1">
-                      Allergies & Special Instructions
-                    </label>
-                    <input
-                      id="fnb-allergies-input"
-                      type="text"
-                      value={allergiesNotes}
-                      onChange={(e) => setAllergiesNotes(e.target.value)}
-                      placeholder="e.g. Peanut allergy, low sodium, lactose intolerant..."
-                      className="w-full px-3.5 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390]"
-                    />
-                  </div>
-                </div>
-
                 {/* Action Buttons */}
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
                   <button
@@ -385,6 +477,7 @@ export function ResidentFnbPackageModal({
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
