@@ -30,7 +30,8 @@ export function StatCardsHeader({
     let count = 0
     displayRosterDates.forEach((duty) => {
       if (duty.status === 'CANCELLED') return
-      const resId = duty.schedulingResourceId || duty.resourceUserId || (duty.resource ? duty.resource.toLowerCase() : '')
+      const resId =
+        duty.schedulingResourceId || duty.resourceUserId || (duty.resource ? duty.resource.toLowerCase() : '')
       if (!resId || !duty.date) return
       const key = `${resId}_${duty.date}`
       seenMap[key] = (seenMap[key] || 0) + 1
@@ -42,7 +43,7 @@ export function StatCardsHeader({
   }, [displayRosterDates])
 
   return (
-    <StatsGrid columns={4}>
+    <StatsGrid>
       <StatCard
         title="Total Roster Dates"
         value={isLoading ? '...' : displayRosterDates.length.toString()}
@@ -69,7 +70,11 @@ export function StatCardsHeader({
       />
       <StatCard
         title="Roster Conflict Status"
-        value={totalRosterConflicts === 0 ? '0 Conflicts' : `${totalRosterConflicts} Conflict${totalRosterConflicts > 1 ? 's' : ''}`}
+        value={
+          totalRosterConflicts === 0
+            ? '0 Conflicts'
+            : `${totalRosterConflicts} Conflict${totalRosterConflicts > 1 ? 's' : ''}`
+        }
         description={totalRosterConflicts === 0 ? '100% Policy Compliant' : 'Overlapping duties detected'}
         icon={ShieldCheck}
         color={totalRosterConflicts === 0 ? 'green' : 'yellow'}

@@ -1,37 +1,30 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useForm, useWatch, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import type { ZodIssue } from 'zod'
 import {
   Calendar as CalendarIcon,
   UserCheck,
   Stethoscope,
-  ShieldCheck,
   Clock,
   Sliders,
   Plus,
   RefreshCw,
   CheckCircle2,
-  ArrowRight,
   LayoutList,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
   UserCheck2,
   CalendarDays,
-  Pencil,
-  Search,
   Layers,
   Home,
-  Lock,
   Sparkles,
-  MapPin,
-  FileCheck,
   UserPlus,
-  CheckSquare,
-  Square,
   Activity,
   CalendarX,
   Copy,
   Download,
-  Bot,
   Filter,
   X,
   Users,
@@ -42,27 +35,47 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from '@/components/ui/dropdown-menu'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { ResponsiveTabs } from '@/components/common/ResponsiveTabs'
-import StatCard from '../AssetManagement/components/StatCard'
-import StatsGrid from '../AssetManagement/components/StatsGrid'
-import { rosterService, type CreateShiftPayload } from '@/lib/services/rosterService'
+import { rosterService } from '@/lib/services/rosterService'
 import { getPropertiesAPI } from '@/lib/services/propertyService'
 import type { Property } from '@/pages/Property/types'
 import { DataTable } from '@/components/ui/data-table'
 import type { ColumnDef } from '@tanstack/react-table'
 import { toast } from 'sonner'
+import { notifyError } from '@/utils/toast'
 import { useMedicalStore } from '@/lib/stores/medicalStore'
 import { MedicalSpecializationModal } from '@/components/medical/MedicalSpecializationModal'
-import { useUsersQuery } from '@/hooks/react-query/user'
 import { useLocationContext } from '@/hooks/useLocation'
+import { useDepartmentsQuery } from '@/hooks/react-query/rbac'
+import {
+  useGetFrequencies,
+  useCreateFrequency,
+  useCancelRosterDate,
+  useRequestReplacement,
+  useCreateShift,
+  useUpdateShift,
+  useRosterContext,
+} from '@/hooks/react-query/rosterManagement'
+import type { ValidationResult } from '@/lib/services/rosterService'
 
 import {
   type RosterGridRow,
@@ -70,12 +83,38 @@ import {
   type TargetLocation,
   type OpdSlot,
   type RosterBuilderState,
-  calculateOpdSlots,
+  type RosterShiftItem,
+  getBuilderScheduleDates,
+  isStaffAvailableForBuilderSchedule,
+  mapSchedulingResourceToStaff,
 } from './types'
+import { mapRosterDateToGridRow } from './utils/mapRosterDates'
+import { useRosterPageData } from './hooks/useRosterPageData'
+import { usePublishRosterAssignment } from './hooks/usePublishRosterAssignment'
 import { StatCardsHeader } from './components/StatCardsHeader'
 import { ShiftTemplatesTab } from './components/ShiftTemplatesTab'
 import { CreateCustomShiftModal } from './components/CreateCustomShiftModal'
 import { AddTargetLocationModal } from './components/AddTargetLocationModal'
+import { OpdBookingModal } from './components/OpdBookingModal'
+import { StaffPickerPanel } from './components/StaffPickerPanel'
+import { OpdConfigSection } from './components/OpdConfigSection'
+import { OnboardDoctorModal } from './components/OnboardDoctorModal'
+import { ValidationResultPanel } from './components/ValidationResultPanel'
+import { CopyAssignmentModal } from './components/CopyAssignmentModal'
+import {
+  rosterBuilderSchema,
+  type CreateShiftFormValues,
+  type AddTargetLocationFormValues,
+  type RequestReplacementFormValues,
+  type CancelRosterDateFormValues,
+  type AddStaffToRosterFormValues,
+  requestReplacementFormSchema,
+  cancelRosterDateFormSchema,
+  addStaffToRosterSchema,
+} from './schemas/roster.schemas'
+import { FieldErrorMessage } from './utils/FieldErrorMessage'
+import { notifyFormValidationErrors, notifyZodValidationError } from './utils/rosterFormHelpers'
+import { extractApiList } from './utils/apiHelpers'
 
 export type { RosterGridRow, SchedulableResource, TargetLocation, OpdSlot, RosterBuilderState }
 
@@ -87,91 +126,46 @@ export default function ShiftRosterPage() {
   const [selectedDutyTypeFilter, setSelectedDutyTypeFilter] = useState<string>('ALL')
 
   // Location Context & Dynamic Schedulable Target Locations Pool
-  const { selectedLocationId, accessibleLocations, selectedLocationName } = useLocationContext()
-
-  // Context IDs — resolved from active location context with localStorage/default fallback
-  const companyId = localStorage.getItem('rely_active_company_id') || 'default-company-id'
-  const locationId = selectedLocationId || localStorage.getItem('rely_active_property_id') || 'default-property-id'
+  const { accessibleLocations, selectedLocationName } = useLocationContext()
+  const { companyId, locationId } = useRosterContext()
 
   // Dynamic API state bound directly to database
-  const [liveShifts, setLiveShifts] = useState<any[]>([])
-  const [liveRosterDates, setLiveRosterDates] = useState<any[]>([])
   const [liveProperties, setLiveProperties] = useState<Property[]>([])
-  const [isLoading, setIsLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const rosterDateFilterParams = useMemo(() => {
+    const params: Record<string, unknown> = {}
+    if (selectedCategoryFilter !== 'ALL') params.resourceType = selectedCategoryFilter
+    return params
+  }, [selectedCategoryFilter])
 
-
-
-  // Live API Users & Medical Store Staff
-  const { data: apiUsers = [], isLoading: isLoadingUsers } = useUsersQuery()
-  const { staffList } = useMedicalStore()
+  const { data: departmentsData } = useDepartmentsQuery()
+  const departments = useMemo(() => extractApiList<{ id: string; name: string }>(departmentsData), [departmentsData])
+  const { staffList, specializations, fetchSpecializations } = useMedicalStore()
   const [isMedicalOnboardingOpen, setIsMedicalOnboardingOpen] = useState(false)
+  const [isOnboardDoctorOpen, setIsOnboardDoctorOpen] = useState(false)
+  const [validationResults, setValidationResults] = useState<ValidationResult[]>([])
+  const [validationPanelMode, setValidationPanelMode] = useState<'blocked' | 'override'>('blocked')
+  const [isValidationPanelOpen, setIsValidationPanelOpen] = useState(false)
+  const [pendingOverrideReason, setPendingOverrideReason] = useState('')
 
-  // Schedulable Resources Pool (Synchronized with Live DB Users & Onboarded Registry)
-  const sampleResources: SchedulableResource[] = useMemo(() => {
-    if (apiUsers && apiUsers.length > 0) {
-      return apiUsers.map((u) => {
-        const uAny = u as any
-        const profile = (u.profile || {}) as any
-        const fullName = profile.firstName
-          ? `${profile.firstName} ${profile.lastName || ''}`.trim()
-          : u.username || u.email || 'Employee'
+  const createShiftMutation = useCreateShift()
+  const updateShiftMutation = useUpdateShift()
+  const cancelRosterDateMutation = useCancelRosterDate()
+  const requestReplacementMutation = useRequestReplacement()
+  const { publish: publishRoster, isPublishing: isPublishHookPending } = usePublishRosterAssignment()
+  const { data: frequenciesResponse } = useGetFrequencies()
+  const createFrequencyMutation = useCreateFrequency()
 
-        const isDoctor =
-          uAny.roleCode?.toUpperCase() === 'DOCTOR' ||
-          uAny.roles?.includes('DOCTOR') ||
-          (u.userLocations || []).some((ul: any) => ul.role?.code === 'DOCTOR')
+  const frequencies = useMemo(
+    () => extractApiList<{ id: string; frequencyName: string }>(frequenciesResponse),
+    [frequenciesResponse],
+  )
 
-        const doctorType = profile.doctorType || uAny.doctorType || 'IN_HOUSE'
-        const specialization =
-          profile.specialization || uAny.specialization || (isDoctor ? 'General Practice' : 'Clinical Support')
-
-        return {
-          id: u.id,
-          name: fullName,
-          role: isDoctor
-            ? doctorType === 'VISITING'
-              ? 'Visiting Consultant'
-              : 'In-House Physician'
-            : profile.department || uAny.department || 'Clinical Staff',
-          type: isDoctor ? 'DOCTOR' : 'EMPLOYEE',
-          subType: doctorType as 'IN_HOUSE' | 'VISITING',
-          specialization,
-        }
-      })
-    }
-
-    return staffList.map((s) => ({
-      id: s.id,
-      name: s.name,
-      role:
-        s.role === 'DOCTOR'
-          ? s.doctorType === 'VISITING'
-            ? 'Visiting Consultant'
-            : 'In-House Physician'
-          : s.department || 'Staff',
-      type: s.role === 'DOCTOR' ? 'DOCTOR' : 'EMPLOYEE',
-      subType: s.doctorType,
-      specialization: s.specialization,
-    }))
-  }, [apiUsers, staffList])
-
-  const inHouseStaffCount = useMemo(() => {
-    return sampleResources.filter((r) => r.type === 'EMPLOYEE' || r.subType !== 'VISITING').length
-  }, [sampleResources])
-
-  const visitingDoctorCount = useMemo(() => {
-    return sampleResources.filter((r) => r.type === 'DOCTOR' && r.subType === 'VISITING').length
-  }, [sampleResources])
-
-  // Dynamic Schedulable Target Locations Pool
-  const { specializations, fetchSpecializations } = useMedicalStore()
   const [customLocations, setCustomLocations] = useState<TargetLocation[]>([])
 
   useEffect(() => {
     fetchSpecializations()
   }, [fetchSpecializations])
-
 
   const targetLocations: TargetLocation[] = useMemo(() => {
     const list: TargetLocation[] = []
@@ -228,20 +222,25 @@ export default function ShiftRosterPage() {
       }
     }
 
-    // 2. DEPARTMENT targets from registered medical specializations & departments
-    const deptNames = new Set<string>()
-    specializations.forEach((s) => {
-      if (s.name) deptNames.add(s.name)
-    })
-    deptNames.forEach((dName, idx) => {
+    // 2. DEPARTMENT targets from real departments API
+    departments.forEach((dept) => {
       list.push({
-        id: `dept-${idx}`,
-        name: `${dName} Department`,
+        id: dept.id,
+        name: dept.name,
         type: 'DEPARTMENT',
       })
     })
 
-    // 3. CLINIC_VENUE targets from onboarded medical staff assigned clinic rooms
+    // 3. SERVICE targets from medical specializations
+    specializations.forEach((s) => {
+      if (s.name) {
+        list.push({
+          id: s.id || s.name,
+          name: s.name,
+          type: 'SERVICE',
+        })
+      }
+    })
     const clinicRooms = new Set<string>()
     staffList.forEach((s) => {
       if (s.assignedClinicRoom) clinicRooms.add(s.assignedClinicRoom)
@@ -258,7 +257,15 @@ export default function ShiftRosterPage() {
     list.push(...customLocations)
 
     return list
-  }, [liveProperties, accessibleLocations, selectedLocationName, specializations, staffList, customLocations])
+  }, [
+    liveProperties,
+    accessibleLocations,
+    selectedLocationName,
+    departments,
+    specializations,
+    staffList,
+    customLocations,
+  ])
 
   // Categorized Target Locations for dropdowns
   const groupedTargetLocations = useMemo(() => {
@@ -283,10 +290,10 @@ export default function ShiftRosterPage() {
 
   // Quick Add Location / Department Modal State
   const [isAddLocationModalOpen, setIsAddLocationModalOpen] = useState(false)
-  const [newLocationForm, setNewLocationForm] = useState({
+  const addLocationDefaultValues: AddTargetLocationFormValues = {
     name: '',
-    type: 'DEPARTMENT' as TargetLocation['type'],
-  })
+    type: 'DEPARTMENT',
+  }
 
   // Calendar State
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date())
@@ -296,7 +303,7 @@ export default function ShiftRosterPage() {
   const [isCreateShiftModalOpen, setIsCreateShiftModalOpen] = useState(false)
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null)
   const [isSubmittingShift, setIsSubmittingShift] = useState(false)
-  const [newShiftForm, setNewShiftForm] = useState<CreateShiftPayload>({
+  const shiftDefaultValues: CreateShiftFormValues = {
     shiftName: '',
     code: '',
     description: '',
@@ -307,68 +314,55 @@ export default function ShiftRosterPage() {
     slotGenerationMode: 'AUTO_GENERATE',
     slotDurationMinutes: 30,
     numberOfSlots: 8,
-  })
+    shiftCategory: 'GENERAL',
+  }
+  const [shiftFormDefaults, setShiftFormDefaults] = useState<CreateShiftFormValues>(shiftDefaultValues)
 
   // Replacement Modal State
   const [isReplacementModalOpen, setIsReplacementModalOpen] = useState(false)
   const [selectedDateForReplacement, setSelectedDateForReplacement] = useState<RosterGridRow | null>(null)
-  const [replacementForm, setReplacementForm] = useState({
-    replacementResourceId: '',
-    reason: '',
-  })
   const [isSubmittingReplacement, setIsSubmittingReplacement] = useState(false)
+  const replacementFormMethods = useForm<RequestReplacementFormValues>({
+    resolver: zodResolver(requestReplacementFormSchema),
+    defaultValues: { replacementResourceId: '', reason: '' },
+  })
 
   // Cancellation Modal State (Non-Destructive Cancellation Lifecycle)
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
   const [selectedDateForCancel, setSelectedDateForCancel] = useState<RosterGridRow | null>(null)
-  const [cancellationReason, setCancellationReason] = useState('')
   const [isSubmittingCancel, setIsSubmittingCancel] = useState(false)
+  const cancelFormMethods = useForm<CancelRosterDateFormValues>({
+    resolver: zodResolver(cancelRosterDateFormSchema),
+    defaultValues: { cancellationReason: '' },
+  })
 
   // Add Employee to Existing Roster Modal State
   const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false)
-  const [addStaffForm, setAddStaffForm] = useState({
-    date: new Date().toISOString().split('T')[0],
-    dutyType: 'SHIFT' as 'SHIFT' | 'OPD_SESSION',
-    resourceId: '',
-    resourceName: '',
-    resourceType: 'EMPLOYEE',
-    shiftId: '',
-    shiftName: '',
-    shiftTime: '',
-    targetId: '',
-    targetName: '',
-    isEmployeeLocked: false,
-  })
   const [isSubmittingAddStaff, setIsSubmittingAddStaff] = useState(false)
-
-  // Copy Forward Roster Modal State (P1 Enterprise Feature)
-  const defaultNextMonth = useMemo(() => {
-    const now = new Date()
-    const startNext = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-    const endNext = new Date(now.getFullYear(), now.getMonth() + 2, 0)
-    const monthName = startNext.toLocaleString('default', { month: 'long', year: 'numeric' })
-    return {
-      from: startNext.toISOString().split('T')[0],
-      until: endNext.toISOString().split('T')[0],
-      name: `${monthName} Duty Roster`,
-    }
-  }, [])
-
-  const [isCopyModalOpen, setIsCopyModalOpen] = useState(false)
-  const [copyForm, setCopyForm] = useState({
-    targetEffectiveFrom: defaultNextMonth.from,
-    targetEffectiveUntil: defaultNextMonth.until,
-    newRosterName: defaultNextMonth.name,
+  const addStaffFormMethods = useForm<AddStaffToRosterFormValues>({
+    resolver: zodResolver(addStaffToRosterSchema),
+    defaultValues: {
+      date: new Date().toISOString().split('T')[0],
+      dutyType: 'SHIFT',
+      resourceId: '',
+      resourceName: '',
+      resourceType: 'EMPLOYEE',
+      shiftId: '',
+      shiftName: '',
+      shiftTime: '',
+      targetId: '',
+      targetName: '',
+      isEmployeeLocked: false,
+    },
   })
-  const [isSubmittingCopy, setIsSubmittingCopy] = useState(false)
+  const addStaffForm = useWatch({ control: addStaffFormMethods.control }) as AddStaffToRosterFormValues
 
-  // AI Auto-Scheduler State (P2 Optimization Feature)
-  const [isAiOptimizing, setIsAiOptimizing] = useState(false)
-  const [aiOptimizationMessage, setAiOptimizationMessage] = useState('')
-
-  // Dynamic 4-Step Builder State
-  const [wizardStep, setWizardStep] = useState(1)
-  const [resourceSearch, setResourceSearch] = useState('')
+  // Copy Forward Roster Modal State
+  const [isCopyModalOpen, setIsCopyModalOpen] = useState(false)
+  const [isOpdBookingOpen, setIsOpdBookingOpen] = useState(false)
+  const [opdBookingDateId, setOpdBookingDateId] = useState<string | null>(null)
+  const [opdBookingLabel, setOpdBookingLabel] = useState('')
+  // Roster Builder State
   const [isPublishing, setIsPublishing] = useState(false)
   const [isPublished, setIsPublished] = useState(false)
 
@@ -378,12 +372,10 @@ export default function ShiftRosterPage() {
     return {
       from: today.toISOString().split('T')[0],
       until: thirtyDaysLater.toISOString().split('T')[0],
-      name: `${today.toLocaleString('default', { month: 'long', year: 'numeric' })} Duty Roster`,
     }
   }, [])
 
-  const [builderForm, setBuilderForm] = useState<RosterBuilderState>({
-    rosterName: defaultRange.name,
+  const builderDefaultValues: RosterBuilderState = {
     dutyType: 'SHIFT',
     resourceType: 'EMPLOYEE',
     selectedResourceIds: [],
@@ -394,6 +386,7 @@ export default function ShiftRosterPage() {
     selectedShiftId: '',
     selectedShiftName: '',
     selectedShiftTime: '',
+    frequencyId: '',
     frequencyType: 'WEEKLY',
     selectedDaysOfWeek: ['MON', 'TUE', 'WED', 'THU', 'FRI'],
     effectiveFrom: defaultRange.from,
@@ -405,76 +398,100 @@ export default function ShiftRosterPage() {
     enableOpdSlots: true,
     opdSlotDurationMinutes: 15,
     opdBufferMinutes: 0,
-  })
-
-  // Computed OPD Slots for session breakdown
-  const generatedOpdSlots = useMemo(() => {
-    if (builderForm.dutyType !== 'OPD_SESSION' || !builderForm.selectedShiftTime) {
-      return []
-    }
-    return calculateOpdSlots(
-      builderForm.selectedShiftTime,
-      builderForm.opdSlotDurationMinutes || 15,
-      builderForm.opdBufferMinutes || 0
-    )
-  }, [builderForm.dutyType, builderForm.selectedShiftTime, builderForm.opdSlotDurationMinutes, builderForm.opdBufferMinutes])
-
-  // Fetch live roster dates, shifts, and properties for active locationId
-  const fetchLiveData = async () => {
-    if (!companyId || !locationId) return
-    setIsLoading(true)
-    try {
-      const [shiftsRes, datesRes, propsRes] = await Promise.allSettled([
-        rosterService.getShifts(companyId, locationId),
-        rosterService.getRosterDates(companyId, locationId),
-        getPropertiesAPI(companyId),
-      ])
-
-      if (shiftsRes.status === 'fulfilled' && shiftsRes.value?.data) {
-        const fetchedShifts = Array.isArray(shiftsRes.value.data) ? shiftsRes.value.data : []
-        setLiveShifts(fetchedShifts)
-      } else {
-        setLiveShifts([])
-      }
-
-      if (datesRes.status === 'fulfilled' && datesRes.value?.data) {
-        const fetchedDates = Array.isArray(datesRes.value.data) ? datesRes.value.data : []
-        setLiveRosterDates(fetchedDates)
-      } else {
-        setLiveRosterDates([])
-      }
-
-      if (propsRes.status === 'fulfilled' && propsRes.value) {
-        setLiveProperties(Array.isArray(propsRes.value) ? propsRes.value : [])
-      }
-    } catch {
-      setLiveShifts([])
-      setLiveRosterDates([])
-    } finally {
-      setIsLoading(false)
-    }
   }
 
+  const builderFormMethods = useForm<RosterBuilderState>({
+    defaultValues: builderDefaultValues,
+    mode: 'onChange',
+  })
+
+  const builderForm = useWatch({ control: builderFormMethods.control }) as RosterBuilderState
+  const builderErrors = builderFormMethods.formState.errors
+
+  const applyBuilderValidationErrors = (issues: ZodIssue[]) => {
+    builderFormMethods.clearErrors()
+    issues.forEach((issue) => {
+      const field = issue.path[0]
+      if (typeof field === 'string') {
+        builderFormMethods.setError(field as keyof RosterBuilderState, { message: issue.message })
+      }
+    })
+  }
+
+  const setBuilderForm = useCallback(
+    (updater: RosterBuilderState | ((prev: RosterBuilderState) => RosterBuilderState)) => {
+      const current = builderFormMethods.getValues()
+      const next = typeof updater === 'function' ? updater(current) : updater
+      ;(Object.keys(next) as (keyof RosterBuilderState)[]).forEach((key) => {
+        builderFormMethods.setValue(key, next[key] as RosterBuilderState[typeof key], {
+          shouldValidate: true,
+          shouldDirty: true,
+        })
+      })
+    },
+    [builderFormMethods],
+  )
+
+  // Roster data via React Query
+  const {
+    shifts: liveShifts,
+    rosterDates: liveRosterDates,
+    schedulingResources,
+    isLoading,
+    refetch: refetchRosterData,
+  } = useRosterPageData({
+    companyId,
+    locationId,
+    calendarMonth: currentCalendarDate,
+    rosterDateParams: rosterDateFilterParams,
+    builderDutyType: activeTab === 'builder' ? builderForm.dutyType : undefined,
+    builderTargetScopeType: activeTab === 'builder' ? builderForm.targetScopeType : undefined,
+    builderSelectedTargetId: activeTab === 'builder' ? builderForm.selectedTargetId : undefined,
+  })
+
+  const sampleResources: SchedulableResource[] = useMemo(() => {
+    if (schedulingResources.length > 0) {
+      return schedulingResources.map((r) =>
+        mapSchedulingResourceToStaff(
+          r as { id: string; name?: string; email?: string; resourceType: 'EMPLOYEE' | 'DOCTOR' },
+        ),
+      )
+    }
+    return staffList.map((s) => ({
+      id: s.id,
+      name: s.name,
+      role: s.role === 'DOCTOR' ? 'Doctor' : s.department || 'Staff',
+      type: s.role === 'DOCTOR' ? ('DOCTOR' as const) : ('EMPLOYEE' as const),
+      subType: s.doctorType,
+      specialization: s.specialization,
+    }))
+  }, [schedulingResources, staffList])
+
   useEffect(() => {
-    fetchLiveData()
+    if (!companyId || !locationId) return
+    getPropertiesAPI(companyId).then((props) => {
+      setLiveProperties(Array.isArray(props) ? props : [])
+    })
   }, [companyId, locationId])
 
-
-  // Auto-sync builderForm default selection with live available sampleResources and targetLocations
   useEffect(() => {
-    if (sampleResources.length > 0 && builderForm.selectedResourceIds.length === 0) {
-      setBuilderForm((prev) => ({
-        ...prev,
-        selectedResourceIds: [sampleResources[0].id],
-        selectedResourceNames: [sampleResources[0].name],
-      }))
-      setAddStaffForm((prev) => ({
-        ...prev,
-        resourceId: sampleResources[0].id,
-        resourceName: sampleResources[0].name,
-      }))
+    if (frequencies.length === 0 && companyId && locationId) {
+      createFrequencyMutation.mutate({
+        frequencyName: 'Weekly Default',
+        frequencyType: 'WEEKLY',
+        allowedDaysOfWeek: ['MON', 'TUE', 'WED', 'THU', 'FRI'],
+        description: 'Auto-created default frequency',
+      })
     }
-  }, [sampleResources])
+  }, [frequencies.length, companyId, locationId, createFrequencyMutation])
+
+  useEffect(() => {
+    if (frequencies.length > 0 && !builderForm.frequencyId) {
+      setBuilderForm((prev) => ({ ...prev, frequencyId: frequencies[0].id }))
+    }
+  }, [frequencies, builderForm.frequencyId, setBuilderForm])
+
+  const fetchLiveData = refetchRosterData
 
   useEffect(() => {
     if (targetLocations.length > 0 && !builderForm.selectedTargetId) {
@@ -485,13 +502,10 @@ export default function ShiftRosterPage() {
         selectedTargetId: firstTarget.id,
         selectedTargetName: firstTarget.name,
       }))
-      setAddStaffForm((prev) => ({
-        ...prev,
-        targetId: firstTarget.id,
-        targetName: firstTarget.name,
-      }))
+      addStaffFormMethods.setValue('targetId', firstTarget.id)
+      addStaffFormMethods.setValue('targetName', firstTarget.name)
     }
-  }, [targetLocations])
+  }, [targetLocations, builderForm.selectedTargetId, addStaffFormMethods, setBuilderForm])
 
   const availableShifts = useMemo(() => {
     return liveShifts
@@ -506,70 +520,20 @@ export default function ShiftRosterPage() {
         selectedShiftName: firstShift.shiftName,
         selectedShiftTime: `${firstShift.startTime} - ${firstShift.endTime}`,
       }))
-      setAddStaffForm((prev) => ({
-        ...prev,
-        shiftId: firstShift.id,
-        shiftName: firstShift.shiftName,
-        shiftTime: `${firstShift.startTime} - ${firstShift.endTime}`,
-      }))
+      addStaffFormMethods.setValue('shiftId', firstShift.id)
+      addStaffFormMethods.setValue('shiftName', firstShift.shiftName)
+      addStaffFormMethods.setValue('shiftTime', `${firstShift.startTime} - ${firstShift.endTime}`)
     }
-  }, [availableShifts])
+  }, [availableShifts, builderForm.selectedShiftId, addStaffFormMethods, setBuilderForm])
 
   const displayRosterDates: RosterGridRow[] = useMemo(() => {
-    return liveRosterDates.map((d: any) => {
-      const rawDate = d.assignmentDate || d.date || ''
-      const formattedDate = typeof rawDate === 'string' ? rawDate.split('T')[0] : rawDate
-
-      let resourceName = 'Staff Member'
-      if (d.resource && typeof d.resource === 'object') {
-        const u = d.resource.user
-        if (u) {
-          const profile = (u.profile || {}) as any
-          resourceName = profile.firstName
-            ? `${profile.firstName} ${profile.lastName || ''}`.trim()
-            : u.username || u.email || 'Staff Member'
-        } else if (d.resource.doctorProfile) {
-          resourceName = `Dr. ${d.resource.doctorProfile.specialization}`
-        }
+    return liveRosterDates.map((d) => {
+      const row = mapRosterDateToGridRow(d as Record<string, unknown>)
+      if (row.resource === 'Staff Member' && sampleResources.length > 0) {
+        const matched = sampleResources.find((r) => r.id === row.schedulingResourceId || r.id === row.resourceUserId)
+        if (matched) row.resource = matched.name
       }
-      if (resourceName === 'Staff Member' && d.resourceSnapshot && !d.resourceSnapshot.startsWith('Staff (') && d.resourceSnapshot !== 'Unknown Resource') {
-        resourceName = d.resourceSnapshot
-      }
-      if (typeof d.resource === 'string' && d.resource.trim() && !d.resource.startsWith('Staff (')) {
-        resourceName = d.resource
-      }
-      if ((resourceName === 'Staff Member' || resourceName.startsWith('Staff (') || resourceName.includes('@')) && sampleResources && sampleResources.length > 0) {
-        const matched = sampleResources.find((r) => r.id === d.schedulingResourceId || r.id === d.resource?.userId)
-        if (matched) {
-          resourceName = matched.name
-        } else {
-          resourceName = sampleResources[0].name
-        }
-      }
-
-      let shiftName = 'Scheduled Shift'
-      if (typeof d.shift === 'string' && d.shift.trim()) {
-        shiftName = d.shift
-      } else if (typeof d.shift === 'object' && d.shift?.shiftName) {
-        shiftName = d.shift.shiftName
-      } else if (d.shiftNameSnapshot) {
-        shiftName = d.shiftNameSnapshot
-      }
-
-      return {
-        id: d.id,
-        date: formattedDate,
-        resource: resourceName,
-        resourceName: resourceName,
-        schedulingResourceId: d.schedulingResourceId,
-        resourceUserId: d.resource?.userId || d.resourceUserId,
-        type: typeof d.type === 'string' ? d.type : d.resource?.resourceType || 'EMPLOYEE',
-        dutyType: d.dutyType || 'SHIFT',
-        shift: shiftName,
-        time: d.time || d.slotTimeRange || '08:00 - 16:00',
-        target: typeof d.target === 'string' ? d.target : d.targetSnapshot || 'Location Target',
-        status: d.status || 'UPCOMING',
-      }
+      return row
     })
   }, [liveRosterDates, sampleResources])
 
@@ -578,7 +542,8 @@ export default function ShiftRosterPage() {
     let count = 0
     displayRosterDates.forEach((duty) => {
       if (duty.status === 'CANCELLED') return
-      const resId = duty.schedulingResourceId || duty.resourceUserId || (duty.resource ? duty.resource.toLowerCase() : '')
+      const resId =
+        duty.schedulingResourceId || duty.resourceUserId || (duty.resource ? duty.resource.toLowerCase() : '')
       if (!resId || !duty.date) return
       const key = `${resId}_${duty.date}`
       seenMap[key] = (seenMap[key] || 0) + 1
@@ -592,7 +557,11 @@ export default function ShiftRosterPage() {
   // Conflict Prevention & Staff Availability Checker
   const getStaffAvailabilityStatus = (staffIdOrName: string, dateStr: string) => {
     if (!dateStr || !staffIdOrName) {
-      return { isAvailable: true, statusText: 'Available', badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+      return {
+        isAvailable: true,
+        statusText: 'Available',
+        badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      }
     }
 
     const conflicts = displayRosterDates.filter((item) => {
@@ -646,7 +615,6 @@ export default function ShiftRosterPage() {
     return { isFree: true, label: 'Free' }
   }
 
-
   const filteredPersonnelOptions = useMemo(() => {
     if (selectedCategoryFilter === 'DOCTOR') {
       return sampleResources.filter((r) => r.type === 'DOCTOR')
@@ -673,11 +641,9 @@ export default function ShiftRosterPage() {
         (selectedCategoryFilter === 'EMPLOYEE' && !item.type.includes('DOCTOR'))
 
       const matchesEmployee =
-        selectedEmployeeFilter === 'ALL' ||
-        item.resource.toLowerCase() === selectedEmployeeFilter.toLowerCase()
+        selectedEmployeeFilter === 'ALL' || item.resource.toLowerCase() === selectedEmployeeFilter.toLowerCase()
 
-      const matchesDutyType =
-        selectedDutyTypeFilter === 'ALL' || item.dutyType === selectedDutyTypeFilter
+      const matchesDutyType = selectedDutyTypeFilter === 'ALL' || item.dutyType === selectedDutyTypeFilter
 
       return matchesSearch && matchesCategory && matchesEmployee && matchesDutyType
     })
@@ -693,25 +659,105 @@ export default function ShiftRosterPage() {
 
     if (selectedEmployeeFilter !== 'ALL') {
       list = list.filter(
-        (r) =>
-          r.name.toLowerCase() === selectedEmployeeFilter.toLowerCase() ||
-          r.id === selectedEmployeeFilter
+        (r) => r.name.toLowerCase() === selectedEmployeeFilter.toLowerCase() || r.id === selectedEmployeeFilter,
       )
     }
     return list
   }, [sampleResources, selectedCategoryFilter, selectedEmployeeFilter])
 
-  // Filtered Schedulable Resources for Step 1
+  // Dates in the builder schedule (working days within effective range)
+  const builderScheduleDates = useMemo(
+    () =>
+      getBuilderScheduleDates(builderForm.effectiveFrom, builderForm.effectiveUntil, builderForm.selectedDaysOfWeek),
+    [builderForm.effectiveFrom, builderForm.effectiveUntil, builderForm.selectedDaysOfWeek],
+  )
+
+  const isBuilderScheduleConfigured = builderScheduleDates.length > 0 && !!builderForm.selectedShiftTime
+
+  // Filtered schedulable resources — only staff available for selected dates & shift time
   const availableResources = useMemo(() => {
     return sampleResources.filter((r) => {
       const matchesType = r.type === builderForm.resourceType
-      const matchesSearch =
-        !resourceSearch ||
-        r.name.toLowerCase().includes(resourceSearch.toLowerCase()) ||
-        r.role.toLowerCase().includes(resourceSearch.toLowerCase())
-      return matchesType && matchesSearch
+      if (!matchesType) return false
+      if (!isBuilderScheduleConfigured) return true
+      return isStaffAvailableForBuilderSchedule(
+        r,
+        builderScheduleDates,
+        builderForm.selectedShiftTime,
+        displayRosterDates,
+      )
     })
-  }, [sampleResources, builderForm.resourceType, resourceSearch])
+  }, [
+    sampleResources,
+    builderForm.resourceType,
+    builderForm.selectedShiftTime,
+    builderScheduleDates,
+    isBuilderScheduleConfigured,
+    displayRosterDates,
+  ])
+
+  const filterStaffAvailableForSchedule = useCallback(
+    (resources: SchedulableResource[], maxCount?: number) => {
+      const filtered = resources.filter((r) => {
+        if (!isBuilderScheduleConfigured) return true
+        return isStaffAvailableForBuilderSchedule(
+          r,
+          builderScheduleDates,
+          builderForm.selectedShiftTime,
+          displayRosterDates,
+        )
+      })
+      return maxCount !== undefined ? filtered.slice(0, maxCount) : filtered
+    },
+    [isBuilderScheduleConfigured, builderScheduleDates, builderForm.selectedShiftTime, displayRosterDates],
+  )
+
+  // Remove selected staff who become unavailable when schedule or shift changes
+  useEffect(() => {
+    setBuilderForm((prev) => {
+      const availableIds = new Set(availableResources.map((r) => r.id))
+      const nextIds = prev.selectedResourceIds.filter((id) => availableIds.has(id))
+      const nextNames = prev.selectedResourceNames.filter((_, idx) => availableIds.has(prev.selectedResourceIds[idx]))
+
+      if (
+        nextIds.length === prev.selectedResourceIds.length &&
+        nextNames.length === prev.selectedResourceNames.length
+      ) {
+        return prev
+      }
+
+      return {
+        ...prev,
+        selectedResourceIds: nextIds,
+        selectedResourceNames: nextNames,
+      }
+    })
+  }, [availableResources, setBuilderForm])
+
+  // Initial staff selection when resources first load
+  useEffect(() => {
+    if (sampleResources.length === 0 || builderForm.selectedResourceIds.length > 0) return
+    const pool =
+      availableResources.length > 0
+        ? availableResources
+        : sampleResources.filter((r) => r.type === builderForm.resourceType)
+    if (pool.length === 0) return
+    const first = pool[0]
+    setBuilderForm((prev) => ({
+      ...prev,
+      selectedResourceIds: [first.id],
+      selectedResourceNames: [first.name],
+    }))
+    addStaffFormMethods.setValue('resourceId', first.id)
+    addStaffFormMethods.setValue('resourceName', first.name)
+  }, [
+    sampleResources,
+    availableResources,
+    builderForm.selectedResourceIds.length,
+    builderForm.resourceType,
+    setBuilderForm,
+    addStaffFormMethods,
+  ])
 
   // Multi-Resource Toggle Handler for Step 1
   const handleToggleResourceSelection = (res: SchedulableResource) => {
@@ -736,16 +782,6 @@ export default function ShiftRosterPage() {
     })
   }
 
-  const handleSelectAllResources = () => {
-    const allIds = availableResources.map((r) => r.id)
-    const allNames = availableResources.map((r) => r.name)
-    setBuilderForm((prev) => ({
-      ...prev,
-      selectedResourceIds: allIds,
-      selectedResourceNames: allNames,
-    }))
-  }
-
   const handleClearAllResources = () => {
     setBuilderForm((prev) => ({
       ...prev,
@@ -756,7 +792,8 @@ export default function ShiftRosterPage() {
 
   // Computed Date Instances Preview across ALL selected resources for Step 7
   const generatedDateInstancesPreview = useMemo(() => {
-    if (!builderForm.effectiveFrom || !builderForm.effectiveUntil || builderForm.selectedResourceIds.length === 0) return []
+    if (!builderForm.effectiveFrom || !builderForm.effectiveUntil || builderForm.selectedResourceIds.length === 0)
+      return []
 
     const instances: Array<{ date: string; dayName: string; resourceName: string }> = []
     const start = new Date(builderForm.effectiveFrom)
@@ -792,71 +829,78 @@ export default function ShiftRosterPage() {
     }
 
     return instances
-  }, [builderForm.effectiveFrom, builderForm.effectiveUntil, builderForm.selectedDaysOfWeek, builderForm.selectedResourceIds, builderForm.selectedResourceNames])
+  }, [
+    builderForm.effectiveFrom,
+    builderForm.effectiveUntil,
+    builderForm.selectedDaysOfWeek,
+    builderForm.selectedResourceIds,
+    builderForm.selectedResourceNames,
+  ])
 
   // Non-Destructive Duty Cancellation Handler
-  const handleConfirmCancellation = async () => {
-    if (!selectedDateForCancel || !cancellationReason) {
-      toast.error('Cancellation reason is required')
-      return
-    }
+  const handleConfirmCancellation = cancelFormMethods.handleSubmit(
+    async (values) => {
+      if (!selectedDateForCancel) return
 
-    setIsSubmittingCancel(true)
-    try {
-      await rosterService.deleteRosterDate(companyId, locationId, selectedDateForCancel.id)
-    } catch {
-      // Local optimistic cancellation transition
-    } finally {
-      setLiveRosterDates((prev) => {
-        const base = prev.length > 0 ? prev : displayRosterDates
-        return base.map((item) =>
-          item.id === selectedDateForCancel.id ? { ...item, status: 'CANCELLED' } : item
-        )
-      })
-      setIsCancelModalOpen(false)
-      setIsSubmittingCancel(false)
-      toast.success(`Duty for ${selectedDateForCancel.resource} on ${selectedDateForCancel.date} set to CANCELLED!`)
-    }
-  }
-
-  // Add Employee to Existing Roster
-  const handleAddStaffToRoster = async () => {
-    if (!addStaffForm.date || !addStaffForm.resourceName) {
-      toast.error('Date and resource selection are required')
-      return
-    }
-
-    setIsSubmittingAddStaff(true)
-    try {
-      await rosterService.addSingleRosterDate(companyId, locationId, addStaffForm)
-    } catch {
-      // Optimistic fall-through
-    } finally {
-      const newRow: RosterGridRow = {
-        id: `single-${Date.now()}`,
-        date: addStaffForm.date,
-        resource: addStaffForm.resourceName,
-        type: addStaffForm.resourceType === 'DOCTOR' ? 'DOCTOR (IN_HOUSE)' : 'EMPLOYEE',
-        dutyType: addStaffForm.dutyType,
-        shift: addStaffForm.shiftName,
-        time: addStaffForm.shiftTime,
-        target: addStaffForm.targetName,
-        status: 'UPCOMING',
+      setIsSubmittingCancel(true)
+      try {
+        await cancelRosterDateMutation.mutateAsync({
+          dateInstanceId: selectedDateForCancel.id,
+          payload: { cancellationReason: values.cancellationReason },
+        })
+        setIsCancelModalOpen(false)
+        cancelFormMethods.reset()
+        refetchRosterData()
+      } catch {
+        notifyError('Cancellation failed', 'Failed to cancel duty.')
+      } finally {
+        setIsSubmittingCancel(false)
       }
-      setLiveRosterDates((prev) => {
-        const base = prev.length > 0 ? prev : displayRosterDates
-        return [newRow, ...base]
-      })
-      setIsAddStaffModalOpen(false)
-      setIsSubmittingAddStaff(false)
-      toast.success(`Assigned ${addStaffForm.resourceName} to ${addStaffForm.shiftName} on ${addStaffForm.date}`)
-    }
-  }
+    },
+    (errors) => notifyFormValidationErrors(errors),
+  )
+
+  const handleAddStaffToRoster = addStaffFormMethods.handleSubmit(
+    async (values) => {
+      if (!companyId || !locationId) {
+        notifyError('Missing context', 'Select an active property before adding staff to the roster.')
+        return
+      }
+      setIsSubmittingAddStaff(true)
+      try {
+        await rosterService.createSingleDayAssignment(companyId, locationId, {
+          rosterName: `Ad-hoc — ${values.resourceName} — ${values.date}`,
+          dutyType: values.dutyType,
+          schedulingResourceId: values.resourceId,
+          shiftId: values.shiftId,
+          slotTimeRange: values.shiftTime,
+          frequencyId: frequencies[0]?.id,
+          instructions: `Ad-hoc assignment for ${values.targetName}`,
+          holidayPolicy: 'SKIP',
+          targets: [{ targetType: 'PROPERTY', targetId: values.targetId }],
+          date: values.date,
+        })
+        setIsAddStaffModalOpen(false)
+        addStaffFormMethods.reset()
+        refetchRosterData()
+        toast.success(`Assigned ${values.resourceName} to ${values.shiftName} on ${values.date}`)
+      } catch (err: unknown) {
+        notifyError(
+          'Add staff failed',
+          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+            'Failed to add staff to roster.',
+        )
+      } finally {
+        setIsSubmittingAddStaff(false)
+      }
+    },
+    (errors) => notifyFormValidationErrors(errors),
+  )
 
   // Shift Master Modals
   const handleOpenCreateShift = () => {
     setEditingShiftId(null)
-    setNewShiftForm({
+    setShiftFormDefaults({
       shiftName: '',
       code: '',
       description: '',
@@ -867,13 +911,14 @@ export default function ShiftRosterPage() {
       slotGenerationMode: 'AUTO_GENERATE',
       slotDurationMinutes: 30,
       numberOfSlots: 8,
+      shiftCategory: 'GENERAL',
     })
     setIsCreateShiftModalOpen(true)
   }
 
-  const handleOpenEditShift = (shift: any) => {
+  const handleOpenEditShift = (shift: RosterShiftItem) => {
     setEditingShiftId(shift.id)
-    setNewShiftForm({
+    setShiftFormDefaults({
       shiftName: shift.shiftName || '',
       code: shift.code || '',
       description: shift.description || '',
@@ -881,90 +926,53 @@ export default function ShiftRosterPage() {
       endTime: shift.endTime || '16:00',
       breakStartTime: shift.breakStartTime || '',
       breakEndTime: shift.breakEndTime || '',
-      slotGenerationMode: shift.slotGenerationMode || 'AUTO_GENERATE',
+      slotGenerationMode: (shift.slotGenerationMode as CreateShiftFormValues['slotGenerationMode']) || 'AUTO_GENERATE',
       slotDurationMinutes: shift.slotDurationMinutes || 30,
       numberOfSlots: shift.numberOfSlots || 8,
+      shiftCategory: (shift.shiftCategory as CreateShiftFormValues['shiftCategory']) || 'GENERAL',
+      departmentId: shift.departmentId || '',
     })
     setIsCreateShiftModalOpen(true)
   }
 
-  const handleSaveShift = async () => {
-    if (!newShiftForm.shiftName || !newShiftForm.code) {
-      toast.error('Shift name and code are required')
-      return
-    }
-
+  const handleSaveShift = async (values: CreateShiftFormValues) => {
     setIsSubmittingShift(true)
     try {
       if (editingShiftId) {
-        await rosterService.updateShift(companyId, locationId, editingShiftId, newShiftForm)
-        toast.success(`Shift "${newShiftForm.shiftName}" updated successfully!`)
+        await updateShiftMutation.mutateAsync({ id: editingShiftId, payload: values })
       } else {
-        await rosterService.createShift(companyId, locationId, newShiftForm)
-        toast.success(`Shift "${newShiftForm.shiftName}" created successfully!`)
+        await createShiftMutation.mutateAsync(values)
       }
       setIsCreateShiftModalOpen(false)
-      fetchLiveData()
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Failed to save shift in database.')
+      refetchRosterData()
+    } catch (err: unknown) {
+      notifyError('Failed to save shift', (err as Error)?.message || 'Failed to save shift in database.')
     } finally {
       setIsSubmittingShift(false)
     }
   }
 
-  // Handle Duty Replacement
-  const handleReplacementSubmit = async () => {
-    if (!replacementForm.replacementResourceId || !replacementForm.reason) {
-      toast.error('Replacement staff and reason are mandatory')
-      return
-    }
-
-    setIsSubmittingReplacement(true)
-    try {
-      if (selectedDateForReplacement) {
-        await rosterService.requestReplacement(companyId, locationId, selectedDateForReplacement.id, {
-          replacementResourceId: replacementForm.replacementResourceId,
-          reason: replacementForm.reason,
-        })
-      }
-      toast.success('Replacement caregiver assigned & duty updated!')
-      setIsReplacementModalOpen(false)
-      fetchLiveData()
-    } catch {
-      toast.success('Replacement requested and assigned!')
-      setIsReplacementModalOpen(false)
-    } finally {
-      setIsSubmittingReplacement(false)
-    }
-  }
-
-
-
-  // Handle Copy Forward Roster (P1 Enterprise Feature)
-  const handleConfirmCopyForward = async () => {
-    setIsSubmittingCopy(true)
-    try {
-      const clonedRows: RosterGridRow[] = liveRosterDates.map((row, idx) => {
-        const origDay = row.date.split('-')[2] || '01'
-        const targetYearMonth = copyForm.targetEffectiveFrom ? copyForm.targetEffectiveFrom.substring(0, 7) : new Date().toISOString().substring(0, 7)
-        const nextMonthDate = `${targetYearMonth}-${origDay.padStart(2, '0')}`
-        return {
-          ...row,
-          id: `cloned-${Date.now()}-${idx}`,
-          date: nextMonthDate,
-          status: 'UPCOMING' as const,
+  const handleReplacementSubmit = replacementFormMethods.handleSubmit(
+    async (values) => {
+      setIsSubmittingReplacement(true)
+      try {
+        if (selectedDateForReplacement) {
+          await requestReplacementMutation.mutateAsync({
+            dateId: selectedDateForReplacement.id,
+            payload: values,
+          })
         }
-      })
-
-      setLiveRosterDates((prev) => [...clonedRows, ...prev])
-      toast.success(`Roster successfully cloned forward into ${copyForm.newRosterName}! (${clonedRows.length} duties generated)`)
-      setIsCopyModalOpen(false)
-    } catch {
-      toast.error('Failed to copy forward roster pattern.')
-    } finally {
-      setIsSubmittingCopy(false)
-    }
-  }
+        setIsReplacementModalOpen(false)
+        replacementFormMethods.reset()
+        refetchRosterData()
+      } catch (err: unknown) {
+        notifyError('Replacement failed', (err as Error)?.message || 'Failed to assign replacement staff.')
+      } finally {
+        setIsSubmittingReplacement(false)
+      }
+    },
+    (errors) => notifyFormValidationErrors(errors),
+  )
 
   // Handle CSV Roster Export (P1 Enterprise Feature)
   const handleExportCSV = () => {
@@ -974,7 +982,16 @@ export default function ShiftRosterPage() {
       return
     }
 
-    const headers = ['Duty Date', 'Staff / Doctor Name', 'Resource Type', 'Duty Type', 'Shift Pattern', 'Time Window', 'Target Location', 'Status']
+    const headers = [
+      'Duty Date',
+      'Staff / Doctor Name',
+      'Resource Type',
+      'Duty Type',
+      'Shift Pattern',
+      'Time Window',
+      'Target Location',
+      'Status',
+    ]
     const csvContent = [
       headers.join(','),
       ...rowsToExport.map((r) =>
@@ -987,7 +1004,7 @@ export default function ShiftRosterPage() {
           `"${r.time}"`,
           `"${r.target}"`,
           `"${r.status}"`,
-        ].join(',')
+        ].join(','),
       ),
     ].join('\n')
 
@@ -1002,65 +1019,90 @@ export default function ShiftRosterPage() {
     toast.success(`Exported ${rowsToExport.length} roster entries to CSV format!`)
   }
 
-  // Handle AI Auto-Scheduler Staff Optimization (P2 Advanced Feature)
-  const handleRunAiAutoScheduler = () => {
-    setIsAiOptimizing(true)
-    setAiOptimizationMessage('Analyzing caregiver skill matrices, rest period history, and weekly capacity...')
-    setTimeout(() => {
-      setAiOptimizationMessage('Optimizing shift distribution and eliminating rest period overlaps...')
-      setTimeout(() => {
-        const topResources = availableResources.slice(0, 3)
-        setBuilderForm((prev) => ({
-          ...prev,
-          selectedResourceIds: topResources.map((r) => r.id),
-          selectedResourceNames: topResources.map((r) => r.name),
-          selectedDaysOfWeek: ['MON', 'TUE', 'WED', 'THU', 'FRI'],
-          holidayPolicy: 'SKIP',
-        }))
-        setIsAiOptimizing(false)
-        toast.success(`AI Auto-Scheduler: Selected ${topResources.length} balanced staff with 0 rest period conflicts!`)
-      }, 1200)
-    }, 1000)
-  }
-
-  // Final Publication (Step 8)
   const handleFinalPublishRoster = async () => {
+    const result = rosterBuilderSchema.safeParse({
+      dutyType: builderForm.dutyType,
+      effectiveFrom: builderForm.effectiveFrom,
+      effectiveUntil: builderForm.effectiveUntil,
+      selectedDaysOfWeek: builderForm.selectedDaysOfWeek,
+      selectedShiftId: builderForm.selectedShiftId,
+      frequencyId: builderForm.frequencyId,
+      targetScopeType: builderForm.targetScopeType,
+      selectedTargetId: builderForm.selectedTargetId,
+      selectedResourceIds: builderForm.selectedResourceIds,
+    })
+
+    if (!result.success) {
+      applyBuilderValidationErrors(result.error.issues)
+      notifyZodValidationError(result.error.issues[0]?.message || 'Please complete all required fields.')
+      return
+    }
+
+    if (generatedDateInstancesPreview.length === 0) {
+      notifyZodValidationError('No roster dates would be generated. Check date range and working days.')
+      return
+    }
+
+    if (!companyId || !locationId) {
+      notifyError('Missing context', 'Select an active property before publishing a roster.')
+      return
+    }
+
+    const resourceNames: Record<string, string> = {}
+    builderForm.selectedResourceIds.forEach((id, idx) => {
+      resourceNames[id] = builderForm.selectedResourceNames[idx] || id
+    })
+
     setIsPublishing(true)
-    try {
-      await rosterService.createAssignment(companyId, locationId, {
-        rosterName: builderForm.rosterName,
-        dutyType: builderForm.dutyType,
-        schedulingResourceId: builderForm.selectedResourceIds[0] || '',
-        shiftId: builderForm.selectedShiftId,
-        frequencyId: builderForm.frequencyType,
-        effectiveFrom: builderForm.effectiveFrom,
-        effectiveUntil: builderForm.effectiveUntil,
-        selectedWorkingDays: builderForm.selectedDaysOfWeek,
-        instructions: builderForm.instructions,
-        targets: [{ targetType: builderForm.targetScopeType, targetId: builderForm.selectedTargetId }],
-      })
+    const publishResult = await publishRoster({
+      companyId,
+      locationId,
+      builderForm: { ...builderForm, overrideReason: pendingOverrideReason || builderForm.overrideReason },
+      resourceNames,
+      onValidationBlocked: (results) => {
+        setValidationResults(results)
+        setValidationPanelMode('blocked')
+        setIsValidationPanelOpen(true)
+      },
+      onRequiresOverride: (results) => {
+        setValidationResults(results)
+        setValidationPanelMode('override')
+        setIsValidationPanelOpen(true)
+        return Promise.resolve(null)
+      },
+    })
+
+    if (publishResult) {
       setIsPublished(true)
-      toast.success(`Published roster assignment across ${builderForm.selectedResourceIds.length} staff!`)
-      fetchLiveData()
+      refetchRosterData()
       setTimeout(() => {
-        setWizardStep(1)
         setIsPublished(false)
         setActiveTab('grid')
+        builderFormMethods.reset(builderDefaultValues)
+        setPendingOverrideReason('')
       }, 1500)
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Failed to publish roster assignment to database.')
-    } finally {
-      setIsPublishing(false)
     }
+    setIsPublishing(false)
   }
 
-  // Wizard Step Navigation Rules
-  const canAdvanceStep = useMemo(() => {
-    if (wizardStep === 1) return !!builderForm.rosterName && !!builderForm.selectedShiftId && !!builderForm.selectedTargetId && !!builderForm.effectiveFrom && !!builderForm.effectiveUntil && builderForm.selectedDaysOfWeek.length > 0
-    if (wizardStep === 2) return builderForm.selectedResourceIds.length > 0
-    if (wizardStep === 3) return generatedDateInstancesPreview.length > 0
-    return true
-  }, [wizardStep, builderForm, generatedDateInstancesPreview])
+  const handleConfirmOverridePublish = () => {
+    if (!pendingOverrideReason.trim()) return
+    setIsValidationPanelOpen(false)
+    setBuilderForm((prev) => ({ ...prev, overrideReason: pendingOverrideReason }))
+    setTimeout(() => handleFinalPublishRoster(), 0)
+  }
+
+  const canPublishRoster = useMemo(() => {
+    return (
+      !!builderForm.selectedShiftId &&
+      !!builderForm.selectedTargetId &&
+      !!builderForm.effectiveFrom &&
+      !!builderForm.effectiveUntil &&
+      builderForm.selectedDaysOfWeek.length > 0 &&
+      builderForm.selectedResourceIds.length > 0 &&
+      generatedDateInstancesPreview.length > 0
+    )
+  }, [builderForm, generatedDateInstancesPreview])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -1149,6 +1191,7 @@ export default function ShiftRosterPage() {
                 size="sm"
                 onClick={() => {
                   setSelectedDateForReplacement(row.original)
+                  replacementFormMethods.reset({ replacementResourceId: '', reason: '' })
                   setIsReplacementModalOpen(true)
                 }}
                 className="text-xs gap-1"
@@ -1161,7 +1204,7 @@ export default function ShiftRosterPage() {
                 size="sm"
                 onClick={() => {
                   setSelectedDateForCancel(row.original)
-                  setCancellationReason('')
+                  cancelFormMethods.reset({ cancellationReason: '' })
                   setIsCancelModalOpen(true)
                 }}
                 className="text-xs gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -1216,12 +1259,6 @@ export default function ShiftRosterPage() {
     })
   }
 
-  const stepNames = [
-    'Scope & Schedule (Dates & Shift)',
-    'Personnel Selection (Available Staff)',
-    'Validation, Preview & Publish',
-  ]
-
   return (
     <div className="space-y-6 pt-2 pb-6">
       {/* Header matching System UI */}
@@ -1235,19 +1272,38 @@ export default function ShiftRosterPage() {
         <div className="flex flex-wrap items-center gap-2.5">
           <DropdownMenu>
             <DropdownMenuTrigger className="inline-flex items-center justify-center gap-2 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-semibold h-9 px-4 rounded-lg text-sm transition-colors cursor-pointer">
-              <Sliders className="h-4 w-4 text-gray-600" /> Actions <ChevronDown className="h-3.5 w-3.5 text-gray-500" />
+              <Sliders className="h-4 w-4 text-gray-600" /> Actions{' '}
+              <ChevronDown className="h-3.5 w-3.5 text-gray-500" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52 bg-white border border-gray-200 shadow-md rounded-xl p-1 z-50">
-              <DropdownMenuItem onClick={() => setIsCopyModalOpen(true)} className="gap-2 cursor-pointer py-2 px-3 hover:bg-gray-100 rounded-lg text-xs font-semibold text-gray-700">
+            <DropdownMenuContent
+              align="end"
+              className="w-52 bg-white border border-gray-200 shadow-md rounded-xl p-1 z-50"
+            >
+              <DropdownMenuItem
+                onClick={() => setIsOnboardDoctorOpen(true)}
+                className="gap-2 cursor-pointer py-2 px-3 hover:bg-gray-100 rounded-lg text-xs font-semibold text-gray-700"
+              >
+                <Stethoscope className="h-4 w-4 text-gray-500" /> Onboard Doctor
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setIsCopyModalOpen(true)}
+                className="gap-2 cursor-pointer py-2 px-3 hover:bg-gray-100 rounded-lg text-xs font-semibold text-gray-700"
+              >
                 <Copy className="h-4 w-4 text-gray-500" /> Copy Roster
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportCSV} className="gap-2 cursor-pointer py-2 px-3 hover:bg-gray-100 rounded-lg text-xs font-semibold text-gray-700">
+              <DropdownMenuItem
+                onClick={handleExportCSV}
+                className="gap-2 cursor-pointer py-2 px-3 hover:bg-gray-100 rounded-lg text-xs font-semibold text-gray-700"
+              >
                 <Download className="h-4 w-4 text-gray-500" /> Export CSV
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button onClick={() => setActiveTab('builder')} className="gap-2 bg-[#004B87] hover:bg-[#003865] shadow-sm font-bold">
+          <Button
+            onClick={() => setActiveTab('builder')}
+            className="gap-2 bg-[#004B87] hover:bg-[#003865] shadow-sm font-bold"
+          >
             <Sparkles className="h-4 w-4" /> Create Roster
           </Button>
         </div>
@@ -1258,7 +1314,7 @@ export default function ShiftRosterPage() {
         displayRosterDates={displayRosterDates}
         sampleResources={sampleResources}
         isLoading={isLoading}
-        isLoadingUsers={isLoadingUsers}
+        isLoadingUsers={isLoading}
       />
 
       {/* Standard System Tabs */}
@@ -1277,8 +1333,12 @@ export default function ShiftRosterPage() {
                 <CardHeader className="pb-3 border-b border-gray-100">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                      <CardTitle className="text-lg font-bold text-gray-900">Roster Calendar & Operational Grid</CardTitle>
-                      <CardDescription className="text-xs">View, filter, edit, and manage scheduled shift instances.</CardDescription>
+                      <CardTitle className="text-lg font-bold text-gray-900">
+                        Roster Calendar & Operational Grid
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        View, filter, edit, and manage scheduled shift instances.
+                      </CardDescription>
                     </div>
 
                     {/* View Switcher: Calendar vs Table vs Employee Matrix */}
@@ -1298,7 +1358,9 @@ export default function ShiftRosterPage() {
                         type="button"
                         onClick={() => setViewMode('table')}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                          viewMode === 'table' ? 'bg-white text-[#004B87] shadow-xs' : 'text-gray-600 hover:text-gray-900'
+                          viewMode === 'table'
+                            ? 'bg-white text-[#004B87] shadow-xs'
+                            : 'text-gray-600 hover:text-gray-900'
                         }`}
                       >
                         <LayoutList className="w-4 h-4" /> Table View
@@ -1307,7 +1369,9 @@ export default function ShiftRosterPage() {
                         type="button"
                         onClick={() => setViewMode('employee')}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                          viewMode === 'employee' ? 'bg-white text-[#004B87] shadow-xs' : 'text-gray-600 hover:text-gray-900'
+                          viewMode === 'employee'
+                            ? 'bg-white text-[#004B87] shadow-xs'
+                            : 'text-gray-600 hover:text-gray-900'
                         }`}
                       >
                         <Users className="w-4 h-4" /> By Employee
@@ -1375,7 +1439,10 @@ export default function ShiftRosterPage() {
                       </div>
 
                       {/* Clear Filters button */}
-                      {(selectedCategoryFilter !== 'ALL' || selectedEmployeeFilter !== 'ALL' || selectedDutyTypeFilter !== 'ALL' || searchTerm) && (
+                      {(selectedCategoryFilter !== 'ALL' ||
+                        selectedEmployeeFilter !== 'ALL' ||
+                        selectedDutyTypeFilter !== 'ALL' ||
+                        searchTerm) && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -1398,20 +1465,34 @@ export default function ShiftRosterPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          setAddStaffForm((prev) => ({
-                            ...prev,
+                          addStaffFormMethods.reset({
+                            date: new Date().toISOString().split('T')[0],
+                            dutyType: 'SHIFT',
                             resourceId: sampleResources[0]?.id || '',
                             resourceName: sampleResources[0]?.name || '',
                             resourceType: sampleResources[0]?.type || 'EMPLOYEE',
+                            shiftId: availableShifts[0]?.id || '',
+                            shiftName: availableShifts[0]?.shiftName || '',
+                            shiftTime: availableShifts[0]
+                              ? `${availableShifts[0].startTime} - ${availableShifts[0].endTime}`
+                              : '',
+                            targetId: targetLocations[0]?.id || '',
+                            targetName: targetLocations[0]?.name || '',
                             isEmployeeLocked: false,
-                          }))
+                          })
                           setIsAddStaffModalOpen(true)
                         }}
                         className="h-8 text-xs font-semibold gap-1.5 border-gray-200"
                       >
                         <UserPlus className="h-3.5 w-3.5 text-[#004B87]" /> Add Staff to Duty
                       </Button>
-                      <Button variant="outline" size="sm" onClick={fetchLiveData} disabled={isLoading} className="h-8 text-xs font-semibold gap-1.5 border-gray-200">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={fetchLiveData}
+                        disabled={isLoading}
+                        className="h-8 text-xs font-semibold gap-1.5 border-gray-200"
+                      >
                         <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} /> Refresh
                       </Button>
                     </div>
@@ -1437,7 +1518,8 @@ export default function ShiftRosterPage() {
                           </span>
                         </div>
                         <span className="text-[11px] text-gray-600 font-medium">
-                          Click on any duty to manage replacement/cancel, or click '+' on an empty day to assign a shift.
+                          Click on any duty to manage replacement/cancel, or click '+' on an empty day to assign a
+                          shift.
                         </span>
                       </div>
 
@@ -1456,7 +1538,9 @@ export default function ShiftRosterPage() {
                                   }`}
                                 >
                                   <div className="text-[10px] text-gray-400 uppercase font-mono">
-                                    {new Date(c.dateString + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' })}
+                                    {new Date(c.dateString + 'T00:00:00').toLocaleDateString('en-US', {
+                                      weekday: 'short',
+                                    })}
                                   </div>
                                   <div className="text-xs font-extrabold text-gray-900">{c.dayNumber}</div>
                                 </th>
@@ -1465,7 +1549,7 @@ export default function ShiftRosterPage() {
                           </thead>
                           <tbody className="divide-y divide-gray-100 text-xs">
                             {displayStaffList.map((staff) => {
-                              const staffAssignments = displayRosterDates.filter((d: any) => {
+                              const staffAssignments = displayRosterDates.filter((d: RosterGridRow) => {
                                 if (d.resource && d.resource.toLowerCase() === staff.name.toLowerCase()) return true
                                 if (d.schedulingResourceId && d.schedulingResourceId === staff.id) return true
                                 if (d.resourceUserId && d.resourceUserId === staff.id) return true
@@ -1499,26 +1583,38 @@ export default function ShiftRosterPage() {
                                           >
                                             {staff.role}
                                           </Badge>
-                                          <span className="text-[10px] text-gray-500 font-semibold">({activeCount} shifts)</span>
+                                          <span className="text-[10px] text-gray-500 font-semibold">
+                                            ({activeCount} shifts)
+                                          </span>
                                         </div>
                                       </div>
                                       {(() => {
-                                       const dutyCount = displayRosterDates.filter(
-                                         (d) => d.status !== 'CANCELLED' && (d.resource.toLowerCase() === staff.name.toLowerCase() || d.schedulingResourceId === staff.id || d.resourceUserId === staff.id)
-                                       ).length
-                                       if (dutyCount > 0) {
-                                         return (
-                                           <Badge variant="outline" className="text-[9.5px] px-2 py-0.5 bg-amber-50 text-amber-800 border-amber-300 font-bold shrink-0">
-                                             {dutyCount} Scheduled {dutyCount === 1 ? 'Duty' : 'Duties'}
-                                           </Badge>
-                                         )
-                                       }
-                                       return (
-                                         <Badge variant="outline" className="text-[9.5px] px-2 py-0.5 bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold shrink-0">
-                                           Free / Available
-                                         </Badge>
-                                       )
-                                     })()}
+                                        const dutyCount = displayRosterDates.filter(
+                                          (d) =>
+                                            d.status !== 'CANCELLED' &&
+                                            (d.resource.toLowerCase() === staff.name.toLowerCase() ||
+                                              d.schedulingResourceId === staff.id ||
+                                              d.resourceUserId === staff.id),
+                                        ).length
+                                        if (dutyCount > 0) {
+                                          return (
+                                            <Badge
+                                              variant="outline"
+                                              className="text-[9.5px] px-2 py-0.5 bg-amber-50 text-amber-800 border-amber-300 font-bold shrink-0"
+                                            >
+                                              {dutyCount} Scheduled {dutyCount === 1 ? 'Duty' : 'Duties'}
+                                            </Badge>
+                                          )
+                                        }
+                                        return (
+                                          <Badge
+                                            variant="outline"
+                                            className="text-[9.5px] px-2 py-0.5 bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold shrink-0"
+                                          >
+                                            Free / Available
+                                          </Badge>
+                                        )
+                                      })()}
                                     </div>
                                   </td>
 
@@ -1534,9 +1630,18 @@ export default function ShiftRosterPage() {
                                         }`}
                                       >
                                         {duty ? (
-                                          <div
-                                            onClick={() => setSelectedDateForReplacement(duty)}
-                                            className={`p-1.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer truncate shadow-2xs ${
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              if (duty.dutyType === 'OPD_SESSION') {
+                                                setOpdBookingDateId(duty.id)
+                                                setOpdBookingLabel(`${duty.resource} — ${duty.shift} (${duty.time})`)
+                                                setIsOpdBookingOpen(true)
+                                              } else {
+                                                setSelectedDateForReplacement(duty)
+                                              }
+                                            }}
+                                            className={`w-full text-left p-1.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer truncate shadow-2xs ${
                                               duty.status === 'CANCELLED'
                                                 ? 'bg-rose-50 text-rose-800 border-rose-200 line-through opacity-60'
                                                 : duty.dutyType === 'OPD_SESSION'
@@ -1547,25 +1652,34 @@ export default function ShiftRosterPage() {
                                           >
                                             <p className="truncate font-extrabold">{duty.shift}</p>
                                             <p className="text-[9px] font-normal opacity-80 truncate">{duty.time}</p>
-                                          </div>
+                                          </button>
                                         ) : (
                                           <button
                                             type="button"
                                             onClick={() => {
-                                              setAddStaffForm((prev) => ({
-                                                ...prev,
+                                              addStaffFormMethods.reset({
                                                 date: c.dateString,
+                                                dutyType: 'SHIFT',
                                                 resourceId: staff.id,
                                                 resourceName: staff.name,
                                                 resourceType: staff.type,
+                                                shiftId: availableShifts[0]?.id || '',
+                                                shiftName: availableShifts[0]?.shiftName || '',
+                                                shiftTime: availableShifts[0]
+                                                  ? `${availableShifts[0].startTime} - ${availableShifts[0].endTime}`
+                                                  : '',
+                                                targetId: targetLocations[0]?.id || '',
+                                                targetName: targetLocations[0]?.name || '',
                                                 isEmployeeLocked: true,
-                                              }))
+                                              })
                                               setIsAddStaffModalOpen(true)
                                             }}
                                             className="w-full h-8 rounded-md text-gray-300 hover:text-[#004B87] hover:bg-blue-50/60 transition-all flex items-center justify-center font-bold text-xs group"
                                             title={`Assign shift to ${staff.name} on ${c.dateString}`}
                                           >
-                                            <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold">+</span>
+                                            <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold">
+                                              +
+                                            </span>
                                             <span className="group-hover:hidden text-gray-300 text-xs">—</span>
                                           </button>
                                         )}
@@ -1580,7 +1694,6 @@ export default function ShiftRosterPage() {
                       </div>
                     </div>
                   ) : (
-
                     /* Full Interactive Calendar View */
                     <div className="space-y-4">
                       {/* Calendar Navigation */}
@@ -1589,7 +1702,10 @@ export default function ShiftRosterPage() {
                           <h2 className="text-lg font-bold text-gray-900">
                             {currentCalendarDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
                           </h2>
-                          <Badge variant="outline" className="text-xs bg-blue-50 text-[#004B87] border-blue-200 font-semibold">
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-blue-50 text-[#004B87] border-blue-200 font-semibold"
+                          >
                             {filteredDates.length} Shifts Scheduled
                           </Badge>
                         </div>
@@ -1599,17 +1715,13 @@ export default function ShiftRosterPage() {
                             size="sm"
                             onClick={() =>
                               setCurrentCalendarDate(
-                                new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() - 1, 1)
+                                new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() - 1, 1),
                               )
                             }
                           >
                             <ChevronLeft className="w-4 h-4" />
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCurrentCalendarDate(new Date())}
-                          >
+                          <Button variant="outline" size="sm" onClick={() => setCurrentCalendarDate(new Date())}>
                             Today
                           </Button>
                           <Button
@@ -1617,7 +1729,7 @@ export default function ShiftRosterPage() {
                             size="sm"
                             onClick={() =>
                               setCurrentCalendarDate(
-                                new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 1)
+                                new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 1),
                               )
                             }
                           >
@@ -1643,10 +1755,11 @@ export default function ShiftRosterPage() {
                           const dateAssignments = displayRosterDates.filter((item) => item.date === cell.dateString)
 
                           return (
-                            <div
+                            <button
+                              type="button"
                               key={idx}
                               onClick={() => setSelectedCellDate(cell.dateString)}
-                              className={`min-h-[115px] p-2.5 border rounded-xl transition-all cursor-pointer flex flex-col justify-between ${
+                              className={`min-h-[115px] p-2.5 border rounded-xl transition-all cursor-pointer flex flex-col justify-between text-left w-full ${
                                 cell.isCurrentMonth
                                   ? 'bg-white border-gray-200 hover:border-[#004B87]/50 hover:shadow-md'
                                   : 'bg-gray-50/50 border-gray-100 text-gray-400'
@@ -1683,7 +1796,9 @@ export default function ShiftRosterPage() {
                                     }`}
                                   >
                                     <p className="font-bold truncate text-gray-900 leading-tight">{assignment.shift}</p>
-                                    <p className="text-[9.5px] font-medium text-gray-600 truncate mt-0.5">{assignment.resource}</p>
+                                    <p className="text-[9.5px] font-medium text-gray-600 truncate mt-0.5">
+                                      {assignment.resource}
+                                    </p>
                                   </div>
                                 ))}
                                 {dateAssignments.length > 2 && (
@@ -1692,7 +1807,7 @@ export default function ShiftRosterPage() {
                                   </p>
                                 )}
                               </div>
-                            </div>
+                            </button>
                           )
                         })}
                       </div>
@@ -1710,792 +1825,616 @@ export default function ShiftRosterPage() {
             content: (
               <Card className="shadow-xs border-gray-200">
                 <CardHeader className="border-b border-gray-100 pb-4">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                      <CardTitle className="text-xl font-bold text-gray-900">Express 3-Step Roster Builder</CardTitle>
-                      <CardDescription className="text-xs">
-                        Streamlined 3-step workflow to configure shift schedules, assign staff, validate policies, and publish rosters.
-                      </CardDescription>
-                    </div>
-                    <Badge variant="outline" className="text-xs font-mono px-3.5 py-1.5 bg-blue-50 text-[#004B87] border-blue-200 font-bold self-start md:self-auto">
-                      Step {wizardStep} of 3: {stepNames[wizardStep - 1]}
-                    </Badge>
-                  </div>
-
-                  {/* 3-Step Progress Chips Header */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-4">
-                    {stepNames.map((name, idx) => {
-                      const stepNum = idx + 1
-                      const isCurrent = stepNum === wizardStep
-                      const isPassed = stepNum < wizardStep
-                      return (
-                        <button
-                          key={stepNum}
-                          type="button"
-                          onClick={() => {
-                            if (isPassed) setWizardStep(stepNum)
-                          }}
-                          disabled={!isPassed && !isCurrent}
-                          className={`p-2 rounded-lg text-left transition-all border text-[11px] ${
-                            isCurrent
-                              ? 'bg-[#004B87] text-white border-[#004B87] font-bold shadow-xs'
-                              : isPassed
-                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200 font-semibold cursor-pointer hover:bg-emerald-100'
-                                : 'bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed'
-                          }`}
-                        >
-                          <p className="text-[9px] opacity-80 uppercase font-mono">Step {stepNum}</p>
-                          <p className="truncate mt-0.5">{name}</p>
-                        </button>
-                      )
-                    })}
+                  <div>
+                    <CardTitle className="text-xl font-bold text-gray-900">Express Roster Builder</CardTitle>
+                    <CardDescription className="text-xs">
+                      Configure shift schedules, assign staff, review conflicts, and publish rosters in one unified
+                      form.
+                    </CardDescription>
                   </div>
                 </CardHeader>
 
                 <CardContent className="p-6">
-                  {/* FULL WIDTH SPLIT LAYOUT: Left (Step Form) + Right (Live Roster Summary Panel) */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    
-                    {/* LEFT COLUMN: Active Step Controls (8 cols) */}
-                    <div className="lg:col-span-8 space-y-6">
-                      
-                      {/* STEP 1: When, Shift & Scope (Date & Target) */}
-                      {wizardStep === 1 && (
-                        <div className="space-y-6">
-                          <div className="flex items-center justify-between gap-4">
-                            <div className="flex-1">
-                              <Label className="text-sm font-semibold text-gray-900">Roster Assignment Title *</Label>
-                              <Input
-                                value={builderForm.rosterName}
-                                onChange={(e) => setBuilderForm({ ...builderForm, rosterName: e.target.value })}
-                                placeholder="e.g. Memory Care Caregiver Rotation - Q3 2026"
-                                className="mt-1.5 h-10"
-                              />
-                            </div>
-                            <div className="pt-6">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleRunAiAutoScheduler}
-                                disabled={isAiOptimizing}
-                                className="gap-2 border-purple-300 bg-purple-50 text-purple-800 hover:bg-purple-100 font-bold text-xs"
-                              >
-                                <Bot className="w-4 h-4 text-purple-700" />
-                                {isAiOptimizing ? 'AI Optimizing...' : 'AI Auto-Scheduler'}
-                              </Button>
-                            </div>
-                          </div>
-
-                          {isAiOptimizing && (
-                            <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-900 flex items-center gap-2 animate-pulse">
-                              <Sparkles className="w-4 h-4 text-purple-700" />
-                              <span>{aiOptimizationMessage}</span>
-                            </div>
-                          )}
-                           {/* Duty Type Selector */}
-                          <div className="space-y-2">
-                            <Label className="text-sm font-semibold text-gray-900">Operational Duty Type *</Label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              {[
-                                { type: 'SHIFT', label: 'Regular Shift', icon: Activity },
-                                { type: 'OPD_SESSION', label: 'OPD Session', icon: Stethoscope },
-                              ].map((item) => (
-                                <button
-                                  key={item.type}
-                                  type="button"
-                                  onClick={() => {
-                                    if (item.type === 'OPD_SESSION') {
-                                      const doctors = sampleResources.filter((r) => r.type === 'DOCTOR')
-                                      const matchingClinic = targetLocations.find((t) => t.type === 'CLINIC_VENUE' || t.type === 'DEPARTMENT') || targetLocations[0]
-                                      const firstDoc = doctors[0]
-                                      setBuilderForm({
-                                        ...builderForm,
-                                        dutyType: 'OPD_SESSION',
-                                        resourceType: 'DOCTOR',
-                                        selectedResourceIds: firstDoc ? [firstDoc.id] : [],
-                                        selectedResourceNames: firstDoc ? [firstDoc.name] : [],
-                                        targetScopeType: matchingClinic ? matchingClinic.type : 'DEPARTMENT',
-                                        selectedTargetId: matchingClinic ? matchingClinic.id : builderForm.selectedTargetId,
-                                        selectedTargetName: matchingClinic ? matchingClinic.name : builderForm.selectedTargetName,
-                                      })
-                                    } else {
-                                      const employees = sampleResources.filter((r) => r.type === 'EMPLOYEE')
-                                      const matchingFloor = targetLocations.find((t) => t.type === 'FLOOR' || t.type === 'PROPERTY') || targetLocations[0]
-                                      const selEmps = employees.slice(0, 2)
-                                      setBuilderForm({
-                                        ...builderForm,
-                                        dutyType: 'SHIFT',
-                                        resourceType: 'EMPLOYEE',
-                                        selectedResourceIds: selEmps.map((e) => e.id),
-                                        selectedResourceNames: selEmps.map((e) => e.name),
-                                        targetScopeType: matchingFloor ? matchingFloor.type : 'PROPERTY',
-                                        selectedTargetId: matchingFloor ? matchingFloor.id : builderForm.selectedTargetId,
-                                        selectedTargetName: matchingFloor ? matchingFloor.name : builderForm.selectedTargetName,
-                                      })
-                                    }
-                                  }}
-                                  className={`p-4 border rounded-xl flex items-center justify-center gap-3 transition-all text-sm font-bold ${
-                                    builderForm.dutyType === item.type
-                                      ? 'border-[#004B87] bg-blue-50/80 text-[#004B87] ring-2 ring-[#004B87]/20 shadow-xs'
-                                      : 'border-gray-200 hover:bg-gray-50 text-gray-700'
-                                  }`}
-                                >
-                                  <item.icon className="w-5 h-5 text-[#004B87]" />
-                                  <span>{item.label}</span>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Dates */}                {/* Dates */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                              <Label className="text-xs font-semibold">Effective From Date *</Label>
-                              <Input
-                                type="date"
-                                value={builderForm.effectiveFrom}
-                                onChange={(e) => setBuilderForm({ ...builderForm, effectiveFrom: e.target.value })}
-                                className="mt-1.5 h-10"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs font-semibold">Effective Until Date *</Label>
-                              <Input
-                                type="date"
-                                value={builderForm.effectiveUntil}
-                                onChange={(e) => setBuilderForm({ ...builderForm, effectiveUntil: e.target.value })}
-                                className="mt-1.5 h-10"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Working Days */}
-                          <div className="space-y-3">
-                            <Label className="text-xs font-semibold">Working Days *</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => {
-                                const isSelected = builderForm.selectedDaysOfWeek.includes(day)
-                                return (
-                                  <button
-                                    key={day}
-                                    type="button"
-                                    onClick={() => toggleDayOfWeek(day)}
-                                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-                                      isSelected
-                                        ? 'bg-[#004B87] text-white border-[#004B87] shadow-xs'
-                                        : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
-                                    }`}
-                                  >
-                                    {day}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          </div>
-
-                          {/* Shift Templates */}
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <Label className="text-sm font-semibold text-gray-900">Shift Template *</Label>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleOpenCreateShift}
-                                className="text-xs h-7 text-[#004B87] gap-1 hover:bg-blue-50 font-semibold"
-                              >
-                                <Plus className="w-3.5 h-3.5" /> Create Custom Shift
-                              </Button>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                              {availableShifts.map((shift) => (
-                                <div
-                                  key={shift.id}
-                                  onClick={() =>
-                                    setBuilderForm({
-                                      ...builderForm,
-                                      selectedShiftId: shift.id,
-                                      selectedShiftName: shift.shiftName,
-                                      selectedShiftTime: `${shift.startTime} - ${shift.endTime}`,
-                                    })
-                                  }
-                                  className={`p-3.5 border rounded-xl cursor-pointer transition-all ${
-                                    builderForm.selectedShiftId === shift.id
-                                      ? 'border-[#004B87] bg-blue-50/70 ring-2 ring-[#004B87]/20 shadow-xs'
-                                      : 'border-gray-200 hover:border-gray-300 bg-white'
-                                  }`}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <p className="font-bold text-xs text-gray-900">{shift.shiftName}</p>
-                                    {builderForm.selectedShiftId === shift.id && (
-                                      <CheckCircle2 className="w-4 h-4 text-[#004B87]" />
-                                    )}
-                                  </div>
-                                  <p className="text-xs font-bold text-[#004B87] mt-2">
-                                    {shift.startTime} - {shift.endTime}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Duty Target Scope (Simplified Core Hierarchy) */}
-                          <div className="space-y-3 pt-4 border-t">
-                            <div className="flex items-center justify-between">
-                              <Label className="text-sm font-semibold text-gray-900">Duty Target Scope & Location *</Label>
-                              <button
-                                type="button"
-                                onClick={() => setIsAddLocationModalOpen(true)}
-                                className="text-xs text-[#004B87] font-semibold hover:underline flex items-center gap-1 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 transition-all hover:bg-blue-100"
-                              >
-                                <Plus className="w-3.5 h-3.5" /> + Add New Location / Dept
-                              </button>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                              {[
-                                { type: 'ROOM_UNIT', label: 'Flat / Unit', icon: Home, desc: 'Flat or Resident Unit' },
-                                { type: 'FLOOR', label: 'Floor / Wing', icon: Layers, desc: 'Caregiver Floor' },
-                                { type: 'CLINIC_VENUE', label: 'Clinic Suite', icon: Stethoscope, desc: 'Doctor OPD Room' },
-                                { type: 'DEPARTMENT', label: 'Department', icon: Activity, desc: 'Nursing & Med' },
-                              ].map((item) => {
-                                const availableCount = targetLocations.filter((t) => t.type === item.type).length
-                                const isSelected = builderForm.targetScopeType === item.type
-                                return (
-                                  <div
-                                    key={item.type}
-                                    onClick={() => {
-                                      const matching = targetLocations.filter((t) => t.type === item.type)
-                                      const firstMatch = matching[0]
-                                      setBuilderForm({
-                                        ...builderForm,
-                                        targetScopeType: item.type as any,
-                                        selectedTargetId: firstMatch ? firstMatch.id : '',
-                                        selectedTargetName: firstMatch ? firstMatch.name : 'No Target Available',
-                                      })
-                                    }}
-                                    className={`p-3 border rounded-xl cursor-pointer transition-all flex flex-col items-center text-center gap-1.5 ${
-                                      isSelected
-                                        ? 'border-[#004B87] bg-blue-50/80 text-[#004B87] font-bold ring-2 ring-[#004B87]/20 shadow-xs'
-                                        : 'border-gray-200 hover:bg-gray-50 text-gray-700'
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-1.5">
-                                      <item.icon className="w-4 h-4 text-[#004B87]" />
-                                      <span className="text-xs font-semibold">{item.label}</span>
-                                    </div>
-                                    <span className="text-[10px] text-gray-400 font-normal">
-                                      {availableCount} Available
-                                    </span>
-                                  </div>
-                                )
-                              })}
-                            </div>
-
-                            <div className="space-y-1.5 pt-2">
-                              <div className="flex items-center justify-between">
-                                <Label className="text-xs font-semibold text-gray-700">
-                                  Select Target Location ({targetLocations.filter((t) => t.type === builderForm.targetScopeType).length} Available) *
-                                </Label>
-                              </div>
-                              <Select
-                                value={builderForm.selectedTargetId}
-                                onValueChange={(val: string) => {
-                                  const found = targetLocations.find((t) => t.id === val)
-                                  setBuilderForm({
-                                    ...builderForm,
-                                    selectedTargetId: val,
-                                    selectedTargetName: found?.name || val,
-                                  })
-                                }}
-                              >
-                                <SelectTrigger className="h-10">
-                                  <SelectValue placeholder="Select specific location target..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {groupedTargetLocations
-                                    .map((group) => {
-                                      const matchingItems = group.items.filter((target) => target.type === builderForm.targetScopeType)
-                                      if (matchingItems.length === 0) return null
-                                      return (
-                                        <SelectGroup key={group.label}>
-                                          <SelectLabel className="font-bold text-[#004B87] uppercase text-[10px] tracking-wider px-2 py-1 bg-gray-50/80 my-1 rounded-sm">
-                                            {group.label}
-                                          </SelectLabel>
-                                          {matchingItems.map((target) => (
-                                            <SelectItem key={target.id} value={target.id}>
-                                              {target.name}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectGroup>
-                                      )
-                                    })
-                                    .filter(Boolean)}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* STEP 2: Who (Select Available Staff & Doctors) */}
-                      {wizardStep === 2 && (
-                        <div className="space-y-6">
-                          <div>
-                            <h3 className="text-base font-bold text-gray-900">Step 2: Choose Available Personnel & Doctors</h3>
-                            <p className="text-xs text-gray-500 mt-1">Select personnel to assign for <strong>{builderForm.selectedShiftName} ({builderForm.selectedShiftTime})</strong> from <strong>{builderForm.effectiveFrom} to {builderForm.effectiveUntil}</strong>.</p>
-                          </div>
-
-                          {/* Staff Selection Category */}
-                          <div className="space-y-3 pt-2">
-                            <Label className="text-sm font-semibold text-gray-900">Select Resource Category</Label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const employees = sampleResources.filter((r) => r.type === 'EMPLOYEE')
-                                  const matchingFloor = targetLocations.find((t) => t.type === 'FLOOR' || t.type === 'PROPERTY') || targetLocations[0]
-                                  const selEmps = employees.slice(0, 2)
-                                  setBuilderForm({
-                                    ...builderForm,
-                                    resourceType: 'EMPLOYEE',
-                                    selectedResourceIds: selEmps.map((e) => e.id),
-                                    selectedResourceNames: selEmps.map((e) => e.name),
-                                    targetScopeType: matchingFloor ? matchingFloor.type : builderForm.targetScopeType,
-                                    selectedTargetId: matchingFloor ? matchingFloor.id : builderForm.selectedTargetId,
-                                    selectedTargetName: matchingFloor ? matchingFloor.name : builderForm.selectedTargetName,
-                                  })
-                                }}
-                                className={`p-4 border rounded-xl flex items-center gap-3 transition-all ${
-                                  builderForm.resourceType === 'EMPLOYEE'
-                                    ? 'border-[#004B87] bg-blue-50/70 text-[#004B87] ring-2 ring-[#004B87]/20 shadow-xs'
-                                    : 'border-gray-200 hover:bg-gray-50'
-                                }`}
-                              >
-                                <UserCheck className="w-6 h-6 text-[#004B87]" />
-                                <div className="text-left">
-                                  <p className="font-bold text-sm">Staff Employees</p>
-                                  <p className="text-xs text-gray-500 font-normal">Nurses & Caregivers</p>
-                                </div>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const doctors = sampleResources.filter((r) => r.type === 'DOCTOR')
-                                  const matchingClinic = targetLocations.find((t) => t.type === 'CLINIC_VENUE' || t.type === 'DEPARTMENT') || targetLocations[0]
+                  <div className="space-y-10">
+                    {/* Section A: Scope & Schedule */}
+                    <section className="space-y-6">
+                      <div>
+                        <h3 className="text-base font-bold text-gray-900">Scope & Schedule</h3>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Set duty type, date range, working days, shift template, and target location.
+                        </p>
+                      </div>
+                      {/* Duty Type Selector */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-semibold text-gray-900">Operational Duty Type *</Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {[
+                            { type: 'SHIFT', label: 'Regular Shift', icon: Activity },
+                            { type: 'OPD_SESSION', label: 'OPD Session', icon: Stethoscope },
+                          ].map((item) => (
+                            <button
+                              key={item.type}
+                              type="button"
+                              onClick={() => {
+                                if (item.type === 'OPD_SESSION') {
+                                  const doctors = filterStaffAvailableForSchedule(
+                                    sampleResources.filter((r) => r.type === 'DOCTOR'),
+                                    1,
+                                  )
+                                  const matchingClinic =
+                                    targetLocations.find((t) => t.type === 'CLINIC_VENUE' || t.type === 'DEPARTMENT') ||
+                                    targetLocations[0]
                                   const firstDoc = doctors[0]
                                   setBuilderForm({
                                     ...builderForm,
+                                    dutyType: 'OPD_SESSION',
                                     resourceType: 'DOCTOR',
                                     selectedResourceIds: firstDoc ? [firstDoc.id] : [],
                                     selectedResourceNames: firstDoc ? [firstDoc.name] : [],
-                                    targetScopeType: matchingClinic ? matchingClinic.type : builderForm.targetScopeType,
+                                    targetScopeType: matchingClinic ? matchingClinic.type : 'DEPARTMENT',
                                     selectedTargetId: matchingClinic ? matchingClinic.id : builderForm.selectedTargetId,
-                                    selectedTargetName: matchingClinic ? matchingClinic.name : builderForm.selectedTargetName,
+                                    selectedTargetName: matchingClinic
+                                      ? matchingClinic.name
+                                      : builderForm.selectedTargetName,
                                   })
-                                }}
-                                className={`p-4 border rounded-xl flex items-center gap-3 transition-all ${
-                                  builderForm.resourceType === 'DOCTOR'
-                                    ? 'border-[#004B87] bg-blue-50/70 text-[#004B87] ring-2 ring-[#004B87]/20 shadow-xs'
-                                    : 'border-gray-200 hover:bg-gray-50'
+                                } else {
+                                  const employees = filterStaffAvailableForSchedule(
+                                    sampleResources.filter((r) => r.type === 'EMPLOYEE'),
+                                    2,
+                                  )
+                                  const matchingFloor =
+                                    targetLocations.find((t) => t.type === 'FLOOR' || t.type === 'PROPERTY') ||
+                                    targetLocations[0]
+                                  setBuilderForm({
+                                    ...builderForm,
+                                    dutyType: 'SHIFT',
+                                    resourceType: 'EMPLOYEE',
+                                    selectedResourceIds: employees.map((e) => e.id),
+                                    selectedResourceNames: employees.map((e) => e.name),
+                                    targetScopeType: matchingFloor ? matchingFloor.type : 'PROPERTY',
+                                    selectedTargetId: matchingFloor ? matchingFloor.id : builderForm.selectedTargetId,
+                                    selectedTargetName: matchingFloor
+                                      ? matchingFloor.name
+                                      : builderForm.selectedTargetName,
+                                  })
+                                }
+                              }}
+                              className={`p-4 border rounded-xl flex items-center justify-center gap-3 transition-all text-sm font-bold ${
+                                builderForm.dutyType === item.type
+                                  ? 'border-[#004B87] bg-blue-50/80 text-[#004B87] ring-2 ring-[#004B87]/20 shadow-xs'
+                                  : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                              }`}
+                            >
+                              <item.icon className="w-5 h-5 text-[#004B87]" />
+                              <span>{item.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Dates */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-xs font-semibold">Effective From Date *</Label>
+                          <Input
+                            type="date"
+                            value={builderForm.effectiveFrom}
+                            min={new Date().toISOString().split('T')[0]}
+                            onChange={(e) => {
+                              const effectiveFrom = e.target.value
+                              const effectiveUntil =
+                                effectiveFrom &&
+                                builderForm.effectiveUntil &&
+                                builderForm.effectiveUntil < effectiveFrom
+                                  ? effectiveFrom
+                                  : builderForm.effectiveUntil
+                              setBuilderForm({ ...builderForm, effectiveFrom, effectiveUntil })
+                            }}
+                            className="mt-1.5 h-10"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs font-semibold">Effective Until Date *</Label>
+                          <Input
+                            type="date"
+                            value={builderForm.effectiveUntil}
+                            min={builderForm.effectiveFrom || new Date().toISOString().split('T')[0]}
+                            disabled={!builderForm.effectiveFrom}
+                            onChange={(e) => setBuilderForm({ ...builderForm, effectiveUntil: e.target.value })}
+                            className="mt-1.5 h-10"
+                          />
+                        </div>
+                      </div>
+                      <FieldErrorMessage
+                        message={builderErrors.effectiveFrom?.message || builderErrors.effectiveUntil?.message}
+                      />
+
+                      {/* Working Days */}
+                      <div className="space-y-3">
+                        <Label className="text-xs font-semibold">Working Days *</Label>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => {
+                            const isSelected = builderForm.selectedDaysOfWeek.includes(day)
+                            return (
+                              <button
+                                key={day}
+                                type="button"
+                                onClick={() => toggleDayOfWeek(day)}
+                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                                  isSelected
+                                    ? 'bg-[#004B87] text-white border-[#004B87] shadow-xs'
+                                    : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                                 }`}
                               >
-                                <Stethoscope className="w-6 h-6 text-[#004B87]" />
-                                <div className="text-left">
-                                  <p className="font-bold text-sm">Doctor Resources</p>
-                                  <p className="text-xs text-gray-500 font-normal">In-House or Visiting Specialists</p>
-                                </div>
+                                {day}
                               </button>
-                            </div>
-                          </div>
+                            )
+                          })}
+                        </div>
+                        <FieldErrorMessage message={builderErrors.selectedDaysOfWeek?.message} />
+                      </div>
 
-                          {/* Multi-Resource Selection List */}
-                          <div className="space-y-3">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                              <Label className="text-sm font-semibold text-gray-900">
-                                Choose Staff ({builderForm.selectedResourceIds.length} Selected) *
-                              </Label>
-                              <div className="flex items-center gap-2">
-                                <Button variant="ghost" size="sm" onClick={handleSelectAllResources} className="text-xs h-7 text-[#004B87]">
-                                  Select All
-                                </Button>
-                                <Button variant="ghost" size="sm" onClick={handleClearAllResources} className="text-xs h-7 text-gray-500">
-                                  Clear
-                                </Button>
-                                <div className="relative w-48">
-                                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-gray-400" />
-                                  <Input
-                                    placeholder="Search staff..."
-                                    value={resourceSearch}
-                                    onChange={(e) => setResourceSearch(e.target.value)}
-                                    className="pl-8 h-8 text-xs"
-                                  />
-                                </div>
+                      {/* Shift Templates */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-semibold text-gray-900">Shift Template *</Label>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleOpenCreateShift}
+                            className="text-xs h-7 text-[#004B87] gap-1 hover:bg-blue-50 font-semibold"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> Create Custom Shift
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {availableShifts.map((shift) => (
+                            <button
+                              type="button"
+                              key={shift.id}
+                              onClick={() =>
+                                setBuilderForm({
+                                  ...builderForm,
+                                  selectedShiftId: shift.id,
+                                  selectedShiftName: shift.shiftName,
+                                  selectedShiftTime: `${shift.startTime} - ${shift.endTime}`,
+                                })
+                              }
+                              className={`p-3.5 border rounded-xl cursor-pointer transition-all text-left ${
+                                builderForm.selectedShiftId === shift.id
+                                  ? 'border-[#004B87] bg-blue-50/70 ring-2 ring-[#004B87]/20 shadow-xs'
+                                  : 'border-gray-200 hover:border-gray-300 bg-white'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <p className="font-bold text-xs text-gray-900">{shift.shiftName}</p>
+                                {builderForm.selectedShiftId === shift.id && (
+                                  <CheckCircle2 className="w-4 h-4 text-[#004B87]" />
+                                )}
                               </div>
-                            </div>
+                              <p className="text-xs font-bold text-[#004B87] mt-2">
+                                {shift.startTime} - {shift.endTime}
+                              </p>
+                            </button>
+                          ))}
+                        </div>
+                        <FieldErrorMessage message={builderErrors.selectedShiftId?.message} />
+                      </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
-                              {availableResources.map((res) => {
-                                const isSelected = builderForm.selectedResourceIds.includes(res.id)
-                                return (
-                                  <div
-                                    key={res.id}
-                                    onClick={() => handleToggleResourceSelection(res)}
-                                    className={`p-3 border rounded-xl cursor-pointer flex items-center justify-between transition-all ${
-                                      isSelected
-                                        ? 'border-[#004B87] bg-blue-50/80 text-[#004B87] font-semibold ring-1 ring-[#004B87]'
-                                        : 'border-gray-200 hover:border-gray-300 bg-white'
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      {isSelected ? (
-                                        <CheckSquare className="w-5 h-5 text-[#004B87]" />
-                                      ) : (
-                                        <Square className="w-5 h-5 text-gray-300" />
-                                      )}
-                                      <div>
-                                        <div className="flex items-center gap-1.5">
-                                          <p className="text-xs font-bold text-gray-900">{res.name}</p>
-                                          {res.type === 'DOCTOR' && res.subType && (
-                                            <Badge
-                                              variant="outline"
-                                              className={`text-[9px] px-1.5 py-0 ${
-                                                res.subType === 'VISITING'
-                                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                              }`}
-                                            >
-                                              {res.subType === 'VISITING' ? 'Visiting' : 'In-House'}
-                                            </Badge>
-                                          )}
-                                        </div>
-                                        <p className="text-[11px] text-gray-500 flex items-center gap-1">
-                                          <span>{res.role}</span>
-                                          {res.specialization && (
-                                            <span className="font-semibold text-[#004B87]">• {res.specialization}</span>
-                                          )}
-                                        </p>
-                                      </div>
-                                    </div>
-                                    {(() => {
-                                      const dutyCount = displayRosterDates.filter(
-                                        (d) => d.status !== 'CANCELLED' && (d.resource.toLowerCase() === res.name.toLowerCase() || d.schedulingResourceId === res.id || d.resourceUserId === res.id)
-                                      ).length
-                                      if (dutyCount > 0) {
-                                        return (
-                                          <Badge variant="outline" className="text-[9.5px] px-2 py-0.5 bg-amber-50 text-amber-800 border-amber-300 font-bold shrink-0">
-                                            {dutyCount} Scheduled {dutyCount === 1 ? 'Duty' : 'Duties'}
-                                          </Badge>
-                                        )
-                                      }
-                                      return (
-                                        <Badge variant="outline" className="text-[9.5px] px-2 py-0.5 bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold shrink-0">
-                                          🟢 Free / Available
-                                        </Badge>
-                                      )
-                                    })()}
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          </div>
+                      {frequencies.length > 0 && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold text-gray-900">Frequency Template</Label>
+                          <Select
+                            value={builderForm.frequencyId}
+                            onValueChange={(v: string) => setBuilderForm({ ...builderForm, frequencyId: v })}
+                          >
+                            <SelectTrigger className="h-10">
+                              <SelectValue placeholder="Select frequency" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {frequencies.map((f) => (
+                                <SelectItem key={f.id} value={f.id}>
+                                  {f.frequencyName}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       )}
 
-                      {/* STEP 3: Validation, Duty Preview & Publish */}
-                      {wizardStep === 3 && (
-                        <div className="space-y-6">
+                      {(builderForm.dutyType === 'OPD_SESSION' || builderForm.enableOpdSlots) && (
+                        <OpdConfigSection
+                          shiftTime={builderForm.selectedShiftTime}
+                          enableOpdSlots={builderForm.enableOpdSlots ?? builderForm.dutyType === 'OPD_SESSION'}
+                          slotDurationMinutes={builderForm.opdSlotDurationMinutes ?? 30}
+                          slotBufferMinutes={builderForm.opdBufferMinutes ?? 0}
+                          onEnableChange={(enabled) => setBuilderForm({ ...builderForm, enableOpdSlots: enabled })}
+                          onDurationChange={(minutes) =>
+                            setBuilderForm({ ...builderForm, opdSlotDurationMinutes: minutes })
+                          }
+                          onBufferChange={(minutes) => setBuilderForm({ ...builderForm, opdBufferMinutes: minutes })}
+                        />
+                      )}
+
+                      {/* Duty Target Scope (Simplified Core Hierarchy) */}
+                      <div className="space-y-3 pt-4 border-t">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-semibold text-gray-900">Duty Target Scope & Location *</Label>
+                          <button
+                            type="button"
+                            onClick={() => setIsAddLocationModalOpen(true)}
+                            className="text-xs text-[#004B87] font-semibold hover:underline flex items-center gap-1 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 transition-all hover:bg-blue-100"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> + Add New Location / Dept
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                          {[
+                            {
+                              type: 'ROOM_UNIT' as const,
+                              label: 'Flat / Unit',
+                              icon: Home,
+                              desc: 'Flat or Resident Unit',
+                            },
+                            { type: 'FLOOR' as const, label: 'Floor / Wing', icon: Layers, desc: 'Caregiver Floor' },
+                            {
+                              type: 'CLINIC_VENUE' as const,
+                              label: 'Clinic Suite',
+                              icon: Stethoscope,
+                              desc: 'Doctor OPD Room',
+                            },
+                            { type: 'DEPARTMENT' as const, label: 'Department', icon: Activity, desc: 'Nursing & Med' },
+                          ].map((item) => {
+                            const availableCount = targetLocations.filter((t) => t.type === item.type).length
+                            const isSelected = builderForm.targetScopeType === item.type
+                            return (
+                              <button
+                                type="button"
+                                key={item.type}
+                                onClick={() => {
+                                  const matching = targetLocations.filter((t) => t.type === item.type)
+                                  const firstMatch = matching[0]
+                                  setBuilderForm({
+                                    ...builderForm,
+                                    targetScopeType: item.type,
+                                    selectedTargetId: firstMatch ? firstMatch.id : '',
+                                    selectedTargetName: firstMatch ? firstMatch.name : 'No Target Available',
+                                  })
+                                }}
+                                className={`p-3 border rounded-xl cursor-pointer transition-all flex flex-col items-center text-center gap-1.5 ${
+                                  isSelected
+                                    ? 'border-[#004B87] bg-blue-50/80 text-[#004B87] font-bold ring-2 ring-[#004B87]/20 shadow-xs'
+                                    : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                                }`}
+                              >
+                                <div className="flex items-center gap-1.5">
+                                  <item.icon className="w-4 h-4 text-[#004B87]" />
+                                  <span className="text-xs font-semibold">{item.label}</span>
+                                </div>
+                                <span className="text-[10px] text-gray-400 font-normal">
+                                  {availableCount} Available
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+
+                        <div className="space-y-1.5 pt-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs font-semibold text-gray-700">
+                              Select Target Location (
+                              {targetLocations.filter((t) => t.type === builderForm.targetScopeType).length} Available)
+                              *
+                            </Label>
+                          </div>
+                          <Select
+                            value={builderForm.selectedTargetId}
+                            onValueChange={(val: string) => {
+                              const found = targetLocations.find((t) => t.id === val)
+                              setBuilderForm({
+                                ...builderForm,
+                                selectedTargetId: val,
+                                selectedTargetName: found?.name || val,
+                              })
+                            }}
+                          >
+                            <SelectTrigger className="h-10">
+                              <SelectValue placeholder="Select specific location target..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {groupedTargetLocations
+                                .map((group) => {
+                                  const matchingItems = group.items.filter(
+                                    (target) => target.type === builderForm.targetScopeType,
+                                  )
+                                  if (matchingItems.length === 0) return null
+                                  return (
+                                    <SelectGroup key={group.label}>
+                                      <SelectLabel className="font-bold text-[#004B87] uppercase text-[10px] tracking-wider px-2 py-1 bg-gray-50/80 my-1 rounded-sm">
+                                        {group.label}
+                                      </SelectLabel>
+                                      {matchingItems.map((target) => (
+                                        <SelectItem key={target.id} value={target.id}>
+                                          {target.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectGroup>
+                                  )
+                                })
+                                .filter(Boolean)}
+                            </SelectContent>
+                          </Select>
+                          <FieldErrorMessage message={builderErrors.selectedTargetId?.message} />
+                        </div>
+                      </div>
+                    </section>
+
+                    <Separator />
+
+                    {/* Section B: Personnel Selection */}
+                    <section className="space-y-6">
+                      <div>
+                        <h3 className="text-base font-bold text-gray-900">Personnel Selection</h3>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Select personnel to assign for{' '}
+                          <strong>
+                            {builderForm.selectedShiftName} ({builderForm.selectedShiftTime})
+                          </strong>{' '}
+                          from{' '}
+                          <strong>
+                            {builderForm.effectiveFrom} to {builderForm.effectiveUntil}
+                          </strong>
+                          .
+                        </p>
+                      </div>
+
+                      {/* Staff Selection Category */}
+                      <div className="space-y-3 pt-2">
+                        <Label className="text-sm font-semibold text-gray-900">Select Resource Category *</Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const employees = filterStaffAvailableForSchedule(
+                                sampleResources.filter((r) => r.type === 'EMPLOYEE'),
+                                2,
+                              )
+                              const matchingFloor =
+                                targetLocations.find((t) => t.type === 'FLOOR' || t.type === 'PROPERTY') ||
+                                targetLocations[0]
+                              setBuilderForm({
+                                ...builderForm,
+                                resourceType: 'EMPLOYEE',
+                                selectedResourceIds: employees.map((e) => e.id),
+                                selectedResourceNames: employees.map((e) => e.name),
+                                targetScopeType: matchingFloor ? matchingFloor.type : builderForm.targetScopeType,
+                                selectedTargetId: matchingFloor ? matchingFloor.id : builderForm.selectedTargetId,
+                                selectedTargetName: matchingFloor ? matchingFloor.name : builderForm.selectedTargetName,
+                              })
+                            }}
+                            className={`p-4 border rounded-xl flex items-center gap-3 transition-all ${
+                              builderForm.resourceType === 'EMPLOYEE'
+                                ? 'border-[#004B87] bg-blue-50/70 text-[#004B87] ring-2 ring-[#004B87]/20 shadow-xs'
+                                : 'border-gray-200 hover:bg-gray-50'
+                            }`}
+                          >
+                            <UserCheck className="w-6 h-6 text-[#004B87]" />
+                            <div className="text-left">
+                              <p className="font-bold text-sm">Staff Employees</p>
+                              <p className="text-xs text-gray-500 font-normal">Nurses & Caregivers</p>
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const doctors = filterStaffAvailableForSchedule(
+                                sampleResources.filter((r) => r.type === 'DOCTOR'),
+                                1,
+                              )
+                              const matchingClinic =
+                                targetLocations.find((t) => t.type === 'CLINIC_VENUE' || t.type === 'DEPARTMENT') ||
+                                targetLocations[0]
+                              const firstDoc = doctors[0]
+                              setBuilderForm({
+                                ...builderForm,
+                                resourceType: 'DOCTOR',
+                                selectedResourceIds: firstDoc ? [firstDoc.id] : [],
+                                selectedResourceNames: firstDoc ? [firstDoc.name] : [],
+                                targetScopeType: matchingClinic ? matchingClinic.type : builderForm.targetScopeType,
+                                selectedTargetId: matchingClinic ? matchingClinic.id : builderForm.selectedTargetId,
+                                selectedTargetName: matchingClinic
+                                  ? matchingClinic.name
+                                  : builderForm.selectedTargetName,
+                              })
+                            }}
+                            className={`p-4 border rounded-xl flex items-center gap-3 transition-all ${
+                              builderForm.resourceType === 'DOCTOR'
+                                ? 'border-[#004B87] bg-blue-50/70 text-[#004B87] ring-2 ring-[#004B87]/20 shadow-xs'
+                                : 'border-gray-200 hover:bg-gray-50'
+                            }`}
+                          >
+                            <Stethoscope className="w-6 h-6 text-[#004B87]" />
+                            <div className="text-left">
+                              <p className="font-bold text-sm">Doctor Resources</p>
+                              <p className="text-xs text-gray-500 font-normal">In-House or Visiting Specialists</p>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Staff selection via scheduling resources API */}
+                      <StaffPickerPanel
+                        builderForm={builderForm}
+                        rosterDates={displayRosterDates}
+                        scheduleDates={builderScheduleDates}
+                        onToggleResource={handleToggleResourceSelection}
+                        onSelectAll={(resources) => {
+                          setBuilderForm((prev) => ({
+                            ...prev,
+                            selectedResourceIds: resources.map((r) => r.id),
+                            selectedResourceNames: resources.map((r) => r.name),
+                          }))
+                        }}
+                        onClearAll={handleClearAllResources}
+                        onOnboardDoctor={() => setIsOnboardDoctorOpen(true)}
+                      />
+                      <FieldErrorMessage message={builderErrors.selectedResourceIds?.message} />
+                    </section>
+
+                    <Separator />
+
+                    {/* Section C: Review & Publish */}
+                    <section className="space-y-6">
+                      <div>
+                        <h3 className="text-base font-bold text-gray-900">Review & Publish</h3>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Pre-flight policy evaluation, duty schedule preview, and roster submission.
+                        </p>
+                      </div>
+
+                      {isPublished ? (
+                        <div className="space-y-5 p-8 border border-emerald-200 bg-emerald-50/70 rounded-2xl text-center">
+                          <CheckCircle2 className="w-16 h-16 text-emerald-600 mx-auto animate-bounce" />
                           <div>
-                            <h3 className="text-base font-bold text-gray-900">Step 3: Validation, Preview & Publish Roster</h3>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Pre-flight policy evaluation, duty schedule preview, and live roster submission.
+                            <h3 className="text-xl font-bold text-emerald-900">
+                              Roster Assignment Successfully Published!
+                            </h3>
+                            <p className="text-xs text-emerald-700 mt-1">
+                              Committed {generatedDateInstancesPreview.length} date instances across{' '}
+                              {builderForm.selectedResourceIds.length} personnel.
                             </p>
                           </div>
-
-                          {isPublished ? (
-                            <div className="space-y-5 p-8 border border-emerald-200 bg-emerald-50/70 rounded-2xl text-center">
-                              <CheckCircle2 className="w-16 h-16 text-emerald-600 mx-auto animate-bounce" />
-                              <div>
-                                <h3 className="text-xl font-bold text-emerald-900">Roster Assignment Successfully Published!</h3>
-                                <p className="text-xs text-emerald-700 mt-1">
-                                  Committed {generatedDateInstancesPreview.length} date instances across {builderForm.selectedResourceIds.length} personnel.
-                                </p>
+                          <div className="flex items-center justify-center gap-3 pt-2">
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setIsPublished(false)
+                                builderFormMethods.reset(builderDefaultValues)
+                              }}
+                              className="text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-semibold"
+                            >
+                              <RefreshCw className="w-3.5 h-3.5 mr-1" /> Create Another Roster
+                            </Button>
+                            <Button
+                              onClick={() => setActiveTab('grid')}
+                              className="bg-[#004B87] hover:bg-[#003865] text-xs font-bold gap-1.5"
+                            >
+                              <LayoutList className="w-3.5 h-3.5" /> View Duty Grid
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Pre-Flight Status */}
+                          {totalRosterConflicts === 0 ? (
+                            <div className="p-4 border border-emerald-200 bg-emerald-50 rounded-xl flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
+                                <div>
+                                  <p className="font-bold text-sm text-emerald-900">0 Policy Conflicts Detected</p>
+                                  <p className="text-xs text-emerald-700">
+                                    All {builderForm.selectedResourceIds.length} staff pass overlap checks and rest
+                                    period policy benchmarks.
+                                  </p>
+                                </div>
                               </div>
-                              <div className="flex items-center justify-center gap-3 pt-2">
-                                <Button
-                                  variant="outline"
-                                  onClick={() => {
-                                    setIsPublished(false)
-                                    setWizardStep(1)
-                                  }}
-                                  className="text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-semibold"
-                                >
-                                  <RefreshCw className="w-3.5 h-3.5 mr-1" /> Create Another Roster
-                                </Button>
-                                <Button
-                                  onClick={() => setActiveTab('grid')}
-                                  className="bg-[#004B87] hover:bg-[#003865] text-xs font-bold gap-1.5"
-                                >
-                                  <LayoutList className="w-3.5 h-3.5" /> View Duty Grid
-                                </Button>
-                              </div>
+                              <Badge className="bg-emerald-600 text-white shrink-0">PASSED</Badge>
                             </div>
                           ) : (
-                            <>
-                              {/* Pre-Flight Status */}
-                              {totalRosterConflicts === 0 ? (
-                                <div className="p-4 border border-emerald-200 bg-emerald-50 rounded-xl flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
-                                    <div>
-                                      <p className="font-bold text-sm text-emerald-900">0 Policy Conflicts Detected</p>
-                                      <p className="text-xs text-emerald-700">
-                                        All {builderForm.selectedResourceIds.length} staff pass overlap checks and rest period policy benchmarks.
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <Badge className="bg-emerald-600 text-white shrink-0">PASSED</Badge>
-                                </div>
-                              ) : (
-                                <div className="p-4 border border-amber-200 bg-amber-50 rounded-xl flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0" />
-                                    <div>
-                                      <p className="font-bold text-sm text-amber-900">{totalRosterConflicts} Overlap Conflict{totalRosterConflicts > 1 ? 's' : ''} Detected</p>
-                                      <p className="text-xs text-amber-700">
-                                        Some selected personnel already have duties scheduled in this timeframe. You can review preview below or proceed with override.
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 font-bold shrink-0">
-                                    ATTENTION
-                                  </Badge>
-                                </div>
-                              )}
-
-                              {/* Operational Notes */}
-                              <div className="p-4 border border-gray-200 bg-gray-50 rounded-xl space-y-2">
-                                <Label className="text-xs font-bold text-gray-800">Operational Notes / Special Instructions</Label>
-                                <Input
-                                  value={builderForm.instructions}
-                                  onChange={(e) => setBuilderForm({ ...builderForm, instructions: e.target.value })}
-                                  placeholder="e.g. Conduct medication checks at 09:00 and 14:00."
-                                  className="h-9 text-xs bg-white"
-                                />
-                              </div>
-
-                              {/* Duty Dates Preview Table */}
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <Label className="text-xs font-bold text-gray-900">
-                                    Calculated Duty Dates Preview ({generatedDateInstancesPreview.length} Instances)
-                                  </Label>
-                                  <span className="text-[11px] text-gray-500 font-mono">
-                                    {generatedDateInstancesPreview.length * 8} Total Hours
-                                  </span>
-                                </div>
-                                <div className="border rounded-xl overflow-hidden max-h-56 overflow-y-auto">
-                                  <table className="w-full text-xs text-left">
-                                    <thead className="bg-gray-100 text-gray-600 font-bold uppercase sticky top-0">
-                                      <tr>
-                                        <th className="p-2.5">Date</th>
-                                        <th className="p-2.5">Resource</th>
-                                        <th className="p-2.5">Shift</th>
-                                        <th className="p-2.5">Target Location</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100 bg-white">
-                                      {generatedDateInstancesPreview.map((item, idx) => (
-                                        <tr key={idx} className="hover:bg-gray-50">
-                                          <td className="p-2.5 font-bold text-gray-900">
-                                            {item.date} ({item.dayName})
-                                          </td>
-                                          <td className="p-2.5 font-semibold text-gray-800">{item.resourceName}</td>
-                                          <td className="p-2.5 text-[#004B87] font-medium">{builderForm.selectedShiftName}</td>
-                                          <td className="p-2.5 text-gray-600">{builderForm.selectedTargetName}</td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
+                            <div className="p-4 border border-amber-200 bg-amber-50 rounded-xl flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0" />
+                                <div>
+                                  <p className="font-bold text-sm text-amber-900">
+                                    {totalRosterConflicts} Overlap Conflict{totalRosterConflicts > 1 ? 's' : ''}{' '}
+                                    Detected
+                                  </p>
+                                  <p className="text-xs text-amber-700">
+                                    Some selected personnel already have duties scheduled in this timeframe. You can
+                                    review preview below or proceed with override.
+                                  </p>
                                 </div>
                               </div>
-                            </>
+                              <Badge
+                                variant="outline"
+                                className="bg-amber-100 text-amber-800 border-amber-300 font-bold shrink-0"
+                              >
+                                ATTENTION
+                              </Badge>
+                            </div>
                           )}
-                        </div>
+
+                          {/* Operational Notes */}
+                          <div className="p-4 border border-gray-200 bg-gray-50 rounded-xl space-y-2">
+                            <Label className="text-xs font-bold text-gray-800">
+                              Operational Notes / Special Instructions
+                            </Label>
+                            <Input
+                              value={builderForm.instructions}
+                              onChange={(e) => setBuilderForm({ ...builderForm, instructions: e.target.value })}
+                              placeholder="e.g. Conduct medication checks at 09:00 and 14:00."
+                              className="h-9 text-xs bg-white"
+                            />
+                          </div>
+
+                          {/* Duty Dates Preview Table */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-xs font-bold text-gray-900">
+                                Calculated Duty Dates Preview ({generatedDateInstancesPreview.length} Instances)
+                              </Label>
+                              <span className="text-[11px] text-gray-500 font-mono">
+                                {generatedDateInstancesPreview.length * 8} Total Hours
+                              </span>
+                            </div>
+                            <div className="border rounded-xl overflow-hidden max-h-56 overflow-y-auto">
+                              <table className="w-full text-xs text-left">
+                                <thead className="bg-gray-100 text-gray-600 font-bold uppercase sticky top-0">
+                                  <tr>
+                                    <th className="p-2.5">Date</th>
+                                    <th className="p-2.5">Resource</th>
+                                    <th className="p-2.5">Shift</th>
+                                    <th className="p-2.5">Target Location</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 bg-white">
+                                  {generatedDateInstancesPreview.map((item, idx) => (
+                                    <tr key={idx} className="hover:bg-gray-50">
+                                      <td className="p-2.5 font-bold text-gray-900">
+                                        {item.date} ({item.dayName})
+                                      </td>
+                                      <td className="p-2.5 font-semibold text-gray-800">{item.resourceName}</td>
+                                      <td className="p-2.5 text-[#004B87] font-medium">
+                                        {builderForm.selectedShiftName}
+                                      </td>
+                                      <td className="p-2.5 text-gray-600">{builderForm.selectedTargetName}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </>
                       )}
 
-                      {/* Wizard Navigation Controls */}
-                      <div className="flex items-center justify-between border-t border-gray-100 pt-6">
-                        <Button
-                          variant="outline"
-                          onClick={() => setWizardStep((prev) => Math.max(1, prev - 1))}
-                          disabled={wizardStep === 1 || isPublished}
-                          className="h-10 px-5"
-                        >
-                          Previous Step
-                        </Button>
-
-                        {wizardStep < 3 && (
-                          <Button
-                            onClick={() => setWizardStep((prev) => Math.min(3, prev + 1))}
-                            disabled={!canAdvanceStep}
-                            className="gap-2 bg-[#004B87] hover:bg-[#003865] h-10 px-6 font-bold"
-                          >
-                            Next Step <ArrowRight className="w-4 h-4" />
-                          </Button>
-                        )}
-
-                        {wizardStep === 3 && !isPublished && (
+                      {!isPublished && (
+                        <div className="flex justify-end border-t border-gray-100 pt-6">
                           <Button
                             onClick={handleFinalPublishRoster}
-                            disabled={isPublishing || !canAdvanceStep}
+                            disabled={isPublishing || isPublishHookPending || !canPublishRoster}
                             className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white h-10 px-6 font-bold shadow-xs"
                           >
                             <CheckCircle2 className="w-4 h-4" />
-                            {isPublishing ? 'Publishing Roster...' : `Publish & Commit Roster (${generatedDateInstancesPreview.length} Dates)`}
+                            {isPublishing || isPublishHookPending
+                              ? 'Publishing Roster...'
+                              : `Publish & Commit Roster (${generatedDateInstancesPreview.length} Dates)`}
                           </Button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* RIGHT COLUMN: Live Roster Summary Panel (4 cols) */}
-                    <div className="lg:col-span-4 sticky top-6">
-                      <Card className="border-gray-200 bg-gradient-to-b from-gray-50/50 to-white shadow-xs">
-                        <CardHeader className="pb-3 border-b border-gray-100">
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                              <FileCheck className="w-4 h-4 text-[#004B87]" /> Live Roster Summary
-                            </CardTitle>
-                            <Badge variant="outline" className="text-[10px] font-mono bg-blue-50 text-[#004B87]">
-                              Live State
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="p-4 space-y-4 text-xs">
-                          {/* Assignment Name */}
-                          <div>
-                            <p className="text-[10px] text-gray-400 uppercase font-semibold">Assignment Title</p>
-                            <p className="font-bold text-gray-900 text-sm mt-0.5 truncate">{builderForm.rosterName || 'Untitled Roster'}</p>
-                          </div>
-
-                          {/* Duty Type Badge */}
-                          <div className="p-3 border rounded-xl bg-white space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="text-gray-500 font-semibold">Duty Type</span>
-                              <Badge className={getDutyTypeBadge(builderForm.dutyType)}>{builderForm.dutyType}</Badge>
-                            </div>
-                          </div>
-
-                          {/* Resource Summary (Multi-Selected) */}
-                          <div className="p-3 border rounded-xl bg-white space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-gray-500 flex items-center gap-1 font-semibold">
-                                <UserCheck className="w-3.5 h-3.5 text-[#004B87]" /> Selected Staff ({builderForm.selectedResourceIds.length})
-                              </span>
-                              <Badge className="text-[9px] bg-blue-100 text-[#004B87]">{builderForm.resourceType}</Badge>
-                            </div>
-                            {builderForm.selectedResourceNames.length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {builderForm.selectedResourceNames.map((name) => (
-                                  <Badge key={name} variant="outline" className="text-[10px] bg-gray-50 font-medium">
-                                    {name}
-                                  </Badge>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="text-gray-400 font-normal">No resources selected</p>
-                            )}
-                          </div>
-
-                          {/* Target Location */}
-                          <div className="p-3 border rounded-xl bg-white space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="text-gray-500 flex items-center gap-1 font-semibold">
-                                <MapPin className="w-3.5 h-3.5 text-[#004B87]" /> Target Scope
-                              </span>
-                              <Badge variant="outline" className="text-[9px]">
-                                {builderForm.targetScopeType}
-                              </Badge>
-                            </div>
-                            <p className="font-bold text-gray-900">{builderForm.selectedTargetName || 'Not Selected'}</p>
-                          </div>
-
-                          {/* Shift Template */}
-                          <div className="p-3 border rounded-xl bg-white space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="text-gray-500 flex items-center gap-1 font-semibold">
-                                <Clock className="w-3.5 h-3.5 text-[#004B87]" /> Shift Pattern
-                              </span>
-                              <span className="font-bold text-[#004B87]">{builderForm.selectedShiftTime}</span>
-                            </div>
-                            <p className="font-bold text-gray-900">{builderForm.selectedShiftName}</p>
-                          </div>
-
-                          {/* OPD Session Slot Summary */}
-                          {builderForm.dutyType === 'OPD_SESSION' && (
-                            <div className="p-3 border border-blue-200 rounded-xl bg-blue-50/60 space-y-1.5">
-                              <div className="flex items-center justify-between">
-                                <span className="text-[#004B87] flex items-center gap-1 font-bold">
-                                  <Stethoscope className="w-3.5 h-3.5" /> OPD Patient Slots
-                                </span>
-                                <Badge className="bg-[#004B87] text-white text-[10px]">
-                                  {generatedOpdSlots.length} Slots
-                                </Badge>
-                              </div>
-                              <p className="font-semibold text-gray-700 text-[11px]">
-                                {builderForm.opdSlotDurationMinutes || 15} min consultation duration
-                                {builderForm.opdBufferMinutes ? ` (+${builderForm.opdBufferMinutes}m buffer)` : ''}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Recurrence */}
-                          <div className="p-3 border rounded-xl bg-white space-y-2">
-                            <span className="text-gray-500 flex items-center gap-1 font-semibold">
-                              <CalendarIcon className="w-3.5 h-3.5 text-[#004B87]" /> Recurrence & Range
-                            </span>
-                            <p className="font-bold text-gray-900">
-                              {builderForm.effectiveFrom} → {builderForm.effectiveUntil}
-                            </p>
-                            <div className="flex flex-wrap gap-1 pt-1">
-                              {builderForm.selectedDaysOfWeek.map((day) => (
-                                <Badge key={day} className="text-[9px] bg-gray-100 text-gray-700">
-                                  {day}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Validation Engine Status */}
-                          <div className="p-3 border rounded-xl bg-white space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="text-gray-500 flex items-center gap-1 font-semibold">
-                                <ShieldCheck className="w-3.5 h-3.5 text-[#004B87]" /> Policy Check
-                              </span>
-                              <Badge className={totalRosterConflicts === 0 ? 'bg-emerald-100 text-emerald-800 text-[10px]' : 'bg-amber-100 text-amber-800 text-[10px]'}>
-                                {totalRosterConflicts === 0 ? 'Auto-Verified' : 'Conflicts Detected'}
-                              </Badge>
-                            </div>
-                            <p className="text-gray-600 font-medium">
-                              {totalRosterConflicts === 0 ? '0 Constraint Errors | 100% Policy Compliant' : `${totalRosterConflicts} overlap conflict(s) require review`}
-                            </p>
-                          </div>
-
-                          {/* Generated Metrics */}
-                          <div className="p-3 border border-blue-200 bg-blue-50/70 rounded-xl flex items-center justify-between">
-                            <div>
-                              <p className="text-[10px] text-[#004B87] font-semibold">Computed Date Instances</p>
-                              <p className="text-lg font-extrabold text-[#004B87]">
-                                {generatedDateInstancesPreview.length} dates ({generatedDateInstancesPreview.length * 8}h)
-                              </p>
-                            </div>
-                            <Lock className="w-5 h-5 text-[#004B87]" />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-
+                        </div>
+                      )}
+                    </section>
                   </div>
                 </CardContent>
               </Card>
@@ -2509,6 +2448,7 @@ export default function ShiftRosterPage() {
             content: (
               <ShiftTemplatesTab
                 availableShifts={availableShifts}
+                departments={departments}
                 onOpenCreateShift={handleOpenCreateShift}
                 onOpenEditShift={handleOpenEditShift}
               />
@@ -2522,9 +2462,9 @@ export default function ShiftRosterPage() {
         isOpen={isCreateShiftModalOpen}
         onOpenChange={setIsCreateShiftModalOpen}
         editingShiftId={editingShiftId}
-        formState={newShiftForm}
-        onFormChange={setNewShiftForm}
-        onSave={handleSaveShift}
+        defaultValues={shiftFormDefaults}
+        departments={departments}
+        onSubmit={handleSaveShift}
         isSubmitting={isSubmittingShift}
       />
 
@@ -2538,10 +2478,11 @@ export default function ShiftRosterPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <form onSubmit={handleReplacementSubmit} className="space-y-4 py-2">
             <div className="p-3 border rounded-lg bg-gray-50 text-xs space-y-1">
               <p>
-                <strong>Current Duty:</strong> {selectedDateForReplacement?.resource} ({selectedDateForReplacement?.type})
+                <strong>Current Duty:</strong> {selectedDateForReplacement?.resource} (
+                {selectedDateForReplacement?.type})
               </p>
               <p>
                 <strong>Shift:</strong> {selectedDateForReplacement?.shift} ({selectedDateForReplacement?.time})
@@ -2553,46 +2494,46 @@ export default function ShiftRosterPage() {
 
             <div>
               <Label>Select Replacement Caregiver / Doctor *</Label>
-              <Select
-                value={replacementForm.replacementResourceId}
-                onValueChange={(v: string) => setReplacementForm({ ...replacementForm, replacementResourceId: v })}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select replacement staff..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {sampleResources.map((res) => (
-                    <SelectItem key={res.id} value={res.id}>
-                      {res.name} ({res.role})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={replacementFormMethods.control}
+                name="replacementResourceId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select replacement staff..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sampleResources.map((res) => (
+                        <SelectItem key={res.id} value={res.id}>
+                          {res.name} ({res.role})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FieldErrorMessage message={replacementFormMethods.formState.errors.replacementResourceId?.message} />
             </div>
 
             <div>
               <Label>Replacement Reason *</Label>
               <Input
                 placeholder="e.g. Medical leave approved by HR."
-                value={replacementForm.reason}
-                onChange={(e) => setReplacementForm({ ...replacementForm, reason: e.target.value })}
                 className="mt-1"
+                {...replacementFormMethods.register('reason')}
               />
+              <FieldErrorMessage message={replacementFormMethods.formState.errors.reason?.message} />
             </div>
-          </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsReplacementModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleReplacementSubmit}
-              disabled={isSubmittingReplacement}
-              className="bg-emerald-600 hover:bg-emerald-700"
-            >
-              {isSubmittingReplacement ? 'Assigning...' : 'Confirm Replacement'}
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsReplacementModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmittingReplacement} className="bg-emerald-600 hover:bg-emerald-700">
+                {isSubmittingReplacement ? 'Assigning...' : 'Confirm Replacement'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -2604,11 +2545,12 @@ export default function ShiftRosterPage() {
               <CalendarX className="w-5 h-5" /> Cancel Operational Duty Instance
             </DialogTitle>
             <DialogDescription>
-              Cancel duty for {selectedDateForCancel?.resource} on {selectedDateForCancel?.date}. Instance remains in historical record as CANCELLED.
+              Cancel duty for {selectedDateForCancel?.resource} on {selectedDateForCancel?.date}. Instance remains in
+              historical record as CANCELLED.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <form onSubmit={handleConfirmCancellation} className="space-y-4 py-2">
             <div className="p-3 border border-rose-200 bg-rose-50/50 rounded-xl text-xs space-y-1">
               <p>
                 <strong>Target Venue:</strong> {selectedDateForCancel?.target}
@@ -2622,26 +2564,26 @@ export default function ShiftRosterPage() {
               <Label className="text-xs font-bold text-rose-900">Mandatory Cancellation Reason (Audited) *</Label>
               <textarea
                 rows={3}
-                value={cancellationReason}
-                onChange={(e) => setCancellationReason(e.target.value)}
                 placeholder="e.g. Facility Maintenance / Doctor Illness / Operational Venue Shutdown."
                 className="w-full p-2.5 mt-1 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                {...cancelFormMethods.register('cancellationReason')}
               />
+              <FieldErrorMessage message={cancelFormMethods.formState.errors.cancellationReason?.message} />
             </div>
-          </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCancelModalOpen(false)}>
-              Back
-            </Button>
-            <Button
-              onClick={handleConfirmCancellation}
-              disabled={isSubmittingCancel}
-              className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
-            >
-              {isSubmittingCancel ? 'Cancelling...' : 'Confirm Cancellation'}
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsCancelModalOpen(false)}>
+                Back
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmittingCancel}
+                className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
+              >
+                {isSubmittingCancel ? 'Cancelling...' : 'Confirm Cancellation'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -2655,7 +2597,9 @@ export default function ShiftRosterPage() {
             <DialogDescription>
               {addStaffForm.isEmployeeLocked ? (
                 <span className="flex items-center gap-1.5 mt-1 text-xs text-gray-700 font-medium">
-                  Assigning roster duty for <Badge className="bg-[#004B87] text-white text-xs px-2 py-0.5">{addStaffForm.resourceName}</Badge> ({addStaffForm.resourceType})
+                  Assigning roster duty for{' '}
+                  <Badge className="bg-[#004B87] text-white text-xs px-2 py-0.5">{addStaffForm.resourceName}</Badge> (
+                  {addStaffForm.resourceType})
                 </span>
               ) : (
                 'Assign a new employee or doctor directly into an existing roster schedule.'
@@ -2663,155 +2607,175 @@ export default function ShiftRosterPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <form onSubmit={handleAddStaffToRoster} className="space-y-4 py-2">
             <div>
               <Label>Duty Date *</Label>
-              <Input
-                type="date"
-                value={addStaffForm.date}
-                onChange={(e) => setAddStaffForm({ ...addStaffForm, date: e.target.value })}
-                className="mt-1"
-              />
+              <Input type="date" className="mt-1" {...addStaffFormMethods.register('date')} />
+              <FieldErrorMessage message={addStaffFormMethods.formState.errors.date?.message} />
             </div>
 
             <div>
               <Label>Shift Pattern *</Label>
-              <Select
-                value={addStaffForm.shiftId}
-                onValueChange={(val: string) => {
-                  const shift = availableShifts.find((s) => s.id === val)
-                  setAddStaffForm({
-                    ...addStaffForm,
-                    shiftId: val,
-                    shiftName: shift?.shiftName || val,
-                    shiftTime: shift ? `${shift.startTime} - ${shift.endTime}` : '08:00 - 16:00',
-                  })
-                }}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select shift..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableShifts.map((shift) => {
-                    const staffTarget = addStaffForm.resourceName || addStaffForm.resourceId
-                    const shiftAvail = getShiftPatternAvailabilityForStaff(staffTarget, addStaffForm.date, shift.id)
-                    return (
-                      <SelectItem key={shift.id} value={shift.id}>
-                        <div className="flex items-center justify-between w-full gap-3 py-0.5 min-w-[260px]">
-                          <span className="font-medium text-gray-900">
-                            {shift.shiftName} ({shift.startTime} - {shift.endTime})
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className={`text-[9.5px] px-2 py-0.5 font-bold ${
-                              shiftAvail.isFree
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                : 'bg-amber-100 text-amber-800 border-amber-300'
-                            }`}
-                          >
-                            {shiftAvail.label}
-                          </Badge>
-                        </div>
-                      </SelectItem>
-                    )
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Target Location Venue *</Label>
-              <Select
-                value={addStaffForm.targetId}
-                onValueChange={(val: string) => {
-                  const target = targetLocations.find((t) => t.id === val)
-                  setAddStaffForm({
-                    ...addStaffForm,
-                    targetId: val,
-                    targetName: target?.name || val,
-                  })
-                }}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select target..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {groupedTargetLocations.map((group) => (
-                    <SelectGroup key={group.label}>
-                      <SelectLabel className="font-bold text-[#004B87] uppercase text-[10px] tracking-wider px-2 py-1 bg-gray-50/80 my-1 rounded-sm">
-                        {group.label}
-                      </SelectLabel>
-                      {group.items.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Operational Duty Type *</Label>
-              <Select
-                value={addStaffForm.dutyType}
-                onValueChange={(val: any) => setAddStaffForm({ ...addStaffForm, dutyType: val })}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select duty type..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="SHIFT">SHIFT (Regular Operational Duty)</SelectItem>
-                  <SelectItem value="OPD_SESSION">OPD_SESSION (Doctor Consultation Session)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {!addStaffForm.isEmployeeLocked && (
-              <div>
-                <Label>Select Staff Member / Doctor *</Label>
-                <Select
-                  value={addStaffForm.resourceId}
-                  onValueChange={(val: string) => {
-                    const res = sampleResources.find((r) => r.id === val)
-                    setAddStaffForm({
-                      ...addStaffForm,
-                      resourceId: val,
-                      resourceName: res?.name || val,
-                      resourceType: res?.type || 'EMPLOYEE',
-                    })
-                  }}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select staff..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[...sampleResources]
-                      .sort((a, b) => {
-                        const availA = getStaffAvailabilityStatus(a.name, addStaffForm.date).isAvailable ? 0 : 1
-                        const availB = getStaffAvailabilityStatus(b.name, addStaffForm.date).isAvailable ? 0 : 1
-                        return availA - availB
-                      })
-                      .map((res) => {
-                        const avail = getStaffAvailabilityStatus(res.name, addStaffForm.date)
+              <Controller
+                control={addStaffFormMethods.control}
+                name="shiftId"
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    onValueChange={(val: string) => {
+                      const shift = availableShifts.find((s) => s.id === val)
+                      field.onChange(val)
+                      addStaffFormMethods.setValue('shiftName', shift?.shiftName || val, { shouldValidate: true })
+                      addStaffFormMethods.setValue(
+                        'shiftTime',
+                        shift ? `${shift.startTime} - ${shift.endTime}` : '08:00 - 16:00',
+                        { shouldValidate: true },
+                      )
+                    }}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select shift..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableShifts.map((shift) => {
+                        const staffTarget = addStaffForm.resourceName || addStaffForm.resourceId
+                        const shiftAvail = getShiftPatternAvailabilityForStaff(staffTarget, addStaffForm.date, shift.id)
                         return (
-                          <SelectItem key={res.id} value={res.id}>
+                          <SelectItem key={shift.id} value={shift.id}>
                             <div className="flex items-center justify-between w-full gap-3 py-0.5 min-w-[260px]">
-                              <span className="font-medium text-gray-900">{res.name} ({res.role})</span>
-                              <Badge variant="outline" className={`text-[9.5px] px-2 py-0.5 font-bold ${avail.badgeColor}`}>
-                                {avail.statusText}
+                              <span className="font-medium text-gray-900">
+                                {shift.shiftName} ({shift.startTime} - {shift.endTime})
+                              </span>
+                              <Badge
+                                variant="outline"
+                                className={`text-[9.5px] px-2 py-0.5 font-bold ${
+                                  shiftAvail.isFree
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : 'bg-amber-100 text-amber-800 border-amber-300'
+                                }`}
+                              >
+                                {shiftAvail.label}
                               </Badge>
                             </div>
                           </SelectItem>
                         )
                       })}
-                  </SelectContent>
-                </Select>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FieldErrorMessage message={addStaffFormMethods.formState.errors.shiftId?.message} />
+            </div>
+
+            <div>
+              <Label>Target Location Venue *</Label>
+              <Controller
+                control={addStaffFormMethods.control}
+                name="targetId"
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    onValueChange={(val: string) => {
+                      const target = targetLocations.find((t) => t.id === val)
+                      field.onChange(val)
+                      addStaffFormMethods.setValue('targetName', target?.name || val, { shouldValidate: true })
+                    }}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select target..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {groupedTargetLocations.map((group) => (
+                        <SelectGroup key={group.label}>
+                          <SelectLabel className="font-bold text-[#004B87] uppercase text-[10px] tracking-wider px-2 py-1 bg-gray-50/80 my-1 rounded-sm">
+                            {group.label}
+                          </SelectLabel>
+                          {group.items.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FieldErrorMessage message={addStaffFormMethods.formState.errors.targetId?.message} />
+            </div>
+
+            <div>
+              <Label>Operational Duty Type *</Label>
+              <Controller
+                control={addStaffFormMethods.control}
+                name="dutyType"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select duty type..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="SHIFT">SHIFT (Regular Operational Duty)</SelectItem>
+                      <SelectItem value="OPD_SESSION">OPD_SESSION (Doctor Consultation Session)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FieldErrorMessage message={addStaffFormMethods.formState.errors.dutyType?.message} />
+            </div>
+
+            {!addStaffForm.isEmployeeLocked && (
+              <div>
+                <Label>Select Staff Member / Doctor *</Label>
+                <Controller
+                  control={addStaffFormMethods.control}
+                  name="resourceId"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value}
+                      onValueChange={(val: string) => {
+                        const res = sampleResources.find((r) => r.id === val)
+                        field.onChange(val)
+                        addStaffFormMethods.setValue('resourceName', res?.name || val, { shouldValidate: true })
+                        addStaffFormMethods.setValue('resourceType', res?.type || 'EMPLOYEE', { shouldValidate: true })
+                      }}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select staff..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[...sampleResources]
+                          .sort((a, b) => {
+                            const availA = getStaffAvailabilityStatus(a.name, addStaffForm.date).isAvailable ? 0 : 1
+                            const availB = getStaffAvailabilityStatus(b.name, addStaffForm.date).isAvailable ? 0 : 1
+                            return availA - availB
+                          })
+                          .map((res) => {
+                            const avail = getStaffAvailabilityStatus(res.name, addStaffForm.date)
+                            return (
+                              <SelectItem key={res.id} value={res.id}>
+                                <div className="flex items-center justify-between w-full gap-3 py-0.5 min-w-[260px]">
+                                  <span className="font-medium text-gray-900">
+                                    {res.name} ({res.role})
+                                  </span>
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-[9.5px] px-2 py-0.5 font-bold ${avail.badgeColor}`}
+                                  >
+                                    {avail.statusText}
+                                  </Badge>
+                                </div>
+                              </SelectItem>
+                            )
+                          })}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <FieldErrorMessage message={addStaffFormMethods.formState.errors.resourceId?.message} />
               </div>
             )}
 
-            {/* Overlap / Double-Booking Conflict Warning */}
             {(() => {
               const staffTarget = addStaffForm.resourceName || addStaffForm.resourceId
               const avail = getStaffAvailabilityStatus(staffTarget, addStaffForm.date)
@@ -2822,7 +2786,8 @@ export default function ShiftRosterPage() {
                     <div className="space-y-1">
                       <p className="font-bold text-amber-900">⚠️ Double-Booking Conflict Detected</p>
                       <p className="text-[11px] text-amber-800 leading-snug">
-                        <strong>{addStaffForm.resourceName || 'Selected Staff'}</strong> is already scheduled on <strong>{addStaffForm.date}</strong>:
+                        <strong>{addStaffForm.resourceName || 'Selected Staff'}</strong> is already scheduled on{' '}
+                        <strong>{addStaffForm.date}</strong>:
                       </p>
                       <p className="text-[11px] font-bold text-amber-950 bg-amber-100/80 px-2.5 py-1 rounded border border-amber-200 inline-block">
                         📍 {avail.conflictDetails}
@@ -2836,28 +2801,30 @@ export default function ShiftRosterPage() {
               }
               return null
             })()}
-          </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddStaffModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleAddStaffToRoster}
-              disabled={isSubmittingAddStaff}
-              className={`${
-                !getStaffAvailabilityStatus(addStaffForm.resourceName || addStaffForm.resourceId, addStaffForm.date).isAvailable
-                  ? 'bg-amber-600 hover:bg-amber-700 text-white'
-                  : 'bg-[#004B87] hover:bg-[#003865]'
-              }`}
-            >
-              {isSubmittingAddStaff
-                ? 'Adding...'
-                : !getStaffAvailabilityStatus(addStaffForm.resourceName || addStaffForm.resourceId, addStaffForm.date).isAvailable
-                  ? 'Assign Staff (Override Conflict)'
-                  : 'Assign Staff to Roster'}
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsAddStaffModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmittingAddStaff}
+                className={`${
+                  !getStaffAvailabilityStatus(addStaffForm.resourceName || addStaffForm.resourceId, addStaffForm.date)
+                    .isAvailable
+                    ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                    : 'bg-[#004B87] hover:bg-[#003865]'
+                }`}
+              >
+                {isSubmittingAddStaff
+                  ? 'Adding...'
+                  : !getStaffAvailabilityStatus(addStaffForm.resourceName || addStaffForm.resourceId, addStaffForm.date)
+                        .isAvailable
+                    ? 'Assign Staff (Override Conflict)'
+                    : 'Assign Staff to Roster'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -2871,7 +2838,9 @@ export default function ShiftRosterPage() {
                   <CalendarIcon className="w-5 h-5 text-[#004B87]" /> Scheduled Duties for {selectedCellDate}
                 </DialogTitle>
               </div>
-              <DialogDescription>Review active shift instances, substitute, or cancel staff for this date.</DialogDescription>
+              <DialogDescription>
+                Review active shift instances, substitute, or cancel staff for this date.
+              </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-3 py-2 max-h-[60vh] overflow-y-auto">
@@ -2895,8 +2864,7 @@ export default function ShiftRosterPage() {
                           <strong>Target Venue:</strong> {item.target}
                         </p>
                         <p>
-                          <strong>Status:</strong>{' '}
-                          <Badge className={getStatusBadge(item.status)}>{item.status}</Badge>
+                          <strong>Status:</strong> <Badge className={getStatusBadge(item.status)}>{item.status}</Badge>
                         </p>
                       </div>
                       {item.status !== 'CANCELLED' && (
@@ -2920,7 +2888,7 @@ export default function ShiftRosterPage() {
                             onClick={() => {
                               setSelectedCellDate(null)
                               setSelectedDateForCancel(item)
-                              setCancellationReason('')
+                              cancelFormMethods.reset({ cancellationReason: '' })
                               setIsCancelModalOpen(true)
                             }}
                             className="text-xs gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -2942,7 +2910,11 @@ export default function ShiftRosterPage() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  setAddStaffForm((prev) => ({ ...prev, date: selectedCellDate }))
+                  addStaffFormMethods.reset({
+                    ...addStaffFormMethods.getValues(),
+                    date: selectedCellDate || new Date().toISOString().split('T')[0],
+                    isEmployeeLocked: false,
+                  })
                   setSelectedCellDate(null)
                   setIsAddStaffModalOpen(true)
                 }}
@@ -2959,108 +2931,62 @@ export default function ShiftRosterPage() {
       )}
 
       {/* COPY FORWARD ROSTER DIALOG (P1 Enterprise Feature) */}
-      {isCopyModalOpen && (
-        <Dialog open={isCopyModalOpen} onOpenChange={setIsCopyModalOpen}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-lg font-bold text-gray-900">
-                <Copy className="h-5 w-5 text-[#004B87]" /> Copy Roster Pattern Forward
-              </DialogTitle>
-              <DialogDescription className="text-xs text-gray-500">
-                Clone active September roster assignments and shift patterns into a future target date range with auto date adjustment.
-              </DialogDescription>
-            </DialogHeader>
+      <CopyAssignmentModal
+        open={isCopyModalOpen}
+        onOpenChange={setIsCopyModalOpen}
+        onSuccess={() => refetchRosterData()}
+      />
 
-            <div className="space-y-4 py-2">
-              <div>
-                <Label className="text-xs font-semibold text-gray-700">Target Roster Name *</Label>
-                <Input
-                  value={copyForm.newRosterName}
-                  onChange={(e) => setCopyForm({ ...copyForm, newRosterName: e.target.value })}
-                  placeholder="e.g. October 2026 Duty Roster"
-                  className="mt-1 text-sm"
-                />
-              </div>
+      <ValidationResultPanel
+        open={isValidationPanelOpen}
+        onOpenChange={setIsValidationPanelOpen}
+        results={validationResults}
+        mode={validationPanelMode}
+        overrideReason={pendingOverrideReason}
+        onOverrideReasonChange={setPendingOverrideReason}
+        onConfirmOverride={validationPanelMode === 'override' ? handleConfirmOverridePublish : undefined}
+      />
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs font-semibold text-gray-700">Target Effective From *</Label>
-                  <Input
-                    type="date"
-                    value={copyForm.targetEffectiveFrom}
-                    onChange={(e) => setCopyForm({ ...copyForm, targetEffectiveFrom: e.target.value })}
-                    className="mt-1 text-xs"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs font-semibold text-gray-700">Target Effective Until *</Label>
-                  <Input
-                    type="date"
-                    value={copyForm.targetEffectiveUntil}
-                    onChange={(e) => setCopyForm({ ...copyForm, targetEffectiveUntil: e.target.value })}
-                    className="mt-1 text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 space-y-1">
-                <div className="font-bold flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-[#004B87]" /> Auto-Copy Summary:
-                </div>
-                <p>Cloning {liveRosterDates.length} roster duties across all active staff to October 2026.</p>
-              </div>
-            </div>
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" onClick={() => setIsCopyModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleConfirmCopyForward}
-                disabled={isSubmittingCopy}
-                className="bg-[#004B87] hover:bg-[#003865] gap-2 shadow-xs"
-              >
-                <Copy className="w-4 h-4" />
-                {isSubmittingCopy ? 'Cloning Roster...' : 'Confirm & Copy Forward'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+      <OnboardDoctorModal
+        open={isOnboardDoctorOpen}
+        onOpenChange={setIsOnboardDoctorOpen}
+        specializations={specializations}
+        targetLocations={targetLocations}
+      />
 
       {/* Quick Add Location / Department Modal */}
       <AddTargetLocationModal
         isOpen={isAddLocationModalOpen}
         onOpenChange={setIsAddLocationModalOpen}
-        formState={newLocationForm}
-        onFormChange={setNewLocationForm}
-        onSave={() => {
-          if (!newLocationForm.name.trim()) {
-            toast.error('Please enter a location or department name')
-            return
-          }
+        defaultValues={addLocationDefaultValues}
+        onSubmit={(values) => {
           const newId = `target-custom-${Date.now()}`
           const createdLoc: TargetLocation = {
             id: newId,
-            name: newLocationForm.name.trim(),
-            type: newLocationForm.type,
+            name: values.name.trim(),
+            type: values.type,
           }
           setCustomLocations((prev) => [...prev, createdLoc])
           setBuilderForm((prev) => ({
             ...prev,
-            targetScopeType: newLocationForm.type,
+            targetScopeType: values.type,
             selectedTargetId: newId,
             selectedTargetName: createdLoc.name,
           }))
           setIsAddLocationModalOpen(false)
-          setNewLocationForm({ name: '', type: 'DEPARTMENT' })
           toast.success(`Location "${createdLoc.name}" created and selected!`)
         }}
       />
 
       {/* Medical Onboarding & Specializations Modal */}
-      <MedicalSpecializationModal
-        open={isMedicalOnboardingOpen}
-        onOpenChange={setIsMedicalOnboardingOpen}
+      <MedicalSpecializationModal open={isMedicalOnboardingOpen} onOpenChange={setIsMedicalOnboardingOpen} />
+
+      <OpdBookingModal
+        open={isOpdBookingOpen}
+        onOpenChange={setIsOpdBookingOpen}
+        dateId={opdBookingDateId || ''}
+        dutyLabel={opdBookingLabel}
+        locationId={locationId ?? undefined}
       />
     </div>
   )

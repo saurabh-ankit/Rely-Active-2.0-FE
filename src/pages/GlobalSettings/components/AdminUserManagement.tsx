@@ -34,6 +34,7 @@ import {
   useUserByIdQuery,
   useUsersQuery,
 } from '@/hooks/react-query/user'
+import { useRosterContext } from '@/hooks/react-query/rosterManagement'
 import { useLocationStore } from '@/lib/stores/locationStore'
 import type { RoleItem, UserItem } from '@/lib/types'
 import { Button } from '@/components/ui/button'
@@ -41,6 +42,19 @@ import { Input } from '@/components/ui/input'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { RoleModuleManagement } from './RoleModuleManagement'
+
+function resolveCompanyIdFromProperties(
+  propertyIds: string[],
+  properties: Array<{ id: string; companyId?: string }>,
+  fallbackCompanyId?: string | null,
+): string | undefined {
+  if (fallbackCompanyId) return fallbackCompanyId
+  for (const propertyId of propertyIds) {
+    const property = properties.find((item) => item.id === propertyId)
+    if (property?.companyId) return property.companyId
+  }
+  return undefined
+}
 
 const ROLE_HIERARCHY_ORDER: Record<string, number> = {
   SUPER_ADMIN: 1,
@@ -158,6 +172,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
   const { data: rawRoles = [] } = useRolesQuery()
   const { data: departments = [] } = useDepartmentsQuery()
   const { data: availableProperties = [] } = usePropertiesQuery()
+  const { companyId: rosterCompanyId } = useRosterContext()
 
   const createUserMutation = useCreateUserMutation()
   const updateUserMutation = useUpdateUserMutation()
@@ -390,6 +405,8 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
     setPropertySelectionError(null)
 
     try {
+      const resolvedCompanyId = resolveCompanyIdFromProperties(propertyIdsToSave, availableProperties, rosterCompanyId)
+
       const payload = {
         username: values.username?.trim() || undefined,
         first_name: values.firstName,
@@ -407,6 +424,8 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
         experience: values.experience || undefined,
         address: values.address || undefined,
         roleCode: values.selectedRoleCode,
+        companyId: resolvedCompanyId,
+        defaultLocationId: propertyIdsToSave[0],
         departmentId: !['SUPER_ADMIN', 'ADMIN'].includes((values.selectedRoleCode || '').toUpperCase())
           ? values.selectedDepartmentId || undefined
           : undefined,
@@ -433,8 +452,8 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
       if (['DOCTOR', 'NURSE', 'CARETAKER'].includes((values.selectedRoleCode || '').toUpperCase())) {
         useMedicalStore.getState().addStaff({
           name: `${values.selectedRoleCode.toUpperCase() === 'DOCTOR' ? 'Dr. ' : ''}${values.firstName} ${values.lastName}`,
-          role: values.selectedRoleCode.toUpperCase() as any,
-          doctorType: (values.doctorType as any) || 'IN_HOUSE',
+          role: values.selectedRoleCode.toUpperCase(),
+          doctorType: values.doctorType === 'VISITING' ? 'VISITING' : 'IN_HOUSE',
           specialization: values.medicalSpecialization || 'Geriatric Medicine',
           medicalLicenseNumber: values.medicalLicenseNumber || undefined,
           assignedClinicRoom: values.assignedClinicRoom || 'OPD Clinic Room #102',
