@@ -201,10 +201,80 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
   })
 
   const selectedRoleCode = useWatch({ control, name: 'selectedRoleCode' })
-  const isMultiPropertyRole = ['SUPER_ADMIN', 'ADMIN'].includes((selectedRoleCode || '').toUpperCase())
+  const roleUpper = (selectedRoleCode || '').toUpperCase()
+  const isAdminRole = ['SUPER_ADMIN', 'ADMIN'].includes(roleUpper)
+  const isMedicalRole = ['DOCTOR', 'NURSE', 'CARETAKER'].includes(roleUpper)
+  const isDoctorRole = roleUpper === 'DOCTOR'
+  const isNurseOrCaretakerRole = ['NURSE', 'CARETAKER'].includes(roleUpper)
+
+  const isMultiPropertyRole = isAdminRole
   const selectedDepartmentId = useWatch({ control, name: 'selectedDepartmentId' })
+  const selectedJobCategoryId = useWatch({ control, name: 'selectedJobCategoryId' })
   const selectedDepartment = departments.find((d) => d.id === selectedDepartmentId)
-  const availableJobCategories = selectedDepartment?.jobCategories || []
+
+  const medDepartment = departments.find(
+    (d) => (d.code || '').toUpperCase() === 'MED' || d.name.toLowerCase() === 'medical',
+  )
+
+  const availableDepartments = isMedicalRole
+    ? medDepartment
+      ? [medDepartment]
+      : []
+    : departments.filter((d) => (d.code || '').toUpperCase() !== 'MED' && d.name.toLowerCase() !== 'medical')
+
+  let availableJobCategories = selectedDepartment?.jobCategories || []
+  if (isDoctorRole && medDepartment) {
+    availableJobCategories = (medDepartment.jobCategories || []).filter(
+      (jc) =>
+        ['MED_INHOUSE', 'MED_VISITING'].includes((jc.code || '').toUpperCase()) ||
+        ['inhouse', 'visiting'].includes(jc.name.toLowerCase()),
+    )
+  } else if (isNurseOrCaretakerRole && medDepartment) {
+    availableJobCategories = (medDepartment.jobCategories || []).filter(
+      (jc) => (jc.code || '').toUpperCase() === 'MED_INHOUSE' || jc.name.toLowerCase().includes('inhouse'),
+    )
+  }
+
+  useEffect(() => {
+    const currentRoleUpper = (selectedRoleCode || '').toUpperCase()
+
+    if (['SUPER_ADMIN', 'ADMIN'].includes(currentRoleUpper)) {
+      if (selectedDepartmentId) setValue('selectedDepartmentId', '')
+      if (selectedJobCategoryId) setValue('selectedJobCategoryId', '')
+    } else if (['DOCTOR', 'NURSE', 'CARETAKER'].includes(currentRoleUpper)) {
+      if (medDepartment) {
+        if (selectedDepartmentId !== medDepartment.id) {
+          setValue('selectedDepartmentId', medDepartment.id)
+        }
+
+        const inhouseCat = medDepartment.jobCategories?.find(
+          (jc) => (jc.code || '').toUpperCase() === 'MED_INHOUSE' || jc.name.toLowerCase().includes('inhouse'),
+        )
+        const visitingCat = medDepartment.jobCategories?.find(
+          (jc) => (jc.code || '').toUpperCase() === 'MED_VISITING' || jc.name.toLowerCase().includes('visiting'),
+        )
+
+        if (currentRoleUpper === 'DOCTOR') {
+          const isValidDocCat =
+            selectedJobCategoryId && [inhouseCat?.id, visitingCat?.id].filter(Boolean).includes(selectedJobCategoryId)
+
+          if (!isValidDocCat && inhouseCat) {
+            setValue('selectedJobCategoryId', inhouseCat.id)
+          }
+        } else {
+          // Nurse or Caretaker: ONLY Inhouse
+          if (inhouseCat && selectedJobCategoryId !== inhouseCat.id) {
+            setValue('selectedJobCategoryId', inhouseCat.id)
+          }
+        }
+      }
+    } else {
+      if (medDepartment && selectedDepartmentId === medDepartment.id) {
+        setValue('selectedDepartmentId', '')
+        setValue('selectedJobCategoryId', '')
+      }
+    }
+  }, [selectedRoleCode, medDepartment, selectedDepartmentId, selectedJobCategoryId, setValue])
 
   useEffect(() => {
     if (!isMultiPropertyRole && selectedPropertyIds.size > 1) {
@@ -673,7 +743,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                 )}
               </div>
 
-              {!['SUPER_ADMIN', 'ADMIN'].includes((selectedRoleCode || '').toUpperCase()) && (
+              {!isAdminRole && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -683,10 +753,11 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                       <select
                         id="dept-select-page"
                         {...register('selectedDepartmentId')}
-                        className={`w-full rounded-xl border ${errors.selectedDepartmentId?.message ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:outline-none focus:ring-2 font-medium shadow-2xs`}
+                        disabled={isMedicalRole}
+                        className={`w-full rounded-xl border ${errors.selectedDepartmentId?.message ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:outline-none focus:ring-2 font-medium shadow-2xs disabled:bg-gray-100 disabled:text-gray-500`}
                       >
-                        <option value="">Select Department</option>
-                        {departments.map((d) => (
+                        {!isMedicalRole && <option value="">Select Department</option>}
+                        {availableDepartments.map((d) => (
                           <option key={d.id} value={d.id}>
                             {d.name} ({d.code})
                           </option>
@@ -704,12 +775,14 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                       <select
                         id="job-cat-select-page"
                         {...register('selectedJobCategoryId')}
-                        disabled={availableJobCategories.length === 0}
-                        className={`w-full rounded-xl border ${errors.selectedJobCategoryId?.message ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:outline-none focus:ring-2 font-medium shadow-2xs disabled:bg-gray-100 disabled:text-gray-400`}
+                        disabled={isNurseOrCaretakerRole || availableJobCategories.length === 0}
+                        className={`w-full rounded-xl border ${errors.selectedJobCategoryId?.message ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:outline-none focus:ring-2 font-medium shadow-2xs disabled:bg-gray-100 disabled:text-gray-500`}
                       >
-                        <option value="">
-                          {availableJobCategories.length > 0 ? 'Select Job Category' : 'Select a department first'}
-                        </option>
+                        {!isNurseOrCaretakerRole && (
+                          <option value="">
+                            {availableJobCategories.length > 0 ? 'Select Job Category' : 'Select a department first'}
+                          </option>
+                        )}
                         {availableJobCategories.map((jc) => (
                           <option key={jc.id} value={jc.id}>
                             {jc.name} ({jc.code})
