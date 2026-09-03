@@ -270,4 +270,26 @@ export const API_ENDPOINTS = {
       get: (residentId: string) => `${BASE_URL}/fnb/resident-subscriptions/resident/${residentId}`,
     },
   },
+
+  globalServices: {
+    listByLocation: `${BASE_URL}/location/:locationId/global-services`,
+  },
+
+  eventManagement: {
+    createVenue: `${BASE_URL}/location/:locationId/venues`,
+    listVenues: `${BASE_URL}/location/:locationId/venues`,
+    getVenueById: `${BASE_URL}/location/:locationId/venues/:venueId`,
+    updateVenue: `${BASE_URL}/location/:locationId/venues/:venueId`,
+    deleteVenue: `${BASE_URL}/location/:locationId/venues/:venueId`,
+    createEvent: `${BASE_URL}/location/:locationId/events`,
+    listEvents: `${BASE_URL}/location/:locationId/events`,
+    getEventById: `${BASE_URL}/location/:locationId/events/:eventId`,
+    updateEvent: `${BASE_URL}/location/:locationId/events/:eventId`,
+    deleteEvent: `${BASE_URL}/location/:locationId/events/:eventId`,
+    bulkDeleteEvents: `${BASE_URL}/location/:locationId/events/bulk`,
+    getEventsCalendar: `${BASE_URL}/location/:locationId/events/calendar`,
+    getEventRegistrations: `${BASE_URL}/location/:locationId/events/:eventId/registrations`,
+    getEventCapacity: `${BASE_URL}/location/:locationId/events/:eventId/capacity`,
+    updateRegistrationStatus: `${BASE_URL}/location/:locationId/events/:eventId/registrations/:registrationId/status`,
+  },
 }

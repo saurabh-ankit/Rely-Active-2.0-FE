@@ -15,6 +15,9 @@ import AssetManagementPage from '@/pages/AssetManagement'
 import FnbManagementPage from '@/pages/FnbManagement'
 import UserProfilePage from '@/pages/Profile'
 import TicketsPage from '@/pages/Tickets'
+import EventsPage from '@/pages/Events'
+import EventForm from '@/pages/Events/components/EventForm'
+import EventRegistrationsPage from '@/pages/Events/components/EventRegistrations'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
 export default function RootRouter() {
@@ -84,6 +87,14 @@ export default function RootRouter() {
           element={
             <ProtectedRoute requireSuperAdmin>
               <GlobalSettingsPage initialView="fnb-dishes" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="global-settings/global-services"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="global-services" />
             </ProtectedRoute>
           }
         />
@@ -230,10 +241,15 @@ export default function RootRouter() {
           path="admin/events"
           element={
             <ProtectedRoute resourceKey="EVENTS" action="view">
-              <SectionPage title="Event Management" />
+              <EventsPage />
             </ProtectedRoute>
           }
         />
+        <Route path="admin/events/list" element={<Navigate to="/admin/events?tab=list" replace />} />
+        <Route path="admin/events/venues" element={<Navigate to="/admin/events?tab=venues" replace />} />
+        <Route path="admin/events/create" element={<Navigate to="/admin/events" replace />} />
+        <Route path="admin/events/edit/:eventId" element={<EventForm />} />
+        <Route path="admin/events/:eventId/registrations" element={<EventRegistrationsPage />} />
         <Route
           path="admin/fnb-history"
           element={

@@ -33,5 +33,13 @@ export default tseslint.config(
     files: ['src/components/ui/data-table.tsx'],
     rules: { 'react-hooks/incompatible-library': 'off', 'react-refresh/only-export-components': 'off' },
   },
+  {
+    files: [
+      'src/components/ui/paginated-data-table.tsx',
+      'src/pages/Events/**/*.tsx',
+      'src/pages/GlobalSettings/components/GlobalServicesTab.tsx',
+    ],
+    rules: { 'react-hooks/incompatible-library': 'off' },
+  },
   { files: ['src/hooks/use-mobile.ts'], rules: { 'react-hooks/set-state-in-effect': 'off' } },
 )
