@@ -92,6 +92,7 @@ export const API_ENDPOINTS = {
     security: (locationId?: string | null) => buildLocationEndpoint('/security', locationId),
     inventory: (locationId?: string | null) => buildLocationEndpoint('/inventory', locationId),
     assets: (locationId?: string | null) => buildLocationEndpoint('/assets', locationId),
+    gate: (locationId: string) => `${BASE_URL}/location/${locationId}/gate`,
   },
 
   // Asset Management Endpoints
@@ -221,5 +222,14 @@ export const API_ENDPOINTS = {
     addComment: (id: string, locationId?: string | null) =>
       buildLocationEndpoint(`/tickets/${id}/comments`, locationId),
     delete: (id: string, locationId?: string | null) => buildLocationEndpoint(`/tickets/${id}`, locationId),
+  },
+
+  // Gate Management Endpoints
+  gate: {
+    stats: (locationId: string) => `${BASE_URL}/location/${locationId}/gate/stats`,
+    entries: (locationId: string) => `${BASE_URL}/location/${locationId}/gate/entries`,
+    preapproved: (locationId: string) => `${BASE_URL}/location/${locationId}/gate/preapproved`,
+    updateEntryStatus: (locationId: string, entryId: string) =>
+      `${BASE_URL}/location/${locationId}/gate/entries/${entryId}/status`,
   },
 }

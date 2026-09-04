@@ -15,6 +15,7 @@ import AssetManagementPage from '@/pages/AssetManagement'
 import FnbManagementPage from '@/pages/FnbManagement'
 import UserProfilePage from '@/pages/Profile'
 import TicketsPage from '@/pages/Tickets'
+import GateManagementPage from '@/pages/GateManagement'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
 export default function RootRouter() {
@@ -214,7 +215,7 @@ export default function RootRouter() {
           path="admin/visitor-history"
           element={
             <ProtectedRoute resourceKey="GNS" action="view">
-              <SectionPage title="Visitors Management" />
+              <GateManagementPage />
             </ProtectedRoute>
           }
         />
