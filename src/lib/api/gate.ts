@@ -22,7 +22,24 @@ export const getGatePreapproveds = async (
   return response.data
 }
 
-export const updateGateEntryStatus = async (locationId: string, entryId: string, status: string) => {
-  const response = await axiosInstance.patch(API_ENDPOINTS.gate.updateEntryStatus(locationId, entryId), { status })
+export const updateGateEntryStatus = async (
+  locationId: string,
+  entryId: string,
+  status: string,
+  checkedItems?: string[],
+) => {
+  const response = await axiosInstance.patch(API_ENDPOINTS.gate.updateEntryStatus(locationId, entryId), {
+    status,
+    checkedItems,
+  })
+  return response.data
+}
+
+export const addGateEntryItems = async (
+  locationId: string,
+  entryId: string,
+  items: { itemName: string; quantity: number }[],
+) => {
+  const response = await axiosInstance.post(API_ENDPOINTS.gate.addEntryItems(locationId, entryId), { items })
   return response.data
 }

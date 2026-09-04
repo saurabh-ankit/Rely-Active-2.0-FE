@@ -231,5 +231,7 @@ export const API_ENDPOINTS = {
     preapproved: (locationId: string) => `${BASE_URL}/location/${locationId}/gate/preapproved`,
     updateEntryStatus: (locationId: string, entryId: string) =>
       `${BASE_URL}/location/${locationId}/gate/entries/${entryId}/status`,
+    addEntryItems: (locationId: string, entryId: string) =>
+      `${BASE_URL}/location/${locationId}/gate/entries/${entryId}/items`,
   },
 }
