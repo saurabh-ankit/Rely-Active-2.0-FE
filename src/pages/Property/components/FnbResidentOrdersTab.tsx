@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   Search,
   Filter,
@@ -81,6 +81,20 @@ interface ResidentOrder {
   deliveredAt?: string | null
   deliveryCharge?: number
   assignedEmployeeId?: string | null
+  assignedEmployee?: {
+    id: string
+    username?: string
+    email?: string
+    phone?: string
+    profile?: {
+      id: string
+      firstName?: string
+      lastName?: string
+      phone?: string
+      employeeCode?: string
+      photoUrl?: string
+    }
+  }
   resident?: {
     id: string
     firstName: string
@@ -106,6 +120,11 @@ interface ResidentOrder {
     id: string
     name: string
     price?: number
+  }
+  globalMealSlot?: {
+    id: string
+    name: string
+    code?: string
   }
   details?: OrderDetail[]
   delivery?: {
@@ -177,30 +196,31 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
     if (s === 'placed') return { nextStatus: 'accepted', label: 'Accept Order' }
     if (s === 'accepted') return { nextStatus: 'preparing', label: 'Start Preparing' }
     if (s === 'preparing') {
-      if (order.serviceType === 'dine_in') {
-        return { nextStatus: 'ready', label: 'Food is Ready' }
-      }
-      return { nextStatus: 'assign_delivery', label: 'Assign Delivery Employee' }
+      return { nextStatus: 'ready', label: 'Food is Ready' }
     }
-    if (s === 'ready' || s === 'food_ready') return { nextStatus: 'completed', label: 'Complete Order' }
-    if (s === 'delivering_to_room') return { nextStatus: 'complete_delivery', label: 'Complete Delivery' }
+    if (s === 'ready' || s === 'food_ready') {
+      if (order.serviceType === 'room_service') {
+        return { nextStatus: 'assign_delivery', label: 'Assign Delivery Employee' }
+      }
+      return { nextStatus: 'completed', label: 'Complete Order' }
+    }
     return null
   }
 
-  const fetchStaffList = async () => {
+  const fetchStaffList = useCallback(async () => {
+    if (!locId) return
     try {
       const data = await fnbService.getStaffEmployees(locId)
       setStaffList(data || [])
     } catch (err) {
       console.error('Failed to fetch staff employees:', err)
     }
-  }
+  }, [locId])
 
-  useEffect(() => {
-    let ignore = false
-    const loadData = async () => {
+  const loadData = useCallback(
+    async (showLoading = true) => {
       try {
-        setLoading(true)
+        if (showLoading) setLoading(true)
         const filters: Record<string, string> = {}
         if (searchQuery.trim()) filters.search = searchQuery.trim()
         if (selectedStatus !== 'all') filters.orderStatus = selectedStatus
@@ -208,26 +228,39 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
         if (selectedDate) filters.date = selectedDate
 
         const data = await fnbService.getResidentOrders(locId, filters)
-        if (!ignore) {
-          setOrders((data as unknown as ResidentOrder[]) || [])
-        }
+        setOrders((data as unknown as ResidentOrder[]) || [])
       } catch (err: unknown) {
-        if (!ignore) {
-          const msg =
-            err && typeof err === 'object' && 'response' in err
-              ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
-              : undefined
-          toast.error(msg || 'Failed to load resident orders')
-        }
+        const msg =
+          err && typeof err === 'object' && 'response' in err
+            ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+            : undefined
+        toast.error(msg || 'Failed to load resident orders')
       } finally {
-        if (!ignore) setLoading(false)
+        if (showLoading) setLoading(false)
       }
-    }
-    void loadData()
+    },
+    [locId, searchQuery, selectedStatus, selectedType, selectedDate],
+  )
+
+  useEffect(() => {
+    let isMounted = true
+    void Promise.resolve().then(async () => {
+      if (!isMounted) return
+      await loadData(true)
+      await fetchStaffList()
+    })
     return () => {
-      ignore = true
+      isMounted = false
     }
-  }, [locId, searchQuery, selectedStatus, selectedType, selectedDate])
+  }, [loadData, fetchStaffList])
+
+  useEffect(() => {
+    if (assigningOrder) {
+      void Promise.resolve().then(async () => {
+        await fetchStaffList()
+      })
+    }
+  }, [assigningOrder, fetchStaffList])
 
   const getFullLocationString = (unitObj?: PropertyUnitInfo) => {
     if (!unitObj) return 'N/A'
@@ -259,17 +292,21 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
     try {
       setUpdatingStatusId(orderId)
+      // Optimistically update local state for immediate feedback
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, orderStatus: newStatus } : o)))
       await fnbService.updateOrderStatus(orderId, newStatus)
       toast.success(`Order status updated to ${newStatus.toUpperCase()}`)
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder((prev) => (prev ? { ...prev, orderStatus: newStatus } : null))
       }
+      await loadData(false)
     } catch (err: unknown) {
       const msg =
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : undefined
       toast.error(msg || 'Failed to update order status')
+      await loadData(false)
     } finally {
       setUpdatingStatusId(null)
     }
@@ -277,16 +314,21 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
 
   const handleAssignDelivery = async () => {
     if (!assigningOrder) return
+    if (!selectedStaffId) {
+      toast.error('Please select an F&B delivery employee')
+      return
+    }
     try {
       setSubmittingAssign(true)
       await fnbService.assignDeliveryEmployee(assigningOrder.id, {
-        employeeId: selectedStaffId || undefined,
+        employeeId: selectedStaffId,
         deliveryCharge: deliveryChargeInput,
       })
       toast.success('Delivery employee assigned successfully! 🛵')
       setAssigningOrder(null)
       setSelectedStaffId('')
       setDeliveryChargeInput(0)
+      await loadData(false)
     } catch (err: unknown) {
       const msg =
         err && typeof err === 'object' && 'response' in err
@@ -308,6 +350,7 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
       toast.success('Room delivery marked as completed! 🎉')
       setCompletingDeliveryOrder(null)
       setProofPhotoInput('')
+      await loadData(false)
     } catch (err: unknown) {
       const msg =
         err && typeof err === 'object' && 'response' in err
@@ -437,6 +480,90 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
         🍽️ Dine In
       </span>
     )
+  }
+
+  const getMealSlotBadge = (order: ResidentOrder) => {
+    // 1. Special Meal Slot
+    if (order.specialMealSlot?.name) {
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-black bg-purple-100 text-purple-900 px-2 py-0.5 rounded-md border border-purple-200">
+          ⭐ {order.specialMealSlot.name}
+        </span>
+      )
+    }
+
+    // 2. Global Meal Slot
+    if (order.globalMealSlot?.name) {
+      const lower = order.globalMealSlot.name.toLowerCase()
+      let icon = '🍽️'
+      if (lower.includes('break')) icon = '🌅'
+      else if (lower.includes('lunch')) icon = '☀️'
+      else if (lower.includes('snack')) icon = '🍿'
+      else if (lower.includes('dinner')) icon = '🌙'
+      else if (lower.includes('night') || lower.includes('mid')) icon = '🌌'
+
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-[#005390]/10 text-[#005390] px-2 py-0.5 rounded-md border border-[#005390]/20">
+          {icon} {order.globalMealSlot.name}
+        </span>
+      )
+    }
+
+    // 3. String mealSlot on order
+    const rawSlot = (order.mealSlot || '').toLowerCase().trim()
+    if (rawSlot) {
+      let label = rawSlot.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+      let icon = '🍽️'
+      if (rawSlot.includes('break')) {
+        icon = '🌅'
+        label = 'Breakfast'
+      } else if (rawSlot.includes('lunch')) {
+        icon = '☀️'
+        label = 'Lunch'
+      } else if (rawSlot.includes('snack')) {
+        icon = '🍿'
+        label = 'Evening Snacks'
+      } else if (rawSlot.includes('dinner')) {
+        icon = '🌙'
+        label = 'Dinner'
+      } else if (rawSlot.includes('night') || rawSlot.includes('mid')) {
+        icon = '🌌'
+        label = 'Midnight Snacks'
+      }
+
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-[#005390]/10 text-[#005390] px-2 py-0.5 rounded-md border border-[#005390]/20">
+          {icon} {label}
+        </span>
+      )
+    }
+
+    // 4. Fallback check from details
+    const detailSlotName = order.details?.find((d) => d.globalMealSlot?.name || d.specialMealSlot?.name)
+    if (detailSlotName?.specialMealSlot?.name) {
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-black bg-purple-100 text-purple-900 px-2 py-0.5 rounded-md border border-purple-200">
+          ⭐ {detailSlotName.specialMealSlot.name}
+        </span>
+      )
+    }
+    if (detailSlotName?.globalMealSlot?.name) {
+      const lower = detailSlotName.globalMealSlot.name.toLowerCase()
+      let icon = '🍽️'
+      if (lower.includes('break')) icon = '🌅'
+      else if (lower.includes('lunch')) icon = '☀️'
+      else if (lower.includes('snack')) icon = '🍿'
+      else if (lower.includes('dinner')) icon = '🌙'
+      else if (lower.includes('night') || lower.includes('mid')) icon = '🌌'
+
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-[#005390]/10 text-[#005390] px-2 py-0.5 rounded-md border border-[#005390]/20">
+          {icon} {detailSlotName.globalMealSlot.name}
+        </span>
+      )
+    }
+
+    return null
   }
 
   return (
@@ -591,24 +718,43 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                             <td className="py-3.5 px-4 space-y-1">
                               <div>{getTypeBadge(order)}</div>
                               <div>{getServiceTypeBadge(order.serviceType)}</div>
+                              {(() => {
+                                const empName = order.assignedEmployee?.profile
+                                  ? `${order.assignedEmployee.profile.firstName || ''} ${order.assignedEmployee.profile.lastName || ''}`.trim()
+                                  : order.assignedEmployee?.username ||
+                                    (order.delivery?.employeeDetail
+                                      ? `${order.delivery.employeeDetail.firstName || ''} ${order.delivery.employeeDetail.lastName || ''}`.trim()
+                                      : order.delivery?.employee?.username)
+                                if (empName) {
+                                  return (
+                                    <div className="text-[10px] text-amber-900 font-extrabold flex items-center gap-1 mt-0.5 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                                      🛵 {empName}
+                                    </div>
+                                  )
+                                }
+                                return null
+                              })()}
                             </td>
 
-                            {/* Items Summary */}
+                            {/* Items Summary & Meal Slot */}
                             <td className="py-3.5 px-4">
-                              {order.details && order.details.length > 0 ? (
-                                <div className="space-y-0.5 max-w-xs">
-                                  <div className="font-bold text-gray-800 truncate">
-                                    {order.details
-                                      .map((d) => d.dish?.name || d.specialMealSlot?.name || 'Item')
-                                      .join(', ')}
-                                  </div>
-                                  <div className="text-[10px] text-gray-400">
-                                    {order.details.length} Line Item{order.details.length !== 1 ? 's' : ''}
-                                  </div>
-                                </div>
-                              ) : (
-                                <span className="text-gray-400 italic">Entire Slot Order</span>
-                              )}
+                              <div className="space-y-1 max-w-xs">
+                                {getMealSlotBadge(order) && <div>{getMealSlotBadge(order)}</div>}
+                                {order.details && order.details.length > 0 ? (
+                                  <>
+                                    <div className="font-bold text-gray-800 truncate">
+                                      {order.details
+                                        .map((d) => d.dish?.name || d.specialMealSlot?.name || 'Item')
+                                        .join(', ')}
+                                    </div>
+                                    <div className="text-[10px] text-gray-400 font-medium">
+                                      {order.details.length} Line Item{order.details.length !== 1 ? 's' : ''}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <span className="text-gray-400 italic text-xs block">Entire Slot Order</span>
+                                )}
+                              </div>
                             </td>
 
                             {/* Total Amount */}
@@ -679,25 +825,28 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                   </button>
                                 )}
 
-                                {/* 3. Preparing -> Food is Ready (Dine In) OR Assign Delivery Employee (Room Service) */}
+                                {/* 3. Preparing -> Food is Ready (Dine In & Room Service) */}
                                 {order.orderStatus === 'preparing' && (
+                                  <button
+                                    type="button"
+                                    disabled={updatingStatusId === order.id}
+                                    onClick={() =>
+                                      setConfirmModalData({
+                                        order,
+                                        nextStatus: 'ready',
+                                        actionLabel: 'Food is Ready',
+                                      })
+                                    }
+                                    className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
+                                  >
+                                    Food is Ready
+                                  </button>
+                                )}
+
+                                {/* 4. Ready -> Assign Delivery Employee (Room Service) OR Complete Order (Dine In) */}
+                                {(order.orderStatus === 'ready' || order.orderStatus === 'food_ready') && (
                                   <>
-                                    {order.serviceType === 'dine_in' ? (
-                                      <button
-                                        type="button"
-                                        disabled={updatingStatusId === order.id}
-                                        onClick={() =>
-                                          setConfirmModalData({
-                                            order,
-                                            nextStatus: 'ready',
-                                            actionLabel: 'Food is Ready',
-                                          })
-                                        }
-                                        className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
-                                      >
-                                        Food is Ready
-                                      </button>
-                                    ) : (
+                                    {order.serviceType === 'room_service' ? (
                                       <button
                                         type="button"
                                         onClick={() =>
@@ -711,44 +860,26 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                       >
                                         Assign Delivery Employee
                                       </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        disabled={updatingStatusId === order.id}
+                                        onClick={() =>
+                                          setConfirmModalData({
+                                            order,
+                                            nextStatus: 'completed',
+                                            actionLabel: 'Complete Order',
+                                          })
+                                        }
+                                        className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
+                                      >
+                                        Complete Order
+                                      </button>
                                     )}
                                   </>
                                 )}
 
-                                {/* 4. Ready (Dine In) -> Complete Order */}
-                                {(order.orderStatus === 'ready' || order.orderStatus === 'food_ready') && (
-                                  <button
-                                    type="button"
-                                    disabled={updatingStatusId === order.id}
-                                    onClick={() =>
-                                      setConfirmModalData({
-                                        order,
-                                        nextStatus: 'completed',
-                                        actionLabel: 'Complete Order',
-                                      })
-                                    }
-                                    className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
-                                  >
-                                    Complete Order
-                                  </button>
-                                )}
-
-                                {/* 5. Delivering to Room -> Complete Delivery */}
-                                {order.orderStatus === 'delivering_to_room' && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setConfirmModalData({
-                                        order,
-                                        nextStatus: 'complete_delivery',
-                                        actionLabel: 'Complete Delivery',
-                                      })
-                                    }
-                                    className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors flex items-center gap-1"
-                                  >
-                                    <Truck className="w-3 h-3" /> Complete Delivery
-                                  </button>
-                                )}
+                                {/* 5. Delivering to Room: Delivery employee will deliver & complete from L3 mobile app */}
                               </div>
                             </td>
                           </tr>
@@ -876,6 +1007,8 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                   setConfirmModalData(null)
                   if (nextStatus === 'assign_delivery') {
                     setAssigningOrder(order)
+                    setSelectedStaffId(order.assignedEmployeeId || '')
+                    setDeliveryChargeInput(order.deliveryCharge || 0)
                     fetchStaffList()
                   } else if (nextStatus === 'complete_delivery') {
                     setCompletingDeliveryOrder(order)
@@ -927,7 +1060,7 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
               {/* Staff Dropdown */}
               <div className="space-y-1">
                 <label htmlFor="select-delivery-staff" className="font-extrabold text-gray-700 block">
-                  Select Delivery Staff / Employee
+                  Select F&B Delivery Employee <span className="text-rose-500">*</span>
                 </label>
                 <select
                   id="select-delivery-staff"
@@ -935,31 +1068,38 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                   onChange={(e) => setSelectedStaffId(e.target.value)}
                   className="w-full px-3 py-2 text-xs font-semibold border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
                 >
-                  <option value="">-- Choose Food Department Staff --</option>
+                  <option value="">-- Choose F&B Staff / Employee --</option>
                   {staffList.map((item) => {
                     const u = item as {
                       id: string
                       username?: string
                       email?: string
                       detail?: { firstName?: string; lastName?: string; employeeCode?: string }
+                      profile?: { firstName?: string; lastName?: string; employeeCode?: string }
                     }
-                    const dName = u.detail
-                      ? `${u.detail.firstName || ''} ${u.detail.lastName || ''}`.trim()
+                    const profileData = u.profile || u.detail
+                    const dName = profileData
+                      ? `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim()
                       : u.username || u.email
-                    const code = u.detail?.employeeCode ? ` (${u.detail.employeeCode})` : ''
+                    const code = profileData?.employeeCode ? ` (${profileData.employeeCode})` : ''
                     return (
                       <option key={u.id} value={u.id}>
-                        {dName} {code}
+                        {dName || u.username || u.email} {code}
                       </option>
                     )
                   })}
                 </select>
+                {!selectedStaffId && (
+                  <p className="text-[10px] text-rose-500 font-semibold">
+                    An F&B employee must be selected for room delivery.
+                  </p>
+                )}
               </div>
 
               {/* Delivery Charge Input */}
               <div className="space-y-1">
                 <label htmlFor="delivery-charge-input" className="font-extrabold text-gray-700 block">
-                  Delivery Charge (₹)
+                  Set Room Delivery Charge (₹)
                 </label>
                 <input
                   id="delivery-charge-input"
@@ -967,10 +1107,13 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                   min="0"
                   step="5"
                   value={deliveryChargeInput}
-                  onChange={(e) => setDeliveryChargeInput(Number(e.target.value))}
+                  onChange={(e) => setDeliveryChargeInput(Math.max(0, Number(e.target.value)))}
                   placeholder="Enter delivery fee e.g. 20"
                   className="w-full px-3 py-2 text-xs font-semibold border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
                 />
+                <p className="text-[10px] text-gray-500 font-medium">
+                  Fixes the delivery charge added to the resident&apos;s order for room service.
+                </p>
               </div>
             </div>
 
@@ -980,9 +1123,9 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
               </Button>
               <Button
                 size="sm"
-                disabled={submittingAssign}
+                disabled={submittingAssign || !selectedStaffId}
                 onClick={handleAssignDelivery}
-                className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-4 rounded-xl cursor-pointer"
+                className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs px-4 rounded-xl cursor-pointer"
               >
                 {submittingAssign ? 'Assigning...' : 'Assign & Start Delivery'}
               </Button>
@@ -1174,7 +1317,10 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
 
             {/* Order Line Items */}
             <div className="space-y-2">
-              <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Ordered Items</h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Ordered Items</h4>
+                {getMealSlotBadge(selectedOrder)}
+              </div>
               {selectedOrder.details && selectedOrder.details.length > 0 ? (
                 <div className="space-y-2 border border-gray-200 rounded-xl p-3 bg-gray-50/50">
                   {selectedOrder.details.map((item) => (
@@ -1183,8 +1329,13 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                       className="flex items-center justify-between bg-white p-2.5 rounded-lg border border-gray-100 text-xs"
                     >
                       <div className="space-y-0.5">
-                        <div className="font-bold text-gray-900">
-                          {item.dish?.name || item.specialMealSlot?.name || 'Meal Slot Item'}
+                        <div className="font-bold text-gray-900 flex items-center gap-1.5">
+                          <span>{item.dish?.name || item.specialMealSlot?.name || 'Meal Slot Item'}</span>
+                          {item.globalMealSlot?.name && (
+                            <span className="text-[9px] font-bold text-[#005390] bg-blue-50 px-1.5 py-0.2 rounded border border-blue-100">
+                              {item.globalMealSlot.name}
+                            </span>
+                          )}
                         </div>
                         <div className="text-[10px] text-gray-500">
                           Qty: <span className="font-bold text-gray-800">{item.quantity}</span> • Unit Price: ₹
