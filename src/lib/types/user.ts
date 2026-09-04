@@ -53,6 +53,14 @@ export interface UserItem {
     companyId?: string | null
     departmentId?: string | null
     jobCategoryId?: string | null
+    department?: {
+      id: string
+      name: string
+      code: string
+      description?: string | null
+    }
+    departmentName?: string
+    jobCategoryName?: string
     role?: {
       id: string
       name: string
