@@ -23,6 +23,36 @@ import { Button } from '@/components/ui/button'
 import { ResidentFnbPackageModal } from './ResidentFnbPackageModal'
 import { getFileUrl } from '@/lib/utils'
 
+import api from '@/lib/api/axios'
+
+interface FnbSubscriptionItem {
+  id: string
+  residentId: string
+  familyMemberId?: string | null
+  propertyPackageId: string
+  startDate: string
+  endDate?: string | null
+  dietaryPreference?: string
+  allergiesNotes?: string
+  status: string
+  propertyPackage?: {
+    id: string
+    price: number
+    globalPackage?: {
+      name: string
+      code: string
+      dietaryType: string
+      includedMealSlots: string[]
+    }
+  }
+  familyMember?: {
+    id: string
+    firstName: string
+    lastName?: string
+    relation?: string
+  }
+}
+
 export interface ResidentDetailsScreenProps {
   isGlobalMode?: boolean
 }
@@ -36,9 +66,52 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   const [error, setError] = useState<string | null>(null)
   const [isFnbModalOpen, setIsFnbModalOpen] = useState<boolean>(false)
 
+  const [fnbSubscriptions, setFnbSubscriptions] = useState<FnbSubscriptionItem[]>([])
+  const [globalMealSlots, setGlobalMealSlots] = useState<Array<{ id: string; name: string; code?: string }>>([])
+
+  const getSlotDisplayName = (slot: string): string => {
+    if (!slot) return ''
+    const slotLower = slot.toLowerCase()
+    if (slotLower === 'breakfast') return 'Break Fast'
+    if (slotLower === 'lunch') return 'Lunch'
+    if (slotLower === 'snacks') return 'Evening Snacks'
+    if (slotLower === 'dinner') return 'Dinner'
+
+    const matchedGlobalSlot = globalMealSlots.find(
+      (ms) =>
+        ms.id === slot ||
+        (ms.code && ms.code.toLowerCase() === slotLower) ||
+        (ms.name && ms.name.toLowerCase() === slotLower),
+    )
+    if (matchedGlobalSlot) return matchedGlobalSlot.name
+
+    return slot
+  }
+
   const isGlobal = isGlobalMode || window.location.pathname.includes('/global-settings')
   const backUrl = isGlobal ? '/global-settings/residents' : '/admin/residents'
   const editUrl = isGlobal ? `/global-settings/residents/edit/${id}` : `/admin/residents/edit/${id}`
+
+  const fetchFnbSubscriptions = async (resId: string) => {
+    if (!resId) return
+    try {
+      const [res, slotsRes] = await Promise.all([
+        api.get(`/fnb/resident-package/${resId}`),
+        api.get('/fnb/global-meal-slots').catch(() => ({ data: { success: false } })),
+      ])
+      if (slotsRes.data?.success) {
+        setGlobalMealSlots(slotsRes.data.data || [])
+      }
+      if (res.data?.success && Array.isArray(res.data.data)) {
+        setFnbSubscriptions(res.data.data)
+      } else {
+        setFnbSubscriptions([])
+      }
+    } catch (e) {
+      console.error('Failed to fetch F&B subscriptions for resident details:', e)
+      setFnbSubscriptions([])
+    }
+  }
 
   useEffect(() => {
     let active = true
@@ -51,6 +124,9 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
         const data = await residentService.getResidentById(id)
         if (active) {
           setResident(data)
+          if (data?.id) {
+            void fetchFnbSubscriptions(data.id)
+          }
         }
       } catch (err: unknown) {
         if (active) {
@@ -192,7 +268,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
               onClick={() => setIsFnbModalOpen(true)}
               className="rounded-xl"
             >
-              Manage Food Package
+              Assign Food Package
             </Button>
           )}
 
@@ -206,6 +282,96 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
           </Button>
         </div>
       </div>
+
+      {/* ── Primary Resident Active Food Package Summary Bar (ABOVE) ───────────── */}
+      {(() => {
+        const primarySub = fnbSubscriptions.find((s) => !s.familyMemberId && (!s.familyMember || !s.familyMember.id))
+        const pkg = primarySub?.propertyPackage
+        const gPkg = pkg?.globalPackage
+        const isNonVeg = gPkg?.dietaryType === 'non_veg' || gPkg?.dietaryType === 'NON_VEG'
+        const isEgg = gPkg?.dietaryType === 'egg' || gPkg?.dietaryType === 'EGG'
+
+        return (
+          <div className="rounded-3xl border border-[#005390]/20 bg-gradient-to-r from-blue-50/90 via-sky-50/50 to-white p-5 shadow-lg backdrop-blur-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="p-3 rounded-2xl bg-[#005390] text-white shadow-xs shrink-0">
+                <Utensils className="w-5 h-5" />
+              </div>
+              <div className="space-y-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-black uppercase text-gray-400 tracking-wider">
+                    Primary Resident Food Package:
+                  </span>
+                  {primarySub && pkg ? (
+                    <span className="text-sm font-extrabold text-gray-900">{gPkg?.name || 'Assigned Package'}</span>
+                  ) : (
+                    <span className="text-xs font-semibold text-gray-400 italic">No package assigned</span>
+                  )}
+
+                  {primarySub && (
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      {primarySub.status || 'Active'}
+                    </span>
+                  )}
+                </div>
+
+                {primarySub && pkg ? (
+                  <div className="flex items-center gap-2 flex-wrap text-xs">
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold capitalize border ${
+                        isNonVeg
+                          ? 'bg-rose-100 text-rose-800 border-rose-300'
+                          : isEgg
+                            ? 'bg-amber-100 text-amber-800 border-amber-300'
+                            : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                      }`}
+                    >
+                      {gPkg?.dietaryType ? gPkg.dietaryType.replace('_', ' ') : 'Vegetarian'}
+                    </span>
+
+                    {gPkg?.includedMealSlots && gPkg.includedMealSlots.length > 0 && (
+                      <>
+                        <span className="text-gray-300">•</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-gray-400 font-semibold">Meals Included:</span>
+                          {gPkg.includedMealSlots.map((slot) => (
+                            <span
+                              key={slot}
+                              className="bg-white text-gray-700 border border-gray-200 px-1.5 py-0.5 rounded text-[10px] font-bold"
+                            >
+                              {getSlotDisplayName(slot)}
+                            </span>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    <span className="text-gray-300">•</span>
+                    <span className="text-[10px] text-gray-400 font-mono">
+                      Started: {primarySub.startDate ? primarySub.startDate.split('T')[0] : 'N/A'}
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-gray-400">
+                    Assign a monthly dining plan for {fullName} using the Manage Food Package button above.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+              {primarySub && pkg && (
+                <div className="text-right">
+                  <span className="text-[10px] font-bold uppercase text-gray-400 block">Monthly Rate</span>
+                  <span className="text-sm font-black text-[#005390] bg-white px-3 py-1 rounded-xl border border-blue-200 shadow-2xs inline-block">
+                    ₹{Number(pkg.price).toLocaleString('en-IN')}/mo
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── Main Details Grid (2 Columns) ─────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -411,6 +577,73 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
                         </div>
                       )}
                     </div>
+
+                    {/* Family Member Food Package Block */}
+                    {(() => {
+                      const fmSub = fnbSubscriptions.find(
+                        (s) => s.familyMemberId === fm.id || s.familyMember?.id === fm.id,
+                      )
+                      const pkg = fmSub?.propertyPackage
+                      const gPkg = pkg?.globalPackage
+                      const isNonVeg = gPkg?.dietaryType === 'non_veg' || gPkg?.dietaryType === 'NON_VEG'
+                      const isEgg = gPkg?.dietaryType === 'egg' || gPkg?.dietaryType === 'EGG'
+
+                      return (
+                        <div className="mt-3 pt-2.5 border-t border-purple-100/80 space-y-1.5 bg-purple-50/40 p-2.5 rounded-xl border border-purple-100">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <Utensils className="w-3.5 h-3.5 text-purple-700" />
+                              <span className="text-[10px] font-extrabold uppercase text-purple-900 tracking-wider">
+                                Food Package:
+                              </span>
+                              {fmSub && pkg ? (
+                                <span className="text-xs font-bold text-gray-900">
+                                  {gPkg?.name || 'Assigned Package'}
+                                </span>
+                              ) : (
+                                <span className="text-xs font-semibold text-gray-400 italic">No package assigned</span>
+                              )}
+                            </div>
+
+                            {fmSub && pkg && (
+                              <span className="text-xs font-extrabold text-[#005390] bg-white px-2 py-0.5 rounded border border-blue-200">
+                                ₹{Number(pkg.price).toLocaleString('en-IN')}/mo
+                              </span>
+                            )}
+                          </div>
+
+                          {fmSub && pkg && (
+                            <div className="flex items-center gap-2 flex-wrap text-[11px]">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold capitalize border ${
+                                  isNonVeg
+                                    ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                    : isEgg
+                                      ? 'bg-amber-100 text-amber-800 border-amber-300'
+                                      : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                }`}
+                              >
+                                {gPkg?.dietaryType ? gPkg.dietaryType.replace('_', ' ') : 'Vegetarian'}
+                              </span>
+
+                              {gPkg?.includedMealSlots && gPkg.includedMealSlots.length > 0 && (
+                                <div className="flex items-center gap-1 flex-wrap">
+                                  <span className="text-[9px] text-gray-400 font-semibold">Included:</span>
+                                  {gPkg.includedMealSlots.map((slot) => (
+                                    <span
+                                      key={slot}
+                                      className="bg-white text-gray-700 border border-gray-200 px-1.5 py-0.2 rounded text-[9px] font-bold"
+                                    >
+                                      {getSlotDisplayName(slot)}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })()}
                   </div>
                 )
               })}
@@ -423,9 +656,14 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
       {resident && (
         <ResidentFnbPackageModal
           isOpen={isFnbModalOpen}
-          onClose={() => setIsFnbModalOpen(false)}
+          onClose={() => {
+            setIsFnbModalOpen(false)
+            if (resident.id) {
+              void fetchFnbSubscriptions(resident.id)
+            }
+          }}
           residentId={resident.id}
-          locId={resident.locId}
+          locId={resident.locId || (resident as unknown as Record<string, string>).loc_id || ''}
           isResiding={resident.isResiding}
           residentName={fullName}
           familyMembers={familyMembers}

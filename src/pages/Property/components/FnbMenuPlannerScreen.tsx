@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import {
   Calendar as CalendarIcon,
   Utensils,
@@ -12,6 +12,10 @@ import {
   Edit3,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  Plus,
+  Clock,
 } from 'lucide-react'
 import api from '@/lib/api/axios'
 import { getFileUrl } from '@/lib/utils'
@@ -53,6 +57,36 @@ const getDishImageUrl = (dishObj?: Dish | Record<string, unknown> | null): strin
 
 type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
 
+interface PropertyMealSlot {
+  id: string
+  locId: string
+  globalMealSlotId?: string
+  name: string
+  code?: string
+  startTime: string
+  endTime: string
+  price: number
+  isActive: boolean
+}
+
+interface PropertySpecialSlotDishInfo {
+  id: string
+  propertySpecialSlotId: string
+  locId: string
+  dishId: string
+  price: number
+  dish?: Dish
+}
+
+interface PropertySpecialSlotInfo {
+  id: string
+  globalSpecialSlotId: string
+  locId: string
+  name: string
+  description?: string | null
+  specialDishes?: PropertySpecialSlotDishInfo[]
+}
+
 interface MenuItem {
   id: string
   menuId?: string
@@ -60,7 +94,8 @@ interface MenuItem {
   dayOfWeek?: DayOfWeek | null
   date?: string | null
   isOverride?: boolean
-  mealSlot: 'breakfast' | 'lunch' | 'snacks' | 'dinner'
+  mealSlot?: string
+  mealSlotId?: string | null
   dishId: string
   isOptional: boolean
   extraPrice: number
@@ -101,9 +136,38 @@ const formatDDMMYYYY = (dateStr: string): string => {
   return dateStr
 }
 
+const getTodayDateStr = (): string => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const getTodayDayOfWeek = (): DayOfWeek => {
+  const dt = new Date()
+  const dayIdx = dt.getDay() // 0 = Sunday, 1 = Monday, ...
+  const map: Record<number, DayOfWeek> = {
+    0: 'sunday',
+    1: 'monday',
+    2: 'tuesday',
+    3: 'wednesday',
+    4: 'thursday',
+    5: 'friday',
+    6: 'saturday',
+  }
+  return map[dayIdx] || 'monday'
+}
+
 // Get day of week string from date string
 const getDayOfWeekFromDate = (dateStr: string): DayOfWeek => {
-  const dt = new Date(dateStr)
+  const parts = dateStr.split('-')
+  let dt: Date
+  if (parts.length === 3) {
+    dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+  } else {
+    dt = new Date(dateStr)
+  }
   const dayIdx = dt.getDay() // 0 = Sunday, 1 = Monday, ...
   const map: Record<number, DayOfWeek> = {
     0: 'sunday',
@@ -119,20 +183,28 @@ const getDayOfWeekFromDate = (dateStr: string): DayOfWeek => {
 
 // Helper to get array of 7 dates for a given week starting Monday
 const getWeekDates = (referenceDateStr: string): { dateStr: string; dayOfWeek: DayOfWeek; label: string }[] => {
-  const dt = new Date(referenceDateStr)
+  const parts = referenceDateStr.split('-')
+  let dt: Date
+  if (parts.length === 3) {
+    dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+  } else {
+    dt = new Date(referenceDateStr)
+  }
   if (isNaN(dt.getTime())) return []
 
   const day = dt.getDay()
   const diffToMonday = dt.getDate() - day + (day === 0 ? -6 : 1)
-  const monday = new Date(dt.setDate(diffToMonday))
+  const monday = new Date(dt.getFullYear(), dt.getMonth(), diffToMonday)
 
   const week: { dateStr: string; dayOfWeek: DayOfWeek; label: string }[] = []
   const mapDays: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
   for (let i = 0; i < 7; i++) {
-    const d = new Date(monday)
-    d.setDate(monday.getDate() + i)
-    const dStr = d.toISOString().split('T')[0]
+    const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i)
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const dateNum = String(d.getDate()).padStart(2, '0')
+    const dStr = `${y}-${m}-${dateNum}`
     week.push({
       dateStr: dStr,
       dayOfWeek: mapDays[i],
@@ -149,27 +221,37 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Selected Day for Recurring Base Weekly Builder
-  const [activeBaseDay, setActiveBaseDay] = useState<DayOfWeek>('monday')
-
   // Selected Reference Date for Calendar Week View (Defaults to Today)
-  const [currentWeekRefDate, setCurrentWeekRefDate] = useState<string>(new Date().toISOString().split('T')[0])
+  const [currentWeekRefDate, setCurrentWeekRefDate] = useState<string>(() => getTodayDateStr())
+
+  // Selected Day for Recurring Base Weekly Builder (Defaults to Current Day of Week)
+  const [activeBaseDay, setActiveBaseDay] = useState<DayOfWeek>(() => getTodayDayOfWeek())
 
   // Week Navigation Carousel Handlers
   const handlePrevWeek = () => {
-    const d = new Date(currentWeekRefDate)
+    const parts = currentWeekRefDate.split('-')
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
     d.setDate(d.getDate() - 7)
-    setCurrentWeekRefDate(d.toISOString().split('T')[0])
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const dateNum = String(d.getDate()).padStart(2, '0')
+    setCurrentWeekRefDate(`${y}-${m}-${dateNum}`)
   }
 
   const handleNextWeek = () => {
-    const d = new Date(currentWeekRefDate)
+    const parts = currentWeekRefDate.split('-')
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
     d.setDate(d.getDate() + 7)
-    setCurrentWeekRefDate(d.toISOString().split('T')[0])
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const dateNum = String(d.getDate()).padStart(2, '0')
+    setCurrentWeekRefDate(`${y}-${m}-${dateNum}`)
   }
 
   const handleResetToCurrentWeek = () => {
-    setCurrentWeekRefDate(new Date().toISOString().split('T')[0])
+    const todayStr = getTodayDateStr()
+    setCurrentWeekRefDate(todayStr)
+    setActiveBaseDay(getTodayDayOfWeek())
   }
 
   // Calendar Popover State
@@ -197,28 +279,101 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
   // Drag & Drop State for Base Menu Builder
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
-  const [dragOverSlot, setDragOverSlot] = useState<'breakfast' | 'lunch' | 'snacks' | 'dinner' | null>(null)
+  const [dragOverSlotId, setDragOverSlotId] = useState<string | null>(null)
+
+  // Carousel refs & scroll handlers for Category Pills
+  const categoryScrollRef = useRef<HTMLDivElement>(null)
+  const modalCategoryScrollRef = useRef<HTMLDivElement>(null)
+
+  const scrollCategoryLeft = (ref: React.RefObject<HTMLDivElement | null>) => {
+    if (ref.current) {
+      ref.current.scrollBy({ left: -150, behavior: 'smooth' })
+    }
+  }
+
+  const scrollCategoryRight = (ref: React.RefObject<HTMLDivElement | null>) => {
+    if (ref.current) {
+      ref.current.scrollBy({ left: 150, behavior: 'smooth' })
+    }
+  }
+
+  // Property Meal Slots State
+  const [propertyMealSlots, setPropertyMealSlots] = useState<PropertyMealSlot[]>([])
+  const [propertySpecialSlots, setPropertySpecialSlots] = useState<PropertySpecialSlotInfo[]>([])
+
+  // Collapsible Meal Slots State
+  const [collapsedSlots, setCollapsedSlots] = useState<Record<string, boolean>>({})
+  const [modalCollapsedSlots, setModalCollapsedSlots] = useState<Record<string, boolean>>({})
+
+  const toggleSlotCollapse = (slotId: string) => {
+    setCollapsedSlots((prev) => ({
+      ...prev,
+      [slotId]: !prev[slotId],
+    }))
+  }
+
+  const toggleModalSlotCollapse = (slotId: string) => {
+    setModalCollapsedSlots((prev) => ({
+      ...prev,
+      [slotId]: !prev[slotId],
+    }))
+  }
+
+  const handleCollapseAll = () => {
+    const newMap: Record<string, boolean> = {}
+    propertyMealSlots.forEach((slot) => {
+      newMap[slot.id] = true
+    })
+    propertySpecialSlots.forEach((spSlot) => {
+      newMap[`special-${spSlot.id}`] = true
+    })
+    setCollapsedSlots(newMap)
+  }
+
+  const handleExpandAll = () => {
+    setCollapsedSlots({})
+  }
 
   // Date Customizer Modal State
   const [isDateCustomizerOpen, setIsDateCustomizerOpen] = useState(false)
   const [selectedDateForModal, setSelectedDateForModal] = useState<string>('')
   const [modalSearchQuery, setModalSearchQuery] = useState('')
   const [modalSelectedCategory, setModalSelectedCategory] = useState<string>('all')
-  const [modalDragOverSlot, setModalDragOverSlot] = useState<'breakfast' | 'lunch' | 'snacks' | 'dinner' | null>(null)
+  const [modalDragOverSlotId, setModalDragOverSlotId] = useState<string | null>(null)
 
   // Review & Publish Modal State
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [hasUnpublishedChanges, setHasUnpublishedChanges] = useState(false)
 
-  // Fetch menu and dishes
+  // Fetch menu, dishes, and property meal slots
   const fetchMenuAndDishes = useCallback(async () => {
     try {
       setLoading(true)
-      const [mRes, dRes] = await Promise.all([
+      const [mRes, dRes, slotsRes, specialSlotsRes] = await Promise.all([
         api.get(`/fnb/menus?locId=${locId}`),
         api.get(`/fnb/properties/${locId}/dishes`),
+        api.get(`/fnb/property-meal-slots?locId=${locId}`),
+        api.get(`/fnb/property-special-slots?locId=${locId}`).catch(() => ({ data: { success: false } })),
       ])
+
+      if (specialSlotsRes.data?.success) {
+        setPropertySpecialSlots(specialSlotsRes.data.data || [])
+      }
+
+      if (slotsRes.data?.success) {
+        const rawSlots = slotsRes.data.data || []
+        const parseTimeToMinutes = (tStr: string): number => {
+          if (!tStr) return 0
+          const parts = tStr.split(':').map((p) => parseInt(p, 10) || 0)
+          return (parts[0] || 0) * 60 + (parts[1] || 0)
+        }
+        const sortedSlots = [...rawSlots].sort(
+          (a: { startTime?: string }, b: { startTime?: string }) =>
+            parseTimeToMinutes(a.startTime || '00:00') - parseTimeToMinutes(b.startTime || '00:00'),
+        )
+        setPropertyMealSlots(sortedSlots)
+      }
 
       if (dRes.data?.success) {
         const rawDishes = dRes.data.data
@@ -291,22 +446,34 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
     return matchesCategory && matchesSearch
   })
 
+  // Check if a menuItem belongs to a given property meal slot
+  const isItemInSlot = (item: MenuItem, slot: PropertyMealSlot) => {
+    const slotNameLower = slot.name.toLowerCase()
+    if (item.mealSlotId && (item.mealSlotId === slot.id || item.mealSlotId === slot.globalMealSlotId)) {
+      return true
+    }
+    if (item.mealSlot && item.mealSlot.toLowerCase() === slotNameLower) {
+      return true
+    }
+    return false
+  }
+
   // Get items for active base day (Recurring template: dayOfWeek set, date IS NULL)
-  const getBaseDayItems = (day: DayOfWeek, slot: 'breakfast' | 'lunch' | 'snacks' | 'dinner'): MenuItem[] => {
-    return menuItems.filter((item) => item.dayOfWeek === day && !item.date && item.mealSlot === slot)
+  const getBaseDayItems = (day: DayOfWeek, slot: PropertyMealSlot): MenuItem[] => {
+    return menuItems.filter((item) => item.dayOfWeek === day && !item.date && isItemInSlot(item, slot))
   }
 
   // Add Dish to Recurring Weekly Template (Local state edit until published)
-  const handleAddBaseWeeklyDish = (slot: 'breakfast' | 'lunch' | 'snacks' | 'dinner', dishId: string) => {
+  const handleAddBaseWeeklyDish = (slot: PropertyMealSlot, dishId: string) => {
     const dishObj = dishes.find((d) => d.id === dishId)
     if (!dishObj) return
 
     const alreadyExists = menuItems.some(
-      (item) => item.dayOfWeek === activeBaseDay && !item.date && item.mealSlot === slot && item.dishId === dishId,
+      (item) => item.dayOfWeek === activeBaseDay && !item.date && isItemInSlot(item, slot) && item.dishId === dishId,
     )
 
     if (alreadyExists) {
-      notifyError(`"${dishObj.name}" is already added to All ${activeBaseDay.toUpperCase()}s (${slot.toUpperCase()})!`)
+      notifyError(`"${dishObj.name}" is already added to All ${activeBaseDay.toUpperCase()}s (${slot.name})!`)
       return
     }
 
@@ -316,7 +483,8 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
       dayOfWeek: activeBaseDay,
       date: null,
       isOverride: false,
-      mealSlot: slot,
+      mealSlot: slot.name.toLowerCase(),
+      mealSlotId: slot.id,
       dishId,
       isOptional: false,
       extraPrice: 0,
@@ -325,7 +493,55 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
 
     setMenuItems((prev) => [...prev, newItem])
     setHasUnpublishedChanges(true)
-    notifySuccess(`Added "${dishObj.name}" to draft menu (All ${activeBaseDay.toUpperCase()}s)!`)
+    notifySuccess(`Added "${dishObj.name}" to draft menu (All ${activeBaseDay.toUpperCase()}s - ${slot.name})!`)
+  }
+
+  // Special Slot Dish Handlers (Local Draft Edits until Published)
+  const handleAddSpecialDish = (propertySpecialSlotId: string, dishId: string, customPrice?: number) => {
+    const dishObj = dishes.find((d) => d.id === dishId)
+    if (!dishObj) return
+
+    const priceToSet = customPrice !== undefined ? customPrice : Number(dishObj.basePrice || 0)
+
+    setPropertySpecialSlots((prev) =>
+      prev.map((spSlot) => {
+        if (spSlot.id !== propertySpecialSlotId) return spSlot
+        const currentDishes = spSlot.specialDishes || []
+        const alreadyExists = currentDishes.some((sd) => sd.dishId === dishId)
+        if (alreadyExists) {
+          notifyError(`"${dishObj.name}" is already added to ${spSlot.name}!`)
+          return spSlot
+        }
+
+        const newDishItem: PropertySpecialSlotDishInfo = {
+          id: `temp-${crypto.randomUUID()}`,
+          propertySpecialSlotId,
+          locId,
+          dishId,
+          price: priceToSet,
+          dish: dishObj,
+        }
+        return {
+          ...spSlot,
+          specialDishes: [...currentDishes, newDishItem],
+        }
+      }),
+    )
+
+    setHasUnpublishedChanges(true)
+    notifySuccess(`Added "${dishObj.name}" to special meal slot draft!`)
+  }
+
+  const handleRemoveSpecialDish = (specialDishId: string, dishName?: string) => {
+    setPropertySpecialSlots((prev) =>
+      prev.map((spSlot) => ({
+        ...spSlot,
+        specialDishes: (spSlot.specialDishes || []).filter((sd) => sd.id !== specialDishId),
+      })),
+    )
+
+    setHasUnpublishedChanges(true)
+    notifySuccess(`Removed ${dishName ? `"${dishName}"` : 'dish'} from special meal slot draft!`)
   }
 
   // Remove Dish item (Local state edit until published)
@@ -344,7 +560,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
   }
 
   // Add Item via Drag & Drop inside Date Customizer Modal (Local state edit until published)
-  const handleModalAddDishViaDrag = (slot: 'breakfast' | 'lunch' | 'snacks' | 'dinner', dishId: string) => {
+  const handleModalAddDishViaDrag = (slot: PropertyMealSlot, dishId: string) => {
     if (!selectedDateForModal) return
 
     const dishObj = dishes.find((d) => d.id === dishId)
@@ -353,13 +569,11 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
     const targetDayOfWeek = getDayOfWeekFromDate(selectedDateForModal)
 
     const alreadyExists = menuItems.some(
-      (item) => item.date === selectedDateForModal && item.mealSlot === slot && item.dishId === dishId,
+      (item) => item.date === selectedDateForModal && isItemInSlot(item, slot) && item.dishId === dishId,
     )
 
     if (alreadyExists) {
-      notifyError(
-        `"${dishObj.name}" is already added to ${slot.toUpperCase()} for ${formatDDMMYYYY(selectedDateForModal)}!`,
-      )
+      notifyError(`"${dishObj.name}" is already added to ${slot.name} for ${formatDDMMYYYY(selectedDateForModal)}!`)
       return
     }
 
@@ -369,7 +583,8 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
       dayOfWeek: targetDayOfWeek,
       date: selectedDateForModal,
       isOverride: true,
-      mealSlot: slot,
+      mealSlot: slot.name.toLowerCase(),
+      mealSlotId: slot.id,
       dishId,
       isOptional: false,
       extraPrice: 0,
@@ -378,10 +593,34 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
 
     setMenuItems((prev) => [...prev, newItem])
     setHasUnpublishedChanges(true)
-    notifySuccess(`Added "${dishObj.name}" to draft menu for ${formatDDMMYYYY(selectedDateForModal)}!`)
+    notifySuccess(`Added "${dishObj.name}" to draft menu for ${formatDDMMYYYY(selectedDateForModal)} (${slot.name})!`)
   }
 
-  // Publish Menu Action (Fires bulk publish API call with all items)
+  // Helper theme for slots
+  const getSlotTheme = (name: string, index: number) => {
+    const lower = name.toLowerCase()
+    if (lower.includes('break') || lower.includes('morn')) {
+      return { icon: '🌅', bg: 'bg-amber-50/40 border-amber-100', text: 'text-amber-900' }
+    }
+    if (lower.includes('lunch') || lower.includes('after')) {
+      return { icon: '☀️', bg: 'bg-orange-50/40 border-orange-100', text: 'text-orange-900' }
+    }
+    if (lower.includes('snack') || lower.includes('even')) {
+      return { icon: '🌇', bg: 'bg-rose-50/40 border-rose-100', text: 'text-rose-900' }
+    }
+    if (lower.includes('dinn') || lower.includes('night')) {
+      return { icon: '🌙', bg: 'bg-indigo-50/40 border-indigo-100', text: 'text-indigo-900' }
+    }
+    const themes = [
+      { icon: '🌅', bg: 'bg-amber-50/40 border-amber-100', text: 'text-amber-900' },
+      { icon: '☀️', bg: 'bg-orange-50/40 border-orange-100', text: 'text-orange-900' },
+      { icon: '🌇', bg: 'bg-rose-50/40 border-rose-100', text: 'text-rose-900' },
+      { icon: '🌙', bg: 'bg-indigo-50/40 border-indigo-100', text: 'text-indigo-900' },
+    ]
+    return themes[index % themes.length]
+  }
+
+  // Publish Menu Action (Fires bulk publish API call with all items & special slot dishes)
   const handlePublishMenu = async () => {
     try {
       setPublishing(true)
@@ -393,21 +632,36 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
           dayOfWeek: item.dayOfWeek || null,
           date: item.date || null,
           isOverride: item.isOverride || false,
-          mealSlot: item.mealSlot,
+          mealSlot: item.mealSlot || null,
+          mealSlotId: item.mealSlotId || null,
           dishId: item.dishId,
           isOptional: item.isOptional || false,
           extraPrice: item.extraPrice || 0,
         })),
       })
 
-      if (res.data?.success) {
-        notifySuccess('Food Menu reviewed and published successfully!')
-        setIsReviewModalOpen(false)
-        setHasUnpublishedChanges(false)
-        fetchMenuAndDishes()
-      } else {
-        notifyError(res.data?.message || 'Failed to publish menu')
+      if (!res.data?.success) {
+        notifyError(res.data?.message || 'Failed to publish regular menu')
+        return
       }
+
+      // Sync all special slot dishes to database upon publishing
+      for (const spSlot of propertySpecialSlots) {
+        const dishesToSync = (spSlot.specialDishes || []).map((d) => ({
+          dishId: d.dishId,
+          price: d.price || 0,
+        }))
+        await api.post('/fnb/property-special-slots/sync-dishes', {
+          propertySpecialSlotId: spSlot.id,
+          locId,
+          dishes: dishesToSync,
+        })
+      }
+
+      notifySuccess('Food Menu & Special Slot Dishes reviewed and published successfully!')
+      setIsReviewModalOpen(false)
+      setHasUnpublishedChanges(false)
+      fetchMenuAndDishes()
     } catch (err: unknown) {
       const msg =
         err && typeof err === 'object' && 'response' in err
@@ -424,9 +678,6 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
   const weekDates = getWeekDates(currentWeekRefDate)
   const todayStr = new Date().toISOString().split('T')[0]
   const activeSelectedDate = weekDates.find((w) => w.dayOfWeek === activeBaseDay)?.dateStr || todayStr
-
-  // Modal target date items
-  const modalDateOverrideItems = menuItems.filter((i) => i.date === selectedDateForModal)
 
   return (
     <div className="space-y-6">
@@ -527,21 +778,38 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                     )
                   })()}
 
-                  <Button
-                    type="button"
-                    disabled={menuItems.length === 0}
-                    onClick={() => setIsReviewModalOpen(true)}
-                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs ${
-                      menuItems.length === 0
-                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60'
-                        : hasUnpublishedChanges || selectedMenu?.status === 'draft'
-                          ? 'bg-amber-600 text-white hover:bg-amber-700 animate-pulse cursor-pointer'
-                          : 'bg-[#005390] text-white hover:bg-[#004070] cursor-pointer'
-                    }`}
-                    title={menuItems.length === 0 ? 'Add at least 1 dish to menu before reviewing or publishing' : ''}
-                  >
-                    <Eye className="w-4 h-4" /> Review & Publish Menu
-                  </Button>
+                  {(() => {
+                    const isAlreadyPublished = selectedMenu?.status === 'published' && !hasUnpublishedChanges
+                    const isMenuEmpty = menuItems.length === 0
+                    const isDisabled = isMenuEmpty || isAlreadyPublished
+
+                    let tooltipTitle = ''
+                    if (isAlreadyPublished) {
+                      tooltipTitle = 'Menu is already published.'
+                    } else if (isMenuEmpty) {
+                      tooltipTitle = 'Add at least 1 dish to menu before reviewing or publishing'
+                    }
+
+                    return (
+                      <Button
+                        type="button"
+                        disabled={isDisabled}
+                        onClick={() => setIsReviewModalOpen(true)}
+                        className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs ${
+                          isAlreadyPublished
+                            ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-70 shadow-none'
+                            : isMenuEmpty
+                              ? 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60'
+                              : hasUnpublishedChanges || selectedMenu?.status === 'draft'
+                                ? 'bg-amber-600 text-white hover:bg-amber-700 animate-pulse cursor-pointer'
+                                : 'bg-[#005390] text-white hover:bg-[#004070] cursor-pointer'
+                        }`}
+                        title={tooltipTitle}
+                      >
+                        <Eye className="w-4 h-4" /> Review & Publish Menu
+                      </Button>
+                    )
+                  })()}
                 </div>
               </div>
 
@@ -592,8 +860,10 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5 w-full">
                   {weekDates.map((wItem) => {
                     const isSelected = activeBaseDay === wItem.dayOfWeek
-                    const dObj = new Date(wItem.dateStr)
-                    const dayNum = dObj.getDate()
+                    const isToday = wItem.dateStr === getTodayDateStr()
+                    const parts = wItem.dateStr.split('-')
+                    const dayNum = Number(parts[2])
+                    const dObj = new Date(Number(parts[0]), Number(parts[1]) - 1, dayNum)
                     const monthShort = dObj.toLocaleDateString('en-US', { month: 'short' })
 
                     return (
@@ -601,18 +871,31 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                         type="button"
                         key={wItem.dayOfWeek}
                         onClick={() => setActiveBaseDay(wItem.dayOfWeek)}
-                        className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col items-center justify-between text-center select-none shadow-2xs relative group py-4 ${
+                        className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col items-center justify-between text-center select-none shadow-2xs relative group py-3.5 ${
                           isSelected
                             ? 'bg-[#005390] text-white border-[#005390] shadow-md ring-2 ring-blue-200 scale-[1.02]'
-                            : 'bg-white text-gray-700 hover:bg-blue-50/50 border-gray-200 hover:border-blue-300'
+                            : isToday
+                              ? 'bg-blue-50/70 text-gray-900 border-blue-300 ring-2 ring-blue-100'
+                              : 'bg-white text-gray-700 hover:bg-blue-50/50 border-gray-200 hover:border-blue-300'
                         }`}
                       >
                         {/* Day Label (e.g. MON) */}
-                        <span
-                          className={`text-[11px] font-black uppercase tracking-wider ${isSelected ? 'text-blue-100' : 'text-gray-500'}`}
-                        >
-                          {wItem.label.slice(0, 3)}
-                        </span>
+                        <div className="flex items-center gap-1">
+                          <span
+                            className={`text-[11px] font-black uppercase tracking-wider ${isSelected ? 'text-blue-100' : 'text-gray-500'}`}
+                          >
+                            {wItem.label.slice(0, 3)}
+                          </span>
+                          {isToday && (
+                            <span
+                              className={`text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded-full ${
+                                isSelected ? 'bg-amber-400 text-gray-900' : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              Today
+                            </span>
+                          )}
+                        </div>
 
                         {/* Big Calendar Date Number (e.g. 31) */}
                         <span className={`text-2xl font-black my-1.5 ${isSelected ? 'text-white' : 'text-gray-900'}`}>
@@ -667,7 +950,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
             {/* 2-Column Drag & Drop Area for Recurring Base Day / Custom Preview */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Left Sidebar Palette */}
-              <div className="lg:col-span-4 bg-gray-50/70 p-5 rounded-2xl border border-gray-200/80 space-y-4 flex flex-col max-h-[600px]">
+              <div className="lg:col-span-4 bg-gray-50/70 p-5 rounded-2xl border border-gray-200/80 space-y-4 flex flex-col max-h-[calc(100vh-120px)] sticky top-4 self-start shadow-2xs">
                 <div className="flex items-center justify-between border-b border-gray-200/60 pb-3">
                   <h4 className="text-xs font-bold text-gray-900 flex items-center gap-2">
                     <GripVertical className="w-4 h-4 text-[#005390]" /> Available Dishes
@@ -688,21 +971,45 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                   />
                 </div>
 
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-none border-b border-gray-200/60">
-                  {categories.map((cat) => (
-                    <button
-                      key={cat.value}
-                      type="button"
-                      onClick={() => setSelectedCategory(cat.value)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
-                        selectedCategory === cat.value
-                          ? 'bg-[#005390] text-white shadow-2xs'
-                          : 'bg-white text-gray-600 hover:bg-gray-200 border border-gray-200'
-                      }`}
-                    >
-                      {cat.label}
-                    </button>
-                  ))}
+                {/* Category Filter Pills Carousel with Nav Buttons */}
+                <div className="relative border-b border-gray-200/60 pb-2 flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => scrollCategoryLeft(categoryScrollRef)}
+                    className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center text-gray-600 shrink-0 cursor-pointer shadow-2xs transition-colors"
+                    title="Scroll Left"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+
+                  <div
+                    ref={categoryScrollRef}
+                    className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none scroll-smooth flex-1"
+                  >
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.value}
+                        type="button"
+                        onClick={() => setSelectedCategory(cat.value)}
+                        className={`px-3 py-1 rounded-xl text-[11px] font-extrabold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
+                          selectedCategory === cat.value
+                            ? 'bg-[#005390] text-white shadow-2xs'
+                            : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => scrollCategoryRight(categoryScrollRef)}
+                    className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center text-gray-600 shrink-0 cursor-pointer shadow-2xs transition-colors"
+                    title="Scroll Right"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
                 <div className="space-y-2 overflow-y-auto flex-1 pr-1">
@@ -748,154 +1055,413 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                             </div>
                           </div>
                         </div>
-                        {!isPreviewingCustomOverride && (
-                          <span className="text-[10px] font-bold text-[#005390] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 flex items-center gap-0.5">
-                            Drag <ArrowRight className="w-3 h-3" />
-                          </span>
-                        )}
+                        {!isPreviewingCustomOverride &&
+                          (propertyMealSlots.length > 0 || propertySpecialSlots.length > 0) && (
+                            <Popover>
+                              <PopoverTrigger
+                                className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-[#005390] text-[10px] font-extrabold rounded-lg border border-blue-200 shrink-0 flex items-center gap-0.5 transition-colors cursor-pointer"
+                                title="1-Click Add to Meal Slot"
+                              >
+                                <Plus className="w-3 h-3" /> Add
+                              </PopoverTrigger>
+                              <PopoverContent
+                                className="w-52 p-1.5 bg-white rounded-xl shadow-lg border border-gray-200 text-xs"
+                                align="end"
+                              >
+                                {propertyMealSlots.length > 0 && (
+                                  <>
+                                    <div className="text-[10px] font-bold text-gray-400 px-2 py-1 uppercase tracking-wider">
+                                      Regular Slots:
+                                    </div>
+                                    {propertyMealSlots.map((s) => (
+                                      <button
+                                        key={s.id}
+                                        type="button"
+                                        onClick={() => handleAddBaseWeeklyDish(s, dish.id)}
+                                        className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-blue-50 text-gray-800 font-bold hover:text-[#005390] transition-colors flex items-center justify-between text-xs cursor-pointer"
+                                      >
+                                        <span>{s.name}</span>
+                                        <span className="text-[10px] text-gray-400 font-normal">{s.startTime}</span>
+                                      </button>
+                                    ))}
+                                  </>
+                                )}
+
+                                {propertySpecialSlots.length > 0 && (
+                                  <>
+                                    <div className="text-[10px] font-bold text-amber-600 px-2 py-1 mt-1 border-t border-gray-100 uppercase tracking-wider flex items-center gap-1">
+                                      <Sparkles className="w-3 h-3" /> Special Slots (Every Day):
+                                    </div>
+                                    {propertySpecialSlots.map((sp) => (
+                                      <button
+                                        key={sp.id}
+                                        type="button"
+                                        onClick={() => handleAddSpecialDish(sp.id, dish.id)}
+                                        className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-amber-50 text-gray-800 font-bold hover:text-amber-800 transition-colors flex items-center justify-between text-xs cursor-pointer"
+                                      >
+                                        <span>{sp.name}</span>
+                                        <span className="text-[10px] text-amber-600 font-semibold">Special</span>
+                                      </button>
+                                    ))}
+                                  </>
+                                )}
+                              </PopoverContent>
+                            </Popover>
+                          )}
                       </div>
                     ))
                   )}
                 </div>
               </div>
 
-              {/* Right 4 Meal Slots for Active Day of Week / Custom Preview */}
-              <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-5">
-                {(() => {
-                  const activeDateStr = weekDates.find((w) => w.dayOfWeek === activeBaseDay)?.dateStr || ''
-                  const formattedActiveDate = activeDateStr ? formatDDMMYYYY(activeDateStr) : ''
-                  return [
-                    {
-                      slot: 'breakfast' as const,
-                      label: `🌅 Morning (${activeBaseDay.toUpperCase()} ${formattedActiveDate} Breakfast)`,
-                      bg: 'bg-amber-50/40 border-amber-100',
-                    },
-                    {
-                      slot: 'lunch' as const,
-                      label: `☀️ Afternoon (${activeBaseDay.toUpperCase()} ${formattedActiveDate} Lunch)`,
-                      bg: 'bg-orange-50/40 border-orange-100',
-                    },
-                    {
-                      slot: 'snacks' as const,
-                      label: `🌇 Evening (${activeBaseDay.toUpperCase()} ${formattedActiveDate} Snacks)`,
-                      bg: 'bg-rose-50/40 border-rose-100',
-                    },
-                    {
-                      slot: 'dinner' as const,
-                      label: `🌙 Night (${activeBaseDay.toUpperCase()} ${formattedActiveDate} Dinner)`,
-                      bg: 'bg-indigo-50/40 border-indigo-100',
-                    },
-                  ]
-                })().map(({ slot, label, bg }) => {
-                  const activeDateStr = weekDates.find((w) => w.dayOfWeek === activeBaseDay)?.dateStr || ''
-                  const slotItems = isPreviewingCustomOverride
-                    ? menuItems.filter((i) => i.date === activeDateStr && i.mealSlot === slot)
-                    : getBaseDayItems(activeBaseDay, slot)
-
-                  const isHovering = !isPreviewingCustomOverride && dragOverSlot === slot
-
-                  return (
-                    <div
-                      key={slot}
-                      onDragOver={(e) => {
-                        if (isPreviewingCustomOverride) return
-                        e.preventDefault()
-                        e.dataTransfer.dropEffect = 'copy'
-                      }}
-                      onDragEnter={(e) => {
-                        if (isPreviewingCustomOverride) return
-                        e.preventDefault()
-                        setDragOverSlot(slot)
-                      }}
-                      onDragLeave={() => {
-                        setDragOverSlot(null)
-                      }}
-                      onDrop={(e) => {
-                        if (isPreviewingCustomOverride) return
-                        e.preventDefault()
-                        setDragOverSlot(null)
-                        const dishId = e.dataTransfer.getData('text/plain')
-                        if (dishId) {
-                          handleAddBaseWeeklyDish(slot, dishId)
-                        }
-                      }}
-                      className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-4 min-h-[220px] ${
-                        isHovering
-                          ? 'bg-blue-50/90 border-2 border-dashed border-[#005390] ring-4 ring-blue-100 scale-[1.01] shadow-md'
-                          : `${bg}`
-                      }`}
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between border-b border-gray-200/60 pb-2.5">
-                          <span className="text-xs font-extrabold text-gray-800">{label}</span>
-                          <span className="text-[10px] font-bold text-gray-400">
-                            {slotItems.length} Dish{slotItems.length !== 1 ? 'es' : ''}
-                          </span>
-                        </div>
-
-                        {isHovering ? (
-                          <div className="py-8 text-center font-extrabold text-xs text-[#005390] bg-white/80 rounded-xl border border-dashed border-[#005390] animate-pulse">
-                            ⬇️ Drop Dish to add to All {activeBaseDay.toUpperCase()}s ({slot.toUpperCase()})
-                          </div>
-                        ) : slotItems.length === 0 ? (
-                          <div className="py-8 text-center text-xs text-gray-400 italic bg-white/50 rounded-xl border border-dashed border-gray-200">
-                            {isPreviewingCustomOverride
-                              ? `No custom dishes configured for ${slot.toUpperCase()}.`
-                              : `Drag & drop dish here to serve on All ${activeBaseDay.toUpperCase()}s.`}
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {slotItems.map((item) => {
-                              const fullDish = dishes.find((d) => d.id === item.dishId) || item.dish
-                              const imgUrl = getDishImageUrl(fullDish)
-
-                              return (
-                                <div
-                                  key={item.id}
-                                  className="bg-white p-2.5 rounded-xl border border-gray-200/80 shadow-2xs flex items-center justify-between gap-2.5"
-                                >
-                                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                    {imgUrl ? (
-                                      <img
-                                        src={imgUrl}
-                                        alt={fullDish?.name || 'Dish'}
-                                        className="w-8 h-8 rounded-lg object-cover shrink-0 border border-gray-200"
-                                      />
-                                    ) : (
-                                      <div className="w-8 h-8 rounded-lg bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0 border border-orange-200/50">
-                                        <Utensils className="w-3.5 h-3.5" />
-                                      </div>
-                                    )}
-                                    <div className="space-y-0.5 flex-1 min-w-0">
-                                      <div className="font-bold text-gray-900 text-xs truncate">
-                                        {fullDish?.name || 'Dish'}
-                                      </div>
-                                      <div className="text-[10px] text-gray-400 capitalize truncate">
-                                        {fullDish?.category ? fullDish.category.replace('_', ' ') : ''} • ₹
-                                        {dishes.find((d) => d.id === item.dishId)?.basePrice ??
-                                          fullDish?.basePrice ??
-                                          0}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  {!isPreviewingCustomOverride && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteMenuItem(item.id)}
-                                      className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
+              {/* Right Dynamic Property Meal Slots for Active Day of Week / Custom Preview */}
+              <div className="lg:col-span-8">
+                {propertyMealSlots.length === 0 ? (
+                  <div className="bg-white p-12 text-center rounded-2xl border border-gray-100 shadow-2xs space-y-3">
+                    <Clock className="w-12 h-12 text-gray-300 mx-auto" />
+                    <h3 className="text-base font-bold text-gray-800">No Meal Slots Assigned to This Property</h3>
+                    <p className="text-xs text-gray-500 max-w-md mx-auto">
+                      Go to the <strong>Meal Slots & Timings</strong> tab to assign meal slots to this property
+                      location.
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    {/* Meal Slots Toolbar with Collapse All / Expand All */}
+                    <div className="flex items-center justify-between gap-3 mb-3.5 bg-white px-4 py-2.5 rounded-2xl border border-gray-200/80 shadow-2xs">
+                      <span className="text-xs font-bold text-gray-700">
+                        {propertyMealSlots.length} Meal Slot{propertyMealSlots.length !== 1 ? 's' : ''} Configured
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleCollapseAll}
+                          className="px-2.5 py-1 text-[11px] font-bold text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg cursor-pointer transition-colors shadow-2xs"
+                        >
+                          ↕️ Collapse All
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleExpandAll}
+                          className="px-2.5 py-1 text-[11px] font-bold text-[#005390] hover:bg-blue-50 bg-blue-50/50 border border-blue-200 rounded-lg cursor-pointer transition-colors shadow-2xs"
+                        >
+                          ↕️ Expand All
+                        </button>
                       </div>
                     </div>
-                  )
-                })}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {propertyMealSlots.map((slot, index) => {
+                        const theme = getSlotTheme(slot.name, index)
+                        const activeDateStr = weekDates.find((w) => w.dayOfWeek === activeBaseDay)?.dateStr || ''
+                        const slotItems = isPreviewingCustomOverride
+                          ? menuItems.filter((i) => i.date === activeDateStr && isItemInSlot(i, slot))
+                          : getBaseDayItems(activeBaseDay, slot)
+
+                        const isHovering = !isPreviewingCustomOverride && dragOverSlotId === slot.id
+                        const isCollapsed = Boolean(collapsedSlots[slot.id])
+
+                        return (
+                          <div
+                            key={slot.id}
+                            onDragOver={(e) => {
+                              if (isPreviewingCustomOverride) return
+                              e.preventDefault()
+                              e.dataTransfer.dropEffect = 'copy'
+                            }}
+                            onDragEnter={(e) => {
+                              if (isPreviewingCustomOverride) return
+                              e.preventDefault()
+                              setDragOverSlotId(slot.id)
+                            }}
+                            onDragLeave={() => {
+                              setDragOverSlotId(null)
+                            }}
+                            onDrop={(e) => {
+                              if (isPreviewingCustomOverride) return
+                              e.preventDefault()
+                              setDragOverSlotId(null)
+                              const dishId = e.dataTransfer.getData('text/plain')
+                              if (dishId) {
+                                handleAddBaseWeeklyDish(slot, dishId)
+                              }
+                            }}
+                            className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3 ${
+                              isCollapsed ? 'min-h-[70px]' : 'min-h-[220px]'
+                            } ${
+                              isHovering
+                                ? 'bg-blue-50/90 border-2 border-dashed border-[#005390] ring-4 ring-blue-100 scale-[1.01] shadow-md'
+                                : `${theme.bg}`
+                            }`}
+                          >
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between border-b border-gray-200/60 pb-2.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm">{theme.icon}</span>
+                                  <div>
+                                    <span className="text-xs font-extrabold text-gray-800">{slot.name}</span>
+                                    <div className="flex items-center gap-1 text-[10px] text-gray-500 font-semibold mt-0.5">
+                                      <Clock className="w-3 h-3 text-[#005390]" />
+                                      <span>
+                                        {slot.startTime} - {slot.endTime}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-bold text-gray-500 shrink-0">
+                                    {slotItems.length} Dish{slotItems.length !== 1 ? 'es' : ''}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleSlotCollapse(slot.id)}
+                                    className="p-1 rounded-lg hover:bg-white/80 text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
+                                    title={isCollapsed ? 'Expand Meal Slot' : 'Collapse Meal Slot'}
+                                  >
+                                    {isCollapsed ? (
+                                      <ChevronDown className="w-4 h-4" />
+                                    ) : (
+                                      <ChevronUp className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+
+                              {isHovering ? (
+                                <div className="py-4 text-center font-extrabold text-xs text-[#005390] bg-white/90 rounded-xl border border-dashed border-[#005390] animate-pulse shadow-2xs">
+                                  ⬇️ Drop Dish to add to {slot.name}
+                                </div>
+                              ) : isCollapsed ? (
+                                <div className="text-[11px] text-gray-600 font-medium italic truncate flex items-center justify-between pt-0.5">
+                                  <span className="truncate">
+                                    {slotItems.length > 0
+                                      ? slotItems
+                                          .map((i) => (dishes.find((d) => d.id === i.dishId) || i.dish)?.name)
+                                          .filter(Boolean)
+                                          .join(', ')
+                                      : 'No dishes added yet.'}
+                                  </span>
+                                </div>
+                              ) : slotItems.length === 0 ? (
+                                <div className="py-8 text-center text-xs text-gray-400 italic bg-white/50 rounded-xl border border-dashed border-gray-200">
+                                  {isPreviewingCustomOverride
+                                    ? `No custom dishes configured for ${slot.name}.`
+                                    : `Drag & drop dish here to serve on All ${activeBaseDay.toUpperCase()}s.`}
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {slotItems.map((item) => {
+                                    const fullDish = dishes.find((d) => d.id === item.dishId) || item.dish
+                                    const imgUrl = getDishImageUrl(fullDish)
+
+                                    return (
+                                      <div
+                                        key={item.id}
+                                        className="bg-white p-2.5 rounded-xl border border-gray-200/80 shadow-2xs flex items-center justify-between gap-2.5"
+                                      >
+                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                          {imgUrl ? (
+                                            <img
+                                              src={imgUrl}
+                                              alt={fullDish?.name || 'Dish'}
+                                              className="w-8 h-8 rounded-lg object-cover shrink-0 border border-gray-200"
+                                            />
+                                          ) : (
+                                            <div className="w-8 h-8 rounded-lg bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0 border border-orange-200/50">
+                                              <Utensils className="w-3.5 h-3.5" />
+                                            </div>
+                                          )}
+                                          <div className="space-y-0.5 flex-1 min-w-0">
+                                            <div className="font-bold text-gray-900 text-xs truncate">
+                                              {fullDish?.name || 'Dish'}
+                                            </div>
+                                            <div className="text-[10px] text-gray-400 capitalize truncate">
+                                              {fullDish?.category ? fullDish.category.replace('_', ' ') : ''} • ₹
+                                              {dishes.find((d) => d.id === item.dishId)?.basePrice ??
+                                                fullDish?.basePrice ??
+                                                0}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        {!isPreviewingCustomOverride && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDeleteMenuItem(item.id)}
+                                            className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                                          >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                          </button>
+                                        )}
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Special Meal Slots Section (Continuous / Available Every Day) */}
+                {propertySpecialSlots.length > 0 && (
+                  <div className="mt-6 space-y-3 pt-6 border-t border-gray-200/80">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-50/60 p-3.5 rounded-2xl border border-amber-200/80 shadow-2xs">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-amber-600 shrink-0" />
+                        <div>
+                          <h4 className="text-xs font-black text-amber-950 flex items-center gap-1.5">
+                            Special Meal Slot
+                          </h4>
+                          <p className="text-[11px] text-amber-800/80 font-medium">
+                            Dishes added to special meal slots remain active continuously on every day without date
+                            restrictions.
+                          </p>
+                        </div>
+                      </div>
+                      <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[10px] font-extrabold uppercase shrink-0">
+                        {propertySpecialSlots.length} Special Slot{propertySpecialSlots.length !== 1 ? 's' : ''}
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {propertySpecialSlots.map((spSlot) => {
+                        const specDishes = spSlot.specialDishes || []
+                        const isHovering = dragOverSlotId === `special-${spSlot.id}`
+                        const isCollapsed = Boolean(collapsedSlots[`special-${spSlot.id}`])
+
+                        return (
+                          <div
+                            key={spSlot.id}
+                            onDragOver={(e) => {
+                              e.preventDefault()
+                              e.dataTransfer.dropEffect = 'copy'
+                            }}
+                            onDragEnter={(e) => {
+                              e.preventDefault()
+                              setDragOverSlotId(`special-${spSlot.id}`)
+                            }}
+                            onDragLeave={() => {
+                              setDragOverSlotId(null)
+                            }}
+                            onDrop={(e) => {
+                              e.preventDefault()
+                              setDragOverSlotId(null)
+                              const dishId = e.dataTransfer.getData('text/plain')
+                              if (dishId) {
+                                handleAddSpecialDish(spSlot.id, dishId)
+                              }
+                            }}
+                            className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3 bg-amber-50/30 border-amber-200/70 ${
+                              isCollapsed ? 'min-h-[70px]' : 'min-h-[220px]'
+                            } ${
+                              isHovering
+                                ? 'bg-amber-100/90 border-2 border-dashed border-amber-500 ring-4 ring-amber-100 scale-[1.01] shadow-md'
+                                : ''
+                            }`}
+                          >
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between border-b border-amber-200/60 pb-2.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm">⭐</span>
+                                  <div>
+                                    <span className="text-xs font-black text-amber-950">{spSlot.name}</span>
+                                    <div className="flex items-center gap-1 text-[10px] text-amber-700 font-bold mt-0.5">
+                                      <Sparkles className="w-3 h-3 text-amber-500" />
+                                      <span>Available Every Day</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-bold text-amber-800 shrink-0">
+                                    {specDishes.length} Dish{specDishes.length !== 1 ? 'es' : ''}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleSlotCollapse(`special-${spSlot.id}`)}
+                                    className="p-1 rounded-lg hover:bg-amber-100 text-amber-800 transition-colors cursor-pointer"
+                                    title={isCollapsed ? 'Expand Special Slot' : 'Collapse Special Slot'}
+                                  >
+                                    {isCollapsed ? (
+                                      <ChevronDown className="w-4 h-4" />
+                                    ) : (
+                                      <ChevronUp className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+
+                              {isHovering ? (
+                                <div className="py-4 text-center font-extrabold text-xs text-amber-800 bg-white/90 rounded-xl border border-dashed border-amber-500 animate-pulse shadow-2xs">
+                                  ⬇️ Drop Dish to add to {spSlot.name} (Special)
+                                </div>
+                              ) : isCollapsed ? (
+                                <div className="text-[11px] text-amber-900 font-medium italic truncate flex items-center justify-between pt-0.5">
+                                  <span className="truncate">
+                                    {specDishes.length > 0
+                                      ? specDishes.map((sd) => sd.dish?.name || 'Dish').join(', ')
+                                      : 'No special dishes added yet.'}
+                                  </span>
+                                </div>
+                              ) : specDishes.length === 0 ? (
+                                <div className="py-8 text-center text-xs text-amber-800/60 italic bg-white/60 rounded-xl border border-dashed border-amber-200">
+                                  Drag & drop dish here to serve on Every Day for {spSlot.name}.
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {specDishes.map((sdItem) => {
+                                    const fullDish = sdItem.dish
+                                    const imgUrl = getDishImageUrl(fullDish)
+
+                                    return (
+                                      <div
+                                        key={sdItem.id}
+                                        className="bg-white p-2.5 rounded-xl border border-amber-200/80 shadow-2xs flex items-center justify-between gap-2.5"
+                                      >
+                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                          {imgUrl ? (
+                                            <img
+                                              src={imgUrl}
+                                              alt={fullDish?.name || 'Dish'}
+                                              className="w-8 h-8 rounded-lg object-cover shrink-0 border border-gray-200"
+                                            />
+                                          ) : (
+                                            <div className="w-8 h-8 rounded-lg bg-amber-100/70 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200/50">
+                                              <Utensils className="w-3.5 h-3.5" />
+                                            </div>
+                                          )}
+                                          <div className="space-y-0.5 flex-1 min-w-0">
+                                            <div className="font-bold text-gray-900 text-xs truncate">
+                                              {fullDish?.name || 'Special Dish'}
+                                            </div>
+                                            <div className="text-[10px] text-amber-700 font-semibold capitalize truncate">
+                                              Special Dish • ₹{sdItem.price}
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <button
+                                          type="button"
+                                          onClick={() => handleRemoveSpecialDish(sdItem.id, fullDish?.name)}
+                                          className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                                          title="Remove from Special Slot"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -988,21 +1554,45 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                 />
               </div>
 
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-none border-b border-gray-200/60">
-                {categories.map((cat) => (
-                  <button
-                    key={cat.value}
-                    type="button"
-                    onClick={() => setModalSelectedCategory(cat.value)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
-                      modalSelectedCategory === cat.value
-                        ? 'bg-[#005390] text-white shadow-2xs'
-                        : 'bg-white text-gray-600 hover:bg-gray-200 border border-gray-200'
-                    }`}
-                  >
-                    {cat.label}
-                  </button>
-                ))}
+              {/* Category Filter Pills Carousel with Nav Buttons inside Modal */}
+              <div className="relative border-b border-gray-200/60 pb-2 flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => scrollCategoryLeft(modalCategoryScrollRef)}
+                  className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center text-gray-600 shrink-0 cursor-pointer shadow-2xs transition-colors"
+                  title="Scroll Left"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+
+                <div
+                  ref={modalCategoryScrollRef}
+                  className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none scroll-smooth flex-1"
+                >
+                  {categories.map((cat) => (
+                    <button
+                      key={cat.value}
+                      type="button"
+                      onClick={() => setModalSelectedCategory(cat.value)}
+                      className={`px-3 py-1 rounded-xl text-[11px] font-extrabold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
+                        modalSelectedCategory === cat.value
+                          ? 'bg-[#005390] text-white shadow-2xs'
+                          : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => scrollCategoryRight(modalCategoryScrollRef)}
+                  className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center text-gray-600 shrink-0 cursor-pointer shadow-2xs transition-colors"
+                  title="Scroll Right"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
 
               <div className="space-y-2 overflow-y-auto flex-1 pr-1">
@@ -1052,111 +1642,157 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
               </div>
             </div>
 
-            {/* Right Main Area: 4 Meal Slots */}
-            <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4 h-full overflow-y-auto pr-1">
-              {[
-                { slot: 'breakfast' as const, label: '🌅 Morning (Breakfast)', bg: 'bg-amber-50/40 border-amber-100' },
-                { slot: 'lunch' as const, label: '☀️ Afternoon (Lunch)', bg: 'bg-orange-50/40 border-orange-100' },
-                { slot: 'snacks' as const, label: '🌇 Evening (Snacks)', bg: 'bg-rose-50/40 border-rose-100' },
-                { slot: 'dinner' as const, label: '🌙 Night (Dinner)', bg: 'bg-indigo-50/40 border-indigo-100' },
-              ].map(({ slot, label, bg }) => {
-                const targetItems = modalDateOverrideItems.filter((i) => i.mealSlot === slot)
+            {/* Right Main Area: Dynamic Property Meal Slots */}
+            <div className="lg:col-span-8 h-full overflow-y-auto pr-1">
+              {propertyMealSlots.length === 0 ? (
+                <div className="bg-white p-12 text-center rounded-2xl border border-gray-100 shadow-2xs space-y-3">
+                  <Clock className="w-12 h-12 text-gray-300 mx-auto" />
+                  <h3 className="text-base font-bold text-gray-800">No Meal Slots Assigned</h3>
+                  <p className="text-xs text-gray-500 max-w-md mx-auto">
+                    Please configure meal slots for this location first.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {propertyMealSlots.map((slot, index) => {
+                    const theme = getSlotTheme(slot.name, index)
+                    const modalDateOverrideItems = menuItems.filter(
+                      (i) => i.date === selectedDateForModal && isItemInSlot(i, slot),
+                    )
+                    const isHovering = modalDragOverSlotId === slot.id
+                    const isCollapsed = Boolean(modalCollapsedSlots[slot.id])
 
-                const isHovering = modalDragOverSlot === slot
-
-                return (
-                  <div
-                    key={slot}
-                    onDragOver={(e) => {
-                      e.preventDefault()
-                      e.dataTransfer.dropEffect = 'copy'
-                    }}
-                    onDragEnter={(e) => {
-                      e.preventDefault()
-                      setModalDragOverSlot(slot)
-                    }}
-                    onDragLeave={() => {
-                      setModalDragOverSlot(null)
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault()
-                      setModalDragOverSlot(null)
-                      const dishId = e.dataTransfer.getData('text/plain')
-                      if (dishId) {
-                        handleModalAddDishViaDrag(slot, dishId)
-                      }
-                    }}
-                    className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3 min-h-[220px] ${
-                      isHovering
-                        ? 'bg-blue-50/90 border-2 border-dashed border-[#005390] ring-4 ring-blue-100 scale-[1.01] shadow-md'
-                        : `${bg}`
-                    }`}
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between border-b border-gray-200/60 pb-2">
-                        <span className="text-xs font-extrabold text-gray-800">{label}</span>
-                        <span className="text-[10px] font-bold text-gray-400">
-                          {targetItems.length} Dish{targetItems.length !== 1 ? 'es' : ''}
-                        </span>
-                      </div>
-
-                      {isHovering ? (
-                        <div className="py-8 text-center font-extrabold text-xs text-[#005390] bg-white/80 rounded-xl border border-dashed border-[#005390] animate-pulse">
-                          ⬇️ Drop Dish to add to {slot.toUpperCase()} ({formatDDMMYYYY(selectedDateForModal)} ONLY)
-                        </div>
-                      ) : targetItems.length === 0 ? (
-                        <div className="py-8 text-center text-xs text-gray-400 italic bg-white/50 rounded-xl border border-dashed border-gray-200">
-                          Drag & drop dish here to configure {slot.toUpperCase()}.
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {targetItems.map((item) => {
-                            const fullDish = dishes.find((d) => d.id === item.dishId) || item.dish
-                            const imgUrl = getDishImageUrl(fullDish)
-
-                            return (
-                              <div
-                                key={item.id}
-                                className="bg-white p-2.5 rounded-xl border border-gray-200 shadow-2xs flex items-center justify-between gap-2.5"
-                              >
-                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                  {imgUrl ? (
-                                    <img
-                                      src={imgUrl}
-                                      alt={fullDish?.name || 'Dish'}
-                                      className="w-8 h-8 rounded-lg object-cover shrink-0 border border-gray-200"
-                                    />
-                                  ) : (
-                                    <div className="w-8 h-8 rounded-lg bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0 border border-orange-200/50">
-                                      <Utensils className="w-3.5 h-3.5" />
-                                    </div>
-                                  )}
-                                  <div className="space-y-0.5 flex-1 min-w-0">
-                                    <div className="font-bold text-gray-900 text-xs truncate">
-                                      {fullDish?.name || 'Dish'}
-                                    </div>
-                                    <div className="text-[10px] text-gray-400 capitalize truncate">
-                                      {fullDish?.category ? fullDish.category.replace('_', ' ') : ''} • ₹
-                                      {dishes.find((d) => d.id === item.dishId)?.basePrice ?? fullDish?.basePrice ?? 0}
-                                    </div>
-                                  </div>
+                    return (
+                      <div
+                        key={slot.id}
+                        onDragOver={(e) => {
+                          e.preventDefault()
+                          e.dataTransfer.dropEffect = 'copy'
+                        }}
+                        onDragEnter={(e) => {
+                          e.preventDefault()
+                          setModalDragOverSlotId(slot.id)
+                        }}
+                        onDragLeave={() => {
+                          setModalDragOverSlotId(null)
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault()
+                          setModalDragOverSlotId(null)
+                          const dishId = e.dataTransfer.getData('text/plain')
+                          if (dishId) {
+                            handleModalAddDishViaDrag(slot, dishId)
+                          }
+                        }}
+                        className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3 ${
+                          isCollapsed ? 'min-h-[70px]' : 'min-h-[220px]'
+                        } ${
+                          isHovering
+                            ? 'bg-blue-50/90 border-2 border-dashed border-[#005390] ring-4 ring-blue-100 scale-[1.01] shadow-md'
+                            : `${theme.bg}`
+                        }`}
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between border-b border-gray-200/60 pb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">{theme.icon}</span>
+                              <div>
+                                <span className="text-xs font-extrabold text-gray-800">{slot.name}</span>
+                                <div className="flex items-center gap-1 text-[10px] text-gray-500 font-semibold mt-0.5">
+                                  <Clock className="w-3 h-3 text-[#005390]" />
+                                  <span>
+                                    {slot.startTime} - {slot.endTime}
+                                  </span>
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={() => item.id && handleDeleteMenuItem(item.id)}
-                                  className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
                               </div>
-                            )
-                          })}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold text-gray-400 shrink-0">
+                                {modalDateOverrideItems.length} Dish{modalDateOverrideItems.length !== 1 ? 'es' : ''}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => toggleModalSlotCollapse(slot.id)}
+                                className="p-1 rounded-lg hover:bg-white/80 text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
+                                title={isCollapsed ? 'Expand Meal Slot' : 'Collapse Meal Slot'}
+                              >
+                                {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                              </button>
+                            </div>
+                          </div>
+
+                          {isHovering ? (
+                            <div className="py-4 text-center font-extrabold text-xs text-[#005390] bg-white/90 rounded-xl border border-dashed border-[#005390] animate-pulse shadow-2xs">
+                              ⬇️ Drop Dish to add to {slot.name} ({formatDDMMYYYY(selectedDateForModal)} ONLY)
+                            </div>
+                          ) : isCollapsed ? (
+                            <div className="text-[11px] text-gray-600 font-medium italic truncate flex items-center justify-between pt-0.5">
+                              <span className="truncate">
+                                {modalDateOverrideItems.length > 0
+                                  ? modalDateOverrideItems
+                                      .map((i) => (dishes.find((d) => d.id === i.dishId) || i.dish)?.name)
+                                      .filter(Boolean)
+                                      .join(', ')
+                                  : 'No dishes added yet.'}
+                              </span>
+                            </div>
+                          ) : modalDateOverrideItems.length === 0 ? (
+                            <div className="py-8 text-center text-xs text-gray-400 italic bg-white/50 rounded-xl border border-dashed border-gray-200">
+                              Drag & drop dish here to configure {slot.name}.
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {modalDateOverrideItems.map((item) => {
+                                const fullDish = dishes.find((d) => d.id === item.dishId) || item.dish
+                                const imgUrl = getDishImageUrl(fullDish)
+
+                                return (
+                                  <div
+                                    key={item.id}
+                                    className="bg-white p-2.5 rounded-xl border border-gray-200 shadow-2xs flex items-center justify-between gap-2.5"
+                                  >
+                                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                      {imgUrl ? (
+                                        <img
+                                          src={imgUrl}
+                                          alt={fullDish?.name || 'Dish'}
+                                          className="w-8 h-8 rounded-lg object-cover shrink-0 border border-gray-200"
+                                        />
+                                      ) : (
+                                        <div className="w-8 h-8 rounded-lg bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0 border border-orange-200/50">
+                                          <Utensils className="w-3.5 h-3.5" />
+                                        </div>
+                                      )}
+                                      <div className="space-y-0.5 flex-1 min-w-0">
+                                        <div className="font-bold text-gray-900 text-xs truncate">
+                                          {fullDish?.name || 'Dish'}
+                                        </div>
+                                        <div className="text-[10px] text-gray-400 capitalize truncate">
+                                          {fullDish?.category ? fullDish.category.replace('_', ' ') : ''} • ₹
+                                          {dishes.find((d) => d.id === item.dishId)?.basePrice ??
+                                            fullDish?.basePrice ??
+                                            0}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => item.id && handleDeleteMenuItem(item.id)}
+                                      className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
@@ -1184,38 +1820,79 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 text-xs py-1">
-            <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-100 space-y-2">
-              <div className="font-bold text-[#005390] flex items-center justify-between">
-                <span>Active Menu Title</span>
-                <span className="font-extrabold">{selectedMenu?.title || 'Location Food Menu'}</span>
-              </div>
-              <p className="text-[11px] text-gray-600">
-                Configured with 7-Day Recurring Weekly (Monday–Sunday) and Date-Specific Overrides.
-              </p>
-            </div>
+          {(() => {
+            const selectedDayRecurringItems = menuItems.filter((i) => i.dayOfWeek === activeBaseDay && !i.date)
+            const selectedDateCustomItems = menuItems.filter((i) => i.date === activeSelectedDate)
 
-            <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-3">
-              <div className="font-bold text-gray-800 flex items-center justify-between">
-                <span>Total Configured Food Items</span>
-                <Badge variant="secondary" className="px-2.5 py-0.5 bg-blue-100 text-[#005390] font-extrabold">
-                  {menuItems.length} Total Items
-                </Badge>
-              </div>
-              <div className="space-y-1.5 text-[11px] text-gray-600 pt-1 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <span>Recurring Weekly Items:</span>
-                  <span className="font-bold text-gray-800">
-                    {menuItems.filter((i) => i.dayOfWeek && !i.date).length} Items
-                  </span>
+            const selectedDayTotalItems =
+              selectedDateCustomItems.length > 0 ? selectedDateCustomItems.length : selectedDayRecurringItems.length
+
+            return (
+              <div className="space-y-4 text-xs py-1">
+                {/* Target Context Header */}
+                <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-100 space-y-1.5">
+                  <div className="font-bold text-[#005390] flex items-center justify-between">
+                    <span>Target Publishing Date</span>
+                    <span className="font-black px-2.5 py-1 bg-blue-100 text-[#005390] rounded-xl text-xs">
+                      {formatDDMMYYYY(activeSelectedDate)} ({activeBaseDay.toUpperCase()})
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-600">
+                    Reviewing menu configuration for{' '}
+                    <strong className="text-gray-900">
+                      {activeBaseDay.toUpperCase()} ({formatDDMMYYYY(activeSelectedDate)})
+                    </strong>
+                    .
+                  </p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span>Date-Specific Custom Items:</span>
-                  <span className="font-bold text-gray-800">{menuItems.filter((i) => i.date).length} Items</span>
+
+                {/* Primary Card: Selected Date Metrics */}
+                <div className="p-4 rounded-2xl bg-white border border-gray-200 shadow-2xs space-y-3">
+                  <div className="font-extrabold text-gray-900 flex items-center justify-between border-b border-gray-100 pb-2.5">
+                    <span className="text-xs">
+                      Menu Items for {formatDDMMYYYY(activeSelectedDate)} ({activeBaseDay.toUpperCase()})
+                    </span>
+                    <Badge
+                      variant="secondary"
+                      className="px-2.5 py-0.5 bg-blue-100 text-[#005390] font-extrabold text-xs"
+                    >
+                      {selectedDayTotalItems} Total Items
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-2 text-xs text-gray-700 pt-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-gray-600">
+                        Recurring Weekly Items (All {activeBaseDay.toUpperCase()}s):
+                      </span>
+                      <span className="font-bold text-gray-900">{selectedDayRecurringItems.length} Items</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-gray-600">
+                        Date-Specific Custom Items ({formatDDMMYYYY(activeSelectedDate)}):
+                      </span>
+                      <span className="font-bold text-gray-900">
+                        {selectedDateCustomItems.length === 0
+                          ? '0 Items (Using Weekly Recurring Menu)'
+                          : `${selectedDateCustomItems.length} Items`}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-gray-100 pt-2">
+                      <span className="font-semibold text-amber-800 flex items-center gap-1">
+                        ⭐ Special Meal Slots Dishes:
+                      </span>
+                      <span className="font-extrabold text-amber-900">
+                        {propertySpecialSlots.reduce((acc, s) => acc + (s.specialDishes?.length || 0), 0)} Configured
+                        Dishes
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            )
+          })()}
 
           <DialogFooter className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
             <Button

@@ -64,7 +64,10 @@ function DrawerClose({ ...props }: DrawerPrimitive.Close.Props) {
   return <DrawerPrimitive.Close data-slot="drawer-close" {...props} />
 }
 
+import { useScrollLock } from '@/hooks/useScrollLock'
+
 function DrawerOverlay({ className, ...props }: DrawerPrimitive.Backdrop.Props) {
+  useScrollLock(true)
   return (
     <DrawerPrimitive.Backdrop
       data-slot="drawer-overlay"

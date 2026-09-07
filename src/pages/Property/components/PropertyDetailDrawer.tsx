@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Building2, CalendarDays, Edit, Layers, MapPin, Maximize2, User, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useScrollLock } from '@/hooks/useScrollLock'
 import type { Property } from '../types'
 import { PROPERTY_TYPE_LABELS } from '../types'
 import type { ResidentItem } from '@/lib/types'
@@ -13,6 +15,7 @@ interface PropertyDetailDrawerProps {
 }
 
 export default function PropertyDetailDrawer({ property, onClose, onEdit }: PropertyDetailDrawerProps) {
+  useScrollLock(!!property)
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null)
   const [residents, setResidents] = useState<ResidentItem[]>([])
 
@@ -141,8 +144,8 @@ export default function PropertyDetailDrawer({ property, onClose, onEdit }: Prop
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex justify-end">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
@@ -435,6 +438,7 @@ export default function PropertyDetailDrawer({ property, onClose, onEdit }: Prop
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

@@ -219,6 +219,8 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
   const watchedFamilyMembers = useWatch({ control, name: 'familyMembers' })
   const watchedUnitId = useWatch({ control, name: 'unitId' })
 
+  const [enabledFmLogins, setEnabledFmLogins] = useState<Record<number, boolean>>({})
+
   // Check if editing owner residing status change is disabled
   const isEditingOwnerResidingDisabled = useMemo(() => {
     if (!isEditMode || watchedResidentType !== 'OWNER') {
@@ -376,6 +378,14 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                 setSelectedFloorId(targetFloor.id)
               }
             }
+
+            const initLogins: Record<number, boolean> = {}
+            ;(targetRes.familyMembers || []).forEach((fm, index) => {
+              if (fm.username) {
+                initLogins[index] = true
+              }
+            })
+            setEnabledFmLogins(initLogins)
 
             resetForm({
               unitId: targetRes.unitId,
@@ -1324,84 +1334,98 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                             </div>
 
                             {/* Mobile App Login Credentials for Family Member */}
-                            <div className="pt-3 border-t border-gray-100">
-                              <label
-                                htmlFor={`fm-login-access-${idx}`}
-                                className="inline-flex items-center gap-2 text-xs font-semibold text-[#005390] cursor-pointer"
-                              >
-                                <input
-                                  id={`fm-login-access-${idx}`}
-                                  type="checkbox"
-                                  checked={Boolean(fm?.username)}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setValue(
-                                        `familyMembers.${idx}.username`,
-                                        `${(fm?.firstName || 'member').toLowerCase()}_${Date.now().toString().slice(-4)}`,
-                                        { shouldValidate: true },
-                                      )
-                                    } else {
-                                      setValue(`familyMembers.${idx}.username`, '', { shouldValidate: true })
-                                      setValue(`familyMembers.${idx}.password`, '', { shouldValidate: true })
-                                    }
-                                  }}
-                                  className="rounded border-gray-300 text-[#005390] focus:ring-[#005390]"
-                                />
-                                <KeyRound className="w-3.5 h-3.5" />
-                                Enable Individual Mobile App Login Credentials
-                              </label>
+                            {(() => {
+                              const isCurrentlyEnabled = Boolean(
+                                enabledFmLogins[idx] !== undefined
+                                  ? enabledFmLogins[idx]
+                                  : fm?.username && fm.username.trim().length > 0,
+                              )
 
-                              {Boolean(fm?.username) && (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2.5 p-3 bg-blue-50/60 border border-blue-100 rounded-xl">
-                                  <div>
-                                    <label
-                                      htmlFor={`fm-username-input-${idx}`}
-                                      className="block text-[10px] font-semibold text-gray-600 mb-1"
-                                    >
-                                      Username Handle
-                                    </label>
+                              return (
+                                <div className="pt-3 border-t border-gray-100">
+                                  <label
+                                    htmlFor={`fm-login-access-${idx}`}
+                                    className="inline-flex items-center gap-2 text-xs font-semibold text-[#005390] cursor-pointer"
+                                  >
                                     <input
-                                      id={`fm-username-input-${idx}`}
-                                      type="text"
-                                      placeholder="e.g. priya_101"
-                                      {...register(`familyMembers.${idx}.username`)}
-                                      className={cn(
-                                        'h-8 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-xs text-gray-900 font-mono',
-                                        fmErrors?.username && 'border-red-500',
-                                      )}
+                                      id={`fm-login-access-${idx}`}
+                                      type="checkbox"
+                                      checked={isCurrentlyEnabled}
+                                      onChange={(e) => {
+                                        const checked = e.target.checked
+                                        setEnabledFmLogins((prev) => ({ ...prev, [idx]: checked }))
+                                        if (checked) {
+                                          if (!fm?.username) {
+                                            setValue(
+                                              `familyMembers.${idx}.username`,
+                                              `${(fm?.firstName || 'member').toLowerCase()}_${Date.now().toString().slice(-4)}`,
+                                              { shouldValidate: true },
+                                            )
+                                          }
+                                        } else {
+                                          setValue(`familyMembers.${idx}.username`, '', { shouldValidate: true })
+                                          setValue(`familyMembers.${idx}.password`, '', { shouldValidate: true })
+                                        }
+                                      }}
+                                      className="rounded border-gray-300 text-[#005390] focus:ring-[#005390]"
                                     />
-                                    {fmErrors?.username && (
-                                      <p className="mt-1 text-[10px] font-semibold text-red-500">
-                                        {fmErrors.username.message}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <div>
-                                    <label
-                                      htmlFor={`fm-password-input-${idx}`}
-                                      className="block text-[10px] font-semibold text-gray-600 mb-1"
-                                    >
-                                      Initial Password
-                                    </label>
-                                    <input
-                                      id={`fm-password-input-${idx}`}
-                                      type="password"
-                                      placeholder="Default: Resident@123"
-                                      {...register(`familyMembers.${idx}.password`)}
-                                      className={cn(
-                                        'h-8 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-xs text-gray-900',
-                                        fmErrors?.password && 'border-red-500',
-                                      )}
-                                    />
-                                    {fmErrors?.password && (
-                                      <p className="mt-1 text-[10px] font-semibold text-red-500">
-                                        {fmErrors.password.message}
-                                      </p>
-                                    )}
-                                  </div>
+                                    <KeyRound className="w-3.5 h-3.5" />
+                                    Enable Individual Mobile App Login Credentials
+                                  </label>
+
+                                  {isCurrentlyEnabled && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2.5 p-3 bg-blue-50/60 border border-blue-100 rounded-xl">
+                                      <div>
+                                        <label
+                                          htmlFor={`fm-username-input-${idx}`}
+                                          className="block text-[10px] font-semibold text-gray-600 mb-1"
+                                        >
+                                          Username Handle
+                                        </label>
+                                        <input
+                                          id={`fm-username-input-${idx}`}
+                                          type="text"
+                                          placeholder="e.g. priya_101"
+                                          {...register(`familyMembers.${idx}.username`)}
+                                          className={cn(
+                                            'h-8 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-xs text-gray-900 font-mono',
+                                            fmErrors?.username && 'border-red-500',
+                                          )}
+                                        />
+                                        {fmErrors?.username && (
+                                          <p className="mt-1 text-[10px] font-semibold text-red-500">
+                                            {fmErrors.username.message}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <div>
+                                        <label
+                                          htmlFor={`fm-password-input-${idx}`}
+                                          className="block text-[10px] font-semibold text-gray-600 mb-1"
+                                        >
+                                          Initial Password
+                                        </label>
+                                        <input
+                                          id={`fm-password-input-${idx}`}
+                                          type="password"
+                                          placeholder="Default: Resident@123"
+                                          {...register(`familyMembers.${idx}.password`)}
+                                          className={cn(
+                                            'h-8 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-xs text-gray-900',
+                                            fmErrors?.password && 'border-red-500',
+                                          )}
+                                        />
+                                        {fmErrors?.password && (
+                                          <p className="mt-1 text-[10px] font-semibold text-red-500">
+                                            {fmErrors.password.message}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                            </div>
+                              )
+                            })()}
                           </div>
                         </div>
                       </div>
