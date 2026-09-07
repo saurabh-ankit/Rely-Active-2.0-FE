@@ -270,14 +270,9 @@ export const venueImageSchema = z.object({
 
 export const venueFormBaseSchema = z.object({
   name: z.string().trim().min(1, 'Venue name is required'),
-  occupancy: z.preprocess(
-    (val) => (val === '' || val === null || val === undefined || Number.isNaN(val) ? undefined : val),
-    z.number({ error: 'Occupancy must be a number' }).int().positive('Occupancy must be greater than 0'),
-  ),
-  price: z.preprocess(
-    (val) => (val === '' || val === null || val === undefined || Number.isNaN(val) ? undefined : val),
-    z.number({ error: 'Pricing must be a number' }).min(0, 'Pricing must be 0 or greater'),
-  ),
+  // Empty/NaN are normalized to undefined via register setValueAs — keep input/output types aligned for RHF.
+  occupancy: z.number({ error: 'Occupancy must be a number' }).int().positive('Occupancy must be greater than 0'),
+  price: z.number({ error: 'Pricing must be a number' }).min(0, 'Pricing must be 0 or greater'),
   keyFeatures: z.string().trim().min(1, 'Key features are required'),
   otherServices: z.string().optional(),
   images: z.array(venueImageSchema),

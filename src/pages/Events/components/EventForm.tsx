@@ -50,12 +50,9 @@ import {
 const eventTypeSchema = z.enum(['regular', 'special'])
 const frequencyTypeSchema = z.enum(['once', 'daily', 'weekly', 'monthly', 'yearly', 'custom'])
 
-/** Empty number inputs (valueAsNumber) become NaN — treat as unset for optional fields. */
-const emptyNumberToUndefined = (val: unknown) =>
-  val === '' || val === null || val === undefined || (typeof val === 'number' && Number.isNaN(val)) ? undefined : val
-
-const optionalNumber = z.preprocess(emptyNumberToUndefined, z.number().optional())
-const optionalInt = z.preprocess(emptyNumberToUndefined, z.number().int().optional())
+// Empty/NaN are normalized to undefined via register setValueAs — avoid z.preprocess so RHF input/output types match.
+const optionalNumber = z.number().optional()
+const optionalInt = z.number().int().optional()
 
 const selectedServiceSchema = z.object({
   name: z.string(),
@@ -70,11 +67,8 @@ const eventFormBaseSchema = z.object({
   description: z.string().trim(),
   startDate: z.string().min(1, 'Start date and time is required'),
   endDate: z.string().min(1, 'End date and time is required'),
-  occupancy: z.preprocess(
-    emptyNumberToUndefined,
-    z.number({ error: 'Occupancy is required' }).int().positive('Occupancy must be greater than 0'),
-  ),
-  venueId: z.preprocess((val) => (val == null ? '' : val), z.string().min(1, 'Venue is required')),
+  occupancy: z.number({ error: 'Occupancy is required' }).int().positive('Occupancy must be greater than 0'),
+  venueId: z.string().min(1, 'Venue is required'),
   allowReservation: z.boolean(),
   frequencyType: frequencyTypeSchema,
   reservationPerFlat: optionalInt,
