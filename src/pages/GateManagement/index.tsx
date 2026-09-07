@@ -20,7 +20,8 @@ import {
   getGatePreapproveds,
   updateGateEntryStatus,
   addGateEntryItems,
-} from '@/lib/api/gate'
+} from '@/lib/services/gateService'
+import type { GateEntry, GatePreapproved, GateStats } from '@/lib/types'
 
 interface StatCardProps {
   title: string
@@ -45,9 +46,9 @@ const StatCard = ({ title, value, icon: Icon, colorClass }: StatCardProps) => (
 
 export default function GateManagementPage() {
   const { selectedLocationId } = useLocationContext()
-  const [stats, setStats] = useState<Record<string, number> | null>(null)
-  const [entries, setEntries] = useState<any[]>([])
-  const [preapproved, setPreapproved] = useState<any[]>([])
+  const [stats, setStats] = useState<GateStats | null>(null)
+  const [entries, setEntries] = useState<GateEntry[]>([])
+  const [preapproved, setPreapproved] = useState<GatePreapproved[]>([])
   const [activeTab, setActiveTab] = useState<'ENTRIES' | 'INVITES'>('ENTRIES')
   const [isLoading, setIsLoading] = useState(false)
 
