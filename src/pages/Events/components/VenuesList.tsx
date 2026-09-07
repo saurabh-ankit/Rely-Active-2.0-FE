@@ -103,10 +103,15 @@ const VenuesListPage = ({ embedded = false, enabled = true }: VenuesListPageProp
     })
 
     if (values.images && values.images.length > 0) {
-      const captions = values.images.map((img) => ({
-        caption: img.caption || '',
-      }))
-      formData.append('images', JSON.stringify(captions))
+      formData.append(
+        'images',
+        JSON.stringify(
+          values.images.map((img) => ({
+            url: img.url || '',
+            caption: img.caption || '',
+          })),
+        ),
+      )
     }
 
     const mappedServices = mapSelectedServicesToAddOns(locationServices, values.selectedServices || [])
@@ -428,6 +433,11 @@ const VenuesListPage = ({ embedded = false, enabled = true }: VenuesListPageProp
                 const newPreviews = [...imagePreviews]
                 newPreviews[index] = preview
                 setImagePreviews(newPreviews)
+                const currentImages = [...(watch('images') || [])]
+                if (currentImages[index]) {
+                  currentImages[index] = { ...currentImages[index], url: '' }
+                  setValue('images', currentImages)
+                }
               }}
             />
 

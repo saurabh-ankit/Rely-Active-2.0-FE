@@ -52,38 +52,48 @@ export function VenueFormFields({
     <div className="space-y-4">
       {errors.root?.message && <p className="text-sm text-red-600">{errors.root.message}</p>}
 
-      <div>
-        <Label className="mb-1.5">Name *</Label>
-        <Input {...register('name')} error={errors.name?.message} placeholder="Venue name" />
-      </div>
+      <Input
+        id="venue-name-input"
+        label="Name *"
+        {...register('name')}
+        error={errors.name?.message}
+        placeholder="Venue name"
+      />
 
-      <div>
-        <Label className="mb-1.5">Occupancy *</Label>
-        <Input
-          type="number"
-          {...register('occupancy', { valueAsNumber: true })}
-          error={errors.occupancy?.message}
-          placeholder="Maximum occupancy"
-        />
-      </div>
+      <Input
+        id="venue-occupancy-input"
+        label="Occupancy *"
+        type="number"
+        min={1}
+        step={1}
+        {...register('occupancy', {
+          setValueAs: (value) => {
+            if (value === '' || value === null || value === undefined) return undefined
+            const parsed = Number(value)
+            return Number.isNaN(parsed) ? undefined : parsed
+          },
+        })}
+        error={errors.occupancy?.message}
+        placeholder="Maximum occupancy"
+      />
 
-      <div>
-        <Label className="mb-1.5">Pricing *</Label>
-        <div className="relative">
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none">
-            ₹
-          </span>
-          <Input
-            type="number"
-            step="0.01"
-            min="0"
-            {...register('price', { valueAsNumber: true })}
-            error={errors.price?.message}
-            placeholder="0.00"
-            className="pl-8"
-          />
-        </div>
-      </div>
+      <Input
+        id="venue-price-input"
+        label="Pricing *"
+        type="number"
+        step="0.01"
+        min="0"
+        icon={<span className="text-gray-500 text-sm font-medium">₹</span>}
+        {...register('price', {
+          setValueAs: (value) => {
+            if (value === '' || value === null || value === undefined) return undefined
+            const parsed = Number(value)
+            return Number.isNaN(parsed) ? undefined : parsed
+          },
+        })}
+        error={errors.price?.message}
+        placeholder="0.00"
+      />
 
       <div>
         <Label className="mb-1.5">Key Features *</Label>

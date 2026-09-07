@@ -7,9 +7,10 @@ import StatCard from '@/pages/AssetManagement/components/StatCard'
 import StatsGrid from '@/pages/AssetManagement/components/StatsGrid'
 import { EventsPermission } from '@/pages/Events/components/EventsPermission'
 import { useListEvents, useListVenues } from '@/hooks/react-query/events'
+import type { Event } from '@/lib/services/eventService'
 import CreateEventModal from './components/CreateEventModal'
 import { useSearchParams } from 'react-router-dom'
-import { getLocalDayStart, getLocalMonthDateRange } from '@/utils/event.utils'
+import { eventOverlapsLocalMonth, eventStartsOnOrAfterLocalDay } from '@/utils/event.utils'
 
 const EventsCalendar = lazy(() => import('./components/EventsCalendar'))
 const EventsListPage = lazy(() => import('./components/EventsList'))
@@ -20,6 +21,14 @@ type EventsTab = (typeof TAB_VALUES)[number]
 
 const isValidTab = (tab: string | null): tab is EventsTab => !!tab && TAB_VALUES.includes(tab as EventsTab)
 
+const extractEvents = (payload: unknown): Event[] => {
+  const data = (payload as { data?: { events?: Event[]; records?: Event[] } })?.data
+  if (Array.isArray(data?.events)) return data.events
+  if (Array.isArray(data?.records)) return data.records
+  if (Array.isArray((payload as { data?: Event[] })?.data)) return (payload as { data: Event[] }).data
+  return []
+}
+
 const EventsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = searchParams.get('tab')
@@ -27,37 +36,37 @@ const EventsPage = () => {
 
   const [isCreateEventOpen, setIsCreateEventOpen] = useState(false)
 
+  const now = useMemo(() => new Date(), [])
+  const viewedYear = Number.parseInt(searchParams.get('year') || '', 10)
+  const viewedMonth = Number.parseInt(searchParams.get('month') || '', 10)
+  const statsYear = !Number.isNaN(viewedYear) ? viewedYear : now.getFullYear()
+  const statsMonthIndex =
+    !Number.isNaN(viewedMonth) && viewedMonth >= 1 && viewedMonth <= 12 ? viewedMonth - 1 : now.getMonth()
+
+  // Single source of truth for event counts (same records calendar/list use)
   const { data: allEventsData, isLoading: eventsLoading } = useListEvents({
     page: 1,
-    limit: 1,
+    limit: 'all',
   })
   const { data: venuesData, isLoading: venuesLoading } = useListVenues({
     page: 1,
     limit: 1,
   })
 
-  const monthRange = useMemo(() => getLocalMonthDateRange(), [])
+  const allEvents = useMemo(() => extractEvents(allEventsData), [allEventsData])
 
-  const todayStart = useMemo(() => getLocalDayStart(), [])
-
-  const { data: monthEventsData, isLoading: monthEventsLoading } = useListEvents({
-    page: 1,
-    limit: 1,
-    ...monthRange,
-  })
-
-  const { data: upcomingEventsData, isLoading: upcomingLoading } = useListEvents({
-    page: 1,
-    limit: 1,
-    dateFrom: todayStart,
-  })
-
-  const totalEvents = allEventsData?.data?.pagination?.total ?? 0
+  const totalEvents = allEvents.length
+  const thisMonthEvents = useMemo(
+    () => allEvents.filter((event) => eventOverlapsLocalMonth(event, statsYear, statsMonthIndex)).length,
+    [allEvents, statsYear, statsMonthIndex],
+  )
+  const upcomingEvents = useMemo(
+    () => allEvents.filter((event) => eventStartsOnOrAfterLocalDay(event, now)).length,
+    [allEvents, now],
+  )
   const totalVenues = venuesData?.data?.pagination?.total ?? 0
-  const thisMonthEvents = monthEventsData?.data?.pagination?.total ?? 0
-  const upcomingEvents = upcomingEventsData?.data?.pagination?.total ?? 0
 
-  const statsLoading = eventsLoading || venuesLoading || monthEventsLoading || upcomingLoading
+  const statsLoading = eventsLoading || venuesLoading
 
   const setActiveTab = (tab: string) => {
     setSearchParams((prev) => {
@@ -104,7 +113,7 @@ const EventsPage = () => {
         <StatCard
           title="This Month"
           value={statsLoading ? '...' : thisMonthEvents.toString()}
-          description="Events in current month"
+          description={`Events in ${new Date(statsYear, statsMonthIndex, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' })}`}
           icon={CalendarDays}
           color="purple"
           isLoading={statsLoading}
@@ -112,7 +121,7 @@ const EventsPage = () => {
         <StatCard
           title="Upcoming"
           value={statsLoading ? '...' : upcomingEvents.toString()}
-          description="Events from today onward"
+          description="Events starting today or later"
           icon={Ticket}
           color="green"
           isLoading={statsLoading}
@@ -146,7 +155,7 @@ const EventsPage = () => {
             },
             {
               value: 'list',
-              label: 'Events List',
+              label: 'Events',
               shortLabel: 'Events',
               icon: List,
               content: (

@@ -295,7 +295,7 @@ export function GlobalServicesTab() {
           })
 
       if (res.data?.success) {
-        notifySuccess(`Global service ${editingService ? 'updated' : 'created'} successfully!`)
+        notifySuccess(`Event Global Service ${editingService ? 'updated' : 'created'} successfully!`)
         setIsModalOpen(false)
         fetchData()
       } else {
@@ -319,7 +319,7 @@ export function GlobalServicesTab() {
     try {
       const res = await api.delete(`/global-services/${service.id}`)
       if (res.data?.success) {
-        notifySuccess('Global service deleted successfully!')
+        notifySuccess('Event Global Service deleted successfully!')
         fetchData()
       } else {
         notifyError(res.data?.message || 'Failed to delete service')
@@ -457,7 +457,7 @@ export function GlobalServicesTab() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
         <div>
           <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Briefcase className="w-5 h-5 text-[#005390]" /> Global Services
+            <Briefcase className="w-5 h-5 text-[#005390]" /> Event Global Services
           </h2>
           <p className="text-xs text-gray-500 mt-1">
             Create and manage global service templates with property-specific pricing.
@@ -468,7 +468,7 @@ export function GlobalServicesTab() {
           onClick={handleOpenCreate}
           className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#005390] hover:bg-[#004070] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
         >
-          <Plus className="w-4 h-4" /> Add Global Service
+          <Plus className="w-4 h-4" /> Add Event Global Service
         </button>
       </div>
 
@@ -488,7 +488,7 @@ export function GlobalServicesTab() {
               <div>
                 <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                   <Briefcase className="w-5 h-5 text-[#005390]" />
-                  {editingService ? 'Edit Global Service' : 'Add Global Service'}
+                  {editingService ? 'Edit Event Global Service' : 'Add Event Global Service'}
                 </h3>
                 <p className="text-xs text-gray-500 mt-1">
                   Configure service details and assign property pricing directly.

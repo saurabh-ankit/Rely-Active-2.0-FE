@@ -166,6 +166,11 @@ const EventRegistrationsPage = () => {
       cell: ({ row }) => getStatusBadge(row.original.status),
     },
     {
+      accessorKey: 'seatCount',
+      header: 'Seats',
+      cell: ({ row }) => <div className="text-sm font-semibold text-gray-900">{row.original.seatCount ?? 1}</div>,
+    },
+    {
       accessorKey: 'attendingOn',
       header: 'Attending On',
       cell: ({ row }) => {
@@ -311,8 +316,10 @@ const EventRegistrationsPage = () => {
                   <div className="text-2xl font-bold text-green-900 mt-1">{capacity.availableSpots}</div>
                 </div>
                 <div className="p-4 bg-purple-50 rounded-lg">
-                  <div className="text-sm text-purple-600 font-medium">Active Registrations</div>
-                  <div className="text-2xl font-bold text-purple-900 mt-1">{capacity.activeRegistrations}</div>
+                  <div className="text-sm text-purple-600 font-medium">Active Seats</div>
+                  <div className="text-2xl font-bold text-purple-900 mt-1">
+                    {capacity.activeSeats ?? capacity.activeRegistrations}
+                  </div>
                 </div>
                 <div className="p-4 bg-orange-50 rounded-lg">
                   <div className="text-sm text-orange-600 font-medium">Utilization Rate</div>

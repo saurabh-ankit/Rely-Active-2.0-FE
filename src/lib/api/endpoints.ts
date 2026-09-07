@@ -291,5 +291,11 @@ export const API_ENDPOINTS = {
     getEventRegistrations: `${BASE_URL}/location/:locationId/events/:eventId/registrations`,
     getEventCapacity: `${BASE_URL}/location/:locationId/events/:eventId/capacity`,
     updateRegistrationStatus: `${BASE_URL}/location/:locationId/events/:eventId/registrations/:registrationId/status`,
+    checkVenueAvailability: `${BASE_URL}/location/:locationId/venues/availability`,
+    listEventRequests: `${BASE_URL}/location/:locationId/event-requests`,
+    getEventRequestById: `${BASE_URL}/location/:locationId/event-requests/:requestId`,
+    scheduleEventRequestMeeting: `${BASE_URL}/location/:locationId/event-requests/:requestId/schedule-meeting`,
+    confirmEventRequest: `${BASE_URL}/location/:locationId/event-requests/:requestId/confirm`,
+    cancelEventRequest: `${BASE_URL}/location/:locationId/event-requests/:requestId/cancel`,
   },
 }

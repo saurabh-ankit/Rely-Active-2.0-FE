@@ -22,7 +22,9 @@ import {
   useUpdateEvent,
 } from '@/hooks/react-query/events'
 import type { AddOnService, EventType, FrequencyType, Venue } from '@/lib/services/eventService'
+import { checkVenueAvailabilityAPI } from '@/lib/services/eventService'
 import { parseJsonArray } from '@/lib/utils/jsonUtils'
+import { useLocationStore } from '@/lib/stores/locationStore'
 import { ArrowLeft, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -48,30 +50,40 @@ import {
 const eventTypeSchema = z.enum(['regular', 'special'])
 const frequencyTypeSchema = z.enum(['once', 'daily', 'weekly', 'monthly', 'yearly', 'custom'])
 
+/** Empty number inputs (valueAsNumber) become NaN — treat as unset for optional fields. */
+const emptyNumberToUndefined = (val: unknown) =>
+  val === '' || val === null || val === undefined || (typeof val === 'number' && Number.isNaN(val)) ? undefined : val
+
+const optionalNumber = z.preprocess(emptyNumberToUndefined, z.number().optional())
+const optionalInt = z.preprocess(emptyNumberToUndefined, z.number().int().optional())
+
 const selectedServiceSchema = z.object({
   name: z.string(),
-  quantity: z.number().int().optional(),
+  quantity: optionalInt,
   globalServiceId: z.string().optional(),
-  price: z.number().optional(),
+  price: optionalNumber,
 })
 
 const eventFormBaseSchema = z.object({
   eventType: eventTypeSchema,
   title: z.string().trim().min(1, 'Event title is required'),
-  description: z.string().trim().min(1, 'Description is required'),
+  description: z.string().trim(),
   startDate: z.string().min(1, 'Start date and time is required'),
   endDate: z.string().min(1, 'End date and time is required'),
-  venueId: z.string().min(1, 'Venue is required'),
+  occupancy: z.preprocess(
+    emptyNumberToUndefined,
+    z.number({ error: 'Occupancy is required' }).int().positive('Occupancy must be greater than 0'),
+  ),
+  venueId: z.preprocess((val) => (val == null ? '' : val), z.string().min(1, 'Venue is required')),
   allowReservation: z.boolean(),
   frequencyType: frequencyTypeSchema,
-  maxCapacity: z.number().int().optional(),
-  reservationPerFlat: z.number().int().optional(),
+  reservationPerFlat: optionalInt,
   recurrenceDaysOfWeek: z.array(z.number().int()),
-  recurrenceDayOfMonth: z.number().int().optional(),
-  recurrenceMonth: z.number().int().optional(),
+  recurrenceDayOfMonth: optionalInt,
+  recurrenceMonth: optionalInt,
   sameScheduleForAllDates: z.boolean(),
   poster: z.string().optional(),
-  entryFee: z.number().optional(),
+  entryFee: optionalNumber,
   selectedServices: z.array(selectedServiceSchema),
 })
 
@@ -208,18 +220,10 @@ function createEventFormSchema(getContext: () => EventFormValidationContext) {
       })
     }
 
-    if (data.allowReservation && (!data.maxCapacity || data.maxCapacity <= 0)) {
+    if (data.allowReservation && (!data.reservationPerFlat || data.reservationPerFlat <= 0)) {
       refineCtx.addIssue({
         code: 'custom',
-        message: 'Max Capacity is required when Allow Reservation is enabled',
-        path: ['maxCapacity'],
-      })
-    }
-
-    if (data.reservationPerFlat !== undefined && data.reservationPerFlat <= 0) {
-      refineCtx.addIssue({
-        code: 'custom',
-        message: 'Reservation per flat must be a positive integer',
+        message: 'Reservation per flat is required when Allow Reservation is enabled',
         path: ['reservationPerFlat'],
       })
     }
@@ -259,11 +263,22 @@ function createEventFormSchema(getContext: () => EventFormValidationContext) {
 
       const startDateObj = new Date(isRecurring ? `${data.startDate}T00:00:00` : data.startDate)
       const endDateObj = new Date(isRecurring ? `${data.endDate}T23:59:59` : data.endDate)
+      const now = new Date()
 
-      if (!ctx.isEditMode && startDateObj < new Date()) {
+      if (isRecurring) {
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        const startDay = new Date(startDateObj.getFullYear(), startDateObj.getMonth(), startDateObj.getDate())
+        if (startDay < today) {
+          refineCtx.addIssue({
+            code: 'custom',
+            message: 'Start date cannot be in the past',
+            path: ['startDate'],
+          })
+        }
+      } else if (startDateObj < now) {
         refineCtx.addIssue({
           code: 'custom',
-          message: 'Start date must be in the future',
+          message: 'Start date and time cannot be in the past',
           path: ['startDate'],
         })
       }
@@ -271,7 +286,9 @@ function createEventFormSchema(getContext: () => EventFormValidationContext) {
       if (endDateObj < startDateObj) {
         refineCtx.addIssue({
           code: 'custom',
-          message: 'End date must be on or after start date',
+          message: isRecurring
+            ? 'End date must be on or after start date'
+            : 'End date and time must be on or after start date and time',
           path: ['endDate'],
         })
       }
@@ -294,6 +311,7 @@ const eventFormDefaultValues: EventFormValues = {
   description: '',
   startDate: '',
   endDate: '',
+  occupancy: undefined as unknown as number,
   venueId: '',
   allowReservation: false,
   frequencyType: 'once',
@@ -340,6 +358,7 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
   const createEventMutation = useCreateEvent()
   const updateEventMutation = useUpdateEvent()
   const deleteEventMutation = useDeleteEvent()
+  const locationId = useLocationStore((s) => s.selectedLocationId)
 
   const [posterFile, setPosterFile] = useState<File | null>(null)
   const [posterPreview, setPosterPreview] = useState<string | null>(null)
@@ -366,6 +385,8 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
     handleSubmit,
     watch,
     setValue,
+    setError,
+    clearErrors,
     reset,
     formState: { errors },
   } = useForm<EventFormValues>({
@@ -376,6 +397,13 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
 
   const eventForm = watch()
 
+  type VenueAvailabilityInfo = {
+    available: boolean
+    message?: string | null
+  }
+  const [venueAvailability, setVenueAvailability] = useState<Record<string, VenueAvailabilityInfo>>({})
+  const [loadingVenueAvailability, setLoadingVenueAvailability] = useState(false)
+
   const resetForm = () => {
     reset(eventFormDefaultValues)
     setPosterFile(null)
@@ -384,6 +412,7 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
     setSameScheduleStartTime('')
     setSameScheduleEndTime('')
     setRecurrenceDatePicker('')
+    setVenueAvailability({})
   }
 
   const handleClose = () => {
@@ -423,16 +452,92 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
     [venuesData],
   )
 
+  const occupancyValue = Number(eventForm.occupancy)
+  const hasValidOccupancy = Number.isFinite(occupancyValue) && occupancyValue > 0
+
+  const filteredVenues = useMemo(() => {
+    if (!hasValidOccupancy) return venues
+    return venues.filter((venue: Venue) => Number(venue.occupancy) >= occupancyValue)
+  }, [venues, hasValidOccupancy, occupancyValue])
+
+  const isRecurring = isRegularRecurring(eventForm.eventType, eventForm.frequencyType)
+
+  useEffect(() => {
+    if (!eventForm.venueId) return
+    const stillValid = filteredVenues.some((venue: Venue) => venue.id === eventForm.venueId)
+    if (!stillValid) {
+      setValue('venueId', '')
+      setValue('selectedServices', [])
+    }
+  }, [filteredVenues, eventForm.venueId, setValue])
+
+  useEffect(() => {
+    if (!locationId || isRecurring || !eventForm.startDate || !eventForm.endDate || filteredVenues.length === 0) {
+      setVenueAvailability({})
+      return
+    }
+
+    let ignore = false
+    const loadAvailability = async () => {
+      try {
+        setLoadingVenueAvailability(true)
+        const startIso = new Date(eventForm.startDate).toISOString()
+        const endIso = new Date(eventForm.endDate).toISOString()
+        const results = await Promise.all(
+          filteredVenues.map(async (venue: Venue) => {
+            try {
+              const res = await checkVenueAvailabilityAPI(locationId, {
+                venueId: venue.id,
+                startDate: startIso,
+                endDate: endIso,
+                excludeEventId: eventId || undefined,
+              })
+              const data = res?.data
+              return [
+                venue.id,
+                {
+                  available: data?.available !== false,
+                  message: data?.message || null,
+                } satisfies VenueAvailabilityInfo,
+              ] as const
+            } catch {
+              return [venue.id, { available: true, message: null } satisfies VenueAvailabilityInfo] as const
+            }
+          }),
+        )
+        if (ignore) return
+        const next: Record<string, VenueAvailabilityInfo> = {}
+        for (const [id, info] of results) {
+          next[id] = info
+        }
+        setVenueAvailability(next)
+
+        const selectedId = eventForm.venueId
+        if (selectedId && next[selectedId] && next[selectedId].available === false) {
+          setValue('venueId', '')
+          setValue('selectedServices', [])
+          clearErrors('venueId')
+        }
+      } finally {
+        if (!ignore) setLoadingVenueAvailability(false)
+      }
+    }
+
+    void loadAvailability()
+    return () => {
+      ignore = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationId, isRecurring, eventForm.startDate, eventForm.endDate, filteredVenues, eventId, setValue, clearErrors])
+
   const selectedVenue = useMemo(
-    () => venues.find((v: Venue) => v.id === eventForm.venueId) as Venue | undefined,
-    [venues, eventForm.venueId],
+    () => filteredVenues.find((v: Venue) => v.id === eventForm.venueId) as Venue | undefined,
+    [filteredVenues, eventForm.venueId],
   )
 
   const venueServices = useMemo(() => parseJsonArray<AddOnService>(selectedVenue?.addOnServices), [selectedVenue])
 
   const event = eventData?.data?.event || eventData?.data || null
-
-  const isRecurring = isRegularRecurring(eventForm.eventType, eventForm.frequencyType)
 
   const recurrenceConfig = useMemo(
     () => ({
@@ -519,10 +624,10 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
         description: event.description || '',
         startDate: recurring ? formatDateOnly(start) : formatDateTimeLocal(start),
         endDate: recurring ? formatDateOnly(end) : formatDateTimeLocal(end),
+        occupancy: event.occupancy ?? undefined,
         venueId: event.venueId,
         allowReservation: event.allowReservation,
         frequencyType: event.frequencyType,
-        maxCapacity: event.maxCapacity ?? undefined,
         reservationPerFlat: event.reservationPerFlat ?? undefined,
         recurrenceDaysOfWeek: event.recurrenceDaysOfWeek?.length
           ? event.recurrenceDaysOfWeek
@@ -704,8 +809,61 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
     notifyError(String(firstError?.message || 'Please fix the form errors'))
   }
 
-  const onSubmit = (values: EventFormValues) => {
+  const onSubmit = async (values: EventFormValues) => {
     if (isEditMode && !eventId) return
+
+    if (locationId && values.venueId) {
+      try {
+        if (!isRecurring && values.startDate && values.endDate) {
+          const availabilityRes = await checkVenueAvailabilityAPI(locationId, {
+            venueId: values.venueId,
+            startDate: new Date(values.startDate).toISOString(),
+            endDate: new Date(values.endDate).toISOString(),
+            excludeEventId: eventId || undefined,
+          })
+          const availability = availabilityRes?.data
+          if (availability && availability.available === false) {
+            setError('venueId', {
+              type: 'manual',
+              message:
+                availability.message || availabilityRes?.message || 'This Venue is booked for the selected schedule',
+            })
+            return
+          }
+        } else if (isRecurring && occurrenceDates.length > 0) {
+          const timesToUse = values.sameScheduleForAllDates
+            ? Object.fromEntries(
+                occurrenceDates.map((dateKey) => [
+                  dateKey,
+                  { startTime: sameScheduleStartTime, endTime: sameScheduleEndTime },
+                ]),
+              )
+            : scheduleTimes
+          const eventOccurrences = buildEventOccurrences(occurrenceDates, timesToUse)
+          for (const occurrence of eventOccurrences) {
+            const availabilityRes = await checkVenueAvailabilityAPI(locationId, {
+              venueId: values.venueId,
+              startDate: new Date(occurrence.startDate).toISOString(),
+              endDate: new Date(occurrence.endDate).toISOString(),
+              excludeEventId: eventId || undefined,
+            })
+            const availability = availabilityRes?.data
+            if (availability && availability.available === false) {
+              setError('venueId', {
+                type: 'manual',
+                message:
+                  availability.message || availabilityRes?.message || 'This Venue is booked for the selected schedule',
+              })
+              return
+            }
+          }
+        }
+      } catch (err) {
+        console.error(err)
+        setError('venueId', { type: 'manual', message: 'Failed to check venue availability' })
+        return
+      }
+    }
 
     const formData = new FormData()
     formData.append('eventType', values.eventType || 'special')
@@ -714,10 +872,8 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
     formData.append('venueId', values.venueId)
     formData.append('frequencyType', values.frequencyType || 'once')
     formData.append('allowReservation', String(values.allowReservation))
+    formData.append('occupancy', String(values.occupancy))
 
-    if (values.allowReservation && values.maxCapacity) {
-      formData.append('maxCapacity', String(values.maxCapacity))
-    }
     if (values.allowReservation && values.reservationPerFlat) {
       formData.append('reservationPerFlat', String(values.reservationPerFlat))
     }
@@ -959,7 +1115,7 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
       </div>
 
       <div>
-        <Label className="mb-1.5">Description *</Label>
+        <Label className="mb-1.5">Description</Label>
         <Textarea
           {...register('description')}
           placeholder="Enter description"
@@ -974,16 +1130,16 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
           <Label className="mb-1.5">{isRecurring ? 'Select Start Date *' : 'Select Start Date & Time *'}</Label>
           <Input
             type={isRecurring ? 'date' : 'datetime-local'}
-            min={isEditMode ? undefined : isRecurring ? getMinDate() : getMinDateTimeLocal()}
+            min={isRecurring ? getMinDate() : getMinDateTimeLocal()}
             max="9999-12-31"
             {...register('startDate', {
               onChange: (e) => {
                 const rawValue = e.target.value
-                const minNow = isEditMode ? '' : isRecurring ? getMinDate() : getMinDateTimeLocal()
-                const newStartDate = isEditMode ? rawValue : clampToMinDateTime(rawValue, minNow)
-                setValue('startDate', newStartDate)
+                const minNow = isRecurring ? getMinDate() : getMinDateTimeLocal()
+                const newStartDate = clampToMinDateTime(rawValue, minNow)
+                setValue('startDate', newStartDate, { shouldValidate: true })
                 if (eventForm.endDate && eventForm.endDate < newStartDate) {
-                  setValue('endDate', '')
+                  setValue('endDate', '', { shouldValidate: true })
                 }
               },
             })}
@@ -994,13 +1150,13 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
           <Label className="mb-1.5">{isRecurring ? 'Select End Date *' : 'Select End Date & Time *'}</Label>
           <Input
             type={isRecurring ? 'date' : 'datetime-local'}
-            min={eventForm.startDate || (isEditMode ? undefined : isRecurring ? getMinDate() : getMinDateTimeLocal())}
+            min={eventForm.startDate || (isRecurring ? getMinDate() : getMinDateTimeLocal())}
             max="9999-12-31"
             {...register('endDate', {
               onChange: (e) => {
                 const rawValue = e.target.value
-                const minEnd = eventForm.startDate || ''
-                setValue('endDate', clampToMinDateTime(rawValue, minEnd))
+                const minEnd = eventForm.startDate || (isRecurring ? getMinDate() : getMinDateTimeLocal())
+                setValue('endDate', clampToMinDateTime(rawValue, minEnd), { shouldValidate: true })
               },
             })}
             error={errors.endDate?.message}
@@ -1008,34 +1164,107 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
         </div>
       </div>
 
+      <Input
+        id="event-occupancy-input"
+        label="Occupancy *"
+        type="number"
+        min={1}
+        step={1}
+        {...register('occupancy', {
+          setValueAs: (value) => {
+            if (value === '' || value === null || value === undefined) return undefined
+            const parsed = Number(value)
+            return Number.isNaN(parsed) ? undefined : parsed
+          },
+        })}
+        error={errors.occupancy?.message}
+        placeholder="e.g. 50"
+      />
+
       <div>
         <Label className="mb-1.5">Select Venue *</Label>
-        <Controller
-          name="venueId"
-          control={control}
-          render={({ field }) => (
-            <Select
-              value={field.value}
-              onValueChange={(value) => {
-                field.onChange(value)
-                setValue('selectedServices', [])
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                {venues.map((venue: Venue) => (
-                  <SelectItem key={venue.id} value={venue.id}>
-                    {venue.name}
-                    {venue.price != null ? ` — ₹${Number(venue.price).toLocaleString('en-IN')}` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-        {errors.venueId?.message && <p className="text-sm text-red-600 mt-1">{errors.venueId.message}</p>}
+        {!hasValidOccupancy ? (
+          <p className="text-sm text-muted-foreground rounded-lg border border-dashed p-4">
+            Enter occupancy first to see matching venues
+          </p>
+        ) : filteredVenues.length === 0 ? (
+          <p className="text-sm text-red-600 mt-1">No Venue is available for {occupancyValue} occupancy</p>
+        ) : (
+          <div className="space-y-2">
+            {loadingVenueAvailability && !isRecurring && eventForm.startDate && eventForm.endDate && (
+              <p className="text-xs text-muted-foreground">Checking venue availability...</p>
+            )}
+            <div className="max-h-72 overflow-y-auto space-y-2 rounded-xl border border-gray-200 bg-gray-50/60 p-2">
+              {filteredVenues.map((venue: Venue) => {
+                const availability = venueAvailability[venue.id]
+                const isBooked = availability?.available === false
+                const isSelected = eventForm.venueId === venue.id
+                return (
+                  <button
+                    key={venue.id}
+                    type="button"
+                    disabled={isBooked}
+                    onClick={() => {
+                      if (isBooked) return
+                      setValue('venueId', venue.id, { shouldValidate: true })
+                      setValue('selectedServices', [])
+                      clearErrors('venueId')
+                    }}
+                    className={`w-full text-left rounded-xl border px-3 py-3 transition-colors ${
+                      isBooked
+                        ? 'bg-red-50/80 border-red-200 cursor-not-allowed opacity-90'
+                        : isSelected
+                          ? 'bg-white border-[#005390] ring-2 ring-[#005390]/20 shadow-sm'
+                          : 'bg-white border-gray-200 hover:border-[#005390]/50 hover:bg-white cursor-pointer'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3 min-w-0">
+                      <div className="min-w-0 flex-1">
+                        <p className={`font-semibold truncate ${isBooked ? 'text-gray-500' : 'text-gray-900'}`}>
+                          {venue.name}
+                        </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                          <span>
+                            <span className="font-semibold text-gray-400">Occupancy </span>
+                            <span className={`font-semibold ${isBooked ? 'text-gray-500' : 'text-[#005390]'}`}>
+                              {venue.occupancy}
+                            </span>
+                          </span>
+                          {venue.price != null && (
+                            <span>
+                              <span className="font-semibold text-gray-400">Cost </span>
+                              <span className={`font-semibold ${isBooked ? 'text-gray-500' : 'text-[#005390]'}`}>
+                                ₹{Number(venue.price).toLocaleString('en-IN')}
+                              </span>
+                            </span>
+                          )}
+                        </div>
+                        {isBooked && (
+                          <p className="mt-2 text-xs font-medium text-red-600 leading-snug">
+                            {availability?.message || 'This Venue is booked for the selected schedule'}
+                          </p>
+                        )}
+                      </div>
+                      {isSelected && !isBooked && (
+                        <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-[#005390] bg-blue-50 px-2 py-1 rounded-md">
+                          Selected
+                        </span>
+                      )}
+                      {isBooked && (
+                        <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-red-600 bg-red-100 px-2 py-1 rounded-md">
+                          Unavailable
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+        {errors.venueId?.message && filteredVenues.length > 0 && (
+          <p className="text-sm text-red-600 mt-1">{errors.venueId.message}</p>
+        )}
       </div>
 
       {eventForm.venueId && (
@@ -1069,7 +1298,6 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                 const isChecked = checked as boolean
                 field.onChange(isChecked)
                 if (!isChecked) {
-                  setValue('maxCapacity', undefined)
                   setValue('reservationPerFlat', undefined)
                 }
               }}
@@ -1082,27 +1310,21 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
       </div>
 
       {eventForm.allowReservation && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label className="mb-1.5">Max Capacity *</Label>
-            <Input
-              type="number"
-              min="1"
-              {...register('maxCapacity', { valueAsNumber: true })}
-              error={errors.maxCapacity?.message}
-              placeholder="Enter max capacity"
-            />
-          </div>
-          <div>
-            <Label className="mb-1.5">Reservation Per Flat</Label>
-            <Input
-              type="number"
-              min="1"
-              {...register('reservationPerFlat', { valueAsNumber: true })}
-              error={errors.reservationPerFlat?.message}
-              placeholder="Enter reservation per flat"
-            />
-          </div>
+        <div>
+          <Label className="mb-1.5">Reservation Per Flat *</Label>
+          <Input
+            type="number"
+            min="1"
+            {...register('reservationPerFlat', {
+              setValueAs: (value) => {
+                if (value === '' || value === null || value === undefined) return undefined
+                const parsed = Number(value)
+                return Number.isNaN(parsed) ? undefined : parsed
+              },
+            })}
+            error={errors.reservationPerFlat?.message}
+            placeholder="Enter reservation per flat"
+          />
         </div>
       )}
 
@@ -1219,7 +1441,13 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
           type="number"
           step="0.01"
           min="0"
-          {...register('entryFee', { valueAsNumber: true })}
+          {...register('entryFee', {
+            setValueAs: (value) => {
+              if (value === '' || value === null || value === undefined) return undefined
+              const parsed = Number(value)
+              return Number.isNaN(parsed) ? undefined : parsed
+            },
+          })}
           placeholder="0.00"
         />
       </div>
