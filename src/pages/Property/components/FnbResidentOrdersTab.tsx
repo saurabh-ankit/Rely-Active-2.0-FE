@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Search,
   Filter,
@@ -254,13 +255,39 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
     }
   }, [loadData, fetchStaffList])
 
+  const selectedOrderModalRef = useRef<HTMLDivElement>(null)
+
+  // Prevent background page and main layout containers from scrolling when any modal is open
   useEffect(() => {
-    if (assigningOrder) {
-      void Promise.resolve().then(async () => {
-        await fetchStaffList()
+    const isModalOpen = Boolean(selectedOrder || confirmModalData || assigningOrder || completingDeliveryOrder)
+    if (!isModalOpen) return
+
+    const scrollContainers = document.querySelectorAll<HTMLElement>('[data-scroll-container]')
+    const originalBodyOverflow = document.body.style.overflow
+    const originalDocOverflow = document.documentElement.style.overflow
+    const originalContainerOverflows: string[] = []
+
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+    scrollContainers.forEach((el, index) => {
+      originalContainerOverflows[index] = el.style.overflow
+      el.style.overflow = 'hidden'
+    })
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow
+      document.documentElement.style.overflow = originalDocOverflow
+      scrollContainers.forEach((el, index) => {
+        el.style.overflow = originalContainerOverflows[index] || ''
       })
     }
-  }, [assigningOrder, fetchStaffList])
+  }, [selectedOrder, confirmModalData, assigningOrder, completingDeliveryOrder])
+
+  useEffect(() => {
+    if (selectedOrder && selectedOrderModalRef.current) {
+      selectedOrderModalRef.current.scrollTop = 0
+    }
+  }, [selectedOrder])
 
   const getFullLocationString = (unitObj?: PropertyUnitInfo) => {
     if (!unitObj) return 'N/A'
@@ -969,422 +996,437 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
       })()}
 
       {/* Confirmation Modal */}
-      {confirmModalData && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-gray-100 animate-in fade-in zoom-in-95 duration-150 text-center">
-            <div className="w-12 h-12 rounded-full bg-blue-50 text-[#005390] flex items-center justify-center mx-auto">
-              <HelpCircle className="w-6 h-6" />
-            </div>
-            <div className="space-y-1.5">
-              <h3 className="font-extrabold text-lg text-gray-900">Are you sure?</h3>
-              <p className="text-xs text-gray-500 leading-relaxed">
-                Are you sure you want to change order{' '}
-                <strong className="text-gray-900">#{confirmModalData.order.id.slice(0, 8)}</strong> status from{' '}
-                <span className="font-bold uppercase text-[#005390] bg-blue-50 px-1.5 py-0.5 rounded">
-                  {confirmModalData.order.orderStatus.replace(/_/g, ' ')}
-                </span>{' '}
-                to{' '}
-                <span className="font-bold uppercase text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-                  {confirmModalData.actionLabel}
-                </span>
-                ?
-              </p>
-            </div>
-
-            <div className="flex items-center justify-center gap-3 pt-3 border-t border-gray-100">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setConfirmModalData(null)}
-                className="text-xs font-bold px-5 py-2 rounded-xl cursor-pointer"
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => {
-                  const { order, nextStatus } = confirmModalData
-                  setConfirmModalData(null)
-                  if (nextStatus === 'assign_delivery') {
-                    setAssigningOrder(order)
-                    setSelectedStaffId(order.assignedEmployeeId || '')
-                    setDeliveryChargeInput(order.deliveryCharge || 0)
-                    fetchStaffList()
-                  } else if (nextStatus === 'complete_delivery') {
-                    setCompletingDeliveryOrder(order)
-                  } else {
-                    handleUpdateStatus(order.id, nextStatus)
-                  }
-                }}
-                className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-5 py-2 rounded-xl shadow-md cursor-pointer"
-              >
-                Yes, Confirm
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Assign Delivery Employee Modal */}
-      {assigningOrder && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <div className="flex items-center gap-2">
-                <Truck className="w-5 h-5 text-amber-600" />
-                <h3 className="font-extrabold text-base text-gray-900">Assign Delivery Employee</h3>
+      {confirmModalData &&
+        createPortal(
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-gray-100 animate-in fade-in zoom-in-95 duration-150 text-center">
+              <div className="w-12 h-12 rounded-full bg-blue-50 text-[#005390] flex items-center justify-center mx-auto">
+                <HelpCircle className="w-6 h-6" />
               </div>
-              <button
-                onClick={() => setAssigningOrder(null)}
-                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 space-y-1">
-                <span className="text-amber-900 font-extrabold block">Order #{assigningOrder.id.slice(0, 8)}</span>
-                <span className="text-amber-800 text-[11px] block">
-                  Resident:{' '}
-                  {assigningOrder.resident
-                    ? `${assigningOrder.resident.firstName} ${assigningOrder.resident.lastName || ''}`
-                    : 'Resident'}
-                </span>
-                <span className="text-amber-700 text-[11px] block font-semibold">
-                  Location:{' '}
-                  {getFullLocationString(assigningOrder.resident?.unit || assigningOrder.familyMember?.resident?.unit)}
-                </span>
+              <div className="space-y-1.5">
+                <h3 className="font-extrabold text-lg text-gray-900">Are you sure?</h3>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  Are you sure you want to change order{' '}
+                  <strong className="text-gray-900">#{confirmModalData.order.id.slice(0, 8)}</strong> status from{' '}
+                  <span className="font-bold uppercase text-[#005390] bg-blue-50 px-1.5 py-0.5 rounded">
+                    {confirmModalData.order.orderStatus.replace(/_/g, ' ')}
+                  </span>{' '}
+                  to{' '}
+                  <span className="font-bold uppercase text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                    {confirmModalData.actionLabel}
+                  </span>
+                  ?
+                </p>
               </div>
 
-              {/* Staff Dropdown */}
-              <div className="space-y-1">
-                <label htmlFor="select-delivery-staff" className="font-extrabold text-gray-700 block">
-                  Select F&B Delivery Employee <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  id="select-delivery-staff"
-                  value={selectedStaffId}
-                  onChange={(e) => setSelectedStaffId(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-semibold border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
+              <div className="flex items-center justify-center gap-3 pt-3 border-t border-gray-100">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmModalData(null)}
+                  className="text-xs font-bold px-5 py-2 rounded-xl cursor-pointer"
                 >
-                  <option value="">-- Choose F&B Staff / Employee --</option>
-                  {staffList.map((item) => {
-                    const u = item as {
-                      id: string
-                      username?: string
-                      email?: string
-                      detail?: { firstName?: string; lastName?: string; employeeCode?: string }
-                      profile?: { firstName?: string; lastName?: string; employeeCode?: string }
-                    }
-                    const profileData = u.profile || u.detail
-                    const dName = profileData
-                      ? `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim()
-                      : u.username || u.email
-                    const code = profileData?.employeeCode ? ` (${profileData.employeeCode})` : ''
-                    return (
-                      <option key={u.id} value={u.id}>
-                        {dName || u.username || u.email} {code}
-                      </option>
-                    )
-                  })}
-                </select>
-                {!selectedStaffId && (
-                  <p className="text-[10px] text-rose-500 font-semibold">
-                    An F&B employee must be selected for room delivery.
-                  </p>
-                )}
-              </div>
-
-              {/* Delivery Charge Input */}
-              <div className="space-y-1">
-                <label htmlFor="delivery-charge-input" className="font-extrabold text-gray-700 block">
-                  Set Room Delivery Charge (₹)
-                </label>
-                <input
-                  id="delivery-charge-input"
-                  type="number"
-                  min="0"
-                  step="5"
-                  value={deliveryChargeInput}
-                  onChange={(e) => setDeliveryChargeInput(Math.max(0, Number(e.target.value)))}
-                  placeholder="Enter delivery fee e.g. 20"
-                  className="w-full px-3 py-2 text-xs font-semibold border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
-                />
-                <p className="text-[10px] text-gray-500 font-medium">
-                  Fixes the delivery charge added to the resident&apos;s order for room service.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-              <Button variant="ghost" size="sm" onClick={() => setAssigningOrder(null)} className="text-xs font-bold">
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                disabled={submittingAssign || !selectedStaffId}
-                onClick={handleAssignDelivery}
-                className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs px-4 rounded-xl cursor-pointer"
-              >
-                {submittingAssign ? 'Assigning...' : 'Assign & Start Delivery'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Complete Room Delivery Photo Proof Modal */}
-      {completingDeliveryOrder && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <div className="flex items-center gap-2">
-                <Camera className="w-5 h-5 text-emerald-600" />
-                <h3 className="font-extrabold text-base text-gray-900">Complete Delivery & Upload Proof</h3>
-              </div>
-              <button
-                onClick={() => setCompletingDeliveryOrder(null)}
-                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 space-y-1">
-                <span className="text-emerald-900 font-extrabold block">
-                  Order #{completingDeliveryOrder.id.slice(0, 8)}
-                </span>
-                <span className="text-emerald-800 text-[11px] block font-semibold">
-                  Location:{' '}
-                  {getFullLocationString(
-                    completingDeliveryOrder.resident?.unit || completingDeliveryOrder.familyMember?.resident?.unit,
-                  )}
-                </span>
-              </div>
-
-              <div className="space-y-1">
-                <label htmlFor="proof-photo-input" className="font-extrabold text-gray-700 block">
-                  Proof of Delivery Photo URL
-                </label>
-                <input
-                  id="proof-photo-input"
-                  type="text"
-                  value={proofPhotoInput}
-                  onChange={(e) => setProofPhotoInput(e.target.value)}
-                  placeholder="https://.../delivery_proof.jpg"
-                  className="w-full px-3 py-2 text-xs font-semibold border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                />
-                <p className="text-[10px] text-gray-400">
-                  Upload photo URL taken by delivery staff upon room handover.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setCompletingDeliveryOrder(null)}
-                className="text-xs font-bold"
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                disabled={submittingComplete}
-                onClick={handleCompleteDelivery}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 rounded-xl cursor-pointer"
-              >
-                {submittingComplete ? 'Completing...' : 'Confirm Delivery Completed'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Order Detail Modal */}
-      {selectedOrder && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150 border border-gray-100 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <div>
-                <h3 className="font-black text-base text-gray-900 flex items-center gap-2">
-                  <ShoppingBag className="w-5 h-5 text-[#005390]" /> Order Details #{selectedOrder.id.slice(0, 8)}
-                </h3>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Placed on {new Date(selectedOrder.createdAt).toLocaleString('en-IN')}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Order Info Grid */}
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 space-y-1">
-                <span className="text-gray-400 font-semibold text-[10px] uppercase">Resident Info</span>
-                <div className="font-bold text-gray-900">
-                  {selectedOrder.resident
-                    ? `${selectedOrder.resident.firstName} ${selectedOrder.resident.lastName || ''}`
-                    : selectedOrder.guestName || 'N/A'}
-                </div>
-                <div className="text-gray-600 font-semibold text-[11px]">
-                  {getFullLocationString(selectedOrder.resident?.unit || selectedOrder.familyMember?.resident?.unit)}
-                </div>
-              </div>
-
-              <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 space-y-1">
-                <span className="text-gray-400 font-semibold text-[10px] uppercase">Service & Mode</span>
-                <div>{getTypeBadge(selectedOrder)}</div>
-                <div className="pt-0.5">{getServiceTypeBadge(selectedOrder.serviceType)}</div>
-              </div>
-            </div>
-
-            {/* Timestamp Audit Trail Grid */}
-            <div className="bg-gray-50/80 p-3 rounded-xl border border-gray-200/80 space-y-2 text-[11px]">
-              <span className="text-gray-500 font-black uppercase text-[10px] flex items-center gap-1">
-                <Clock className="w-3 h-3 text-[#005390]" /> Status Timestamps & Audit
-              </span>
-              <div className="grid grid-cols-2 gap-2 text-gray-600">
-                <div>
-                  <span className="text-gray-400 font-semibold block">Accepted At:</span>
-                  <span className="font-bold text-gray-800">
-                    {selectedOrder.acceptedAt ? new Date(selectedOrder.acceptedAt).toLocaleTimeString('en-IN') : '—'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-400 font-semibold block">Preparing Started:</span>
-                  <span className="font-bold text-gray-800">
-                    {selectedOrder.preparingStartedAt
-                      ? new Date(selectedOrder.preparingStartedAt).toLocaleTimeString('en-IN')
-                      : '—'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-400 font-semibold block">Food Ready At:</span>
-                  <span className="font-bold text-gray-800">
-                    {selectedOrder.readyAt ? new Date(selectedOrder.readyAt).toLocaleTimeString('en-IN') : '—'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-400 font-semibold block">Delivered / Completed:</span>
-                  <span className="font-bold text-gray-800">
-                    {selectedOrder.deliveredAt ? new Date(selectedOrder.deliveredAt).toLocaleTimeString('en-IN') : '—'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Delivery Employee Details (If Room Service) */}
-            {selectedOrder.serviceType === 'room_service' && selectedOrder.delivery && (
-              <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-200/80 space-y-1.5 text-xs">
-                <span className="text-amber-900 font-extrabold uppercase text-[10px] flex items-center gap-1">
-                  <Truck className="w-3.5 h-3.5 text-amber-700" /> Room Service Delivery Details
-                </span>
-                <div className="flex items-center justify-between text-[11px] text-amber-900">
-                  <span>
-                    Assigned Staff:{' '}
-                    <strong className="font-bold">
-                      {selectedOrder.delivery.employeeDetail
-                        ? `${selectedOrder.delivery.employeeDetail.firstName} ${selectedOrder.delivery.employeeDetail.lastName || ''}`
-                        : selectedOrder.delivery.employee?.username || 'Staff'}
-                    </strong>
-                  </span>
-                  <span>
-                    Delivery Charge: <strong className="font-bold">₹{selectedOrder.delivery.deliveryCharge}</strong>
-                  </span>
-                </div>
-                {selectedOrder.delivery.photoUrl && (
-                  <div className="pt-1">
-                    <span className="text-[10px] text-amber-800 font-bold block mb-1">Proof of Delivery Photo:</span>
-                    <a href={selectedOrder.delivery.photoUrl} target="_blank" rel="noreferrer" className="block">
-                      <img
-                        src={selectedOrder.delivery.photoUrl}
-                        alt="Delivery Proof"
-                        className="w-24 h-24 object-cover rounded-xl border border-amber-300 shadow-xs hover:opacity-90 transition-opacity"
-                      />
-                    </a>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Order Line Items */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Ordered Items</h4>
-                {getMealSlotBadge(selectedOrder)}
-              </div>
-              {selectedOrder.details && selectedOrder.details.length > 0 ? (
-                <div className="space-y-2 border border-gray-200 rounded-xl p-3 bg-gray-50/50">
-                  {selectedOrder.details.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between bg-white p-2.5 rounded-lg border border-gray-100 text-xs"
-                    >
-                      <div className="space-y-0.5">
-                        <div className="font-bold text-gray-900 flex items-center gap-1.5">
-                          <span>{item.dish?.name || item.specialMealSlot?.name || 'Meal Slot Item'}</span>
-                          {item.globalMealSlot?.name && (
-                            <span className="text-[9px] font-bold text-[#005390] bg-blue-50 px-1.5 py-0.2 rounded border border-blue-100">
-                              {item.globalMealSlot.name}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-gray-500">
-                          Qty: <span className="font-bold text-gray-800">{item.quantity}</span> • Unit Price: ₹
-                          {item.unitPrice}
-                        </div>
-                      </div>
-                      <div className="font-extrabold text-emerald-700 text-xs">₹{item.amount}</div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-4 text-center text-xs text-gray-500 italic bg-gray-50 rounded-xl">
-                  Full Meal Slot Order
-                </div>
-              )}
-            </div>
-
-            {/* Order Total & Actions */}
-            <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-              <div>
-                <span className="text-[10px] font-bold text-gray-400 uppercase">Total Amount</span>
-                <div className="text-lg font-black text-emerald-700">
-                  ₹{Number(selectedOrder.totalAmount || 0).toFixed(2)}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {selectedOrder.orderStatus !== 'cancelled' && selectedOrder.orderStatus !== 'completed' && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleUpdateStatus(selectedOrder.id, 'cancelled')}
-                    className="text-xs font-bold text-rose-700 border-rose-200 hover:bg-rose-50 rounded-xl cursor-pointer"
-                  >
-                    Cancel Order
-                  </Button>
-                )}
+                  Cancel
+                </Button>
                 <Button
                   size="sm"
-                  onClick={() => setSelectedOrder(null)}
-                  className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-4 rounded-xl shadow-xs cursor-pointer"
+                  onClick={() => {
+                    const { order, nextStatus } = confirmModalData
+                    setConfirmModalData(null)
+                    if (nextStatus === 'assign_delivery') {
+                      setAssigningOrder(order)
+                      setSelectedStaffId(order.assignedEmployeeId || '')
+                      setDeliveryChargeInput(order.deliveryCharge || 0)
+                      fetchStaffList()
+                    } else if (nextStatus === 'complete_delivery') {
+                      setCompletingDeliveryOrder(order)
+                    } else {
+                      handleUpdateStatus(order.id, nextStatus)
+                    }
+                  }}
+                  className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-5 py-2 rounded-xl shadow-md cursor-pointer"
                 >
-                  Close
+                  Yes, Confirm
                 </Button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
+
+      {/* Assign Delivery Employee Modal */}
+      {assigningOrder &&
+        createPortal(
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <Truck className="w-5 h-5 text-amber-600" />
+                  <h3 className="font-extrabold text-base text-gray-900">Assign Delivery Employee</h3>
+                </div>
+                <button
+                  onClick={() => setAssigningOrder(null)}
+                  className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 space-y-1">
+                  <span className="text-amber-900 font-extrabold block">Order #{assigningOrder.id.slice(0, 8)}</span>
+                  <span className="text-amber-800 text-[11px] block">
+                    Resident:{' '}
+                    {assigningOrder.resident
+                      ? `${assigningOrder.resident.firstName} ${assigningOrder.resident.lastName || ''}`
+                      : 'Resident'}
+                  </span>
+                  <span className="text-amber-700 text-[11px] block font-semibold">
+                    Location:{' '}
+                    {getFullLocationString(
+                      assigningOrder.resident?.unit || assigningOrder.familyMember?.resident?.unit,
+                    )}
+                  </span>
+                </div>
+
+                {/* Staff Dropdown */}
+                <div className="space-y-1">
+                  <label htmlFor="select-delivery-staff" className="font-extrabold text-gray-700 block">
+                    Select F&B Delivery Employee <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    id="select-delivery-staff"
+                    value={selectedStaffId}
+                    onChange={(e) => setSelectedStaffId(e.target.value)}
+                    className="w-full px-3 py-2 text-xs font-semibold border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
+                  >
+                    <option value="">-- Choose F&B Staff / Employee --</option>
+                    {staffList.map((item) => {
+                      const u = item as {
+                        id: string
+                        username?: string
+                        email?: string
+                        detail?: { firstName?: string; lastName?: string; employeeCode?: string }
+                        profile?: { firstName?: string; lastName?: string; employeeCode?: string }
+                      }
+                      const profileData = u.profile || u.detail
+                      const dName = profileData
+                        ? `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim()
+                        : u.username || u.email
+                      const code = profileData?.employeeCode ? ` (${profileData.employeeCode})` : ''
+                      return (
+                        <option key={u.id} value={u.id}>
+                          {dName || u.username || u.email} {code}
+                        </option>
+                      )
+                    })}
+                  </select>
+                  {!selectedStaffId && (
+                    <p className="text-[10px] text-rose-500 font-semibold">
+                      An F&B employee must be selected for room delivery.
+                    </p>
+                  )}
+                </div>
+
+                {/* Delivery Charge Input */}
+                <div className="space-y-1">
+                  <label htmlFor="delivery-charge-input" className="font-extrabold text-gray-700 block">
+                    Set Room Delivery Charge (₹)
+                  </label>
+                  <input
+                    id="delivery-charge-input"
+                    type="number"
+                    min="0"
+                    step="5"
+                    value={deliveryChargeInput}
+                    onChange={(e) => setDeliveryChargeInput(Math.max(0, Number(e.target.value)))}
+                    placeholder="Enter delivery fee e.g. 20"
+                    className="w-full px-3 py-2 text-xs font-semibold border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
+                  />
+                  <p className="text-[10px] text-gray-500 font-medium">
+                    Fixes the delivery charge added to the resident&apos;s order for room service.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                <Button variant="ghost" size="sm" onClick={() => setAssigningOrder(null)} className="text-xs font-bold">
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={submittingAssign || !selectedStaffId}
+                  onClick={handleAssignDelivery}
+                  className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs px-4 rounded-xl cursor-pointer"
+                >
+                  {submittingAssign ? 'Assigning...' : 'Assign & Start Delivery'}
+                </Button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* Complete Room Delivery Photo Proof Modal */}
+      {completingDeliveryOrder &&
+        createPortal(
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-emerald-600" />
+                  <h3 className="font-extrabold text-base text-gray-900">Complete Delivery & Upload Proof</h3>
+                </div>
+                <button
+                  onClick={() => setCompletingDeliveryOrder(null)}
+                  className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 space-y-1">
+                  <span className="text-emerald-900 font-extrabold block">
+                    Order #{completingDeliveryOrder.id.slice(0, 8)}
+                  </span>
+                  <span className="text-emerald-800 text-[11px] block font-semibold">
+                    Location:{' '}
+                    {getFullLocationString(
+                      completingDeliveryOrder.resident?.unit || completingDeliveryOrder.familyMember?.resident?.unit,
+                    )}
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  <label htmlFor="proof-photo-input" className="font-extrabold text-gray-700 block">
+                    Proof of Delivery Photo URL
+                  </label>
+                  <input
+                    id="proof-photo-input"
+                    type="text"
+                    value={proofPhotoInput}
+                    onChange={(e) => setProofPhotoInput(e.target.value)}
+                    placeholder="https://.../delivery_proof.jpg"
+                    className="w-full px-3 py-2 text-xs font-semibold border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  />
+                  <p className="text-[10px] text-gray-400">
+                    Upload photo URL taken by delivery staff upon room handover.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCompletingDeliveryOrder(null)}
+                  className="text-xs font-bold"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={submittingComplete}
+                  onClick={handleCompleteDelivery}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 rounded-xl cursor-pointer"
+                >
+                  {submittingComplete ? 'Completing...' : 'Confirm Delivery Completed'}
+                </Button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* Order Detail Modal */}
+      {selectedOrder &&
+        createPortal(
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+            <div
+              ref={selectedOrderModalRef}
+              className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150 border border-gray-100 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div>
+                  <h3 className="font-black text-base text-gray-900 flex items-center gap-2">
+                    <ShoppingBag className="w-5 h-5 text-[#005390]" /> Order Details #{selectedOrder.id.slice(0, 8)}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Placed on {new Date(selectedOrder.createdAt).toLocaleString('en-IN')}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Order Info Grid */}
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 space-y-1">
+                  <span className="text-gray-400 font-semibold text-[10px] uppercase">Resident Info</span>
+                  <div className="font-bold text-gray-900">
+                    {selectedOrder.resident
+                      ? `${selectedOrder.resident.firstName} ${selectedOrder.resident.lastName || ''}`
+                      : selectedOrder.guestName || 'N/A'}
+                  </div>
+                  <div className="text-gray-600 font-semibold text-[11px]">
+                    {getFullLocationString(selectedOrder.resident?.unit || selectedOrder.familyMember?.resident?.unit)}
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 space-y-1">
+                  <span className="text-gray-400 font-semibold text-[10px] uppercase">Service & Mode</span>
+                  <div>{getTypeBadge(selectedOrder)}</div>
+                  <div className="pt-0.5">{getServiceTypeBadge(selectedOrder.serviceType)}</div>
+                </div>
+              </div>
+
+              {/* Timestamp Audit Trail Grid */}
+              <div className="bg-gray-50/80 p-3 rounded-xl border border-gray-200/80 space-y-2 text-[11px]">
+                <span className="text-gray-500 font-black uppercase text-[10px] flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-[#005390]" /> Status Timestamps & Audit
+                </span>
+                <div className="grid grid-cols-2 gap-2 text-gray-600">
+                  <div>
+                    <span className="text-gray-400 font-semibold block">Accepted At:</span>
+                    <span className="font-bold text-gray-800">
+                      {selectedOrder.acceptedAt ? new Date(selectedOrder.acceptedAt).toLocaleTimeString('en-IN') : '—'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 font-semibold block">Preparing Started:</span>
+                    <span className="font-bold text-gray-800">
+                      {selectedOrder.preparingStartedAt
+                        ? new Date(selectedOrder.preparingStartedAt).toLocaleTimeString('en-IN')
+                        : '—'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 font-semibold block">Food Ready At:</span>
+                    <span className="font-bold text-gray-800">
+                      {selectedOrder.readyAt ? new Date(selectedOrder.readyAt).toLocaleTimeString('en-IN') : '—'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 font-semibold block">Delivered / Completed:</span>
+                    <span className="font-bold text-gray-800">
+                      {selectedOrder.deliveredAt
+                        ? new Date(selectedOrder.deliveredAt).toLocaleTimeString('en-IN')
+                        : '—'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Delivery Employee Details (If Room Service) */}
+              {selectedOrder.serviceType === 'room_service' && selectedOrder.delivery && (
+                <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-200/80 space-y-1.5 text-xs">
+                  <span className="text-amber-900 font-extrabold uppercase text-[10px] flex items-center gap-1">
+                    <Truck className="w-3.5 h-3.5 text-amber-700" /> Room Service Delivery Details
+                  </span>
+                  <div className="flex items-center justify-between text-[11px] text-amber-900">
+                    <span>
+                      Assigned Staff:{' '}
+                      <strong className="font-bold">
+                        {selectedOrder.delivery.employeeDetail
+                          ? `${selectedOrder.delivery.employeeDetail.firstName} ${selectedOrder.delivery.employeeDetail.lastName || ''}`
+                          : selectedOrder.delivery.employee?.username || 'Staff'}
+                      </strong>
+                    </span>
+                    <span>
+                      Delivery Charge: <strong className="font-bold">₹{selectedOrder.delivery.deliveryCharge}</strong>
+                    </span>
+                  </div>
+                  {selectedOrder.delivery.photoUrl && (
+                    <div className="pt-1">
+                      <span className="text-[10px] text-amber-800 font-bold block mb-1">Proof of Delivery Photo:</span>
+                      <a href={selectedOrder.delivery.photoUrl} target="_blank" rel="noreferrer" className="block">
+                        <img
+                          src={selectedOrder.delivery.photoUrl}
+                          alt="Delivery Proof"
+                          className="w-24 h-24 object-cover rounded-xl border border-amber-300 shadow-xs hover:opacity-90 transition-opacity"
+                        />
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Order Line Items */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Ordered Items</h4>
+                  {getMealSlotBadge(selectedOrder)}
+                </div>
+                {selectedOrder.details && selectedOrder.details.length > 0 ? (
+                  <div className="space-y-2 border border-gray-200 rounded-xl p-3 bg-gray-50/50">
+                    {selectedOrder.details.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between bg-white p-2.5 rounded-lg border border-gray-100 text-xs"
+                      >
+                        <div className="space-y-0.5">
+                          <div className="font-bold text-gray-900 flex items-center gap-1.5">
+                            <span>{item.dish?.name || item.specialMealSlot?.name || 'Meal Slot Item'}</span>
+                            {item.globalMealSlot?.name && (
+                              <span className="text-[9px] font-bold text-[#005390] bg-blue-50 px-1.5 py-0.2 rounded border border-blue-100">
+                                {item.globalMealSlot.name}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-gray-500">
+                            Qty: <span className="font-bold text-gray-800">{item.quantity}</span> • Unit Price: ₹
+                            {item.unitPrice}
+                          </div>
+                        </div>
+                        <div className="font-extrabold text-emerald-700 text-xs">₹{item.amount}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-xs text-gray-500 italic bg-gray-50 rounded-xl">
+                    Full Meal Slot Order
+                  </div>
+                )}
+              </div>
+
+              {/* Order Total & Actions */}
+              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                <div>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">Total Amount</span>
+                  <div className="text-lg font-black text-emerald-700">
+                    ₹{Number(selectedOrder.totalAmount || 0).toFixed(2)}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {selectedOrder.orderStatus !== 'cancelled' && selectedOrder.orderStatus !== 'completed' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleUpdateStatus(selectedOrder.id, 'cancelled')}
+                      className="text-xs font-bold text-rose-700 border-rose-200 hover:bg-rose-50 rounded-xl cursor-pointer"
+                    >
+                      Cancel Order
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    onClick={() => setSelectedOrder(null)}
+                    className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-4 rounded-xl shadow-xs cursor-pointer"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }

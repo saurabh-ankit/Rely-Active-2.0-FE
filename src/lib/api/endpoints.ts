@@ -281,6 +281,10 @@ export const API_ENDPOINTS = {
       assign: `${BASE_URL}/fnb/resident-subscriptions/assign`,
       get: (residentId: string) => `${BASE_URL}/fnb/resident-subscriptions/resident/${residentId}`,
     },
+    attendance: {
+      getMembersAndFlats: (params: string) => `${BASE_URL}/fnb/attendance/members?${params}`,
+      summary: (params: string) => `${BASE_URL}/fnb/attendance/summary?${params}`,
+    },
   },
 
   globalServices: {

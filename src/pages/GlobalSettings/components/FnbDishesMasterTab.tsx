@@ -107,7 +107,7 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
     try {
       setLoading(true)
       const [dishesRes, propsRes] = await Promise.allSettled([
-        api.get('/fnb/dishes'),
+        api.get('/fnb/dishes/master'),
         getPropertiesAPI().catch(async () => {
           const res = await api.get('/property')
           return res.data?.data || res.data
@@ -115,7 +115,34 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
       ])
 
       if (dishesRes.status === 'fulfilled' && dishesRes.value.data?.success) {
-        setDishes(dishesRes.value.data.data || [])
+        const rawData = dishesRes.value.data.data || []
+        const normalized: Dish[] = rawData.map(
+          (item: Dish & { dish?: Dish; locId?: string; price?: number; isAvailable?: boolean }) => {
+            if (item.dish && typeof item.dish === 'object') {
+              const baseDish = item.dish
+              const existingPropDishes: PropertyDish[] = Array.isArray(baseDish.propertyDishes)
+                ? baseDish.propertyDishes
+                : []
+              const hasPropDish = existingPropDishes.some((pd: PropertyDish) => pd.locId === item.locId)
+              return {
+                ...baseDish,
+                propertyDishes: hasPropDish
+                  ? existingPropDishes
+                  : [
+                      ...existingPropDishes,
+                      {
+                        id: item.id,
+                        locId: item.locId || '',
+                        price: item.price || 0,
+                        isAvailable: item.isAvailable ?? true,
+                      },
+                    ],
+              }
+            }
+            return item
+          },
+        )
+        setDishes(normalized)
       }
 
       if (propsRes.status === 'fulfilled') {
@@ -301,7 +328,10 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
   // Filter dishes for Location Mode vs Global Mode
   const displayDishes = dishes.filter((dish) => {
     if (isLocationMode && locId) {
-      const pd = dish.propertyDishes?.find((p) => p.locId === locId && p.isAvailable)
+      if (!dish.propertyDishes || dish.propertyDishes.length === 0) {
+        return true
+      }
+      const pd = dish.propertyDishes.find((p) => p.locId === locId && p.isAvailable)
       return !!pd
     }
     return true

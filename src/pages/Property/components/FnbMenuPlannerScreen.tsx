@@ -726,14 +726,8 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
 
                   {/* Popover Calendar Date Picker */}
                   <Popover open={isCalendarPopoverOpen} onOpenChange={setIsCalendarPopoverOpen}>
-                    <PopoverTrigger>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border-blue-200 bg-blue-50/80 text-[#005390] hover:bg-blue-100 transition-colors cursor-pointer shadow-2xs"
-                      >
-                        <CalendarIcon className="w-4 h-4 text-[#005390]" /> Select Date from Calendar
-                      </Button>
+                    <PopoverTrigger className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border border-blue-200 bg-blue-50/80 text-[#005390] hover:bg-blue-100 transition-colors cursor-pointer shadow-2xs">
+                      <CalendarIcon className="w-4 h-4 text-[#005390]" /> Select Date from Calendar
                     </PopoverTrigger>
                     <PopoverContent
                       className="w-auto p-3 bg-white rounded-2xl shadow-xl border border-gray-200"
