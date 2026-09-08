@@ -188,6 +188,36 @@ export const getLocalDayStart = (referenceDate = new Date()) => {
   ).toISOString()
 }
 
+/** True when an event overlaps any local calendar day in the given month. */
+export const eventOverlapsLocalMonth = (
+  event: { startDate: string | Date; endDate?: string | Date | null },
+  year: number,
+  monthIndex: number,
+): boolean => {
+  const monthStart = new Date(year, monthIndex, 1, 0, 0, 0, 0)
+  const monthEnd = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999)
+
+  const start = new Date(event.startDate)
+  const end = new Date(event.endDate || event.startDate)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return false
+
+  const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, 0, 0, 0)
+  const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999)
+
+  return startDay.getTime() <= monthEnd.getTime() && endDay.getTime() >= monthStart.getTime()
+}
+
+/** True when event starts on or after the local start of `referenceDate`'s day. */
+export const eventStartsOnOrAfterLocalDay = (
+  event: { startDate: string | Date },
+  referenceDate = new Date(),
+): boolean => {
+  const start = new Date(event.startDate)
+  if (Number.isNaN(start.getTime())) return false
+  const dayStart = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate(), 0, 0, 0, 0)
+  return start.getTime() >= dayStart.getTime()
+}
+
 export const formatOccurrenceDateLabel = (dateKey: string): string => {
   const [y, m, d] = dateKey.split('-').map(Number)
   const date = new Date(y!, m! - 1, d)
@@ -240,8 +270,9 @@ export const venueImageSchema = z.object({
 
 export const venueFormBaseSchema = z.object({
   name: z.string().trim().min(1, 'Venue name is required'),
+  // Empty/NaN are normalized to undefined via register setValueAs — keep input/output types aligned for RHF.
   occupancy: z.number({ error: 'Occupancy must be a number' }).int().positive('Occupancy must be greater than 0'),
-  price: z.number().min(0),
+  price: z.number({ error: 'Pricing must be a number' }).min(0, 'Pricing must be 0 or greater'),
   keyFeatures: z.string().trim().min(1, 'Key features are required'),
   otherServices: z.string().optional(),
   images: z.array(venueImageSchema),

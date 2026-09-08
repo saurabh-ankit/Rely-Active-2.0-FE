@@ -5,7 +5,7 @@ import { EventsPermission } from '@/pages/Events/components/EventsPermission'
 import { useLocation } from '@/hooks/useLocation'
 import { useGetEventsCalendar, useListEvents } from '@/hooks/react-query/events'
 import type { Event } from '@/lib/services/eventService'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import CreateEventModal from './CreateEventModal'
 
@@ -15,7 +15,7 @@ interface EventsCalendarProps {
 
 const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { hasResourcePermission } = useLocation()
   const canUpdate = hasResourcePermission('EVENTS', 'update')
 
@@ -35,6 +35,31 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
 
   const [currentDate, setCurrentDate] = useState(getInitialDate)
   const [editEventId, setEditEventId] = useState<string | null>(null)
+
+  const syncMonthToUrl = (date: Date) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.set('year', String(date.getFullYear()))
+        next.set('month', String(date.getMonth() + 1))
+        return next
+      },
+      { replace: true },
+    )
+  }
+
+  // Keep URL in sync so Events page "This Month" card matches the viewed calendar month
+  useEffect(() => {
+    const yearParam = searchParams.get('year')
+    const monthParam = searchParams.get('month')
+    const urlYear = yearParam ? parseInt(yearParam, 10) : NaN
+    const urlMonth = monthParam ? parseInt(monthParam, 10) : NaN
+    if (urlYear === currentDate.getFullYear() && urlMonth === currentDate.getMonth() + 1) {
+      return
+    }
+    syncMonthToUrl(currentDate)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only sync when viewed month changes
+  }, [currentDate.getFullYear(), currentDate.getMonth()])
 
   const openEditEvent = (eventId: string) => {
     if (canUpdate) {
@@ -213,15 +238,20 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
     : Array.isArray(eventsData?.data?.records)
       ? eventsData.data.records
       : []
-  const rawEvents = [...calendarEvents, ...listEvents]
+  const rawEvents = useMemo(
+    () => [...calendarEvents, ...listEvents],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- depend on source payloads
+    [calendarData, eventsData],
+  )
 
   // Deduplicate daily recurring events that are part of the same series
   // Group events by title + venueId + frequencyType + createdAt (same series)
   // For daily events, only show the event on the date that matches its startDate
-  const events = (() => {
+  const events = useMemo(() => {
     const eventMap = new Map<string, Event>()
 
     rawEvents.forEach((event: Event) => {
+      if (!event?.id) return
       if (event.frequencyType === 'daily') {
         const seriesKey = `${event.title}-${event.venueId}-${event.createdAt}`
         const eventStartDate = new Date(event.startDate)
@@ -237,7 +267,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
     })
 
     return Array.from(eventMap.values())
-  })()
+  }, [rawEvents])
 
   // Calendar helpers
   const getDaysInMonth = (date: Date) => {

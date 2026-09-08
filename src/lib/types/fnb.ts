@@ -211,3 +211,118 @@ export interface FnbResidentSubscription {
   subscriptionStatus: 'active' | 'paused' | 'cancelled' | 'completed'
   package?: FnbFoodPackage
 }
+
+export interface FnbFoodAttendanceMember {
+  memberId: string
+  memberType: 'resident' | 'family'
+  fullName: string
+  relation?: string | null
+  phone?: string | null
+  photoUrl?: string | null
+  residentId: string
+  flatId?: string | null
+  flatNumber: string
+  fullLocation: string
+  dietaryPreference?: string
+  packageName?: string | null
+  allowedMealSlots?: string[]
+  hasActivePackage?: boolean
+  package?: {
+    id: string
+    packageName: string
+    includedMealSlots: string[]
+  } | null
+  isSlotIncludedInPackage: boolean
+  attendance?: {
+    id: string
+    status?: string
+    attended: boolean
+    attendedAt: string
+    mealSlotKey?: string | null
+    slotKey?: string | null
+    meal_slot_key?: string | null
+    mealSlotId?: string | null
+    meal_slot_id?: string | null
+    mealSlot?: { id?: string; name?: string; slotKey?: string } | null
+    orderId?: string | null
+    created_by?: string | null
+    created_by_user?: {
+      id: string
+      firstName?: string
+      lastName?: string
+    } | null
+  } | null
+  attendances?: Array<{
+    id?: string
+    status?: string
+    attended?: boolean
+    attendedAt?: string
+    createdAt?: string
+    created_at?: string
+    mealSlotKey?: string | null
+    slotKey?: string | null
+    meal_slot_key?: string | null
+    mealSlotId?: string | null
+    meal_slot_id?: string | null
+    mealSlot?: { id?: string; name?: string; slotKey?: string } | null
+    orderId?: string | null
+    created_by?: string | null
+    created_by_user?: {
+      id: string
+      firstName?: string
+      lastName?: string
+    } | null
+  }> | null
+}
+
+export interface FnbGuestAttendance {
+  id: string
+  guestName?: string
+  guestPhone?: string
+  guestCount: number
+  mealSlotKey?: string
+  globalMealSlotId?: string
+  globalMealSlot?: {
+    id: string
+    name: string
+  }
+  attendedAt?: string
+  createdAt?: string
+  orderId?: string | null
+  created_by_user?: {
+    id: string
+    firstName?: string
+    lastName?: string
+  } | null
+}
+
+export interface FnbFoodAttendanceFlat {
+  unitId: string
+  unitNumber: string
+  fullLocation: string
+  primaryResident: {
+    id: string
+    fullName: string
+    phone?: string | null
+  } | null
+  members: FnbFoodAttendanceMember[]
+  guestCount: number
+  guestAttendances: FnbGuestAttendance[]
+}
+
+export interface FnbAttendanceSummary {
+  date: string
+  locId?: string
+  mealSlotKey?: string
+  totalResidingMembers: number
+  totalPackageHolders?: number
+  attendedMembersCount?: number
+  absentMembersCount?: number
+  totalGuestCount?: number
+  attendedCount?: number
+  totalDinedInToday?: number
+  totalGuestDinedInToday?: number
+  absentCount?: number
+  pendingCount?: number
+  guestMealsCount?: number
+}

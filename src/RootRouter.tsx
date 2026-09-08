@@ -15,6 +15,7 @@ import AssetManagementPage from '@/pages/AssetManagement'
 import FnbManagementPage from '@/pages/FnbManagement'
 import UserProfilePage from '@/pages/Profile'
 import TicketsPage from '@/pages/Tickets'
+import GateManagementPage from '@/pages/GateManagement'
 import EventsPage from '@/pages/Events'
 import EventForm from '@/pages/Events/components/EventForm'
 import EventRegistrationsPage from '@/pages/Events/components/EventRegistrations'
@@ -233,7 +234,7 @@ export default function RootRouter() {
           path="admin/visitor-history"
           element={
             <ProtectedRoute resourceKey="GNS" action="view">
-              <SectionPage title="Visitors Management" />
+              <GateManagementPage />
             </ProtectedRoute>
           }
         />

@@ -72,6 +72,7 @@ export interface CreateEventRequest {
   venueId: string
   allowReservation?: boolean
   frequencyType?: FrequencyType
+  occupancy: number
   maxCapacity?: number
   reservationPerFlat?: number
   recurrenceDayOfWeek?: number
@@ -98,6 +99,7 @@ export interface Event {
   venue?: Venue
   allowReservation: boolean
   frequencyType: FrequencyType
+  occupancy: number
   maxCapacity?: number | null
   reservationPerFlat?: number | null
   recurrenceDayOfWeek?: number | null
@@ -162,6 +164,7 @@ export interface EventRegistration {
   eventId: string
   patientId: string
   status: RegistrationStatus
+  seatCount?: number
   registeredAt: string
   registrationDate?: string
   attendingOn?: string | null
@@ -203,6 +206,10 @@ export interface EventCapacityResponse {
   noShowRegistrations: number
   activeRegistrations: number
   availableSpots: number | null
+  activeSeats?: number
+  confirmedSeats?: number
+  pendingSeats?: number
+  attendedSeats?: number
   utilizationPercentage: number
   isFullyBooked: boolean
 }
@@ -286,9 +293,12 @@ export function resolveSelectedServiceIds(addOnServices: AddOnService[], catalog
 }
 
 // ── Venue & Event API Calls ───────────────────────────────────────────────────
+const multipartConfig = (data: unknown) =>
+  typeof FormData !== 'undefined' && data instanceof FormData ? { timeout: 60_000 } : undefined
+
 export const createVenueAPI = async (locationId: string, data: CreateVenueRequest | FormData) => {
   const url = formatUrl(API_ENDPOINTS.eventManagement.createVenue, locationId)
-  const response = await api.post(url, data)
+  const response = await api.post(url, data, multipartConfig(data))
   return response.data
 }
 
@@ -304,9 +314,30 @@ export const getVenueByIdAPI = async (locationId: string, venueId: string) => {
   return response.data
 }
 
+export interface VenueAvailabilityResult {
+  available: boolean
+  message?: string | null
+  conflict?: {
+    source: 'event' | 'request'
+    id: string
+    title: string
+    startDate: string
+    endDate: string
+  } | null
+}
+
+export const checkVenueAvailabilityAPI = async (
+  locationId: string,
+  params: { venueId: string; startDate: string; endDate: string; excludeEventId?: string },
+) => {
+  const url = formatUrl(API_ENDPOINTS.eventManagement.checkVenueAvailability, locationId)
+  const response = await api.get(url, { params })
+  return response.data
+}
+
 export const updateVenueAPI = async (locationId: string, venueId: string, data: UpdateVenueRequest | FormData) => {
   const url = formatUrl(API_ENDPOINTS.eventManagement.updateVenue, locationId, { venueId })
-  const response = await api.put(url, data)
+  const response = await api.put(url, data, multipartConfig(data))
   return response.data
 }
 
@@ -318,7 +349,7 @@ export const deleteVenueAPI = async (locationId: string, venueId: string) => {
 
 export const createEventAPI = async (locationId: string, data: CreateEventRequest | FormData) => {
   const url = formatUrl(API_ENDPOINTS.eventManagement.createEvent, locationId)
-  const response = await api.post(url, data)
+  const response = await api.post(url, data, multipartConfig(data))
   return response.data
 }
 
@@ -336,7 +367,7 @@ export const getEventByIdAPI = async (locationId: string, eventId: string) => {
 
 export const updateEventAPI = async (locationId: string, eventId: string, data: UpdateEventRequest | FormData) => {
   const url = formatUrl(API_ENDPOINTS.eventManagement.updateEvent, locationId, { eventId })
-  const response = await api.put(url, data)
+  const response = await api.put(url, data, multipartConfig(data))
   return response.data
 }
 
@@ -385,6 +416,104 @@ export const updateRegistrationStatusAPI = async (
     registrationId,
   })
   const response = await api.put(url, data)
+  return response.data
+}
+
+export type EventRequestStatus = 'OPEN' | 'IN_PROGRESS' | 'CLOSED' | 'REJECTED' | 'CANCELLED'
+
+export interface EventRequestResident {
+  id: string
+  firstName: string
+  lastName?: string | null
+  fullName: string
+  email?: string | null
+  phone?: string | null
+  photoUrl?: string | null
+  flatNumber?: string | null
+  tower?: string | null
+}
+
+export interface EventRequestVenue {
+  id: string
+  name: string
+  occupancy?: number
+  price?: number
+  coverPhoto?: string | null
+  keyFeatures?: string | null
+  otherServices?: string | null
+  addOnServices?: AddOnService[] | null
+}
+
+export interface EventRequest {
+  id: string
+  requestNumber?: string | null
+  title: string
+  startDate: string
+  endDate: string
+  occupancy: number
+  customRequest?: string | null
+  schedule?: Array<{ startDate: string; endDate: string }> | null
+  selectedServices?: AddOnService[] | null
+  status: EventRequestStatus
+  meetingScheduledAt?: string | null
+  confirmedEventId?: string | null
+  cancellationReason?: string | null
+  totalCost?: number | null
+  venueId: string
+  residentId: string
+  locationId: string
+  createdAt: string
+  updatedAt: string
+  venue?: EventRequestVenue | null
+  resident?: EventRequestResident | null
+}
+
+export interface EventRequestQueryParams {
+  page?: number
+  limit?: number | 'all'
+  search?: string
+  status?: EventRequestStatus | 'all'
+  sortBy?: string
+  sortOrder?: 'ASC' | 'DESC'
+}
+
+export const listEventRequestsAPI = async (locationId: string, params?: EventRequestQueryParams) => {
+  const url = formatUrl(API_ENDPOINTS.eventManagement.listEventRequests, locationId)
+  const response = await api.get(url, { params })
+  return response.data
+}
+
+export const getEventRequestByIdAPI = async (locationId: string, requestId: string) => {
+  const url = formatUrl(API_ENDPOINTS.eventManagement.getEventRequestById, locationId, { requestId })
+  const response = await api.get(url)
+  return response.data
+}
+
+export const scheduleEventRequestMeetingAPI = async (
+  locationId: string,
+  requestId: string,
+  data: { meetingScheduledAt: string },
+) => {
+  const url = formatUrl(API_ENDPOINTS.eventManagement.scheduleEventRequestMeeting, locationId, {
+    requestId,
+  })
+  const response = await api.post(url, data)
+  return response.data
+}
+
+export const confirmEventRequestAPI = async (locationId: string, requestId: string) => {
+  const url = formatUrl(API_ENDPOINTS.eventManagement.confirmEventRequest, locationId, { requestId })
+  const response = await api.post(url)
+  return response.data
+}
+
+export const cancelEventRequestAPI = async (
+  locationId: string,
+  requestId: string,
+  data: { cancellationReason: string },
+) => {
+  const url = formatUrl(API_ENDPOINTS.eventManagement.cancelEventRequest, locationId, { requestId })
+  const response = await api.post(url, data)
   return response.data
 }
 

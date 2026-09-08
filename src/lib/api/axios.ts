@@ -30,6 +30,15 @@ api.interceptors.request.use((config) => {
     config.headers['x-property-id'] = locationId
   }
 
+  // Default JSON Content-Type breaks multipart uploads — let the browser set boundary.
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    if (typeof config.headers.delete === 'function') {
+      config.headers.delete('Content-Type')
+    } else {
+      delete (config.headers as Record<string, unknown>)['Content-Type']
+    }
+  }
+
   return config
 })
 

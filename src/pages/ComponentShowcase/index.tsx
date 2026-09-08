@@ -6,7 +6,7 @@ import { DataTable, selectionColumn } from '@/components/ui/data-table'
 type Member = { name: string; role: string; status: string }
 const data: Member[] = [
   { name: 'Aarav Mehta', role: 'Community manager', status: 'Active' },
-  { name: 'Mira Shah', role: 'Experience lead', status: 'Invited' },
+  { name: 'Mira Shah', role: 'Experience lead', status: 'Preapprovedd' },
   { name: 'Kabir Rao', role: 'Operations', status: 'Active' },
 ]
 const columns: ColumnDef<Member>[] = [

@@ -84,12 +84,17 @@ const VenueManagement: React.FC<VenueManagementProps> = ({ open, onOpenChange })
       }
     })
 
-    // Append image captions as JSON array
+    // Append image captions/urls as JSON array
     if (venueForm.images && venueForm.images.length > 0) {
-      const captions = venueForm.images.map((img) => ({
-        caption: img.caption || '',
-      }))
-      formData.append('images', JSON.stringify(captions))
+      formData.append(
+        'images',
+        JSON.stringify(
+          venueForm.images.map((img) => ({
+            url: img.url || '',
+            caption: img.caption || '',
+          })),
+        ),
+      )
     }
 
     // Handle add-on services
@@ -132,12 +137,17 @@ const VenueManagement: React.FC<VenueManagementProps> = ({ open, onOpenChange })
       }
     })
 
-    // Append image captions as JSON array
+    // Append image captions/urls as JSON array
     if (venueForm.images && venueForm.images.length > 0) {
-      const captions = venueForm.images.map((img) => ({
-        caption: img.caption || '',
-      }))
-      formData.append('images', JSON.stringify(captions))
+      formData.append(
+        'images',
+        JSON.stringify(
+          venueForm.images.map((img) => ({
+            url: img.url || '',
+            caption: img.caption || '',
+          })),
+        ),
+      )
     }
 
     // Handle add-on services

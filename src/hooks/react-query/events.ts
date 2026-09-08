@@ -9,11 +9,16 @@ import {
   getEventByIdAPI,
   getEventCapacityAPI,
   getEventRegistrationsAPI,
+  getEventRequestByIdAPI,
   getEventsCalendarAPI,
   getLocationGlobalServicesAPI,
   getVenueByIdAPI,
+  listEventRequestsAPI,
   listEventsAPI,
   listVenuesAPI,
+  scheduleEventRequestMeetingAPI,
+  confirmEventRequestAPI,
+  cancelEventRequestAPI,
   updateEventAPI,
   updateRegistrationStatusAPI,
   updateVenueAPI,
@@ -22,6 +27,7 @@ import {
   type CreateVenueRequest,
   type EventQueryParams,
   type EventRegistrationsQueryParams,
+  type EventRequestQueryParams,
   type LocationGlobalService,
   type UpdateEventRequest,
   type UpdateRegistrationStatusRequest,
@@ -267,6 +273,79 @@ export const useUpdateRegistrationStatus = () => {
     },
     onError: (error: ApiError) => {
       toast.error(error?.response?.data?.message || error.message || 'Failed to update registration status')
+    },
+  })
+}
+
+export const useListEventRequests = (params?: EventRequestQueryParams, enabled = true) => {
+  const locationId = useLocationId()
+  return useQuery({
+    queryKey: ['event-requests', locationId, params],
+    queryFn: () => listEventRequestsAPI(locationId!, params),
+    enabled: enabled && !!locationId,
+  })
+}
+
+export const useGetEventRequestById = (requestId: string, enabled = true) => {
+  const locationId = useLocationId()
+  return useQuery({
+    queryKey: ['event-request', locationId, requestId],
+    queryFn: () => getEventRequestByIdAPI(locationId!, requestId),
+    enabled: enabled && !!requestId && !!locationId,
+  })
+}
+
+export const useScheduleEventRequestMeeting = () => {
+  const queryClient = useQueryClient()
+  const locationId = useLocationId()
+
+  return useMutation({
+    mutationFn: ({ requestId, meetingScheduledAt }: { requestId: string; meetingScheduledAt: string }) =>
+      scheduleEventRequestMeetingAPI(locationId!, requestId, { meetingScheduledAt }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['event-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['event-request'] })
+      toast.success(data.message || 'Meeting scheduled successfully')
+    },
+    onError: (error: ApiError) => {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to schedule meeting')
+    },
+  })
+}
+
+export const useConfirmEventRequest = () => {
+  const queryClient = useQueryClient()
+  const locationId = useLocationId()
+
+  return useMutation({
+    mutationFn: (requestId: string) => confirmEventRequestAPI(locationId!, requestId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['event-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['event-request'] })
+      queryClient.invalidateQueries({ queryKey: ['events'] })
+      queryClient.invalidateQueries({ queryKey: ['events-calendar'] })
+      toast.success(data.message || 'Booking confirmed and event scheduled')
+    },
+    onError: (error: ApiError) => {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to confirm booking')
+    },
+  })
+}
+
+export const useCancelEventRequest = () => {
+  const queryClient = useQueryClient()
+  const locationId = useLocationId()
+
+  return useMutation({
+    mutationFn: ({ requestId, cancellationReason }: { requestId: string; cancellationReason: string }) =>
+      cancelEventRequestAPI(locationId!, requestId, { cancellationReason }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['event-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['event-request'] })
+      toast.success(data.message || 'Request canceled successfully')
+    },
+    onError: (error: ApiError) => {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to cancel request')
     },
   })
 }

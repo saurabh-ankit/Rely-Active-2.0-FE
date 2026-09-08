@@ -95,8 +95,15 @@ const CreateVenueModal = ({ open, onOpenChange }: CreateVenueModalProps) => {
     })
 
     if (values.images && values.images.length > 0) {
-      const captions = values.images.map((img) => ({ caption: img.caption || '' }))
-      formData.append('images', JSON.stringify(captions))
+      formData.append(
+        'images',
+        JSON.stringify(
+          values.images.map((img) => ({
+            url: img.url || '',
+            caption: img.caption || '',
+          })),
+        ),
+      )
     }
 
     const mappedServices = mapSelectedServicesToAddOns(locationServices, values.selectedServices || [])

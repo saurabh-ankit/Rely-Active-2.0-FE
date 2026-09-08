@@ -92,6 +92,7 @@ export const API_ENDPOINTS = {
     security: (locationId?: string | null) => buildLocationEndpoint('/security', locationId),
     inventory: (locationId?: string | null) => buildLocationEndpoint('/inventory', locationId),
     assets: (locationId?: string | null) => buildLocationEndpoint('/assets', locationId),
+    gate: (locationId: string) => `${BASE_URL}/location/${locationId}/gate`,
   },
 
   // Asset Management Endpoints
@@ -223,6 +224,17 @@ export const API_ENDPOINTS = {
     delete: (id: string, locationId?: string | null) => buildLocationEndpoint(`/tickets/${id}`, locationId),
   },
 
+  // Gate Management Endpoints
+  gate: {
+    stats: (locationId: string) => `${BASE_URL}/location/${locationId}/gate/stats`,
+    entries: (locationId: string) => `${BASE_URL}/location/${locationId}/gate/entries`,
+    preapproved: (locationId: string) => `${BASE_URL}/location/${locationId}/gate/preapproved`,
+    updateEntryStatus: (locationId: string, entryId: string) =>
+      `${BASE_URL}/location/${locationId}/gate/entries/${entryId}/status`,
+    addEntryItems: (locationId: string, entryId: string) =>
+      `${BASE_URL}/location/${locationId}/gate/entries/${entryId}/items`,
+  },
+
   // Food & Beverage (F&B) Management Endpoints
   fnb: {
     packages: {
@@ -269,6 +281,10 @@ export const API_ENDPOINTS = {
       assign: `${BASE_URL}/fnb/resident-subscriptions/assign`,
       get: (residentId: string) => `${BASE_URL}/fnb/resident-subscriptions/resident/${residentId}`,
     },
+    attendance: {
+      getMembersAndFlats: (params: string) => `${BASE_URL}/fnb/attendance/members?${params}`,
+      summary: (params: string) => `${BASE_URL}/fnb/attendance/summary?${params}`,
+    },
   },
 
   globalServices: {
@@ -291,5 +307,11 @@ export const API_ENDPOINTS = {
     getEventRegistrations: `${BASE_URL}/location/:locationId/events/:eventId/registrations`,
     getEventCapacity: `${BASE_URL}/location/:locationId/events/:eventId/capacity`,
     updateRegistrationStatus: `${BASE_URL}/location/:locationId/events/:eventId/registrations/:registrationId/status`,
+    checkVenueAvailability: `${BASE_URL}/location/:locationId/venues/availability`,
+    listEventRequests: `${BASE_URL}/location/:locationId/event-requests`,
+    getEventRequestById: `${BASE_URL}/location/:locationId/event-requests/:requestId`,
+    scheduleEventRequestMeeting: `${BASE_URL}/location/:locationId/event-requests/:requestId/schedule-meeting`,
+    confirmEventRequest: `${BASE_URL}/location/:locationId/event-requests/:requestId/confirm`,
+    cancelEventRequest: `${BASE_URL}/location/:locationId/event-requests/:requestId/cancel`,
   },
 }

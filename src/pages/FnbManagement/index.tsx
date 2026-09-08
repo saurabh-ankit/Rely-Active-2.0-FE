@@ -1,16 +1,17 @@
 import { useState } from 'react'
-import { Utensils, Calendar, Users, Clock, ShoppingBag } from 'lucide-react'
+import { Utensils, Calendar, Users, Clock, ShoppingBag, ClipboardCheck } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
 import { FnbMenuPlannerScreen } from '../Property/components/FnbMenuPlannerScreen'
 import { FnbPropertySettingsScreen } from '../Property/components/FnbPropertySettingsScreen'
 import { FnbDishesMasterTab } from '../GlobalSettings/components/FnbDishesMasterTab'
 import { FnbResidentOrdersTab } from '../Property/components/FnbResidentOrdersTab'
+import { FnbAttendanceTab } from '../Property/components/FnbAttendanceTab'
 
 export default function FnbManagementPage() {
   const { selectedLocationId } = useLocationContext()
-  const [activeTab, setActiveTab] = useState<'planner' | 'packages' | 'dishes' | 'meal-slots' | 'resident-orders'>(
-    'planner',
-  )
+  const [activeTab, setActiveTab] = useState<
+    'planner' | 'packages' | 'dishes' | 'meal-slots' | 'resident-orders' | 'attendance'
+  >('planner')
 
   return (
     <div className="space-y-6 pb-12">
@@ -24,7 +25,8 @@ export default function FnbManagementPage() {
             Food & Beverage (F&B) Management
           </h1>
           <p className="text-xs text-gray-500 mt-1">
-            Manage food packages, dish catalogues, flexible daily menus, meal slots & timings, and resident meal orders.
+            Manage food packages, dish catalogues, flexible daily menus, meal slots & timings, resident meal orders, and
+            dine-in attendance.
           </p>
         </div>
       </div>
@@ -39,6 +41,15 @@ export default function FnbManagementPage() {
           }`}
         >
           <Calendar className="w-4 h-4" /> Menu Planner & Slots
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('attendance')}
+          className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
+            activeTab === 'attendance' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
+          }`}
+        >
+          <ClipboardCheck className="w-4 h-4 text-emerald-600" /> Food Attendance
         </button>
         <button
           type="button"
@@ -88,6 +99,7 @@ export default function FnbManagementPage() {
       ) : (
         <>
           {activeTab === 'planner' && <FnbMenuPlannerScreen locId={selectedLocationId} />}
+          {activeTab === 'attendance' && <FnbAttendanceTab locId={selectedLocationId} />}
           {activeTab === 'packages' && (
             <FnbPropertySettingsScreen locId={selectedLocationId} initialViewMode="unit" hideSubHeader={false} />
           )}

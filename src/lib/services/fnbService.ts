@@ -10,7 +10,39 @@ import type {
   FnbResidentOrder,
   FnbFoodDelivery,
   FnbResidentSubscription,
+  FnbFoodAttendanceMember,
+  FnbFoodAttendanceFlat,
+  FnbAttendanceSummary,
 } from '@/lib/types/fnb'
+
+export interface GetAttendanceMembersResponse {
+  date: string
+  locId: string
+  mealSlotKey: string
+  members: FnbFoodAttendanceMember[]
+  flats: FnbFoodAttendanceFlat[]
+  summary: FnbAttendanceSummary
+}
+
+export interface MarkAttendancePayload {
+  locId: string
+  date: string
+  mealSlotKey: string
+  memberId: string
+  memberType: 'resident' | 'family'
+  attended: boolean
+}
+
+export interface MarkGuestAttendancePayload {
+  locId: string
+  date: string
+  mealSlotKey: string
+  flatId: string
+  residentId: string
+  guestCount: number
+  guestName?: string
+  guestPhone?: string
+}
 
 export const fnbService = {
   // ==================== Packages ====================
@@ -177,4 +209,36 @@ export const fnbService = {
     const res = await api.get(API_ENDPOINTS.fnb.residentSubscriptions.get(residentId))
     return res.data?.data || null
   },
+
+  // ==================== Food Attendance ====================
+  getAttendanceMembersAndFlats: async (
+    locId: string,
+    date: string,
+    mealSlotKey?: string,
+    search?: string,
+  ): Promise<GetAttendanceMembersResponse> => {
+    const params = new URLSearchParams()
+    params.set('locId', locId)
+    params.set('date', date)
+    if (mealSlotKey) params.set('mealSlotKey', mealSlotKey)
+    if (search) params.set('search', search)
+
+    const res = await api.get(API_ENDPOINTS.fnb.attendance.getMembersAndFlats(params.toString()))
+    return res.data?.data
+  },
+
+  getAttendanceSummary: async (locId: string, date: string, mealSlotKey?: string): Promise<FnbAttendanceSummary> => {
+    const params = new URLSearchParams()
+    params.set('locId', locId)
+    params.set('date', date)
+    if (mealSlotKey) params.set('mealSlotKey', mealSlotKey)
+
+    const res = await api.get(API_ENDPOINTS.fnb.attendance.summary(params.toString()))
+    return res.data?.data
+  },
+}
+
+export const fnbAttendanceService = {
+  getMembersAndFlats: fnbService.getAttendanceMembersAndFlats,
+  getSummary: fnbService.getAttendanceSummary,
 }

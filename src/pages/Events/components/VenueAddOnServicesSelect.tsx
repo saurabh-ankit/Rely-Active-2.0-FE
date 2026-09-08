@@ -108,7 +108,7 @@ export function VenueAddOnServicesSelect({
       <div className="space-y-2">
         <Label className="mb-1.5">Add-On Services</Label>
         <p className="text-xs text-gray-500 leading-relaxed rounded-xl border border-gray-200 bg-gray-50 p-3">
-          No services available for this location. Assign services in Global Settings → Global Services.
+          No services available for this location. Assign services in Global Settings → Event Global Services.
         </p>
       </div>
     )

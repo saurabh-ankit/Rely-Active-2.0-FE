@@ -55,7 +55,7 @@ const accessSettings: SettingItem[] = [
 const servicesSettings: SettingItem[] = [
   {
     id: 'global-services',
-    name: 'Global Services',
+    name: 'Event Global Services',
     description: 'Create and manage global service templates with base pricing and property assignments.',
     icon: Briefcase,
     link: '/global-settings/global-services',
