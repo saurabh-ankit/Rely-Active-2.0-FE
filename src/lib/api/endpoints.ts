@@ -292,4 +292,22 @@ export const API_ENDPOINTS = {
     getEventCapacity: `${BASE_URL}/location/:locationId/events/:eventId/capacity`,
     updateRegistrationStatus: `${BASE_URL}/location/:locationId/events/:eventId/registrations/:registrationId/status`,
   },
+
+  // Medical Management Endpoints (Care Tasks & Care Packages)
+  medical: {
+    careTasks: {
+      list: `${BASE_URL}/global-settings/care-tasks`,
+      getById: (id: string) => `${BASE_URL}/global-settings/care-tasks/${id}`,
+      create: `${BASE_URL}/global-settings/care-tasks`,
+      update: (id: string) => `${BASE_URL}/global-settings/care-tasks/${id}`,
+      delete: (id: string) => `${BASE_URL}/global-settings/care-tasks/${id}`,
+    },
+    carePackages: {
+      list: `${BASE_URL}/global-settings/packages`,
+      getById: (id: string) => `${BASE_URL}/global-settings/packages/${id}`,
+      create: `${BASE_URL}/global-settings/packages`,
+      update: (id: string) => `${BASE_URL}/global-settings/packages/${id}`,
+      delete: (id: string) => `${BASE_URL}/global-settings/packages/${id}`,
+    },
+  },
 }

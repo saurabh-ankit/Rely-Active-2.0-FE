@@ -18,6 +18,7 @@ import TicketsPage from '@/pages/Tickets'
 import EventsPage from '@/pages/Events'
 import EventForm from '@/pages/Events/components/EventForm'
 import EventRegistrationsPage from '@/pages/Events/components/EventRegistrations'
+import SettingsPage from '@/pages/Settings'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
 export default function RootRouter() {
@@ -95,6 +96,22 @@ export default function RootRouter() {
           element={
             <ProtectedRoute requireSuperAdmin>
               <GlobalSettingsPage initialView="global-services" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="global-settings/tasks"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="tasks" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="global-settings/packages"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="packages" />
             </ProtectedRoute>
           }
         />
@@ -299,6 +316,14 @@ export default function RootRouter() {
           }
         />
         <Route path="admin/feedback-and-training" element={<SectionPage title="Feedback And Training" />} />
+
+        {/* Facility & Operations Settings Routes */}
+        <Route path="admin/settings" element={<SettingsPage initialView="main" />} />
+        <Route path="admin/settings/tasks" element={<SettingsPage initialView="tasks" />} />
+        <Route path="admin/settings/packages" element={<SettingsPage initialView="packages" />} />
+        <Route path="settings" element={<Navigate to="/admin/settings" replace />} />
+        <Route path="settings/tasks" element={<Navigate to="/admin/settings/tasks" replace />} />
+        <Route path="settings/packages" element={<Navigate to="/admin/settings/packages" replace />} />
 
         {/* Setting fallbacks */}
         <Route path="personal-care-tasks" element={<SectionPage title="Personal Care Tasks (ADL)" />} />

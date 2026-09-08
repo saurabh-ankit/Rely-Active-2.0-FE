@@ -35,6 +35,12 @@ type DataTableProps<TData, TValue> = {
   onSearchChange?: (value: string) => void
   searchPlaceholder?: string
   filterActions?: React.ReactNode
+  manualPagination?: boolean
+  pageCount?: number
+  pageIndex?: number
+  onPageChange?: (pageIndex: number) => void
+  totalCount?: number
+  hidePagination?: boolean
 }
 
 export function DataTable<TData, TValue>({
@@ -48,6 +54,12 @@ export function DataTable<TData, TValue>({
   onSearchChange,
   searchPlaceholder = 'Search records…',
   filterActions,
+  manualPagination = false,
+  pageCount: customPageCount,
+  pageIndex: customPageIndex,
+  onPageChange,
+  totalCount,
+  hidePagination = false,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [filters, setFilters] = useState<ColumnFiltersState>([])
@@ -57,7 +69,17 @@ export function DataTable<TData, TValue>({
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, columnFilters: filters, columnVisibility: visibility, rowSelection: selection },
+    state: {
+      sorting,
+      columnFilters: filters,
+      columnVisibility: visibility,
+      rowSelection: selection,
+      ...(manualPagination && customPageIndex !== undefined
+        ? { pagination: { pageIndex: customPageIndex, pageSize } }
+        : {}),
+    },
+    manualPagination,
+    pageCount: manualPagination && customPageCount !== undefined ? customPageCount : undefined,
     initialState: {
       pagination: {
         pageSize: pageSize,
@@ -92,9 +114,10 @@ export function DataTable<TData, TValue>({
     )
 
   const selectedCount = table.getFilteredSelectedRowModel().rows.length
-  const pageCount = table.getPageCount()
-  const currentPage = table.getState().pagination.pageIndex
-  const totalRows = table.getFilteredRowModel().rows.length
+  const pageCount = manualPagination && customPageCount !== undefined ? customPageCount : table.getPageCount()
+  const currentPage =
+    manualPagination && customPageIndex !== undefined ? customPageIndex : table.getState().pagination.pageIndex
+  const totalRows = totalCount !== undefined ? totalCount : table.getFilteredRowModel().rows.length
 
   const showSearchBar = onSearchChange !== undefined || filterKey !== undefined
 
@@ -183,85 +206,99 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
 
-      {/* Pagination Footer - Always Visible */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2 px-1">
-        <div className="flex items-center gap-3 text-xs text-gray-500 font-medium">
-          {selectedCount > 0 && (
-            <span className="rounded-full bg-[#005390]/10 px-2.5 py-0.5 font-semibold text-[#005390]">
-              {selectedCount} selected
+      {/* Pagination Footer */}
+      {!hidePagination && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2 px-1">
+          <div className="flex items-center gap-3 text-xs text-gray-500 font-medium">
+            {selectedCount > 0 && (
+              <span className="rounded-full bg-[#005390]/10 px-2.5 py-0.5 font-semibold text-[#005390]">
+                {selectedCount} selected
+              </span>
+            )}
+            <span>
+              Total <span className="font-bold text-gray-900 dark:text-white">{totalRows}</span> records
             </span>
-          )}
-          <span>
-            Total <span className="font-bold text-gray-900 dark:text-white">{totalRows}</span> records
-          </span>
-          <span>
-            • Page <span className="font-bold text-gray-900 dark:text-white">{currentPage + 1}</span> of{' '}
-            <span className="font-bold text-gray-900 dark:text-white">{Math.max(1, pageCount)}</span>
-          </span>
+            <span>
+              • Page <span className="font-bold text-gray-900 dark:text-white">{currentPage + 1}</span> of{' '}
+              <span className="font-bold text-gray-900 dark:text-white">{Math.max(1, pageCount)}</span>
+            </span>
+          </div>
+
+          <Pagination className="w-auto mx-0">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (manualPagination && onPageChange) {
+                      if (currentPage > 0) onPageChange(currentPage - 1)
+                    } else {
+                      if (table.getCanPreviousPage()) table.previousPage()
+                    }
+                  }}
+                  className={
+                    (manualPagination ? currentPage === 0 : !table.getCanPreviousPage())
+                      ? 'pointer-events-none opacity-50 bg-gray-50 text-gray-400 border-gray-200 dark:bg-gray-800 dark:text-gray-500'
+                      : 'cursor-pointer bg-white text-gray-700 hover:bg-gray-50 border-gray-200 dark:bg-gray-800 dark:text-gray-200'
+                  }
+                />
+              </PaginationItem>
+
+              {Array.from({ length: Math.max(1, pageCount) }).map((_, idx) => {
+                const totalP = Math.max(1, pageCount)
+                if (idx === 0 || idx === totalP - 1 || (idx >= currentPage - 1 && idx <= currentPage + 1)) {
+                  return (
+                    <PaginationItem key={idx}>
+                      <PaginationLink
+                        href="#"
+                        isActive={idx === currentPage}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          if (manualPagination && onPageChange) {
+                            onPageChange(idx)
+                          } else {
+                            table.setPageIndex(idx)
+                          }
+                        }}
+                        className="cursor-pointer text-xs h-8 w-8 rounded-xl font-bold"
+                      >
+                        {idx + 1}
+                      </PaginationLink>
+                    </PaginationItem>
+                  )
+                } else if ((idx === 1 && currentPage > 2) || (idx === totalP - 2 && currentPage < totalP - 3)) {
+                  return (
+                    <PaginationItem key={idx}>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  )
+                }
+                return null
+              })}
+
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (manualPagination && onPageChange) {
+                      if (currentPage < pageCount - 1) onPageChange(currentPage + 1)
+                    } else {
+                      if (table.getCanNextPage()) table.nextPage()
+                    }
+                  }}
+                  className={
+                    (manualPagination ? currentPage >= pageCount - 1 || pageCount === 0 : !table.getCanNextPage())
+                      ? 'pointer-events-none opacity-50 bg-gray-50 text-gray-400 border-gray-200 dark:bg-gray-800 dark:text-gray-500'
+                      : 'cursor-pointer bg-white text-gray-700 hover:bg-gray-50 border-gray-200 dark:bg-gray-800 dark:text-gray-200'
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
-
-        <Pagination className="w-auto mx-0">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault()
-                  if (table.getCanPreviousPage()) table.previousPage()
-                }}
-                className={
-                  !table.getCanPreviousPage()
-                    ? 'pointer-events-none opacity-50 bg-gray-50 text-gray-400 border-gray-200 dark:bg-gray-800 dark:text-gray-500'
-                    : 'cursor-pointer bg-white text-gray-700 hover:bg-gray-50 border-gray-200 dark:bg-gray-800 dark:text-gray-200'
-                }
-              />
-            </PaginationItem>
-
-            {Array.from({ length: Math.max(1, pageCount) }).map((_, idx) => {
-              const totalP = Math.max(1, pageCount)
-              if (idx === 0 || idx === totalP - 1 || (idx >= currentPage - 1 && idx <= currentPage + 1)) {
-                return (
-                  <PaginationItem key={idx}>
-                    <PaginationLink
-                      href="#"
-                      isActive={idx === currentPage}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        table.setPageIndex(idx)
-                      }}
-                      className="cursor-pointer text-xs h-8 w-8 rounded-xl font-bold"
-                    >
-                      {idx + 1}
-                    </PaginationLink>
-                  </PaginationItem>
-                )
-              } else if ((idx === 1 && currentPage > 2) || (idx === totalP - 2 && currentPage < totalP - 3)) {
-                return (
-                  <PaginationItem key={idx}>
-                    <PaginationEllipsis />
-                  </PaginationItem>
-                )
-              }
-              return null
-            })}
-
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault()
-                  if (table.getCanNextPage()) table.nextPage()
-                }}
-                className={
-                  !table.getCanNextPage()
-                    ? 'pointer-events-none opacity-50 bg-gray-50 text-gray-400 border-gray-200 dark:bg-gray-800 dark:text-gray-500'
-                    : 'cursor-pointer bg-white text-gray-700 hover:bg-gray-50 border-gray-200 dark:bg-gray-800 dark:text-gray-200'
-                }
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      </div>
+      )}
     </div>
   )
 }
