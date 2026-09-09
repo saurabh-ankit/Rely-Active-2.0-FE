@@ -15,6 +15,7 @@ import {
   HelpCircle,
 } from 'lucide-react'
 import { fnbService } from '@/lib/services/fnbService'
+import { useLocationContext } from '@/hooks/useLocation'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -156,6 +157,8 @@ interface FnbResidentOrdersTabProps {
 }
 
 export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
+  const { hasResourcePermission } = useLocationContext()
+  const canUpdateFnb = hasResourcePermission('FNB', 'update')
   const [orders, setOrders] = useState<ResidentOrder[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -816,92 +819,96 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                   <Eye className="w-4 h-4" />
                                 </button>
 
-                                {/* 1. Placed -> Accept Order */}
-                                {order.orderStatus === 'placed' && (
-                                  <button
-                                    type="button"
-                                    disabled={updatingStatusId === order.id}
-                                    onClick={() =>
-                                      setConfirmModalData({
-                                        order,
-                                        nextStatus: 'accepted',
-                                        actionLabel: 'Accept Order',
-                                      })
-                                    }
-                                    className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-[#005390] border border-blue-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
-                                  >
-                                    Accept Order
-                                  </button>
-                                )}
-
-                                {/* 2. Accepted -> Start Preparing */}
-                                {order.orderStatus === 'accepted' && (
-                                  <button
-                                    type="button"
-                                    disabled={updatingStatusId === order.id}
-                                    onClick={() =>
-                                      setConfirmModalData({
-                                        order,
-                                        nextStatus: 'preparing',
-                                        actionLabel: 'Start Preparing',
-                                      })
-                                    }
-                                    className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
-                                  >
-                                    Start Preparing
-                                  </button>
-                                )}
-
-                                {/* 3. Preparing -> Food is Ready (Dine In & Room Service) */}
-                                {order.orderStatus === 'preparing' && (
-                                  <button
-                                    type="button"
-                                    disabled={updatingStatusId === order.id}
-                                    onClick={() =>
-                                      setConfirmModalData({
-                                        order,
-                                        nextStatus: 'ready',
-                                        actionLabel: 'Food is Ready',
-                                      })
-                                    }
-                                    className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
-                                  >
-                                    Food is Ready
-                                  </button>
-                                )}
-
-                                {/* 4. Ready -> Assign Delivery Employee (Room Service) OR Complete Order (Dine In) */}
-                                {(order.orderStatus === 'ready' || order.orderStatus === 'food_ready') && (
+                                {canUpdateFnb && (
                                   <>
-                                    {order.serviceType === 'room_service' ? (
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          setConfirmModalData({
-                                            order,
-                                            nextStatus: 'assign_delivery',
-                                            actionLabel: 'Assign Delivery Employee',
-                                          })
-                                        }
-                                        className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
-                                      >
-                                        Assign Delivery Employee
-                                      </button>
-                                    ) : (
+                                    {/* 1. Placed -> Accept Order */}
+                                    {order.orderStatus === 'placed' && (
                                       <button
                                         type="button"
                                         disabled={updatingStatusId === order.id}
                                         onClick={() =>
                                           setConfirmModalData({
                                             order,
-                                            nextStatus: 'completed',
-                                            actionLabel: 'Complete Order',
+                                            nextStatus: 'accepted',
+                                            actionLabel: 'Accept Order',
                                           })
                                         }
-                                        className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
+                                        className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-[#005390] border border-blue-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
                                       >
-                                        Complete Order
+                                        Accept Order
                                       </button>
+                                    )}
+
+                                    {/* 2. Accepted -> Start Preparing */}
+                                    {order.orderStatus === 'accepted' && (
+                                      <button
+                                        type="button"
+                                        disabled={updatingStatusId === order.id}
+                                        onClick={() =>
+                                          setConfirmModalData({
+                                            order,
+                                            nextStatus: 'preparing',
+                                            actionLabel: 'Start Preparing',
+                                          })
+                                        }
+                                        className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
+                                      >
+                                        Start Preparing
+                                      </button>
+                                    )}
+
+                                    {/* 3. Preparing -> Food is Ready (Dine In & Room Service) */}
+                                    {order.orderStatus === 'preparing' && (
+                                      <button
+                                        type="button"
+                                        disabled={updatingStatusId === order.id}
+                                        onClick={() =>
+                                          setConfirmModalData({
+                                            order,
+                                            nextStatus: 'ready',
+                                            actionLabel: 'Food is Ready',
+                                          })
+                                        }
+                                        className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
+                                      >
+                                        Food is Ready
+                                      </button>
+                                    )}
+
+                                    {/* 4. Ready -> Assign Delivery Employee (Room Service) OR Complete Order (Dine In) */}
+                                    {(order.orderStatus === 'ready' || order.orderStatus === 'food_ready') && (
+                                      <>
+                                        {order.serviceType === 'room_service' ? (
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              setConfirmModalData({
+                                                order,
+                                                nextStatus: 'assign_delivery',
+                                                actionLabel: 'Assign Delivery Employee',
+                                              })
+                                            }
+                                            className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
+                                          >
+                                            Assign Delivery Employee
+                                          </button>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            disabled={updatingStatusId === order.id}
+                                            onClick={() =>
+                                              setConfirmModalData({
+                                                order,
+                                                nextStatus: 'completed',
+                                                actionLabel: 'Complete Order',
+                                              })
+                                            }
+                                            className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
+                                          >
+                                            Complete Order
+                                          </button>
+                                        )}
+                                      </>
                                     )}
                                   </>
                                 )}
@@ -1404,16 +1411,18 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {selectedOrder.orderStatus !== 'cancelled' && selectedOrder.orderStatus !== 'completed' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleUpdateStatus(selectedOrder.id, 'cancelled')}
-                      className="text-xs font-bold text-rose-700 border-rose-200 hover:bg-rose-50 rounded-xl cursor-pointer"
-                    >
-                      Cancel Order
-                    </Button>
-                  )}
+                  {canUpdateFnb &&
+                    selectedOrder.orderStatus !== 'cancelled' &&
+                    selectedOrder.orderStatus !== 'completed' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleUpdateStatus(selectedOrder.id, 'cancelled')}
+                        className="text-xs font-bold text-rose-700 border-rose-200 hover:bg-rose-50 rounded-xl cursor-pointer"
+                      >
+                        Cancel Order
+                      </Button>
+                    )}
                   <Button
                     size="sm"
                     onClick={() => setSelectedOrder(null)}

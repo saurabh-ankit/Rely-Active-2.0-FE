@@ -18,6 +18,7 @@ import {
   Clock,
 } from 'lucide-react'
 import api from '@/lib/api/axios'
+import { useLocationContext } from '@/hooks/useLocation'
 import { getFileUrl } from '@/lib/utils'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import {
@@ -216,6 +217,8 @@ const getWeekDates = (referenceDateStr: string): { dateStr: string; dayOfWeek: D
 }
 
 export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
+  const { hasResourcePermission } = useLocationContext()
+  const canUpdateFnb = hasResourcePermission('FNB', 'update')
   const [selectedMenu, setSelectedMenu] = useState<Menu | null>(null)
   const [dishes, setDishes] = useState<Dish[]>([])
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
@@ -760,48 +763,54 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                     }
 
                     return (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => handleOpenDateCustomizer(activeSelectedDate)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer shadow-2xs"
-                      >
-                        <Edit3 className="w-4 h-4 text-[#005390]" />
-                        {btnLabel}
-                      </Button>
+                      canUpdateFnb && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => handleOpenDateCustomizer(activeSelectedDate)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer shadow-2xs"
+                        >
+                          <Edit3 className="w-4 h-4 text-[#005390]" />
+                          {btnLabel}
+                        </Button>
+                      )
                     )
                   })()}
 
                   {(() => {
                     const isAlreadyPublished = selectedMenu?.status === 'published' && !hasUnpublishedChanges
                     const isMenuEmpty = menuItems.length === 0
-                    const isDisabled = isMenuEmpty || isAlreadyPublished
+                    const isDisabled = !canUpdateFnb || isMenuEmpty || isAlreadyPublished
 
                     let tooltipTitle = ''
-                    if (isAlreadyPublished) {
+                    if (!canUpdateFnb) {
+                      tooltipTitle = 'You have read-only access to F&B.'
+                    } else if (isAlreadyPublished) {
                       tooltipTitle = 'Menu is already published.'
                     } else if (isMenuEmpty) {
                       tooltipTitle = 'Add at least 1 dish to menu before reviewing or publishing'
                     }
 
                     return (
-                      <Button
-                        type="button"
-                        disabled={isDisabled}
-                        onClick={() => setIsReviewModalOpen(true)}
-                        className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs ${
-                          isAlreadyPublished
-                            ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-70 shadow-none'
-                            : isMenuEmpty
-                              ? 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60'
-                              : hasUnpublishedChanges || selectedMenu?.status === 'draft'
-                                ? 'bg-amber-600 text-white hover:bg-amber-700 animate-pulse cursor-pointer'
-                                : 'bg-[#005390] text-white hover:bg-[#004070] cursor-pointer'
-                        }`}
-                        title={tooltipTitle}
-                      >
-                        <Eye className="w-4 h-4" /> Review & Publish Menu
-                      </Button>
+                      canUpdateFnb && (
+                        <Button
+                          type="button"
+                          disabled={isDisabled}
+                          onClick={() => setIsReviewModalOpen(true)}
+                          className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs ${
+                            isAlreadyPublished
+                              ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-70 shadow-none'
+                              : isMenuEmpty
+                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60'
+                                : hasUnpublishedChanges || selectedMenu?.status === 'draft'
+                                  ? 'bg-amber-600 text-white hover:bg-amber-700 animate-pulse cursor-pointer'
+                                  : 'bg-[#005390] text-white hover:bg-[#004070] cursor-pointer'
+                          }`}
+                          title={tooltipTitle}
+                        >
+                          <Eye className="w-4 h-4" /> Review & Publish Menu
+                        </Button>
+                      )
                     )
                   })()}
                 </div>
@@ -1049,7 +1058,8 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                             </div>
                           </div>
                         </div>
-                        {!isPreviewingCustomOverride &&
+                        {canUpdateFnb &&
+                          !isPreviewingCustomOverride &&
                           (propertyMealSlots.length > 0 || propertySpecialSlots.length > 0) && (
                             <Popover>
                               <PopoverTrigger
@@ -1277,7 +1287,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                                             </div>
                                           </div>
                                         </div>
-                                        {!isPreviewingCustomOverride && (
+                                        {canUpdateFnb && !isPreviewingCustomOverride && (
                                           <button
                                             type="button"
                                             onClick={() => handleDeleteMenuItem(item.id)}

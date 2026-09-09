@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import api from '@/lib/api/axios'
 import { getPropertiesAPI } from '@/lib/services/propertyService'
+import { useLocationContext } from '@/hooks/useLocation'
 import { notifySuccess } from '@/utils/toast'
 import { useScrollLock } from '@/hooks/useScrollLock'
 
@@ -72,6 +73,9 @@ const getCategoryMeta = (catKey: string) => {
 const getPropName = (p: Property): string => p.property_name || p.propertyName || p.name || 'Unnamed Property'
 
 export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesMasterTabProps) {
+  const { hasResourcePermission } = useLocationContext()
+  const canCreateFnb = hasResourcePermission('FNB', 'create')
+  const canUpdateFnb = hasResourcePermission('FNB', 'update')
   const [dishes, setDishes] = useState<Dish[]>([])
   const [availableProperties, setAvailableProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
@@ -365,7 +369,7 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
         </div>
 
         {/* Hide Add Master Dish button in Location Mode */}
-        {!isLocationMode && (
+        {!isLocationMode && canCreateFnb && (
           <button
             type="button"
             onClick={handleOpenCreate}
@@ -555,14 +559,16 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                                     </td>
                                   )}
                                   <td className="px-5 py-3.5 text-right">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleOpenEdit(dish)}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-[#005390] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
-                                    >
-                                      <Edit2 className="w-3.5 h-3.5" />
-                                      {isLocationMode ? 'Edit Price' : 'Edit'}
-                                    </button>
+                                    {canUpdateFnb && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenEdit(dish)}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-[#005390] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
+                                      >
+                                        <Edit2 className="w-3.5 h-3.5" />
+                                        {isLocationMode ? 'Edit Price' : 'Edit'}
+                                      </button>
+                                    )}
                                   </td>
                                 </tr>
                               )

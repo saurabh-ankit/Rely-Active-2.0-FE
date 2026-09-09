@@ -84,7 +84,9 @@ function parseTicketCompletion(ticket: Ticket | null): ParsedCompletion | null {
 }
 
 export default function TicketsPage() {
-  const { selectedLocationId } = useLocationContext()
+  const { selectedLocationId, hasResourcePermission } = useLocationContext()
+  const canCreateTicket = hasResourcePermission('TICKETS', 'create')
+  const canUpdateTicket = hasResourcePermission('TICKETS', 'update')
   const { user } = useAuth()
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [categories, setCategories] = useState<TicketCategoryMaster[]>([])
@@ -286,30 +288,34 @@ export default function TicketsPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#005390] hover:bg-[#004273] text-white text-sm font-semibold rounded-xl transition-all cursor-pointer shadow-xs"
-          >
-            <Plus className="w-4 h-4" /> Add New Ticket
-          </button>
-
-          <div className="flex items-center gap-2.5 bg-white px-3.5 py-2 rounded-xl border border-gray-200 shadow-2xs">
-            <span className="text-xs font-semibold text-gray-700">Automate Tickets</span>
+          {canCreateTicket && (
             <button
               type="button"
-              onClick={() => setAutomateTickets(!automateTickets)}
-              className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                automateTickets ? 'bg-[#005390]' : 'bg-gray-200'
-              }`}
+              onClick={() => setIsCreateModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#005390] hover:bg-[#004273] text-white text-sm font-semibold rounded-xl transition-all cursor-pointer shadow-xs"
             >
-              <span
-                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                  automateTickets ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
+              <Plus className="w-4 h-4" /> Add New Ticket
             </button>
-          </div>
+          )}
+
+          {canUpdateTicket && (
+            <div className="flex items-center gap-2.5 bg-white px-3.5 py-2 rounded-xl border border-gray-200 shadow-2xs">
+              <span className="text-xs font-semibold text-gray-700">Automate Tickets</span>
+              <button
+                type="button"
+                onClick={() => setAutomateTickets(!automateTickets)}
+                className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  automateTickets ? 'bg-[#005390]' : 'bg-gray-200'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                    automateTickets ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1000,39 +1006,45 @@ export default function TicketsPage() {
                     <Clock className="w-4 h-4 text-gray-700" />
                     <span className="text-gray-500 font-semibold">TAT :</span>
                     <span className="font-bold text-gray-900">{selectedTicket.tatOption || '1-2 hour'}</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsTatModalOpen(true)}
-                      className="text-[#005390] hover:underline font-bold text-xs cursor-pointer ml-2"
-                    >
-                      Change TAT
-                    </button>
+                    {canUpdateTicket && (
+                      <button
+                        type="button"
+                        onClick={() => setIsTatModalOpen(true)}
+                        className="text-[#005390] hover:underline font-bold text-xs cursor-pointer ml-2"
+                      >
+                        Change TAT
+                      </button>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-gray-700" />
                     <span className="text-gray-500 font-semibold">Assigned :</span>
                     <span className="font-bold text-gray-900">{assignedName}</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsAssignDrawerOpen(true)}
-                      className="text-[#005390] hover:underline font-bold text-xs cursor-pointer ml-2"
-                    >
-                      Change Assignee
-                    </button>
+                    {canUpdateTicket && (
+                      <button
+                        type="button"
+                        onClick={() => setIsAssignDrawerOpen(true)}
+                        className="text-[#005390] hover:underline font-bold text-xs cursor-pointer ml-2"
+                      >
+                        Change Assignee
+                      </button>
+                    )}
                   </div>
                 </div>
 
                 {/* Add Invoice Details CTA Button styled with primary color */}
-                <div className="pt-6">
-                  <button
-                    type="button"
-                    onClick={() => setIsInvoiceModalOpen(true)}
-                    className="w-full py-3.5 border-2 border-[#005390] text-[#005390] hover:bg-blue-50/60 rounded-xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-2xs"
-                  >
-                    <Plus className="w-4 h-4" /> Add Invoice Details
-                  </button>
-                </div>
+                {canUpdateTicket && (
+                  <div className="pt-6">
+                    <button
+                      type="button"
+                      onClick={() => setIsInvoiceModalOpen(true)}
+                      className="w-full py-3.5 border-2 border-[#005390] text-[#005390] hover:bg-blue-50/60 rounded-xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-2xs"
+                    >
+                      <Plus className="w-4 h-4" /> Add Invoice Details
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               /* OPEN TICKET CREATION / OPTION SELECTOR VIEW */
@@ -1053,7 +1065,10 @@ export default function TicketsPage() {
                       <select
                         value={selectedTicket.status}
                         onChange={(e) => handleUpdateOption({ status: e.target.value as TicketStatus })}
-                        className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-xs font-bold focus:outline-none cursor-pointer"
+                        disabled={!canUpdateTicket}
+                        className={`px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-xs font-bold focus:outline-none ${
+                          canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'
+                        }`}
                       >
                         <option value="OPEN">Open ∨</option>
                         <option value="IN_PROGRESS">In Progress</option>
@@ -1202,8 +1217,11 @@ export default function TicketsPage() {
                         <button
                           key={tat}
                           type="button"
-                          onClick={() => handleUpdateOption({ tatOption: tat })}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          disabled={!canUpdateTicket}
+                          onClick={() => canUpdateTicket && handleUpdateOption({ tatOption: tat })}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                            canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed'
+                          } ${
                             isSelected
                               ? 'bg-[#005390] text-white shadow-2xs'
                               : 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100'
@@ -1234,8 +1252,11 @@ export default function TicketsPage() {
                         <button
                           key={p.key}
                           type="button"
-                          onClick={() => handleUpdateOption({ priority: p.key as TicketPriority })}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          disabled={!canUpdateTicket}
+                          onClick={() => canUpdateTicket && handleUpdateOption({ priority: p.key as TicketPriority })}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                            canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed'
+                          } ${
                             isSelected
                               ? 'bg-[#005390] text-white shadow-2xs'
                               : 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100'
@@ -1249,25 +1270,27 @@ export default function TicketsPage() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="pt-4 flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsAssignDrawerOpen(true)}
-                    className="px-5 py-2.5 bg-[#005390] hover:bg-[#004273] text-white text-xs font-extrabold rounded-xl flex items-center gap-2 transition-colors cursor-pointer shadow-sm"
-                  >
-                    <UserPlus className="w-4 h-4" /> Assign Person
-                  </button>
-
-                  {isSelfAssigned && selectedTicket.status !== 'CLOSED' && (
+                {canUpdateTicket && (
+                  <div className="pt-4 flex flex-wrap items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => handleUpdateOption({ status: 'CLOSED' })}
-                      className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+                      onClick={() => setIsAssignDrawerOpen(true)}
+                      className="px-5 py-2.5 bg-[#005390] hover:bg-[#004273] text-white text-xs font-extrabold rounded-xl flex items-center gap-2 transition-colors cursor-pointer shadow-sm"
                     >
-                      <CheckCircle2 className="w-4 h-4" /> Close Ticket
+                      <UserPlus className="w-4 h-4" /> Assign Person
                     </button>
-                  )}
-                </div>
+
+                    {isSelfAssigned && selectedTicket.status !== 'CLOSED' && (
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateOption({ status: 'CLOSED' })}
+                        className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+                      >
+                        <CheckCircle2 className="w-4 h-4" /> Close Ticket
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {/* Bottom Floating Comment Chat Thread Trigger */}
                 <div className="absolute bottom-6 right-6">

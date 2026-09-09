@@ -45,7 +45,8 @@ const StatCard = ({ title, value, icon: Icon, colorClass }: StatCardProps) => (
 )
 
 export default function GateManagementPage() {
-  const { selectedLocationId } = useLocationContext()
+  const { selectedLocationId, hasResourcePermission } = useLocationContext()
+  const canUpdateGNS = hasResourcePermission('GNS', 'update')
   const [stats, setStats] = useState<GateStats | null>(null)
   const [entries, setEntries] = useState<GateEntry[]>([])
   const [preapproved, setPreapproved] = useState<GatePreapproved[]>([])
@@ -454,7 +455,7 @@ export default function GateManagementPage() {
                         {entry.clockedOutAt ? `Out: ${new Date(entry.clockedOutAt).toLocaleTimeString()}` : ''}
                       </td>
                       <td className="py-4 px-2">
-                        {entry.status === 'PendingApproval' && (
+                        {canUpdateGNS && entry.status === 'PendingApproval' && (
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleUpdateStatus(entry, 'Approved')}
@@ -472,7 +473,7 @@ export default function GateManagementPage() {
                             </button>
                           </div>
                         )}
-                        {entry.status === 'Inside' && (
+                        {canUpdateGNS && entry.status === 'Inside' && (
                           <div className="flex flex-col gap-2 items-start">
                             <button
                               onClick={() => initiateForceCheckout(entry)}

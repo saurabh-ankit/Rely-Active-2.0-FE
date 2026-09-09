@@ -23,6 +23,7 @@ import type { ResidentItem } from '@/lib/types'
 import { residentService } from '@/lib/services/residentService'
 import { Button } from '@/components/ui/button'
 import { ResidentFnbPackageModal } from './ResidentFnbPackageModal'
+import { useLocationContext } from '@/hooks/useLocation'
 import { getFileUrl } from '@/lib/utils'
 
 import api from '@/lib/api/axios'
@@ -62,6 +63,8 @@ export interface ResidentDetailsScreenProps {
 export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ isGlobalMode = false }) => {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
+  const { hasResourcePermission } = useLocationContext()
+  const canUpdateResident = hasResourcePermission('RESIDENT', 'update')
 
   const [resident, setResident] = useState<ResidentItem | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -262,27 +265,29 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-3 shrink-0">
-          {resident.isResiding && (
+        {canUpdateResident && (
+          <div className="flex items-center gap-3 shrink-0">
+            {resident.isResiding && (
+              <Button
+                variant="secondary"
+                icon={<Utensils className="w-4 h-4" />}
+                onClick={() => setIsFnbModalOpen(true)}
+                className="rounded-xl"
+              >
+                Assign Food Package
+              </Button>
+            )}
+
             <Button
-              variant="secondary"
-              icon={<Utensils className="w-4 h-4" />}
-              onClick={() => setIsFnbModalOpen(true)}
+              variant="primary"
+              icon={<Edit className="w-4 h-4" />}
+              onClick={() => navigate(editUrl)}
               className="rounded-xl"
             >
-              Assign Food Package
+              Edit Resident Profile
             </Button>
-          )}
-
-          <Button
-            variant="primary"
-            icon={<Edit className="w-4 h-4" />}
-            onClick={() => navigate(editUrl)}
-            className="rounded-xl"
-          >
-            Edit Resident Profile
-          </Button>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* ── Primary Resident Active Food Package Summary Bar (ABOVE) ───────────── */}
