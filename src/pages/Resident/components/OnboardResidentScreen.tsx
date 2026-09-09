@@ -7,6 +7,8 @@ import {
   Building2,
   Camera,
   CheckCircle2,
+  CreditCard,
+  IndianRupee,
   KeyRound,
   Mail,
   Phone,
@@ -114,6 +116,12 @@ const residentFormSchema = z.object({
   bloodGroup: z.string().optional().or(z.literal('')),
   photoUrl: z.string().optional().or(z.literal('')),
   moveInDate: z.string().min(1, 'Move-in date is required'),
+  rentAmount: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine((val) => !val || (!isNaN(Number(val)) && Number(val) >= 0), 'Rent amount must be a non-negative number'),
+  payRentToCompany: z.boolean().default(false),
   familyMembers: z.array(familyMemberSchema).default([]),
 })
 
@@ -200,6 +208,8 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
       bloodGroup: '',
       photoUrl: '',
       moveInDate: new Date().toISOString().split('T')[0],
+      rentAmount: '',
+      payRentToCompany: false,
       familyMembers: [],
     },
   })
@@ -218,6 +228,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
   const watchedPhotoUrl = useWatch({ control, name: 'photoUrl' })
   const watchedFamilyMembers = useWatch({ control, name: 'familyMembers' })
   const watchedUnitId = useWatch({ control, name: 'unitId' })
+  const watchedPayRentToCompany = useWatch({ control, name: 'payRentToCompany' })
 
   const [enabledFmLogins, setEnabledFmLogins] = useState<Record<number, boolean>>({})
 
@@ -405,6 +416,9 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
               bloodGroup: targetRes.bloodGroup || '',
               photoUrl: targetRes.photoUrl || '',
               moveInDate: targetRes.moveInDate || new Date().toISOString().split('T')[0],
+              rentAmount:
+                targetRes.rentAmount !== undefined && targetRes.rentAmount !== null ? String(targetRes.rentAmount) : '',
+              payRentToCompany: targetRes.payRentToCompany ?? false,
               familyMembers: (targetRes.familyMembers || []).map((fm) => ({
                 id: fm.id,
                 residentId: fm.residentId,
@@ -536,6 +550,11 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
     const payload: CreateResidentPayload = {
       ...values,
       isResiding: effectiveIsResiding,
+      rentAmount:
+        values.residentType === 'TENANT' && values.rentAmount !== undefined && values.rentAmount !== ''
+          ? Number(values.rentAmount)
+          : null,
+      payRentToCompany: values.residentType === 'TENANT' ? Boolean(values.payRentToCompany) : false,
       familyMembers: (values.familyMembers || []).map((fm) => ({
         ...fm,
         isResiding: effectiveIsResiding,
@@ -1026,6 +1045,78 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                 error={errors.moveInDate?.message}
               />
             </div>
+
+            {/* Rent & Billing Configuration Section for Tenants */}
+            {watchedResidentType === 'TENANT' && (
+              <div className="mt-5 p-5 bg-gradient-to-br from-blue-50/60 via-indigo-50/40 to-slate-50 rounded-2xl border border-blue-100/90 shadow-2xs space-y-4">
+                <div className="flex items-center gap-2 font-bold text-gray-800 text-sm border-b border-blue-100/80 pb-2.5">
+                  <CreditCard className="w-4 h-4 text-[#005390]" />
+                  <span>Rent & Billing Configuration</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <Input
+                    label="Agreed Monthly Rent Amount (₹)"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="e.g. 25000"
+                    {...register('rentAmount')}
+                    error={errors.rentAmount?.message}
+                    icon={<IndianRupee className="h-4 w-4 text-gray-400" />}
+                  />
+
+                  <div className="flex flex-col justify-start">
+                    <span className="block text-xs font-bold text-gray-700 mb-1.5">Rent Payment Routing Channel</span>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setValue('payRentToCompany', false, { shouldValidate: true })}
+                        className={cn(
+                          'flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left',
+                          !watchedPayRentToCompany
+                            ? 'border-[#005390] bg-[#005390]/10 text-[#005390] ring-1 ring-[#005390] shadow-2xs'
+                            : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50',
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name="rentRouting"
+                          checked={!watchedPayRentToCompany}
+                          onChange={() => {}}
+                          className="w-3.5 h-3.5 text-[#005390]"
+                        />
+                        <span>Direct to Owner</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setValue('payRentToCompany', true, { shouldValidate: true })}
+                        className={cn(
+                          'flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left',
+                          watchedPayRentToCompany
+                            ? 'border-[#005390] bg-[#005390]/10 text-[#005390] ring-1 ring-[#005390] shadow-2xs'
+                            : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50',
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name="rentRouting"
+                          checked={Boolean(watchedPayRentToCompany)}
+                          onChange={() => {}}
+                          className="w-3.5 h-3.5 text-[#005390]"
+                        />
+                        <span>Pay to Company</span>
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-gray-500 mt-2 font-medium">
+                      {watchedPayRentToCompany
+                        ? '✓ Rent will be generated & collected via company monthly billing invoices.'
+                        : '✓ Tenant pays rent directly to owner. Excluded from company rent billing.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Dynamic Family Members Section (Vertical Cards) */}
             <div className="mt-6 pt-5 border-t border-gray-100 space-y-4">

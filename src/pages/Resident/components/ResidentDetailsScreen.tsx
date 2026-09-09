@@ -6,9 +6,11 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
+  CreditCard,
   Edit,
   HeartPulse,
   Home,
+  IndianRupee,
   KeyRound,
   Mail,
   Phone,
@@ -450,6 +452,50 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
             </div>
           </div>
         </div>
+
+        {/* ── Rent & Billing Section (For Tenants) ──────────────────────────────── */}
+        {resident.residentType === 'TENANT' && (
+          <div className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-white p-6 shadow-lg backdrop-blur-xl space-y-4 md:col-span-2">
+            <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 border-b border-blue-100 dark:border-gray-800 pb-3">
+              <CreditCard className="w-5 h-5 text-[#005390]" />
+              Rent & Billing Configuration
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+              <div className="p-4 bg-white/90 dark:bg-slate-800/80 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Monthly Rent Amount</span>
+                <span className="font-black text-gray-900 dark:text-white text-sm flex items-center gap-1">
+                  <IndianRupee className="w-4 h-4 text-[#005390]" />
+                  {resident.rentAmount !== undefined && resident.rentAmount !== null
+                    ? `₹${Number(resident.rentAmount).toLocaleString('en-IN')}`
+                    : 'Rent Not Fixed'}
+                </span>
+              </div>
+
+              <div className="p-4 bg-white/90 dark:bg-slate-800/80 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Rent Payment Routing</span>
+                {resident.payRentToCompany ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                    Pay to Company (Company Billing)
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                    Direct to Owner (Landlord)
+                  </span>
+                )}
+              </div>
+
+              <div className="p-4 bg-white/90 dark:bg-slate-800/80 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Company Invoicing</span>
+                <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+                  {resident.payRentToCompany
+                    ? 'Included in automated monthly company billing'
+                    : 'Excluded from company billing invoices'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Section 3: Contact & App Credentials ─────────────────────────────── */}
         <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4 md:col-span-2">

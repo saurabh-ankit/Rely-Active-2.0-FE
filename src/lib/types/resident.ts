@@ -45,6 +45,8 @@ export interface ResidentItem {
   photoUrl?: string | null
   moveInDate?: string | null
   moveOutDate?: string | null
+  rentAmount?: number | null
+  payRentToCompany?: boolean
   status: ResidentStatus
   isActive: boolean
   createdAt: string
@@ -102,5 +104,7 @@ export interface CreateResidentPayload {
   bloodGroup?: string
   photoUrl?: string
   moveInDate?: string
+  rentAmount?: number | null
+  payRentToCompany?: boolean
   familyMembers?: ResidentFamilyMember[]
 }
