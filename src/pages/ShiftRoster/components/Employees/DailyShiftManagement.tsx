@@ -12,17 +12,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { useListEmployeeShifts } from '@/hooks/react-query/employeeShifts'
-import {
-  useCoverShiftDate,
-  useGenerateShiftEmployeeDates,
-  useListShiftEmployeeDates,
-  useMarkDayOff,
-  useSwapShiftDates,
-  useUnmarkDayOff,
-} from '@/hooks/react-query/shiftEmployeeDates'
 import { useUsersQuery } from '@/hooks/react-query/user'
-import type { ShiftEmployeeDate } from '@/lib/services/shiftEmployeeDateService'
+import type { ShiftEmployeeDate } from '@/lib/services/rosterService'
 import {
   coverFormDefaultValues,
   coverFormSchema,
@@ -47,6 +38,15 @@ import {
   usersShareDepartment,
 } from '../../utils'
 import { useLocationStore } from '@/lib/stores/locationStore'
+import {
+  useListEmployeeShifts,
+  useCoverShiftDate,
+  useGenerateShiftEmployeeDates,
+  useListShiftEmployeeDates,
+  useMarkDayOff,
+  useSwapShiftDates,
+  useUnmarkDayOff,
+} from '@/hooks/react-query/roster'
 
 const statusStyles: Record<string, string> = {
   upcoming: 'bg-blue-100 text-blue-800',

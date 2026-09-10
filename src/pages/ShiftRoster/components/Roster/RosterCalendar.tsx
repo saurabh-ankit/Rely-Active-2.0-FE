@@ -1,12 +1,9 @@
 import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useListEmployeeShifts } from '@/hooks/react-query/employeeShifts'
 import { useDepartmentsQuery } from '@/hooks/react-query/rbac'
-import { useListShiftEmployeeDates } from '@/hooks/react-query/shiftEmployeeDates'
 import { useUsersQuery } from '@/hooks/react-query/user'
-import type { EmployeeShiftAssignment, WeekDay } from '@/lib/services/employeeShiftService'
-import type { ShiftEmployeeDate } from '@/lib/services/shiftEmployeeDateService'
+import type { EmployeeShiftAssignment, ShiftEmployeeDate, WeekDay } from '@/lib/services/rosterService'
 import { useLocationStore } from '@/lib/stores/locationStore'
 import {
   getUserDepartmentIds,
@@ -20,6 +17,7 @@ import AssignShiftDialog from '../dialogs/AssignShiftDialog'
 import DepartmentFilter, { ALL_DEPARTMENTS } from '../Employees/DepartmentFilter'
 import RosterDayListDialog from '../dialogs/RosterDayListDialog'
 import RosterDetailDialog, { type RosterCalendarEvent } from '../dialogs/RosterDetailDialog'
+import { useListEmployeeShifts, useListShiftEmployeeDates } from '@/hooks/react-query/roster'
 
 const MAX_VISIBLE_ROSTERS = 2
 

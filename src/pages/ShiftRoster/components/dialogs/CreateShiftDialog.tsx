@@ -7,9 +7,9 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { useCreateShift, useUpdateShift } from '@/hooks/react-query/shifts'
-import type { ShiftV2 } from '@/lib/services/shiftService'
+import type { ShiftV2 } from '@/lib/services/rosterService'
 import { createShiftFormDefaultValues, createShiftFormSchema, type CreateShiftFormValues } from '@/utils/roster.utils'
+import { useCreateShift, useUpdateShift } from '@/hooks/react-query/roster'
 
 interface CreateShiftDialogProps {
   open: boolean

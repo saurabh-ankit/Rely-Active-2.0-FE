@@ -5,16 +5,14 @@ import { Eye } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
-import { useListEmployeeShifts } from '@/hooks/react-query/employeeShifts'
 import { useDepartmentsQuery } from '@/hooks/react-query/rbac'
-import { useListShiftEmployeeDates } from '@/hooks/react-query/shiftEmployeeDates'
 import { useUsersQuery } from '@/hooks/react-query/user'
-import type { EmployeeShiftAssignment } from '@/lib/services/employeeShiftService'
-import type { ShiftEmployeeDate } from '@/lib/services/shiftEmployeeDateService'
+import type { EmployeeShiftAssignment, ShiftEmployeeDate } from '@/lib/services/rosterService'
 import { useLocationStore } from '@/lib/stores/locationStore'
 import type { UserItem } from '@/lib/types'
 import { getUserDepartmentIds, getUserDisplayName, getUserRoleCodes } from '../../utils'
 import DepartmentFilter, { ALL_DEPARTMENTS } from './DepartmentFilter'
+import { useListEmployeeShifts, useListShiftEmployeeDates } from '@/hooks/react-query/roster'
 
 type EmployeeRow = {
   employeeId: string

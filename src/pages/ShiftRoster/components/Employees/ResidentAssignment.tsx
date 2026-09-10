@@ -10,15 +10,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useListEmployeeShifts } from '@/hooks/react-query/employeeShifts'
-import { useListShiftEmployeeDates } from '@/hooks/react-query/shiftEmployeeDates'
-import {
-  useCreateResidentPool,
-  useDeleteResidentPool,
-  useListResidentPools,
-} from '@/hooks/react-query/shiftResidentPools'
 import { useLocationStore } from '@/lib/stores/locationStore'
-import { getResidentsAPI } from '@/lib/services/residentService'
+import { getPropertyByIdAPI } from '@/lib/services/propertyService'
 import { useQuery } from '@tanstack/react-query'
 import {
   residentPoolFormDefaultValues,
@@ -26,6 +19,34 @@ import {
   type ResidentPoolFormValues,
 } from '@/utils/roster.utils'
 import { RosterPermission } from '../RosterPermission'
+import {
+  useListEmployeeShifts,
+  useListShiftEmployeeDates,
+  useCreateResidentPool,
+  useDeleteResidentPool,
+  useListResidentPools,
+} from '@/hooks/react-query/roster'
+
+type OccupiedFlatOption = {
+  id: string
+  label: string
+}
+
+const isOccupiedStatus = (status?: string | null) => {
+  const occ = (status || '').toString().toUpperCase()
+  return occ === 'OWNER_OCCUPIED' || occ === 'TENANT_OCCUPIED'
+}
+
+const formatPoolUnitLabel = (unit?: {
+  unit_number?: string
+  floor?: { floor_name?: string | null; floor_number?: number; block?: { block_name?: string } }
+}) => {
+  if (!unit) return null
+  const block = unit.floor?.block?.block_name
+  const floor = unit.floor?.floor_name || (unit.floor?.floor_number != null ? `Floor ${unit.floor.floor_number}` : null)
+  const unitNumber = unit.unit_number
+  return [block, floor, unitNumber].filter(Boolean).join(' · ') || null
+}
 
 const ResidentAssignment = () => {
   const { employeeId } = useParams<{ employeeId: string }>()
@@ -56,11 +77,42 @@ const ResidentAssignment = () => {
   )
   const pools = useMemo(() => (Array.isArray(poolsData?.data) ? poolsData.data : []), [poolsData])
 
-  const { data: residents = [] } = useQuery({
-    queryKey: ['residents', locationId],
-    queryFn: () => getResidentsAPI({ locId: locationId || undefined }),
+  const { data: property } = useQuery({
+    queryKey: ['property', locationId],
+    queryFn: () => getPropertyByIdAPI(locationId!),
     enabled: !!locationId,
   })
+
+  const occupiedFlats = useMemo(() => {
+    const options: OccupiedFlatOption[] = []
+    const blocks = (property?.blocks || []) as Array<{
+      block_name?: string
+      floors?: Array<{
+        floor_name?: string | null
+        floor_number?: number
+        units?: Array<{
+          id: string
+          unit_number?: string
+          occupancyStatus?: string
+          occupancy_status?: string
+        }>
+      }>
+    }>
+
+    for (const block of blocks) {
+      for (const floor of block.floors || []) {
+        for (const unit of floor.units || []) {
+          if (!unit.id || !unit.unit_number) continue
+          if (!isOccupiedStatus(unit.occupancyStatus || unit.occupancy_status)) continue
+          const floorLabel = floor.floor_name || (floor.floor_number != null ? `Floor ${floor.floor_number}` : null)
+          const label = [block.block_name, floorLabel, unit.unit_number].filter(Boolean).join(' · ')
+          options.push({ id: unit.id, label: label || unit.unit_number })
+        }
+      }
+    }
+
+    return options
+  }, [property])
 
   const createPool = useCreateResidentPool()
   const deletePool = useDeleteResidentPool()
@@ -80,7 +132,7 @@ const ResidentAssignment = () => {
     mode: 'onChange',
   })
 
-  const residentId = watch('residentId')
+  const unitId = watch('unitId')
 
   useEffect(() => {
     if (dialogOpen) reset(residentPoolFormDefaultValues)
@@ -90,7 +142,7 @@ const ResidentAssignment = () => {
     if (!activeShiftDateId) return
     await createPool.mutateAsync({
       shiftEmployeeDateId: activeShiftDateId,
-      residentId: values.residentId,
+      unitId: values.unitId,
       fromTime: values.fromTime || null,
       toTime: values.toTime || null,
     })
@@ -111,7 +163,7 @@ const ResidentAssignment = () => {
         <div>
           <h2 className="text-xl font-bold text-gray-900">Resident Assignment</h2>
           <p className="text-sm text-gray-500">
-            Assign residents to this employee&apos;s shift dates
+            Assign occupied flats to this employee&apos;s shift dates
             {assignmentIds.length === 0 ? ' · no assignments yet' : ''}
           </p>
         </div>
@@ -152,7 +204,7 @@ const ResidentAssignment = () => {
             onClick={() => setDialogOpen(true)}
           >
             <Plus className="h-4 w-4 mr-2" />
-            Add Resident
+            Add Flat
           </Button>
         </RosterPermission>
         <Button
@@ -166,7 +218,7 @@ const ResidentAssignment = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Assigned residents</CardTitle>
+          <CardTitle className="text-base">Assigned flats</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {!activeShiftDateId ? (
@@ -174,14 +226,14 @@ const ResidentAssignment = () => {
           ) : isLoading ? (
             <p className="text-sm text-gray-500">Loading…</p>
           ) : pools.length === 0 ? (
-            <p className="text-sm text-gray-500">No residents assigned for this shift date.</p>
+            <p className="text-sm text-gray-500">No flats assigned for this shift date.</p>
           ) : (
             pools.map((p) => {
-              const name = `${p.resident?.firstName || ''} ${p.resident?.lastName || ''}`.trim() || p.residentId
+              const label = formatPoolUnitLabel(p.unit) || p.unitId
               return (
                 <div key={p.id} className="flex items-center justify-between border rounded-lg p-3">
                   <div>
-                    <p className="font-medium text-gray-900">{name}</p>
+                    <p className="font-medium text-gray-900">{label}</p>
                     <p className="text-xs text-gray-500">
                       {p.fromTime && p.toTime ? `${p.fromTime} – ${p.toTime}` : 'Full shift'}
                     </p>
@@ -201,30 +253,36 @@ const ResidentAssignment = () => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Resident</DialogTitle>
+            <DialogTitle>Add Flat</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
             <div className="space-y-2">
-              <Label>Resident</Label>
+              <Label>Occupied flat</Label>
               <Controller
-                name="residentId"
+                name="unitId"
                 control={control}
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select resident" />
+                      <SelectValue placeholder="Select occupied flat" />
                     </SelectTrigger>
                     <SelectContent>
-                      {residents.map((r) => (
-                        <SelectItem key={r.id} value={r.id}>
-                          {`${r.firstName || ''} ${r.lastName || ''}`.trim() || r.id}
+                      {occupiedFlats.length === 0 ? (
+                        <SelectItem value="__none" disabled>
+                          No occupied flats
                         </SelectItem>
-                      ))}
+                      ) : (
+                        occupiedFlats.map((flat) => (
+                          <SelectItem key={flat.id} value={flat.id}>
+                            {flat.label}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 )}
               />
-              {errors.residentId && <p className="text-sm text-red-600">{errors.residentId.message}</p>}
+              {errors.unitId && <p className="text-sm text-red-600">{errors.unitId.message}</p>}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
@@ -244,7 +302,7 @@ const ResidentAssignment = () => {
               </Button>
               <Button
                 type="submit"
-                disabled={!residentId || createPool.isPending}
+                disabled={!unitId || createPool.isPending}
                 className="bg-[#2a517c] hover:bg-[#476587] text-white"
               >
                 Add

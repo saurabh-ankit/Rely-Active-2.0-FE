@@ -202,17 +202,25 @@ export interface SwapShiftDatesPayload {
 export interface ShiftResidentPoolEntry {
   id: string
   shiftEmployeeDateId: string
-  residentId: string
+  unitId: string
   fromTime?: string | null
   toTime?: string | null
   notes?: string | null
   locationId: string
   isDeleted?: boolean
-  resident?: {
+  unit?: {
     id: string
-    firstName?: string
-    lastName?: string
-    unitId?: string
+    unit_number?: string
+    occupancyStatus?: string
+    floor?: {
+      id: string
+      floor_name?: string | null
+      floor_number?: number
+      block?: {
+        id: string
+        block_name?: string
+      }
+    }
   }
   shiftEmployeeDate?: {
     id: string
@@ -230,7 +238,7 @@ export interface ShiftResidentPoolEntry {
 
 export interface CreateResidentPoolPayload {
   shiftEmployeeDateId: string
-  residentId: string
+  unitId: string
   fromTime?: string | null
   toTime?: string | null
   notes?: string | null

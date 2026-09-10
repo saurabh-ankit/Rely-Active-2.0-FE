@@ -23,14 +23,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { useBulkCreateEmployeeShifts, useListEmployeeShifts } from '@/hooks/react-query/employeeShifts'
 import { useDepartmentsQuery } from '@/hooks/react-query/rbac'
-import { useListAreas } from '@/hooks/react-query/roster'
-import { useListShifts } from '@/hooks/react-query/shifts'
 import { useUsersQuery } from '@/hooks/react-query/user'
 import { getPropertyByIdAPI } from '@/lib/services/propertyService'
-import type { EmployeeShiftAssignment, WeekDay } from '@/lib/services/employeeShiftService'
-import type { ShiftV2 } from '@/lib/services/shiftService'
+import type { EmployeeShiftAssignment, ShiftV2, WeekDay } from '@/lib/services/rosterService'
 import type { UserItem } from '@/lib/types'
 import { useLocationStore } from '@/lib/stores/locationStore'
 import { assignShiftFormDefaultValues, assignShiftFormSchema, type AssignShiftFormValues } from '@/utils/roster.utils'
@@ -48,6 +44,12 @@ import {
   WEEK_DAYS,
   weekdaysInDateRange,
 } from '../../utils'
+import {
+  useBulkCreateEmployeeShifts,
+  useListEmployeeShifts,
+  useListAreas,
+  useListShifts,
+} from '@/hooks/react-query/roster'
 
 interface AssignShiftDialogProps {
   open: boolean

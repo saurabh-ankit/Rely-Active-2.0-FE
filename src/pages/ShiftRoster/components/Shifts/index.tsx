@@ -9,15 +9,17 @@ import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import StatCard from '@/pages/AssetManagement/components/StatCard'
 import StatsGrid from '@/pages/AssetManagement/components/StatsGrid'
-import { useListEmployeeShifts } from '@/hooks/react-query/employeeShifts'
-import { useListShiftEmployeeDates } from '@/hooks/react-query/shiftEmployeeDates'
-import { useListAreas } from '@/hooks/react-query/roster'
-import { useDeleteShift, useListShifts } from '@/hooks/react-query/shifts'
-import type { ShiftEmployeeDate } from '@/lib/services/shiftEmployeeDateService'
-import type { ShiftV2 } from '@/lib/services/shiftService'
+import type { ShiftEmployeeDate, ShiftV2 } from '@/lib/services/rosterService'
 import { RosterPermission } from '../RosterPermission'
 import CreateShiftDialog from '../dialogs/CreateShiftDialog'
 import ManageSlotTimeDialog from '../dialogs/ManageSlotTimeDialog'
+import {
+  useListEmployeeShifts,
+  useListShiftEmployeeDates,
+  useListAreas,
+  useDeleteShift,
+  useListShifts,
+} from '@/hooks/react-query/roster'
 
 const RosterCalendar = lazy(() => import('../Roster/RosterCalendar'))
 const EmployeesList = lazy(() => import('../Employees/EmployeesList'))

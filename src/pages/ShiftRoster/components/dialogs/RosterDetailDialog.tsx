@@ -9,17 +9,14 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  useCoverShiftDate,
-  useCreateShiftEmployeeDate,
-  useListShiftEmployeeDates,
-  useMarkDayOff,
-  useSwapShiftDates,
-  useUnmarkDayOff,
-} from '@/hooks/react-query/shiftEmployeeDates'
 import { useUsersQuery } from '@/hooks/react-query/user'
-import type { EmployeeShiftAssignment, WeekDay } from '@/lib/services/employeeShiftService'
-import type { LeaveType, ShiftEmployeeDate, ShiftEmployeeDateStatus } from '@/lib/services/shiftEmployeeDateService'
+import type {
+  EmployeeShiftAssignment,
+  LeaveType,
+  ShiftEmployeeDate,
+  ShiftEmployeeDateStatus,
+  WeekDay,
+} from '@/lib/services/rosterService'
 import { useLocationStore } from '@/lib/stores/locationStore'
 import type { UserItem } from '@/lib/types'
 import {
@@ -43,6 +40,14 @@ import {
   resolveAssignmentWindow,
   usersShareDepartment,
 } from '../../utils'
+import {
+  useCoverShiftDate,
+  useCreateShiftEmployeeDate,
+  useListShiftEmployeeDates,
+  useMarkDayOff,
+  useSwapShiftDates,
+  useUnmarkDayOff,
+} from '@/hooks/react-query/roster'
 
 export interface RosterCalendarEvent {
   id: string

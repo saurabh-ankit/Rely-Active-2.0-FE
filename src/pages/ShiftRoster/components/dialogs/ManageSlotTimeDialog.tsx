@@ -7,8 +7,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useUpdateShift } from '@/hooks/react-query/shifts'
-import type { ShiftV2 } from '@/lib/services/shiftService'
+import type { ShiftV2 } from '@/lib/services/rosterService'
 import {
   manageSlotTimeFormDefaultValues,
   manageSlotTimeFormSchema,
@@ -20,6 +19,7 @@ import {
   generateSlotsByCount,
   getShiftDurationMinutes,
 } from '../../utils'
+import { useUpdateShift } from '@/hooks/react-query/roster'
 
 type SlotMode = ManageSlotTimeFormValues['mode']
 

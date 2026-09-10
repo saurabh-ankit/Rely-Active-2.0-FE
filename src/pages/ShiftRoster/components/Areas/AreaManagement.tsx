@@ -3,10 +3,10 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
-import { useDeleteArea, useListAreas } from '@/hooks/react-query/roster'
 import type { RosterArea } from '@/lib/services/rosterService'
 import { RosterPermission } from '../RosterPermission'
 import AddAreaDialog from '../dialogs/AddAreaDialog'
+import { useDeleteArea, useListAreas } from '@/hooks/react-query/roster'
 
 const AreaManagement = () => {
   const { data, isLoading } = useListAreas({ page: 1, limit: 100 })

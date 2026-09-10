@@ -12,12 +12,9 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useDeleteEmployeeShift, useListEmployeeShifts } from '@/hooks/react-query/employeeShifts'
-import { useListShiftEmployeeDates, useUnmarkDayOff } from '@/hooks/react-query/shiftEmployeeDates'
 import { useDepartmentsQuery } from '@/hooks/react-query/rbac'
 import { useUsersQuery } from '@/hooks/react-query/user'
-import type { EmployeeShiftAssignment } from '@/lib/services/employeeShiftService'
-import type { ShiftEmployeeDate } from '@/lib/services/shiftEmployeeDateService'
+import type { EmployeeShiftAssignment, ShiftEmployeeDate } from '@/lib/services/rosterService'
 import { useLocationStore } from '@/lib/stores/locationStore'
 import {
   getUserDepartmentName,
@@ -28,6 +25,12 @@ import {
 } from '../../utils'
 import RosterDetailDialog, { type RosterCalendarEvent } from '../dialogs/RosterDetailDialog'
 import RosterShiftCard, { type RosterCardAction } from '../Roster/RosterShiftCard'
+import {
+  useDeleteEmployeeShift,
+  useListEmployeeShifts,
+  useListShiftEmployeeDates,
+  useUnmarkDayOff,
+} from '@/hooks/react-query/roster'
 
 const ROSTER_PAGE_SIZE = 9
 const ALL_STATUS = 'all'

@@ -178,7 +178,7 @@ export const swapFormDefaultValues: SwapFormValues = {
 
 export const residentPoolFormSchema = z
   .object({
-    residentId: z.string().min(1, 'Resident is required'),
+    unitId: z.string().min(1, 'Flat is required'),
     fromTime: z.string().optional().or(z.literal('')),
     toTime: z.string().optional().or(z.literal('')),
   })
@@ -209,7 +209,7 @@ export const residentPoolFormSchema = z
 export type ResidentPoolFormValues = z.infer<typeof residentPoolFormSchema>
 
 export const residentPoolFormDefaultValues: ResidentPoolFormValues = {
-  residentId: '',
+  unitId: '',
   fromTime: '',
   toTime: '',
 }
