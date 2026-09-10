@@ -21,6 +21,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import api from '@/lib/api/axios'
+import { useLocationContext } from '@/hooks/useLocation'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { useScrollLock } from '@/hooks/useScrollLock'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -163,6 +164,8 @@ export function FnbPropertySettingsScreen({
   initialViewMode = 'unit',
   hideSubHeader = false,
 }: FnbPropertySettingsScreenProps) {
+  const { hasResourcePermission } = useLocationContext()
+  const canUpdateFnb = hasResourcePermission('FNB', 'update')
   const [globalPackages, setGlobalPackages] = useState<GlobalPackage[]>([])
   const [propertyPackages, setPropertyPackages] = useState<PropertyPackage[]>([])
   const [propertyMealSlots, setPropertyMealSlots] = useState<PropertyMealSlot[]>([])
@@ -1175,24 +1178,26 @@ export function FnbPropertySettingsScreen({
                               </div>
                             </td>
                             <td className="py-4 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                type="button"
-                                disabled={isOpted}
-                                onClick={() => handleOpenEditModal(gPkg, assigned)}
-                                title={
-                                  isOpted
-                                    ? 'Pricing cannot be modified while residents are currently opted into this package'
-                                    : 'Edit pricing'
-                                }
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition-colors shadow-xs ${
-                                  isOpted
-                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
-                                    : 'bg-[#005390] text-white hover:bg-[#004070] cursor-pointer'
-                                }`}
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                                {assigned ? 'Edit Pricing' : 'Configure Pricing'}
-                              </button>
+                              {canUpdateFnb && (
+                                <button
+                                  type="button"
+                                  disabled={isOpted}
+                                  onClick={() => handleOpenEditModal(gPkg, assigned)}
+                                  title={
+                                    isOpted
+                                      ? 'Pricing cannot be modified while residents are currently opted into this package'
+                                      : 'Edit pricing'
+                                  }
+                                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition-colors shadow-xs ${
+                                    isOpted
+                                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                                      : 'bg-[#005390] text-white hover:bg-[#004070] cursor-pointer'
+                                  }`}
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                  {assigned ? 'Edit Pricing' : 'Configure Pricing'}
+                                </button>
+                              )}
                             </td>
                           </tr>
 
@@ -1335,35 +1340,37 @@ export function FnbPropertySettingsScreen({
                                                       Cancelled
                                                     </span>
                                                   ) : (
-                                                    <>
-                                                      <button
-                                                        type="button"
-                                                        onClick={() => handleTogglePause(sub)}
-                                                        disabled={actionLoading === sub.id}
-                                                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-50 ${
-                                                          isPaused
-                                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                                                            : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
-                                                        }`}
-                                                      >
-                                                        {isPaused ? (
-                                                          <>
-                                                            <Play className="w-3 h-3" /> Resume
-                                                          </>
-                                                        ) : (
-                                                          <>
-                                                            <Pause className="w-3 h-3" /> Pause
-                                                          </>
-                                                        )}
-                                                      </button>
-                                                      <button
-                                                        type="button"
-                                                        onClick={() => handleOpenChangeModal(sub)}
-                                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-[#005390] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
-                                                      >
-                                                        <RefreshCw className="w-3 h-3" /> Change Package
-                                                      </button>
-                                                    </>
+                                                    canUpdateFnb && (
+                                                      <>
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => handleTogglePause(sub)}
+                                                          disabled={actionLoading === sub.id}
+                                                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-50 ${
+                                                            isPaused
+                                                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                                              : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                                                          }`}
+                                                        >
+                                                          {isPaused ? (
+                                                            <>
+                                                              <Play className="w-3 h-3" /> Resume
+                                                            </>
+                                                          ) : (
+                                                            <>
+                                                              <Pause className="w-3 h-3" /> Pause
+                                                            </>
+                                                          )}
+                                                        </button>
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => handleOpenChangeModal(sub)}
+                                                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-[#005390] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
+                                                        >
+                                                          <RefreshCw className="w-3 h-3" /> Change Package
+                                                        </button>
+                                                      </>
+                                                    )
                                                   )}
                                                 </td>
                                               </tr>
@@ -1527,13 +1534,15 @@ export function FnbPropertySettingsScreen({
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleOpenMealSlotModal(slot)}
-                    className="w-full py-2 bg-white hover:bg-blue-50 text-[#005390] border border-blue-200 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" /> Override Timings & Price
-                  </button>
+                  {canUpdateFnb && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenMealSlotModal(slot)}
+                      className="w-full py-2 bg-white hover:bg-blue-50 text-[#005390] border border-blue-200 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" /> Override Timings & Price
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -1576,13 +1585,15 @@ export function FnbPropertySettingsScreen({
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => handleOpenSpecialSlotModal(spSlot)}
-                        className="w-full py-2 bg-white hover:bg-amber-100/70 text-amber-900 border border-amber-300 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" /> Override Special Price
-                      </button>
+                      {canUpdateFnb && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenSpecialSlotModal(spSlot)}
+                          className="w-full py-2 bg-white hover:bg-amber-100/70 text-amber-900 border border-amber-300 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" /> Override Special Price
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>

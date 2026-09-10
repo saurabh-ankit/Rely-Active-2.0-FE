@@ -164,6 +164,9 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
   const [selectedPropertyIds, setSelectedPropertyIds] = useState<Set<string>>(new Set())
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [propertySelectionError, setPropertySelectionError] = useState<string | null>(null)
+  const [selectedDepartmentFilter, setSelectedDepartmentFilter] = useState('ALL')
+  const [selectedJobCategoryFilter, setSelectedJobCategoryFilter] = useState('ALL')
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState('ALL')
 
   // React Hook Form + Zod
   const {
@@ -932,6 +935,11 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
     )
   }
 
+  const availableFilterCategories =
+    selectedDepartmentFilter !== 'ALL'
+      ? departments.find((d) => d.id === selectedDepartmentFilter)?.jobCategories || []
+      : departments.flatMap((d) => d.jobCategories || [])
+
   const displayUsers = users.filter((u) => {
     if (u.username === 'superadmin') return false
     const uRecord = u as unknown as Record<string, unknown>
@@ -940,7 +948,38 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
     const isSa =
       u.userLocations?.some((ul) => ul.role?.code === 'SUPER_ADMIN') ||
       u.userRoles?.some((ur) => ur.role?.code === 'SUPER_ADMIN')
-    return !isSa
+    if (isSa) return false
+
+    if (selectedDepartmentFilter !== 'ALL') {
+      const hasDept = u.userLocations?.some((ul) => {
+        const ulRec = ul as Record<string, unknown>
+        const dId =
+          ul.departmentId ||
+          (ulRec.department_id as string) ||
+          (ulRec.departmentId as string) ||
+          (ul.department as { id?: string } | undefined)?.id
+        return dId === selectedDepartmentFilter
+      })
+      if (!hasDept) return false
+    }
+
+    if (selectedJobCategoryFilter !== 'ALL') {
+      const hasCat = u.userLocations?.some((ul) => {
+        const ulRec = ul as Record<string, unknown>
+        const cId =
+          ul.jobCategoryId ||
+          (ulRec.job_category_id as string) ||
+          (ulRec.jobCategoryId as string) ||
+          (ul.jobCategory as { id?: string } | undefined)?.id
+        return cId === selectedJobCategoryFilter
+      })
+      if (!hasCat) return false
+    }
+
+    if (selectedStatusFilter === 'ACTIVE' && (!u.isActive || u.status !== 'ACTIVE')) return false
+    if (selectedStatusFilter === 'INACTIVE' && u.isActive && u.status === 'ACTIVE') return false
+
+    return true
   })
 
   const userColumns: ColumnDef<UserItem>[] = [
@@ -956,7 +995,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
 
         return (
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#005390]/10 text-[#005390] flex items-center justify-center font-bold text-xs">
+            <div className="w-9 h-9 rounded-full bg-[#005390]/10 text-[#005390] flex items-center justify-center font-bold text-xs shrink-0">
               {fullName.charAt(0).toUpperCase()}
             </div>
             <div>
@@ -974,10 +1013,72 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
         const u = row.original
         return (
           <div>
-            <div className="text-gray-800 font-semibold">{u.email || u.phone || u.profile?.phone || 'N/A'}</div>
+            <div className="text-gray-800 font-semibold text-xs">{u.email || u.phone || u.profile?.phone || 'N/A'}</div>
             {(u.phone || u.profile?.phone) && u.email && (
               <div className="text-[10px] text-gray-400">{u.phone || u.profile?.phone}</div>
             )}
+          </div>
+        )
+      },
+    },
+    {
+      id: 'departmentCategory',
+      header: 'Dept & Job Category',
+      cell: ({ row }) => {
+        const u = row.original
+        const pairs: Array<{ deptName?: string; catName?: string }> = []
+
+        u.userLocations?.forEach((ul) => {
+          const ulRec = ul as Record<string, unknown>
+          const deptObj = (ul.department || ulRec.department) as { name?: string; id?: string } | undefined
+          const catObj = (ul.jobCategory || ulRec.jobCategory) as { name?: string; id?: string } | undefined
+
+          let deptName = deptObj?.name || (ul.departmentName as string) || (ulRec.departmentName as string)
+          const deptId =
+            deptObj?.id || ul.departmentId || (ulRec.department_id as string) || (ulRec.departmentId as string)
+
+          let catName = catObj?.name || (ul.jobCategoryName as string) || (ulRec.jobCategoryName as string)
+          const catId =
+            catObj?.id || ul.jobCategoryId || (ulRec.job_category_id as string) || (ulRec.jobCategoryId as string)
+
+          if (!deptName && deptId) {
+            const foundDept = departments.find((d) => d.id === deptId)
+            if (foundDept) deptName = foundDept.name
+          }
+          if (!catName && catId) {
+            for (const d of departments) {
+              const foundCat = d.jobCategories?.find((jc) => jc.id === catId)
+              if (foundCat) {
+                catName = foundCat.name
+                if (!deptName) deptName = d.name
+                break
+              }
+            }
+          }
+
+          if (deptName || catName) {
+            if (!pairs.some((p) => p.deptName === deptName && p.catName === catName)) {
+              pairs.push({ deptName, catName })
+            }
+          }
+        })
+
+        if (pairs.length === 0) {
+          return <span className="text-xs text-gray-400">N/A</span>
+        }
+
+        return (
+          <div className="space-y-1">
+            {pairs.map((p, idx) => (
+              <div key={idx} className="space-y-0.5">
+                {p.deptName && <div className="text-xs font-bold text-gray-900">{p.deptName}</div>}
+                {p.catName && (
+                  <span className="inline-block text-[10px] font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200">
+                    {p.catName}
+                  </span>
+                )}
+              </div>
+            ))}
           </div>
         )
       },
@@ -1218,6 +1319,48 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Search employees by name, code, phone, or email..."
+        filterActions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              value={selectedDepartmentFilter}
+              onChange={(e) => {
+                setSelectedDepartmentFilter(e.target.value)
+                setSelectedJobCategoryFilter('ALL')
+              }}
+              className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
+            >
+              <option value="ALL">All Departments</option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={dept.id}>
+                  {dept.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={selectedJobCategoryFilter}
+              onChange={(e) => setSelectedJobCategoryFilter(e.target.value)}
+              className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
+            >
+              <option value="ALL">All Job Categories</option>
+              {availableFilterCategories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={selectedStatusFilter}
+              onChange={(e) => setSelectedStatusFilter(e.target.value)}
+              className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+            </select>
+          </div>
+        }
       />
     </div>
   )

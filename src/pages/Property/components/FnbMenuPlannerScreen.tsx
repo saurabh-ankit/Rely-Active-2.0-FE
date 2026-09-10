@@ -17,9 +17,12 @@ import {
   Plus,
   Clock,
 } from 'lucide-react'
-import api from '@/lib/api/axios'
 import { getFileUrl } from '@/lib/utils'
 import { notifyError, notifySuccess } from '@/utils/toast'
+import { generateUUID } from '@/utils/uuid'
+import { fnbService } from '@/lib/services/fnbService'
+import { useLocationContext } from '@/hooks/useLocation'
+
 import {
   Dialog,
   DialogContent,
@@ -216,6 +219,8 @@ const getWeekDates = (referenceDateStr: string): { dateStr: string; dayOfWeek: D
 }
 
 export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
+  const { hasResourcePermission } = useLocationContext()
+  const canUpdateFnb = hasResourcePermission('FNB', 'update')
   const [selectedMenu, setSelectedMenu] = useState<Menu | null>(null)
   const [dishes, setDishes] = useState<Dish[]>([])
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
@@ -351,10 +356,10 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
     try {
       setLoading(true)
       const [mRes, dRes, slotsRes, specialSlotsRes] = await Promise.all([
-        api.get(`/fnb/menus?locId=${locId}`),
-        api.get(`/fnb/properties/${locId}/dishes`),
-        api.get(`/fnb/property-meal-slots?locId=${locId}`),
-        api.get(`/fnb/property-special-slots?locId=${locId}`).catch(() => ({ data: { success: false } })),
+        fnbService.getMenus(locId),
+        fnbService.getPropertyDishes(locId),
+        fnbService.getPropertyMealSlots(locId),
+        fnbService.getPropertySpecialSlots(locId).catch(() => ({ data: { success: false } })),
       ])
 
       if (specialSlotsRes.data?.success) {
@@ -478,7 +483,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
     }
 
     const newItem: MenuItem = {
-      id: `temp-${crypto.randomUUID()}`,
+      id: `temp-${generateUUID()}`,
       locId,
       dayOfWeek: activeBaseDay,
       date: null,
@@ -514,7 +519,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
         }
 
         const newDishItem: PropertySpecialSlotDishInfo = {
-          id: `temp-${crypto.randomUUID()}`,
+          id: `temp-${generateUUID()}`,
           propertySpecialSlotId,
           locId,
           dishId,
@@ -578,7 +583,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
     }
 
     const newItem: MenuItem = {
-      id: `temp-${crypto.randomUUID()}`,
+      id: `temp-${generateUUID()}`,
       locId,
       dayOfWeek: targetDayOfWeek,
       date: selectedDateForModal,
@@ -624,7 +629,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
   const handlePublishMenu = async () => {
     try {
       setPublishing(true)
-      const res = await api.post('/fnb/menus', {
+      const res = await fnbService.createMenu({
         locId,
         title: selectedMenu?.title || 'Location Food Menu',
         status: 'published',
@@ -651,7 +656,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
           dishId: d.dishId,
           price: d.price || 0,
         }))
-        await api.post('/fnb/property-special-slots/sync-dishes', {
+        await fnbService.syncSpecialSlotDishes({
           propertySpecialSlotId: spSlot.id,
           locId,
           dishes: dishesToSync,
@@ -726,14 +731,8 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
 
                   {/* Popover Calendar Date Picker */}
                   <Popover open={isCalendarPopoverOpen} onOpenChange={setIsCalendarPopoverOpen}>
-                    <PopoverTrigger>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border-blue-200 bg-blue-50/80 text-[#005390] hover:bg-blue-100 transition-colors cursor-pointer shadow-2xs"
-                      >
-                        <CalendarIcon className="w-4 h-4 text-[#005390]" /> Select Date from Calendar
-                      </Button>
+                    <PopoverTrigger className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border border-blue-200 bg-blue-50/80 text-[#005390] hover:bg-blue-100 transition-colors cursor-pointer shadow-2xs">
+                      <CalendarIcon className="w-4 h-4 text-[#005390]" /> Select Date from Calendar
                     </PopoverTrigger>
                     <PopoverContent
                       className="w-auto p-3 bg-white rounded-2xl shadow-xl border border-gray-200"
@@ -766,48 +765,54 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                     }
 
                     return (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => handleOpenDateCustomizer(activeSelectedDate)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer shadow-2xs"
-                      >
-                        <Edit3 className="w-4 h-4 text-[#005390]" />
-                        {btnLabel}
-                      </Button>
+                      canUpdateFnb && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => handleOpenDateCustomizer(activeSelectedDate)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer shadow-2xs"
+                        >
+                          <Edit3 className="w-4 h-4 text-[#005390]" />
+                          {btnLabel}
+                        </Button>
+                      )
                     )
                   })()}
 
                   {(() => {
                     const isAlreadyPublished = selectedMenu?.status === 'published' && !hasUnpublishedChanges
                     const isMenuEmpty = menuItems.length === 0
-                    const isDisabled = isMenuEmpty || isAlreadyPublished
+                    const isDisabled = !canUpdateFnb || isMenuEmpty || isAlreadyPublished
 
                     let tooltipTitle = ''
-                    if (isAlreadyPublished) {
+                    if (!canUpdateFnb) {
+                      tooltipTitle = 'You have read-only access to F&B.'
+                    } else if (isAlreadyPublished) {
                       tooltipTitle = 'Menu is already published.'
                     } else if (isMenuEmpty) {
                       tooltipTitle = 'Add at least 1 dish to menu before reviewing or publishing'
                     }
 
                     return (
-                      <Button
-                        type="button"
-                        disabled={isDisabled}
-                        onClick={() => setIsReviewModalOpen(true)}
-                        className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs ${
-                          isAlreadyPublished
-                            ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-70 shadow-none'
-                            : isMenuEmpty
-                              ? 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60'
-                              : hasUnpublishedChanges || selectedMenu?.status === 'draft'
-                                ? 'bg-amber-600 text-white hover:bg-amber-700 animate-pulse cursor-pointer'
-                                : 'bg-[#005390] text-white hover:bg-[#004070] cursor-pointer'
-                        }`}
-                        title={tooltipTitle}
-                      >
-                        <Eye className="w-4 h-4" /> Review & Publish Menu
-                      </Button>
+                      canUpdateFnb && (
+                        <Button
+                          type="button"
+                          disabled={isDisabled}
+                          onClick={() => setIsReviewModalOpen(true)}
+                          className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs ${
+                            isAlreadyPublished
+                              ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-70 shadow-none'
+                              : isMenuEmpty
+                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60'
+                                : hasUnpublishedChanges || selectedMenu?.status === 'draft'
+                                  ? 'bg-amber-600 text-white hover:bg-amber-700 animate-pulse cursor-pointer'
+                                  : 'bg-[#005390] text-white hover:bg-[#004070] cursor-pointer'
+                          }`}
+                          title={tooltipTitle}
+                        >
+                          <Eye className="w-4 h-4" /> Review & Publish Menu
+                        </Button>
+                      )
                     )
                   })()}
                 </div>
@@ -1055,7 +1060,8 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                             </div>
                           </div>
                         </div>
-                        {!isPreviewingCustomOverride &&
+                        {canUpdateFnb &&
+                          !isPreviewingCustomOverride &&
                           (propertyMealSlots.length > 0 || propertySpecialSlots.length > 0) && (
                             <Popover>
                               <PopoverTrigger
@@ -1283,7 +1289,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                                             </div>
                                           </div>
                                         </div>
-                                        {!isPreviewingCustomOverride && (
+                                        {canUpdateFnb && !isPreviewingCustomOverride && (
                                           <button
                                             type="button"
                                             onClick={() => handleDeleteMenuItem(item.id)}

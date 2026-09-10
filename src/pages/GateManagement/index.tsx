@@ -20,7 +20,8 @@ import {
   getGatePreapproveds,
   updateGateEntryStatus,
   addGateEntryItems,
-} from '@/lib/api/gate'
+} from '@/lib/services/gateService'
+import type { GateEntry, GatePreapproved, GateStats } from '@/lib/types'
 
 interface StatCardProps {
   title: string
@@ -44,10 +45,11 @@ const StatCard = ({ title, value, icon: Icon, colorClass }: StatCardProps) => (
 )
 
 export default function GateManagementPage() {
-  const { selectedLocationId } = useLocationContext()
-  const [stats, setStats] = useState<Record<string, number> | null>(null)
-  const [entries, setEntries] = useState<any[]>([])
-  const [preapproved, setPreapproved] = useState<any[]>([])
+  const { selectedLocationId, hasResourcePermission } = useLocationContext()
+  const canUpdateGNS = hasResourcePermission('GNS', 'update')
+  const [stats, setStats] = useState<GateStats | null>(null)
+  const [entries, setEntries] = useState<GateEntry[]>([])
+  const [preapproved, setPreapproved] = useState<GatePreapproved[]>([])
   const [activeTab, setActiveTab] = useState<'ENTRIES' | 'INVITES'>('ENTRIES')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -453,7 +455,7 @@ export default function GateManagementPage() {
                         {entry.clockedOutAt ? `Out: ${new Date(entry.clockedOutAt).toLocaleTimeString()}` : ''}
                       </td>
                       <td className="py-4 px-2">
-                        {entry.status === 'PendingApproval' && (
+                        {canUpdateGNS && entry.status === 'PendingApproval' && (
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleUpdateStatus(entry, 'Approved')}
@@ -471,7 +473,7 @@ export default function GateManagementPage() {
                             </button>
                           </div>
                         )}
-                        {entry.status === 'Inside' && (
+                        {canUpdateGNS && entry.status === 'Inside' && (
                           <div className="flex flex-col gap-2 items-start">
                             <button
                               onClick={() => initiateForceCheckout(entry)}

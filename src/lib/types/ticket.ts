@@ -102,6 +102,18 @@ export interface TicketActivityLog {
   performedByUser?: TicketUserRef | null
 }
 
+export interface TicketCompletionData {
+  invoiceNumber?: string | null
+  amount?: number | string | null
+  invoiceUrl?: string | null
+  photos?: string[]
+  audioUrl?: string | null
+  completedAt?: string | null
+  completedByUserId?: string | null
+  completedByName?: string | null
+  resolutionNotes?: string | null
+}
+
 export interface Ticket {
   id: string
   ticketNumber: string
@@ -130,7 +142,7 @@ export interface Ticket {
   resolvedAt?: string | null
   closedAt?: string | null
   resolutionNotes?: string | null
-  attachments?: string[] | null
+  attachments?: string[] | Record<string, unknown> | null
   createdAt: string
   updatedAt: string
   property?: TicketPropertyRef | null

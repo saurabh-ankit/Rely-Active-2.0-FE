@@ -512,6 +512,7 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                                         <th className="py-2 font-bold">Residing Status</th>
                                         <th className="py-2 font-bold">Mobile Handle</th>
                                         <th className="py-2 font-bold">Contact</th>
+                                        <th className="py-2 font-bold">Rent & Billing</th>
                                         <th className="py-2 font-bold text-right pr-4">Actions</th>
                                       </tr>
                                     </thead>
@@ -632,6 +633,30 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                                               <span className="text-xs text-gray-800 dark:text-gray-200 font-semibold">
                                                 {occ.phone || 'N/A'}
                                               </span>
+                                            </td>
+
+                                            {/* Rent & Billing */}
+                                            <td className="py-2.5">
+                                              {occ.residentType === 'TENANT' ? (
+                                                <div className="flex flex-col gap-0.5">
+                                                  <span className="text-xs font-extrabold text-gray-900 dark:text-white">
+                                                    {occ.rentAmount !== undefined && occ.rentAmount !== null
+                                                      ? `₹${Number(occ.rentAmount).toLocaleString('en-IN')}`
+                                                      : 'Rent Not Set'}
+                                                  </span>
+                                                  {occ.payRentToCompany ? (
+                                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-md dark:bg-blue-950 dark:text-blue-300 w-max">
+                                                      Company Billing
+                                                    </span>
+                                                  ) : (
+                                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md dark:bg-amber-950 dark:text-amber-300 w-max">
+                                                      Direct to Owner
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              ) : (
+                                                <span className="text-gray-400 text-xs">-</span>
+                                              )}
                                             </td>
 
                                             {/* Actions Dropdown / Menu */}

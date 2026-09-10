@@ -16,6 +16,20 @@ interface RoleModuleManagementProps {
   onClose?: () => void
 }
 
+const SIDEBAR_RESOURCE_ORDER: Record<string, number> = {
+  RESIDENT: 1,
+  EMPLOYEE: 2,
+  ROSTER: 3,
+  TICKETS: 4,
+  GNS: 5,
+  INVENTORY: 6,
+  ASSET: 7,
+  MEDICAL: 8,
+  FNB: 9,
+  BILLING: 10,
+  EVENTS: 11,
+}
+
 export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ initialUser, onClose }) => {
   const { userId: targetParamUserId } = useParams<{ userId?: string }>()
   const targetUserId = initialUser?.id || targetParamUserId
@@ -25,6 +39,15 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
   const { data: rData = [] } = useResourcesQuery()
   const { data: pData = [] } = usePropertiesQuery()
   const saveLocationPermissionsMutation = useSaveUserLocationPermissionsMutation()
+
+  const sortedResources = React.useMemo(() => {
+    return [...rData].sort((a, b) => {
+      const orderA = SIDEBAR_RESOURCE_ORDER[a.key] ?? 999
+      const orderB = SIDEBAR_RESOURCE_ORDER[b.key] ?? 999
+      if (orderA !== orderB) return orderA - orderB
+      return a.name.localeCompare(b.name)
+    })
+  }, [rData])
 
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(initialUser || null)
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('')
@@ -305,7 +328,7 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {rData.map((r) => {
+              {sortedResources.map((r) => {
                 const isAllRowChecked = ['view', 'create', 'update', 'delete'].every((act) =>
                   activePermissions.has(`${r.key}:${act}`),
                 )
