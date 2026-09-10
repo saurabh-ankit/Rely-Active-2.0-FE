@@ -83,6 +83,81 @@ function parseTicketCompletion(ticket: Ticket | null): ParsedCompletion | null {
   }
 }
 
+interface ParsedTicketMedia {
+  notes: string | null
+  audioUrl: string | null
+  photos: string[]
+}
+
+function parseTicketMedia(ticket: Ticket | null): ParsedTicketMedia {
+  if (!ticket) return { notes: null, audioUrl: null, photos: [] }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let atts: any = ticket.attachments
+  if (typeof atts === 'string') {
+    try {
+      atts = JSON.parse(atts)
+    } catch {
+      atts = null
+    }
+  }
+
+  // 1. Resident note / message
+  const desc = ticket.description ? ticket.description.trim() : ''
+  const title = ticket.title ? ticket.title.trim() : ''
+  const attsNotes = (atts?.notes || atts?.note || atts?.message || '').trim()
+
+  let notes: string | null = null
+  if (desc && desc.toLowerCase() !== title.toLowerCase()) {
+    notes = desc
+  } else if (attsNotes && attsNotes.toLowerCase() !== title.toLowerCase()) {
+    notes = attsNotes
+  } else if (
+    desc &&
+    !desc.toLowerCase().startsWith('repair & maintenance') &&
+    !desc.toLowerCase().startsWith('concierge')
+  ) {
+    notes = desc
+  } else if (
+    attsNotes &&
+    !attsNotes.toLowerCase().startsWith('repair & maintenance') &&
+    !attsNotes.toLowerCase().startsWith('concierge')
+  ) {
+    notes = attsNotes
+  }
+
+  // 2. Voice note / audio
+  const audioUrl: string | null =
+    atts?.audioUrl ||
+    atts?.voiceUrl ||
+    atts?.voiceNote ||
+    atts?.audio ||
+    atts?.voice ||
+    (typeof atts?.completion?.audioUrl === 'string' ? atts.completion.audioUrl : null) ||
+    null
+
+  // 3. Images / photos
+  const rawPhotos =
+    atts?.photos ||
+    atts?.photoUrls ||
+    atts?.images ||
+    atts?.files ||
+    (Array.isArray(atts) ? atts : null) ||
+    (Array.isArray(atts?.completion?.photos) ? atts.completion.photos : null) ||
+    []
+
+  const photoList = Array.isArray(rawPhotos) ? rawPhotos : typeof rawPhotos === 'string' ? [rawPhotos] : []
+  const photos: string[] = photoList.filter(
+    (p: unknown): p is string => typeof p === 'string' && p.trim() !== '' && !p.startsWith('data:audio'),
+  )
+
+  return {
+    notes,
+    audioUrl,
+    photos,
+  }
+}
+
 export default function TicketsPage() {
   const { selectedLocationId } = useLocationContext()
   const { user } = useAuth()
@@ -952,6 +1027,87 @@ export default function TicketsPage() {
                   })()}
                 </div>
 
+                {/* Resident Note, Voice Recording, and Attached Images */}
+                {(() => {
+                  const media = parseTicketMedia(selectedTicket)
+                  if (!media.notes && !media.audioUrl && media.photos.length === 0) return null
+
+                  return (
+                    <div className="space-y-4 pt-1">
+                      {/* Resident Note Message */}
+                      {media.notes && (
+                        <div className="p-4 bg-amber-50/70 border border-amber-200/90 rounded-xl space-y-1.5 shadow-2xs">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                            <MessageSquare className="w-3.5 h-3.5 text-amber-700" />
+                            <span>Resident Note / Message</span>
+                          </div>
+                          <p className="text-xs font-medium text-gray-800 leading-relaxed whitespace-pre-line">
+                            {media.notes}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Voice Note Audio Recording */}
+                      {media.audioUrl && (
+                        <div className="p-4 bg-gradient-to-r from-blue-50/80 via-white to-blue-50/50 border border-blue-200/90 rounded-xl space-y-2.5 shadow-2xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                              <Mic className="w-4 h-4 text-[#005390]" />
+                              Voice Note Recording
+                            </span>
+                            <span className="text-[10px] font-bold text-[#005390] bg-blue-100/80 px-2.5 py-0.5 rounded-full">
+                              Audio Note
+                            </span>
+                          </div>
+                          <div className="p-3 bg-white rounded-lg border border-blue-100 shadow-2xs flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-blue-50 text-[#005390]">
+                              <Volume2 className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <audio controls src={media.audioUrl} className="w-full h-8" preload="metadata">
+                                <track kind="captions" />
+                                Your browser does not support the audio element.
+                              </audio>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Attached Images / Photos */}
+                      {media.photos.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold uppercase tracking-wider text-gray-600 bg-gray-100 px-3 py-1 rounded-md inline-flex items-center gap-1.5">
+                              <ImageIcon className="w-3.5 h-3.5 text-purple-600" />
+                              Attached Images ({media.photos.length})
+                            </span>
+                            <span className="text-[11px] text-gray-400 font-medium">Click image to preview</span>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 pt-1">
+                            {media.photos.map((photoUrl: string, idx: number) => (
+                              <button
+                                type="button"
+                                key={idx}
+                                className="relative group rounded-xl overflow-hidden border border-gray-200 shadow-2xs aspect-video cursor-pointer bg-gray-100 p-0 text-left w-full block"
+                                onClick={() => setPreviewMediaUrl(photoUrl)}
+                              >
+                                <img
+                                  src={photoUrl}
+                                  alt={`Ticket attachment ${idx + 1}`}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                  <Eye className="w-5 h-5" />
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+
                 {/* Detail Metadata List */}
                 <div className="space-y-4 pt-2 text-sm text-gray-800">
                   <div className="flex items-center gap-2 font-bold text-gray-900">
@@ -1094,15 +1250,94 @@ export default function TicketsPage() {
                   </div>
                 </div>
 
-                {/* Description Input Box */}
-                <div>
-                  <textarea
-                    rows={2}
-                    value={selectedTicket.title || selectedTicket.description || ''}
-                    readOnly
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-800 focus:outline-none resize-none"
-                  />
+                {/* Issue Title & Summary */}
+                <div className="p-3.5 bg-gray-50 border border-gray-200 rounded-xl space-y-1">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 block">
+                    Issue / Service
+                  </span>
+                  <p className="text-sm font-bold text-gray-900 leading-snug">
+                    {selectedTicket.title || selectedTicket.category || 'Service Ticket'}
+                  </p>
                 </div>
+
+                {/* Resident Note, Voice Recording, and Attached Images */}
+                {(() => {
+                  const media = parseTicketMedia(selectedTicket)
+                  return (
+                    <div className="space-y-4">
+                      {/* Resident Note Message */}
+                      {media.notes && (
+                        <div className="p-4 bg-amber-50/70 border border-amber-200/90 rounded-xl space-y-1.5 shadow-2xs">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                            <MessageSquare className="w-3.5 h-3.5 text-amber-700" />
+                            <span>Resident Note / Message</span>
+                          </div>
+                          <p className="text-xs font-medium text-gray-800 leading-relaxed whitespace-pre-line">
+                            {media.notes}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Voice Note Audio Recording */}
+                      {media.audioUrl && (
+                        <div className="p-4 bg-gradient-to-r from-blue-50/80 via-white to-blue-50/50 border border-blue-200/90 rounded-xl space-y-2.5 shadow-2xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                              <Mic className="w-4 h-4 text-[#005390]" />
+                              Voice Note Recording
+                            </span>
+                            <span className="text-[10px] font-bold text-[#005390] bg-blue-100/80 px-2.5 py-0.5 rounded-full">
+                              Audio Note
+                            </span>
+                          </div>
+                          <div className="p-3 bg-white rounded-lg border border-blue-100 shadow-2xs flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-blue-50 text-[#005390]">
+                              <Volume2 className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <audio controls src={media.audioUrl} className="w-full h-8" preload="metadata">
+                                <track kind="captions" />
+                                Your browser does not support the audio element.
+                              </audio>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Attached Images / Photos */}
+                      {media.photos.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold uppercase tracking-wider text-gray-600 bg-gray-100 px-3 py-1 rounded-md inline-flex items-center gap-1.5">
+                              <ImageIcon className="w-3.5 h-3.5 text-purple-600" />
+                              Attached Images ({media.photos.length})
+                            </span>
+                            <span className="text-[11px] text-gray-400 font-medium">Click image to preview</span>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 pt-1">
+                            {media.photos.map((photoUrl: string, idx: number) => (
+                              <button
+                                type="button"
+                                key={idx}
+                                className="relative group rounded-xl overflow-hidden border border-gray-200 shadow-2xs aspect-video cursor-pointer bg-gray-100 p-0 text-left w-full block"
+                                onClick={() => setPreviewMediaUrl(photoUrl)}
+                              >
+                                <img
+                                  src={photoUrl}
+                                  alt={`Ticket attachment ${idx + 1}`}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                  <Eye className="w-5 h-5" />
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
 
                 {/* Department Section */}
                 <div className="space-y-2">
