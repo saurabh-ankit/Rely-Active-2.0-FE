@@ -17,10 +17,12 @@ import {
   Plus,
   Clock,
 } from 'lucide-react'
-import api from '@/lib/api/axios'
-import { useLocationContext } from '@/hooks/useLocation'
 import { getFileUrl } from '@/lib/utils'
 import { notifyError, notifySuccess } from '@/utils/toast'
+import { generateUUID } from '@/utils/uuid'
+import { fnbService } from '@/lib/services/fnbService'
+import { useLocationContext } from '@/hooks/useLocation'
+
 import {
   Dialog,
   DialogContent,
@@ -354,10 +356,10 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
     try {
       setLoading(true)
       const [mRes, dRes, slotsRes, specialSlotsRes] = await Promise.all([
-        api.get(`/fnb/menus?locId=${locId}`),
-        api.get(`/fnb/properties/${locId}/dishes`),
-        api.get(`/fnb/property-meal-slots?locId=${locId}`),
-        api.get(`/fnb/property-special-slots?locId=${locId}`).catch(() => ({ data: { success: false } })),
+        fnbService.getMenus(locId),
+        fnbService.getPropertyDishes(locId),
+        fnbService.getPropertyMealSlots(locId),
+        fnbService.getPropertySpecialSlots(locId).catch(() => ({ data: { success: false } })),
       ])
 
       if (specialSlotsRes.data?.success) {
@@ -481,7 +483,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
     }
 
     const newItem: MenuItem = {
-      id: `temp-${crypto.randomUUID()}`,
+      id: `temp-${generateUUID()}`,
       locId,
       dayOfWeek: activeBaseDay,
       date: null,
@@ -517,7 +519,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
         }
 
         const newDishItem: PropertySpecialSlotDishInfo = {
-          id: `temp-${crypto.randomUUID()}`,
+          id: `temp-${generateUUID()}`,
           propertySpecialSlotId,
           locId,
           dishId,
@@ -581,7 +583,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
     }
 
     const newItem: MenuItem = {
-      id: `temp-${crypto.randomUUID()}`,
+      id: `temp-${generateUUID()}`,
       locId,
       dayOfWeek: targetDayOfWeek,
       date: selectedDateForModal,
@@ -627,7 +629,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
   const handlePublishMenu = async () => {
     try {
       setPublishing(true)
-      const res = await api.post('/fnb/menus', {
+      const res = await fnbService.createMenu({
         locId,
         title: selectedMenu?.title || 'Location Food Menu',
         status: 'published',
@@ -654,7 +656,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
           dishId: d.dishId,
           price: d.price || 0,
         }))
-        await api.post('/fnb/property-special-slots/sync-dishes', {
+        await fnbService.syncSpecialSlotDishes({
           propertySpecialSlotId: spSlot.id,
           locId,
           dishes: dishesToSync,

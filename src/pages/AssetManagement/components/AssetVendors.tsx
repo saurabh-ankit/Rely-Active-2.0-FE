@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Edit, FileText, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { PermissionGuard } from '@/components/common/PermissionGuard'
+import { generateUUID } from '@/utils/uuid'
+
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -204,7 +206,7 @@ const AssetVendors: React.FC<AssetVendorsProps> = ({ enabled = true }) => {
       if (Array.isArray(existingFields) && existingFields.length > 0) {
         setCustomFields(
           existingFields.map((field, index) => ({
-            id: crypto.randomUUID?.() ?? String(Date.now() + index + Math.random()),
+            id: generateUUID(),
             fieldName: field.fieldName || '',
             fieldLabel: field.fieldLabel || field.fieldName || '',
             fieldType: field.fieldType || 'text',
@@ -652,7 +654,7 @@ const AssetVendors: React.FC<AssetVendorsProps> = ({ enabled = true }) => {
                     setCustomFields((prev) => [
                       ...prev,
                       {
-                        id: crypto.randomUUID?.() ?? String(Date.now() + Math.random()),
+                        id: generateUUID(),
                         fieldName: '',
                         fieldLabel: '',
                         fieldType: 'text',

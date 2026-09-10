@@ -245,6 +245,7 @@ export const API_ENDPOINTS = {
     },
     mealSlots: {
       list: (locId: string) => buildLocationEndpoint('/fnb/meal-slots', locId),
+      propertyMealSlots: (locId: string) => `${BASE_URL}/fnb/property-meal-slots?locId=${encodeURIComponent(locId)}`,
       create: `${BASE_URL}/fnb/meal-slots`,
       update: (id: string) => `${BASE_URL}/fnb/meal-slots/${id}`,
       delete: (id: string) => `${BASE_URL}/fnb/meal-slots/${id}`,
@@ -252,16 +253,24 @@ export const API_ENDPOINTS = {
     },
     specialSlots: {
       list: (locId: string) => buildLocationEndpoint('/fnb/special-slots', locId),
+      propertySpecialSlots: (locId: string) =>
+        `${BASE_URL}/fnb/property-special-slots?locId=${encodeURIComponent(locId)}`,
+      syncDishes: `${BASE_URL}/fnb/property-special-slots/sync-dishes`,
       create: `${BASE_URL}/fnb/special-slots`,
       update: (id: string) => `${BASE_URL}/fnb/special-slots/${id}`,
       delete: (id: string) => `${BASE_URL}/fnb/special-slots/${id}`,
     },
     dishes: {
       list: (locId: string) => buildLocationEndpoint('/fnb/dishes', locId),
+      propertyDishes: (locId: string) => `${BASE_URL}/fnb/properties/${encodeURIComponent(locId)}/dishes`,
       create: `${BASE_URL}/fnb/dishes`,
       update: (id: string) => `${BASE_URL}/fnb/dishes/${id}`,
       delete: (id: string) => `${BASE_URL}/fnb/dishes/${id}`,
       master: `${BASE_URL}/fnb/dishes/master`,
+    },
+    menus: {
+      list: (locId: string) => `${BASE_URL}/fnb/menus?locId=${encodeURIComponent(locId)}`,
+      create: `${BASE_URL}/fnb/menus`,
     },
     dailyMenu: {
       get: (locId: string, date: string) =>
