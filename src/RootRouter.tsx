@@ -19,6 +19,7 @@ import GateManagementPage from '@/pages/GateManagement'
 import EventsPage from '@/pages/Events'
 import EventForm from '@/pages/Events/components/EventForm'
 import EventRegistrationsPage from '@/pages/Events/components/EventRegistrations'
+import ShiftRosterPage from '@/pages/ShiftRoster'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
 export default function RootRouter() {
@@ -226,9 +227,54 @@ export default function RootRouter() {
           path="admin/shift-roster-management"
           element={
             <ProtectedRoute resourceKey="ROSTER" action="view">
-              <SectionPage title="Shift & Roster Management" />
+              <ShiftRosterPage />
             </ProtectedRoute>
           }
+        />
+        <Route
+          path="admin/shift-roster-management/employees/:employeeId"
+          element={
+            <ProtectedRoute resourceKey="ROSTER" action="view">
+              <ShiftRosterPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/shift-roster-management/employees/:employeeId/:sub"
+          element={
+            <ProtectedRoute resourceKey="ROSTER" action="view">
+              <ShiftRosterPage />
+            </ProtectedRoute>
+          }
+        />
+        {/* Legacy Medical / Housekeeping category URLs */}
+        <Route
+          path="admin/shift-roster-management/medical"
+          element={<Navigate to="/admin/shift-roster-management" replace />}
+        />
+        <Route
+          path="admin/shift-roster-management/housekeeping"
+          element={<Navigate to="/admin/shift-roster-management?tab=areas" replace />}
+        />
+        <Route
+          path="admin/shift-roster-management/medical/employees/:employeeId"
+          element={
+            <ProtectedRoute resourceKey="ROSTER" action="view">
+              <ShiftRosterPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/shift-roster-management/medical/employees/:employeeId/:sub"
+          element={
+            <ProtectedRoute resourceKey="ROSTER" action="view">
+              <ShiftRosterPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/shift-roster-management/:category"
+          element={<Navigate to="/admin/shift-roster-management" replace />}
         />
         <Route
           path="admin/visitor-history"
@@ -312,7 +358,6 @@ export default function RootRouter() {
         <Route path="consent-templates" element={<SectionPage title="Resident Consent Templates" />} />
         <Route path="daily-routines" element={<SectionPage title="Daily Routine Templates" />} />
         <Route path="whatsapp" element={<SectionPage title="WhatsApp Manager" />} />
-        <Route path="roster-settings" element={<SectionPage title="Roster Settings" />} />
         <Route path="locations" element={<Navigate to="/property" replace />} />
         <Route path="locations/create" element={<Navigate to="/property/create" replace />} />
         <Route path="locations/edit/:id" element={<CreatePropertyPage />} />
