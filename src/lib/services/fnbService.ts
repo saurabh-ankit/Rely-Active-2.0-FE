@@ -135,6 +135,35 @@ export const fnbService = {
     await api.delete(API_ENDPOINTS.fnb.dishes.delete(id))
   },
 
+  // ==================== Menus & Planner ====================
+  getMenus: async (locId: string) => {
+    return api.get(API_ENDPOINTS.fnb.menus.list(locId))
+  },
+
+  getPropertyDishes: async (locId: string) => {
+    return api.get(API_ENDPOINTS.fnb.dishes.propertyDishes(locId))
+  },
+
+  getPropertyMealSlots: async (locId: string) => {
+    return api.get(API_ENDPOINTS.fnb.mealSlots.propertyMealSlots(locId))
+  },
+
+  getPropertySpecialSlots: async (locId: string) => {
+    return api.get(API_ENDPOINTS.fnb.specialSlots.propertySpecialSlots(locId))
+  },
+
+  createMenu: async (payload: Record<string, unknown>) => {
+    return api.post(API_ENDPOINTS.fnb.menus.create, payload)
+  },
+
+  syncSpecialSlotDishes: async (payload: {
+    propertySpecialSlotId: string
+    locId: string
+    dishes: { dishId: string; price: number }[]
+  }) => {
+    return api.post(API_ENDPOINTS.fnb.specialSlots.syncDishes, payload)
+  },
+
   // ==================== Daily Menu ====================
   getDailyMenu: async (locId: string, date: string): Promise<FnbDailyMenu | null> => {
     const res = await api.get(API_ENDPOINTS.fnb.dailyMenu.get(locId, date))

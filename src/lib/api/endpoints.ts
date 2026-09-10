@@ -87,7 +87,6 @@ export const API_ENDPOINTS = {
   modules: {
     employees: (locationId?: string | null) => buildLocationEndpoint('/users', locationId),
     residents: (locationId?: string | null) => buildLocationEndpoint('/residents', locationId),
-    roster: (locationId?: string | null) => buildLocationEndpoint('/roster', locationId),
     tickets: (locationId?: string | null) => buildLocationEndpoint('/tickets', locationId),
     security: (locationId?: string | null) => buildLocationEndpoint('/security', locationId),
     inventory: (locationId?: string | null) => buildLocationEndpoint('/inventory', locationId),
@@ -245,6 +244,7 @@ export const API_ENDPOINTS = {
     },
     mealSlots: {
       list: (locId: string) => buildLocationEndpoint('/fnb/meal-slots', locId),
+      propertyMealSlots: (locId: string) => `${BASE_URL}/fnb/property-meal-slots?locId=${encodeURIComponent(locId)}`,
       create: `${BASE_URL}/fnb/meal-slots`,
       update: (id: string) => `${BASE_URL}/fnb/meal-slots/${id}`,
       delete: (id: string) => `${BASE_URL}/fnb/meal-slots/${id}`,
@@ -252,16 +252,24 @@ export const API_ENDPOINTS = {
     },
     specialSlots: {
       list: (locId: string) => buildLocationEndpoint('/fnb/special-slots', locId),
+      propertySpecialSlots: (locId: string) =>
+        `${BASE_URL}/fnb/property-special-slots?locId=${encodeURIComponent(locId)}`,
+      syncDishes: `${BASE_URL}/fnb/property-special-slots/sync-dishes`,
       create: `${BASE_URL}/fnb/special-slots`,
       update: (id: string) => `${BASE_URL}/fnb/special-slots/${id}`,
       delete: (id: string) => `${BASE_URL}/fnb/special-slots/${id}`,
     },
     dishes: {
       list: (locId: string) => buildLocationEndpoint('/fnb/dishes', locId),
+      propertyDishes: (locId: string) => `${BASE_URL}/fnb/properties/${encodeURIComponent(locId)}/dishes`,
       create: `${BASE_URL}/fnb/dishes`,
       update: (id: string) => `${BASE_URL}/fnb/dishes/${id}`,
       delete: (id: string) => `${BASE_URL}/fnb/dishes/${id}`,
       master: `${BASE_URL}/fnb/dishes/master`,
+    },
+    menus: {
+      list: (locId: string) => `${BASE_URL}/fnb/menus?locId=${encodeURIComponent(locId)}`,
+      create: `${BASE_URL}/fnb/menus`,
     },
     dailyMenu: {
       get: (locId: string, date: string) =>
@@ -313,5 +321,36 @@ export const API_ENDPOINTS = {
     scheduleEventRequestMeeting: `${BASE_URL}/location/:locationId/event-requests/:requestId/schedule-meeting`,
     confirmEventRequest: `${BASE_URL}/location/:locationId/event-requests/:requestId/confirm`,
     cancelEventRequest: `${BASE_URL}/location/:locationId/event-requests/:requestId/cancel`,
+  },
+
+  // Shift & Roster Management
+  shiftRoster: {
+    listShifts: `${BASE_URL}/location/:locationId/shifts`,
+    createShift: `${BASE_URL}/location/:locationId/shifts`,
+    updateShift: `${BASE_URL}/location/:locationId/shifts/:id`,
+    deleteShift: `${BASE_URL}/location/:locationId/shifts/:id`,
+
+    listEmployeeShifts: `${BASE_URL}/location/:locationId/employee-shifts`,
+    exportEmployeeShifts: `${BASE_URL}/location/:locationId/employee-shifts/export`,
+    createEmployeeShift: `${BASE_URL}/location/:locationId/employee-shifts`,
+    bulkCreateEmployeeShifts: `${BASE_URL}/location/:locationId/employee-shifts/bulk`,
+    deleteEmployeeShift: `${BASE_URL}/location/:locationId/employee-shifts/:employeeShiftId`,
+
+    listShiftEmployeeDates: `${BASE_URL}/location/:locationId/shift-employee-dates`,
+    createShiftEmployeeDate: `${BASE_URL}/location/:locationId/shift-employee-dates`,
+    generateShiftEmployeeDates: `${BASE_URL}/location/:locationId/shift-employee-dates/generate`,
+    markDayOff: `${BASE_URL}/location/:locationId/shift-employee-dates/:dateId/day-off`,
+    unmarkDayOff: `${BASE_URL}/location/:locationId/shift-employee-dates/:dateId/day-off`,
+    coverShiftDate: `${BASE_URL}/location/:locationId/shift-employee-dates/:dateId/cover`,
+    swapShiftDates: `${BASE_URL}/location/:locationId/shift-employee-dates/:dateId/swap`,
+
+    listResidentPools: `${BASE_URL}/location/:locationId/shift-resident-pools`,
+    createResidentPool: `${BASE_URL}/location/:locationId/shift-resident-pools`,
+    deleteResidentPool: `${BASE_URL}/location/:locationId/shift-resident-pools/:poolId`,
+
+    listAreas: `${BASE_URL}/location/:locationId/shift-roster/area`,
+    createArea: `${BASE_URL}/location/:locationId/shift-roster/area`,
+    updateArea: `${BASE_URL}/location/:locationId/shift-roster/area/update/:areaId`,
+    deleteArea: `${BASE_URL}/location/:locationId/shift-roster/area/delete/:areaId`,
   },
 }
