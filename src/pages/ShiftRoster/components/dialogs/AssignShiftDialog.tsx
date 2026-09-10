@@ -397,9 +397,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                           </span>
                         )}
                         {selected.map((emp) => (
-                          <ComboboxChip key={emp.id} value={emp}>
-                            {getUserDisplayName(emp)}
-                          </ComboboxChip>
+                          <ComboboxChip key={emp.id}>{getUserDisplayName(emp)}</ComboboxChip>
                         ))}
                         <ComboboxTrigger className="ml-auto shrink-0 self-center" disabled={!departmentId} />
                       </ComboboxChips>
