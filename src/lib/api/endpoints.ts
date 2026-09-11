@@ -43,6 +43,7 @@ export const API_ENDPOINTS = {
     update: (id: string) => `${BASE_URL}/residents/${id}`,
     delete: (id: string) => `${BASE_URL}/residents/${id}`,
     login: `${BASE_URL}/residents/auth/login`,
+    billing: (id: string) => `${BASE_URL}/residents/billing/${id}`,
   },
 
   globalRbac: {
@@ -293,6 +294,13 @@ export const API_ENDPOINTS = {
       getMembersAndFlats: (params: string) => `${BASE_URL}/fnb/attendance/members?${params}`,
       summary: (params: string) => `${BASE_URL}/fnb/attendance/summary?${params}`,
     },
+    residentPackage: {
+      get: (residentId: string) => `${BASE_URL}/fnb/resident-package/${residentId}`,
+      assign: `${BASE_URL}/fnb/resident-package`,
+      change: `${BASE_URL}/fnb/resident-package/change`,
+      togglePause: (id: string) => `${BASE_URL}/fnb/resident-package/${id}/toggle-pause`,
+    },
+    globalMealSlots: `${BASE_URL}/fnb/global-meal-slots`,
   },
 
   globalServices: {
@@ -352,5 +360,41 @@ export const API_ENDPOINTS = {
     createArea: `${BASE_URL}/location/:locationId/shift-roster/area`,
     updateArea: `${BASE_URL}/location/:locationId/shift-roster/area/update/:areaId`,
     deleteArea: `${BASE_URL}/location/:locationId/shift-roster/area/delete/:areaId`,
+  },
+
+  // Medical Management Endpoints (Care Tasks & Care Packages)
+  medical: {
+    careTasks: {
+      list: `${BASE_URL}/medical/care-tasks`,
+      getById: (id: string) => `${BASE_URL}/medical/care-tasks/${id}`,
+      create: `${BASE_URL}/medical/care-tasks`,
+      update: (id: string) => `${BASE_URL}/medical/care-tasks/${id}`,
+      delete: (id: string) => `${BASE_URL}/medical/care-tasks/${id}`,
+    },
+    carePackages: {
+      list: `${BASE_URL}/medical/care-packages`,
+      getById: (id: string) => `${BASE_URL}/medical/care-packages/${id}`,
+      create: `${BASE_URL}/medical/care-packages`,
+      update: (id: string) => `${BASE_URL}/medical/care-packages/${id}`,
+      delete: (id: string) => `${BASE_URL}/medical/care-packages/${id}`,
+    },
+    packageSubscriptions: {
+      list: `${BASE_URL}/medical/subscriptions`,
+      getById: (id: string) => `${BASE_URL}/medical/subscriptions/${id}`,
+      changePackage: (id: string) => `${BASE_URL}/medical/subscriptions/${id}/change-package`,
+      updateStatus: (id: string) => `${BASE_URL}/medical/subscriptions/${id}/status`,
+      renew: (id: string) => `${BASE_URL}/medical/subscriptions/${id}/renew`,
+    },
+    assignments: {
+      list: `${BASE_URL}/medical/assignments`,
+      create: `${BASE_URL}/medical/assignments`,
+      getById: (id: string) => `${BASE_URL}/medical/assignments/${id}`,
+      update: (id: string) => `${BASE_URL}/medical/assignments/${id}`,
+      delete: (id: string) => `${BASE_URL}/medical/assignments/${id}`,
+      complete: (id: string) => `${BASE_URL}/medical/assignments/${id}/complete`,
+      stop: (id: string) => `${BASE_URL}/medical/assignments/${id}/stop`,
+      cancel: (id: string) => `${BASE_URL}/medical/assignments/${id}/cancel`,
+      completions: `${BASE_URL}/medical/completions`,
+    },
   },
 }

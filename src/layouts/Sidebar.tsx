@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Package,
   ReceiptIndianRupee,
+  Settings,
   ShieldCheck,
   Stethoscope,
   User,
@@ -144,11 +145,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       href: '/admin/events',
       resourceKey: 'EVENTS',
     },
+    {
+      icon: <Settings className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
+      label: 'Settings',
+      href: '/admin/settings',
+    },
   ]
 
   const filteredItems = sidebarItems.filter((item) => {
     if (item.href === '/global-settings') {
       return isSuperAdmin
+    }
+    if (item.href === '/admin/settings' || item.href === '/settings') {
+      return true
     }
     if (item.href === '/dashboard') {
       return true

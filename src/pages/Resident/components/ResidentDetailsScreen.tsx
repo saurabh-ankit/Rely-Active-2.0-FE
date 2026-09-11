@@ -14,6 +14,7 @@ import {
   KeyRound,
   Mail,
   Phone,
+  Plus,
   RefreshCw,
   UserCheck,
   Users,
@@ -24,9 +25,11 @@ import { residentService } from '@/lib/services/residentService'
 import { Button } from '@/components/ui/button'
 import { ResidentFnbPackageModal } from './ResidentFnbPackageModal'
 import { useLocationContext } from '@/hooks/useLocation'
+import { AssignedTasksTab } from '@/pages/Medical/components/AssignedTasksTab'
+import { AssignCareTaskDialog } from '@/components/common/AssignCareTaskDialog'
 import { getFileUrl } from '@/lib/utils'
 
-import api from '@/lib/api/axios'
+import { fnbService } from '@/lib/services/fnbService'
 
 interface FnbSubscriptionItem {
   id: string
@@ -70,6 +73,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const [isFnbModalOpen, setIsFnbModalOpen] = useState<boolean>(false)
+  const [isCareTaskModalOpen, setIsCareTaskModalOpen] = useState<boolean>(false)
 
   const [fnbSubscriptions, setFnbSubscriptions] = useState<FnbSubscriptionItem[]>([])
   const [globalMealSlots, setGlobalMealSlots] = useState<Array<{ id: string; name: string; code?: string }>>([])
@@ -100,15 +104,15 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   const fetchFnbSubscriptions = async (resId: string) => {
     if (!resId) return
     try {
-      const [res, slotsRes] = await Promise.all([
-        api.get(`/fnb/resident-package/${resId}`),
-        api.get('/fnb/global-meal-slots').catch(() => ({ data: { success: false } })),
+      const [subs, slots] = await Promise.all([
+        fnbService.getResidentPackage(resId),
+        fnbService.getGlobalMealSlots().catch(() => []),
       ])
-      if (slotsRes.data?.success) {
-        setGlobalMealSlots(slotsRes.data.data || [])
+      if (Array.isArray(slots) && slots.length > 0) {
+        setGlobalMealSlots(slots)
       }
-      if (res.data?.success && Array.isArray(res.data.data)) {
-        setFnbSubscriptions(res.data.data)
+      if (Array.isArray(subs)) {
+        setFnbSubscriptions(subs as unknown as FnbSubscriptionItem[])
       } else {
         setFnbSubscriptions([])
       }
@@ -266,7 +270,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
 
         {/* Action Buttons */}
         {canUpdateResident && (
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-3 shrink-0 flex-wrap">
             {resident.isResiding && (
               <Button
                 variant="secondary"
@@ -277,6 +281,15 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
                 Assign Food Package
               </Button>
             )}
+
+            <Button
+              variant="secondary"
+              icon={<HeartPulse className="w-4 h-4 text-rose-500" />}
+              onClick={() => setIsCareTaskModalOpen(true)}
+              className="rounded-xl"
+            >
+              Assign Care Task
+            </Button>
 
             <Button
               variant="primary"
@@ -701,6 +714,31 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
             </div>
           )}
         </div>
+
+        {/* ── Section 5: Assigned Care Tasks & Clinical Care ───────────────────── */}
+        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4 md:col-span-2">
+          <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+            <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <HeartPulse className="w-5 h-5 text-rose-500" />
+              Assigned Care Tasks & Clinical Care
+            </h2>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<Plus className="w-4 h-4" />}
+              onClick={() => setIsCareTaskModalOpen(true)}
+              className="rounded-xl text-xs"
+            >
+              Assign New Task
+            </Button>
+          </div>
+
+          <AssignedTasksTab
+            forcedResidentId={resident.id}
+            forcedPropertyId={resident.locId || (resident as unknown as Record<string, string>).loc_id || null}
+            isCompact={true}
+          />
+        </div>
       </div>
 
       {/* F&B Package Modal */}
@@ -718,6 +756,16 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
           isResiding={resident.isResiding}
           residentName={fullName}
           familyMembers={familyMembers}
+        />
+      )}
+
+      {/* Assign Care Task Modal */}
+      {resident && (
+        <AssignCareTaskDialog
+          open={isCareTaskModalOpen}
+          onOpenChange={setIsCareTaskModalOpen}
+          initialResidentId={resident.id}
+          initialPropertyId={resident.locId || (resident as unknown as Record<string, string>).loc_id || null}
         />
       )}
     </div>

@@ -69,6 +69,22 @@ export interface ResidentItem {
     }
   }
   familyMembers?: ResidentFamilyMember[]
+  carePackageId?: string | null
+  packageSubscriptions?: Array<{
+    id: string
+    carePackageId: string
+    status: string
+    startDate: string
+    endDate?: string | null
+    isPrevious?: boolean
+  }>
+  carePackage?: {
+    id: string
+    packageName: string
+    description?: string | null
+    packageCost: number
+    duration: string
+  }
 }
 
 export interface GetResidentsParams {
@@ -106,5 +122,12 @@ export interface CreateResidentPayload {
   moveInDate?: string
   rentAmount?: number | null
   payRentToCompany?: boolean
+  carePackageId?: string | null
   familyMembers?: ResidentFamilyMember[]
+  taskSchedules?: Array<{
+    taskId: string
+    taskName?: string
+    frequency?: number
+    times?: string[]
+  }>
 }

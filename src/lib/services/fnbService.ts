@@ -72,7 +72,7 @@ export const fnbService = {
   },
 
   getGlobalMealSlots: async (): Promise<FnbGlobalMealSlot[]> => {
-    const res = await api.get(API_ENDPOINTS.fnb.mealSlots.global)
+    const res = await api.get(API_ENDPOINTS.fnb.globalMealSlots)
     return res.data?.data || []
   },
 
@@ -263,6 +263,24 @@ export const fnbService = {
     if (mealSlotKey) params.set('mealSlotKey', mealSlotKey)
 
     const res = await api.get(API_ENDPOINTS.fnb.attendance.summary(params.toString()))
+    return res.data?.data
+  },
+
+  // ==================== Resident Package Subscriptions ====================
+  getResidentPackage: async (residentId: string): Promise<Record<string, unknown>[]> => {
+    const res = await api.get(API_ENDPOINTS.fnb.residentPackage.get(residentId))
+    return res.data?.data || []
+  },
+  assignResidentPackage: async (payload: Record<string, unknown>): Promise<Record<string, unknown>> => {
+    const res = await api.post(API_ENDPOINTS.fnb.residentPackage.assign, payload)
+    return res.data?.data
+  },
+  changeResidentPackage: async (payload: Record<string, unknown>): Promise<Record<string, unknown>> => {
+    const res = await api.post(API_ENDPOINTS.fnb.residentPackage.change, payload)
+    return res.data?.data
+  },
+  togglePauseResidentPackage: async (id: string): Promise<Record<string, unknown>> => {
+    const res = await api.patch(API_ENDPOINTS.fnb.residentPackage.togglePause(id))
     return res.data?.data
   },
 }

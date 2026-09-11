@@ -4,8 +4,10 @@ import { useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   ArrowLeft,
+  Boxes,
   Building2,
   Camera,
+  Check,
   CheckCircle2,
   CreditCard,
   IndianRupee,
@@ -24,6 +26,9 @@ import {
 import type { CreateResidentPayload, ResidentItem, ResidentType } from '@/lib/types'
 import { residentService } from '@/lib/services/residentService'
 import { getPropertyByIdAPI } from '@/lib/services/propertyService'
+import { useCarePackagesQuery } from '@/hooks/react-query/medical'
+import type { CarePackage } from '@/lib/types/medical'
+import { getCareTaskAssignmentsAPI } from '@/lib/services/medicalService'
 import type { PropertyUnit } from '@/pages/Property/types'
 import { useLocationContext } from '@/hooks/useLocation'
 import { z } from 'zod'
@@ -33,6 +38,45 @@ import { cn, getFileUrl } from '@/lib/utils'
 
 import { notifyError, notifySuccess } from '@/utils/toast'
 import type { FieldErrors } from 'react-hook-form'
+import {
+  PackageTaskSchedulesConfig,
+  type PackageTaskItemInfo,
+  type TaskScheduleConfig,
+} from '@/components/common/PackageTaskSchedulesConfig'
+
+function formatTimeTo12h(time24: string): string {
+  if (!time24) return '10:00 AM'
+  const trimmed = time24.trim()
+  if (/^(0?[1-9]|1[0-2]):[0-5][0-9]\s*(AM|PM)$/i.test(trimmed)) {
+    return trimmed.toUpperCase()
+  }
+  const match = trimmed.match(/^(\d{1,2}):(\d{2})$/)
+  if (!match) return time24
+  let hours = parseInt(match[1], 10)
+  const minutes = match[2]
+  const meridiem = hours >= 12 ? 'PM' : 'AM'
+  hours = hours % 12 || 12
+  return `${String(hours).padStart(2, '0')}:${minutes} ${meridiem}`
+}
+
+function formatTimeTo24h(time12: string): string {
+  if (!time12) return '10:00'
+  const trimmed = time12.trim()
+  const match = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i)
+  if (!match) {
+    if (/^\d{1,2}:\d{2}$/.test(trimmed)) {
+      const [h, m] = trimmed.split(':')
+      return `${h.padStart(2, '0')}:${m}`
+    }
+    return '10:00'
+  }
+  let hours = parseInt(match[1], 10)
+  const minutes = match[2]
+  const meridiem = match[3]?.toUpperCase()
+  if (meridiem === 'PM' && hours < 12) hours += 12
+  if (meridiem === 'AM' && hours === 12) hours = 0
+  return `${String(hours).padStart(2, '0')}:${minutes}`
+}
 
 const familyMemberSchema = z.object({
   id: z.string().optional(),
@@ -122,6 +166,7 @@ const residentFormSchema = z.object({
     .or(z.literal(''))
     .refine((val) => !val || (!isNaN(Number(val)) && Number(val) >= 0), 'Rent amount must be a non-negative number'),
   payRentToCompany: z.boolean().default(false),
+  carePackageId: z.string().optional().or(z.literal('')),
   familyMembers: z.array(familyMemberSchema).default([]),
 })
 
@@ -210,6 +255,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
       moveInDate: new Date().toISOString().split('T')[0],
       rentAmount: '',
       payRentToCompany: false,
+      carePackageId: '',
       familyMembers: [],
     },
   })
@@ -229,6 +275,138 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
   const watchedFamilyMembers = useWatch({ control, name: 'familyMembers' })
   const watchedUnitId = useWatch({ control, name: 'unitId' })
   const watchedPayRentToCompany = useWatch({ control, name: 'payRentToCompany' })
+  const watchedCarePackageId = useWatch({ control, name: 'carePackageId' })
+
+  // Query care packages for this property/global
+  const { data: carePackagesData, isLoading: isLoadingPackages } = useCarePackagesQuery(
+    { propertyId: selectedLocationId, includeGlobal: true },
+    !!selectedLocationId,
+  )
+  const carePackages = useMemo<CarePackage[]>(() => carePackagesData?.data || [], [carePackagesData?.data])
+
+  const selectedOnboardPackage = useMemo(() => {
+    return carePackages.find((pkg) => pkg.id === watchedCarePackageId)
+  }, [carePackages, watchedCarePackageId])
+
+  const onboardPackageTasks: PackageTaskItemInfo[] = useMemo(() => {
+    if (!selectedOnboardPackage) return []
+    if (selectedOnboardPackage.features && selectedOnboardPackage.features.length > 0) {
+      return selectedOnboardPackage.features.map((f) => ({
+        taskId: f.id,
+        taskName: f.taskName || f.careTaskName || 'Care Task',
+        complimentaryCount: f.CarePackageFeaturesMap?.complimentaryCount ?? 0,
+        billingType: f.billingType || 'SESSION',
+        price: f.price || 0,
+      }))
+    }
+    if (selectedOnboardPackage.tasks && selectedOnboardPackage.tasks.length > 0) {
+      return selectedOnboardPackage.tasks.map((t) => ({
+        taskId: t.taskId,
+        taskName: t.taskName || t.careTaskName || 'Care Task',
+        complimentaryCount: t.complimentaryCount ?? 0,
+        billingType: t.billingType || 'SESSION',
+        price: t.price || 0,
+      }))
+    }
+    return []
+  }, [selectedOnboardPackage])
+
+  const [packageTaskSchedules, setPackageTaskSchedules] = useState<Record<string, TaskScheduleConfig>>({})
+
+  // Initialize or reconcile package tasks without overwriting existing user-configured schedules
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!onboardPackageTasks || onboardPackageTasks.length === 0) {
+        setPackageTaskSchedules({})
+        return
+      }
+      setPackageTaskSchedules((prev) => {
+        const updated: Record<string, TaskScheduleConfig> = {}
+        for (const t of onboardPackageTasks) {
+          if (prev[t.taskId]) {
+            updated[t.taskId] = prev[t.taskId]
+          } else {
+            updated[t.taskId] = {
+              taskId: t.taskId,
+              taskName: t.taskName,
+              frequency: 1,
+              times: ['10:00'],
+            }
+          }
+        }
+        return updated
+      })
+    }, 0)
+
+    return () => clearTimeout(timer)
+  }, [onboardPackageTasks])
+
+  // In edit mode, load existing package task schedules and frequencies for this resident
+  useEffect(() => {
+    if (!isEditMode || !editResidentId) return
+
+    let isMounted = true
+    async function fetchExistingSchedules() {
+      try {
+        const res = await getCareTaskAssignmentsAPI({ residentId: editResidentId })
+        const assignments = (res?.data || []) as Array<{
+          taskId?: string
+          source?: string
+          sources?: string[]
+          task?: { careTaskName?: string }
+          slots?: Array<{ time?: string; rawAssignment?: { time?: string } }>
+          time?: string
+          rawAssignment?: { time?: string }
+        }>
+        const existingMap: Record<string, TaskScheduleConfig> = {}
+
+        for (const a of assignments) {
+          const isPkg = a.source === 'PACKAGE' || a.sources?.includes('PACKAGE')
+          if (isPkg && a.taskId) {
+            if (!existingMap[a.taskId]) {
+              existingMap[a.taskId] = {
+                taskId: a.taskId,
+                taskName: a.task?.careTaskName || 'Care Task',
+                frequency: 0,
+                times: [],
+              }
+            }
+            const slotList = a.slots && a.slots.length > 0 ? a.slots : [a]
+            for (const s of slotList) {
+              const timeVal = s.time || s.rawAssignment?.time
+              if (timeVal) {
+                const formatted24h = formatTimeTo24h(timeVal)
+                if (!existingMap[a.taskId].times.includes(formatted24h)) {
+                  existingMap[a.taskId].times.push(formatted24h)
+                }
+              }
+            }
+          }
+        }
+
+        for (const tid of Object.keys(existingMap)) {
+          existingMap[tid].frequency = Math.max(existingMap[tid].times.length, 1)
+          if (existingMap[tid].times.length === 0) {
+            existingMap[tid].times = ['10:00']
+          }
+        }
+
+        if (isMounted && Object.keys(existingMap).length > 0) {
+          setPackageTaskSchedules((prev) => ({
+            ...prev,
+            ...existingMap,
+          }))
+        }
+      } catch (err) {
+        console.error('Error fetching existing package schedules for resident:', err)
+      }
+    }
+
+    void fetchExistingSchedules()
+    return () => {
+      isMounted = false
+    }
+  }, [isEditMode, editResidentId])
 
   const [enabledFmLogins, setEnabledFmLogins] = useState<Record<number, boolean>>({})
 
@@ -359,6 +537,9 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
         if (isEditMode && editResidentId) {
           const targetRes = resList.find((r) => r.id === editResidentId)
           if (targetRes) {
+            if (targetRes.carePackageId) {
+              setValue('carePackageId', targetRes.carePackageId)
+            }
             const targetUnit = allUnits.find((u) => u.id === targetRes.unitId)
             if (targetUnit) {
               let targetBlock: BlockOption | undefined
@@ -419,6 +600,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
               rentAmount:
                 targetRes.rentAmount !== undefined && targetRes.rentAmount !== null ? String(targetRes.rentAmount) : '',
               payRentToCompany: targetRes.payRentToCompany ?? false,
+              carePackageId: targetRes.carePackageId || '',
               familyMembers: (targetRes.familyMembers || []).map((fm) => ({
                 id: fm.id,
                 residentId: fm.residentId,
@@ -547,6 +729,13 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
     setIsSubmitting(true)
 
     const effectiveIsResiding = values.residentType === 'TENANT' ? true : values.isResiding
+    const formattedTaskSchedules = Object.values(packageTaskSchedules).map((sched) => ({
+      taskId: sched.taskId,
+      taskName: sched.taskName,
+      frequency: sched.frequency,
+      times: sched.times.map((t) => formatTimeTo12h(t)),
+    }))
+
     const payload: CreateResidentPayload = {
       ...values,
       isResiding: effectiveIsResiding,
@@ -555,6 +744,8 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
           ? Number(values.rentAmount)
           : null,
       payRentToCompany: values.residentType === 'TENANT' ? Boolean(values.payRentToCompany) : false,
+      carePackageId: values.carePackageId || null,
+      taskSchedules: values.carePackageId && formattedTaskSchedules.length > 0 ? formattedTaskSchedules : undefined,
       familyMembers: (values.familyMembers || []).map((fm) => ({
         ...fm,
         isResiding: effectiveIsResiding,
@@ -1525,6 +1716,128 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Section: Care Package Subscription Card */}
+          <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Boxes className="w-5 h-5 text-[#005390]" />
+                Care Package Subscription (Optional)
+              </h2>
+              <span className="text-xs font-medium text-gray-500">
+                Bundled wellness & clinical tasks for the resident
+              </span>
+            </div>
+
+            {isLoadingPackages ? (
+              <div className="text-center py-6 text-xs text-gray-400">
+                <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-[#005390]" />
+                Loading care packages...
+              </div>
+            ) : carePackages.length === 0 ? (
+              <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-xs text-gray-500 text-center">
+                No active Care Packages configured. You can configure them in Settings &gt; Packages.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Option for No Package */}
+                <button
+                  type="button"
+                  onClick={() => setValue('carePackageId', '', { shouldValidate: true })}
+                  className={cn(
+                    'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full',
+                    !watchedCarePackageId
+                      ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20'
+                      : 'border-gray-200 bg-white hover:border-gray-300',
+                  )}
+                >
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-gray-800">No Care Package</span>
+                      {!watchedCarePackageId && (
+                        <span className="inline-flex items-center justify-center size-5 rounded-full bg-[#005390] text-white">
+                          <Check className="w-3 h-3" />
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-gray-500 mt-1">
+                      Resident will not be subscribed to any care package upon onboarding.
+                    </p>
+                  </div>
+                </button>
+
+                {/* Available Care Packages */}
+                {carePackages.map((pkg) => {
+                  const isSelected = watchedCarePackageId === pkg.id
+                  const taskCount = pkg.features?.length || pkg.tasks?.length || 0
+                  return (
+                    <button
+                      key={pkg.id}
+                      type="button"
+                      onClick={() => setValue('carePackageId', pkg.id, { shouldValidate: true })}
+                      className={cn(
+                        'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full',
+                        isSelected
+                          ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20'
+                          : 'border-gray-200 bg-white hover:border-gray-300',
+                      )}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-gray-900">{pkg.packageName}</span>
+                          {isSelected && (
+                            <span className="inline-flex items-center justify-center size-5 rounded-full bg-[#005390] text-white">
+                              <Check className="w-3 h-3" />
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className="text-sm font-black text-[#005390]">
+                            ₹{Number(pkg.packageCost).toLocaleString('en-IN')}
+                          </span>
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                            {pkg.duration}
+                          </span>
+                        </div>
+
+                        {pkg.description && (
+                          <p className="text-[11px] text-gray-500 mt-1 line-clamp-2">{pkg.description}</p>
+                        )}
+
+                        {taskCount > 0 && (
+                          <div className="mt-2.5 pt-2 border-t border-gray-100 flex flex-wrap gap-1">
+                            {(pkg.features || []).map((feat) => {
+                              const count = feat?.CarePackageFeaturesMap?.complimentaryCount ?? 0
+                              return (
+                                <span
+                                  key={feat.id}
+                                  className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                >
+                                  {feat.taskName || feat.careTaskName || 'Task'} {count > 0 ? `× ${count}` : '(Free)'}
+                                </span>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Package Tasks Frequency & Times Schedule Configuration */}
+            {selectedOnboardPackage && onboardPackageTasks.length > 0 && (
+              <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+                <PackageTaskSchedulesConfig
+                  tasks={onboardPackageTasks}
+                  schedules={packageTaskSchedules}
+                  onChange={setPackageTaskSchedules}
+                />
+              </div>
+            )}
           </div>
 
           {/* Section 4: Mobile App Credentials Card */}

@@ -13,6 +13,7 @@ export const FNB_KEYS = {
   residentOrders: (locId: string, filters?: Record<string, string>) =>
     ['fnb', 'residentOrders', locId, filters] as const,
   staffEmployees: (locId: string) => ['fnb', 'staffEmployees', locId] as const,
+  residentPackage: (residentId: string) => ['fnb', 'residentPackage', residentId] as const,
 }
 
 // ==================== Queries ====================
@@ -69,6 +70,21 @@ export const useFnbStaffEmployeesQuery = (locId: string) => {
     queryKey: FNB_KEYS.staffEmployees(locId),
     queryFn: () => fnbService.getStaffEmployees(locId),
     enabled: Boolean(locId),
+  })
+}
+
+export const useFnbGlobalMealSlotsQuery = () => {
+  return useQuery({
+    queryKey: FNB_KEYS.globalMealSlots(),
+    queryFn: () => fnbService.getGlobalMealSlots(),
+  })
+}
+
+export const useResidentFnbPackageQuery = (residentId: string) => {
+  return useQuery({
+    queryKey: FNB_KEYS.residentPackage(residentId),
+    queryFn: () => fnbService.getResidentPackage(residentId),
+    enabled: Boolean(residentId),
   })
 }
 
