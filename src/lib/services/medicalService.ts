@@ -74,6 +74,120 @@ export const deleteCarePackageAPI = async (id: string): Promise<{ success: boole
 }
 
 // ============================================================================
+// Package Subscriptions Service API
+// ============================================================================
+
+export const getPackageSubscriptionsAPI = async (
+  locationId?: string | null,
+  params?: { status?: string; residentId?: string; search?: string },
+): Promise<{ success: boolean; data: import('@/lib/types/medical').PackageSubscriptionResponse[]; total?: number }> => {
+  const queryParams: Record<string, unknown> = { ...(params || {}) }
+  if (locationId && locationId !== 'all') {
+    queryParams.locId = locationId
+  }
+  const res = await api.get(API_ENDPOINTS.medical.packageSubscriptions.list, { params: queryParams })
+  return res.data
+}
+
+export const getPackageSubscriptionByIdAPI = async (
+  id: string,
+): Promise<{ success: boolean; data: import('@/lib/types/medical').PackageSubscriptionResponse }> => {
+  const res = await api.get(API_ENDPOINTS.medical.packageSubscriptions.getById(id))
+  return res.data
+}
+
+export const changePackageAPI = async (
+  subscriptionId: string,
+  payload: import('@/lib/types/medical').ChangePackageRequest,
+): Promise<{ success: boolean; message?: string; data?: unknown }> => {
+  const res = await api.post(API_ENDPOINTS.medical.packageSubscriptions.changePackage(subscriptionId), payload)
+  return res.data
+}
+
+export const updateSubscriptionStatusAPI = async (
+  subscriptionId: string,
+  payload: import('@/lib/types/medical').UpdateSubscriptionStatusRequest,
+): Promise<{ success: boolean; message?: string; data?: unknown }> => {
+  const res = await api.put(API_ENDPOINTS.medical.packageSubscriptions.updateStatus(subscriptionId), payload)
+  return res.data
+}
+
+export const renewPackageSubscriptionAPI = async (
+  subscriptionId: string,
+  payload?: { startDate?: string },
+): Promise<{ success: boolean; message?: string; data?: unknown }> => {
+  const res = await api.post(API_ENDPOINTS.medical.packageSubscriptions.renew(subscriptionId), payload || {})
+  return res.data
+}
+
+// ============================================================================
+// Care Task Assignments API
+// ============================================================================
+
+export const getCareTaskAssignmentsAPI = async (
+  params?: Record<string, unknown>,
+): Promise<import('@/lib/types/medical').CareTaskAssignmentsListResponse> => {
+  const res = await api.get(API_ENDPOINTS.medical.assignments.list, { params })
+  return res.data
+}
+
+export const getCareTaskAssignmentByIdAPI = async (
+  id: string,
+): Promise<import('@/lib/types/medical').CareTaskAssignment> => {
+  const res = await api.get(API_ENDPOINTS.medical.assignments.getById(id))
+  return res.data?.data || res.data
+}
+
+export const createCareTaskAssignmentAPI = async (
+  payload: import('@/lib/types/medical').CreateCareTaskAssignmentPayload,
+): Promise<import('@/lib/types/medical').CareTaskAssignment> => {
+  const res = await api.post(API_ENDPOINTS.medical.assignments.create, payload)
+  return res.data?.data || res.data
+}
+
+export const updateCareTaskAssignmentAPI = async (
+  id: string,
+  payload: Partial<import('@/lib/types/medical').CreateCareTaskAssignmentPayload>,
+): Promise<import('@/lib/types/medical').CareTaskAssignment> => {
+  const res = await api.put(API_ENDPOINTS.medical.assignments.update(id), payload)
+  return res.data?.data || res.data
+}
+
+export const completeCareTaskAPI = async (
+  id: string,
+  payload?: import('@/lib/types/medical').CompleteCareTaskPayload,
+): Promise<{ success: boolean; message: string; data: unknown }> => {
+  const res = await api.post(API_ENDPOINTS.medical.assignments.complete(id), payload || {})
+  return res.data
+}
+
+export const stopCareTaskAssignmentAPI = async (
+  id: string,
+): Promise<{ success: boolean; message: string; data?: unknown }> => {
+  const res = await api.put(API_ENDPOINTS.medical.assignments.stop(id))
+  return res.data
+}
+
+export const cancelCareTaskAssignmentAPI = async (
+  id: string,
+): Promise<{ success: boolean; message: string; data?: unknown }> => {
+  const res = await api.put(API_ENDPOINTS.medical.assignments.cancel(id))
+  return res.data
+}
+
+export const deleteCareTaskAssignmentAPI = async (id: string): Promise<{ success: boolean; message: string }> => {
+  const res = await api.delete(API_ENDPOINTS.medical.assignments.delete(id))
+  return res.data
+}
+
+export const getCareTaskCompletionsAPI = async (
+  params?: Record<string, unknown>,
+): Promise<import('@/lib/types/medical').CareTaskCompletionsListResponse> => {
+  const res = await api.get(API_ENDPOINTS.medical.assignments.completions, { params })
+  return res.data
+}
+
+// ============================================================================
 // Grouped Service Export
 // ============================================================================
 
@@ -91,6 +205,24 @@ export const medicalService = {
     create: createCarePackageAPI,
     update: updateCarePackageAPI,
     delete: deleteCarePackageAPI,
+  },
+  subscriptions: {
+    getAll: getPackageSubscriptionsAPI,
+    getById: getPackageSubscriptionByIdAPI,
+    changePackage: changePackageAPI,
+    updateStatus: updateSubscriptionStatusAPI,
+    renew: renewPackageSubscriptionAPI,
+  },
+  assignments: {
+    getAll: getCareTaskAssignmentsAPI,
+    getById: getCareTaskAssignmentByIdAPI,
+    create: createCareTaskAssignmentAPI,
+    update: updateCareTaskAssignmentAPI,
+    complete: completeCareTaskAPI,
+    stop: stopCareTaskAssignmentAPI,
+    cancel: cancelCareTaskAssignmentAPI,
+    delete: deleteCareTaskAssignmentAPI,
+    getCompletions: getCareTaskCompletionsAPI,
   },
 }
 

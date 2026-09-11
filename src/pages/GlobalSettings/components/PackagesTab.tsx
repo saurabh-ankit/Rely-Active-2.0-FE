@@ -16,7 +16,7 @@ import {
   CheckSquare,
   Gift,
   Minus,
-  HeartHandshake,
+  Lock,
 } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
 import {
@@ -25,6 +25,7 @@ import {
   useUpdateCarePackageMutation,
   useDeleteCarePackageMutation,
   useCareTasksQuery,
+  usePackageSubscriptionsQuery,
 } from '@/hooks/react-query/medical'
 import type { CarePackage, PackageTaskItem, CareTask } from '@/lib/types/medical'
 import { notifyError, notifySuccess } from '@/utils/toast'
@@ -145,10 +146,10 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
     return () => clearTimeout(handler)
   }, [taskSearchQuery])
 
-  // React Query: Fetch available tasks for picker (10 items, search supported)
+  // React Query: Fetch available tasks for picker (search supported)
   const pickerQueryParams = useMemo(() => {
     return {
-      limit: 10,
+      limit: 100,
       search: debouncedTaskSearch.trim() || undefined,
       propertyId: isPropertyMode && effectivePropertyId ? effectivePropertyId : undefined,
       includeGlobal: isPropertyMode && effectivePropertyId ? true : undefined,
@@ -166,6 +167,28 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
   const createCarePackageMutation = useCreateCarePackageMutation()
   const updateCarePackageMutation = useUpdateCarePackageMutation()
   const deleteCarePackageMutation = useDeleteCarePackageMutation()
+  const { data: subsData } = usePackageSubscriptionsQuery(effectivePropertyId)
+
+  const subscribedPackageIdsFromSubs = useMemo(() => {
+    const ids = new Set<string>()
+    const list = subsData?.data || []
+    for (const sub of list) {
+      if (sub.carePackageId) ids.add(sub.carePackageId)
+      if (sub.carePackage?.id) ids.add(sub.carePackage.id)
+    }
+    return ids
+  }, [subsData])
+
+  const isPackageSubscribed = useCallback(
+    (pkg: Package) => {
+      return Boolean(
+        pkg.isSubscribed ||
+        (pkg.subscriptionCount && pkg.subscriptionCount > 0) ||
+        subscribedPackageIdsFromSubs.has(pkg.id),
+      )
+    },
+    [subscribedPackageIdsFromSubs],
+  )
 
   const isSubmitting = createCarePackageMutation.isPending || updateCarePackageMutation.isPending
   const isDeleting = deleteCarePackageMutation.isPending
@@ -203,8 +226,38 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
 
   const handleOpenEdit = useCallback(
     (pkg: Package) => {
+      if (isPackageSubscribed(pkg)) {
+        notifyError('Notice', 'Cannot edit this care package because it is already subscribed by residents.')
+        return
+      }
       setEditingPackage(pkg)
-      setSelectedTasks(Array.isArray(pkg.tasks) ? [...pkg.tasks] : [])
+      const initialTasks: PackageTaskItem[] =
+        Array.isArray(pkg.features) && pkg.features.length > 0
+          ? pkg.features.map((f) => {
+              const rawB = String(f.billingType || '').toUpperCase()
+              const bType: 'MONTHLY' | 'SESSION' = rawB.startsWith('SESS') ? 'SESSION' : 'MONTHLY'
+              const price = Number(f.price ?? 0)
+              const isFree = price <= 0
+              return {
+                taskId: f.id,
+                taskName: f.careTaskName || f.taskName || 'Care Task',
+                careTaskName: f.careTaskName || f.taskName || 'Care Task',
+                billingType: bType,
+                price,
+                taskImage: f.careTaskImage || null,
+                careTaskImage: f.careTaskImage || null,
+                complimentaryCount:
+                  f.CarePackageFeaturesMap?.complimentaryCount !== undefined
+                    ? Number(f.CarePackageFeaturesMap.complimentaryCount)
+                    : isFree
+                      ? 0
+                      : 1,
+              }
+            })
+          : Array.isArray(pkg.tasks)
+            ? [...pkg.tasks]
+            : []
+      setSelectedTasks(initialTasks)
       setTaskSearchQuery('')
       setDebouncedTaskSearch('')
       setErrorMsg('')
@@ -216,7 +269,7 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
       })
       setIsModalOpen(true)
     },
-    [reset],
+    [reset, isPackageSubscribed],
   )
 
   // Task Selection & Complimentary Counter Handlers
@@ -228,24 +281,19 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
         return prev.filter((t) => t.taskId !== task.id)
       } else {
         const name = task.careTaskName || task.taskName || 'Care Task'
-        const monthlyRate = Number(
-          task.monthlyRate ??
-            (task.careTaskPrice !== undefined && task.careTaskPrice !== null ? task.careTaskPrice : task.price) ??
-            0,
-        )
+        const rawB = String(task.billingType || '').toUpperCase()
+        const bType: 'MONTHLY' | 'SESSION' = rawB.startsWith('SESS') ? 'SESSION' : 'MONTHLY'
+        const price = Number(task.price ?? 0)
+        const isFree = price <= 0
         return [
           ...prev,
           {
             taskId: task.id,
             taskName: name,
             careTaskName: name,
-            dailyRate: Number(task.dailyRate) || 0,
-            monthlyRate,
-            sessionRate: Number(task.sessionRate) || 0,
-            priceOption: 'Monthly',
-            price: monthlyRate,
-            careTaskPrice: monthlyRate,
-            complimentaryCount: 1,
+            billingType: bType,
+            price,
+            complimentaryCount: isFree ? 0 : 1,
           },
         ]
       }
@@ -256,6 +304,9 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
     setSelectedTasks((prev) =>
       prev.map((t) => {
         if (t.taskId !== taskId) return t
+        const price = Number(t.price ?? 0)
+        const isFree = price <= 0
+        if (isFree) return { ...t, complimentaryCount: 0 }
         const currentCount = t.complimentaryCount ? Number(t.complimentaryCount) : 1
         const newCount = isDirect ? deltaOrValue : currentCount + deltaOrValue
         return {
@@ -276,29 +327,30 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
         packageCost: Number(data.packageCost) || 0,
         duration: data.duration,
         description: data.description?.trim() || '',
+        features: selectedTasks.map((t) => {
+          const matched = availableTasks.find((at) => at.id === t.taskId)
+          const price = Number(t.price ?? matched?.price ?? 0)
+          const isFree = price <= 0
+          return {
+            featureId: t.taskId,
+            complimentaryCount: isFree ? 0 : Math.max(1, Number(t.complimentaryCount) || 1),
+          }
+        }),
         tasks: selectedTasks.map((t) => {
           const matched = availableTasks.find((at) => at.id === t.taskId)
           const name = t.careTaskName || t.taskName || matched?.careTaskName || matched?.taskName || 'Care Task'
-          const monthlyRate = Number(
-            t.monthlyRate ??
-              matched?.monthlyRate ??
-              (t.careTaskPrice !== undefined && t.careTaskPrice !== null
-                ? t.careTaskPrice
-                : (matched?.careTaskPrice ?? matched?.price)) ??
-              0,
-          )
+          const rawB = String(t.billingType || matched?.billingType || 'MONTHLY').toUpperCase()
+          const bType = rawB.startsWith('SESS') ? 'SESSION' : 'MONTHLY'
+          const price = Number(t.price ?? matched?.price ?? 0)
+          const isFree = price <= 0
 
           return {
             taskId: t.taskId,
             taskName: name,
             careTaskName: name,
-            dailyRate: Number(t.dailyRate ?? matched?.dailyRate ?? 0),
-            monthlyRate,
-            sessionRate: Number(t.sessionRate ?? matched?.sessionRate ?? 0),
-            priceOption: 'Monthly',
-            price: monthlyRate,
-            careTaskPrice: monthlyRate,
-            complimentaryCount: Math.max(1, Number(t.complimentaryCount) || 1),
+            billingType: bType,
+            price,
+            complimentaryCount: isFree ? 0 : Math.max(1, Number(t.complimentaryCount) || 1),
           }
         }),
         ...(isPropertyMode ? { propertyId: effectivePropertyId || null } : {}),
@@ -325,10 +377,17 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
   }
 
   // Delete Action Handlers
-  const handleOpenDeleteConfirm = useCallback((pkg: Package) => {
-    setPackageToDelete(pkg)
-    setIsDeleteModalOpen(true)
-  }, [])
+  const handleOpenDeleteConfirm = useCallback(
+    (pkg: Package) => {
+      if (isPackageSubscribed(pkg)) {
+        notifyError('Notice', 'Cannot delete this care package because it is already subscribed by residents.')
+        return
+      }
+      setPackageToDelete(pkg)
+      setIsDeleteModalOpen(true)
+    },
+    [isPackageSubscribed],
+  )
 
   const handleConfirmDelete = async () => {
     if (!packageToDelete) return
@@ -347,8 +406,29 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
 
   // Available tasks from BE for picker (including 0 cost / Free tasks)
   const filteredAvailableTasks = useMemo(() => {
-    return availableTasks
-  }, [availableTasks])
+    const taskMap = new Map<string, Task>()
+    for (const t of availableTasks) {
+      taskMap.set(t.id, t)
+    }
+    for (const st of selectedTasks) {
+      if (!taskMap.has(st.taskId)) {
+        taskMap.set(st.taskId, {
+          id: st.taskId,
+          careTaskName: st.careTaskName || st.taskName || 'Care Task',
+          taskName: st.taskName || st.careTaskName || 'Care Task',
+          billingType: st.billingType || 'MONTHLY',
+          price: st.price,
+        } as Task)
+      }
+    }
+    const all = Array.from(taskMap.values())
+    return all.sort((a, b) => {
+      const aSel = selectedTasks.some((st) => st.taskId === a.id) ? 1 : 0
+      const bSel = selectedTasks.some((st) => st.taskId === b.id) ? 1 : 0
+      if (aSel !== bSel) return bSel - aSel
+      return (a.careTaskName || '').localeCompare(b.careTaskName || '')
+    })
+  }, [availableTasks, selectedTasks])
 
   // Table Columns Definition
   const columns: ColumnDef<Package>[] = useMemo(
@@ -419,7 +499,26 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
         id: 'tasks',
         header: 'Included Complimentary Tasks',
         cell: ({ row }) => {
-          const taskItems = row.original.tasks || []
+          const pkg = row.original
+          const taskItems: PackageTaskItem[] =
+            Array.isArray(pkg.features) && pkg.features.length > 0
+              ? pkg.features.map((f) => {
+                  const isFree = Number(f.price) <= 0
+                  return {
+                    taskId: f.id,
+                    taskName: f.careTaskName || f.taskName || 'Care Task',
+                    careTaskName: f.careTaskName || f.taskName || 'Care Task',
+                    billingType: f.billingType || 'MONTHLY',
+                    price: Number(f.price) || 0,
+                    complimentaryCount:
+                      f.CarePackageFeaturesMap?.complimentaryCount !== undefined
+                        ? Number(f.CarePackageFeaturesMap.complimentaryCount)
+                        : isFree
+                          ? 0
+                          : 1,
+                  }
+                })
+              : pkg.tasks || []
           if (taskItems.length === 0) {
             return <span className="text-xs text-gray-400 italic">No tasks assigned</span>
           }
@@ -437,26 +536,28 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                   {totalComplimentary > 0 && ` (${totalComplimentary} total comp.)`}
                 </span>
               </div>
-              <div className="flex flex-wrap gap-1">
-                {taskItems.slice(0, 3).map((t, idx) => {
+              <div className="flex flex-wrap gap-1.5">
+                {taskItems.map((t, idx) => {
                   const taskName = t.careTaskName || t.taskName || 'Care Task'
+                  const isFree = Number(t.complimentaryCount) === 0 || Number(t.price ?? 0) <= 0
                   return (
                     <span
                       key={`${t.taskId}-${idx}`}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-medium bg-gray-50 border border-gray-200 text-gray-700"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-medium bg-gray-50 border border-gray-200 text-gray-700 dark:bg-slate-800 dark:border-gray-700 dark:text-gray-300"
                     >
-                      <span className="truncate max-w-[130px]">{taskName}</span>
-                      <span className="font-bold text-[#005390] bg-blue-50 px-1 rounded">
-                        ×{t.complimentaryCount || 1}
-                      </span>
+                      <span>{taskName}</span>
+                      {isFree ? (
+                        <span className="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1 rounded dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800">
+                          Free
+                        </span>
+                      ) : (
+                        <span className="font-bold text-[#005390] bg-blue-50 px-1 rounded dark:bg-sky-950/40 dark:text-sky-300">
+                          ×{t.complimentaryCount}
+                        </span>
+                      )}
                     </span>
                   )
                 })}
-                {taskItems.length > 3 && (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-lg text-[10px] font-bold bg-gray-100 text-gray-500">
-                    +{taskItems.length - 3} more
-                  </span>
-                )}
               </div>
             </div>
           )
@@ -466,29 +567,48 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
       {
         id: 'actions',
         header: () => <div className="text-right">Actions</div>,
-        cell: ({ row }) => (
-          <div className="flex items-center justify-end gap-1.5">
-            <button
-              type="button"
-              onClick={() => handleOpenEdit(row.original)}
-              className="p-1.5 rounded-lg text-gray-500 hover:text-[#005390] hover:bg-[#005390]/10 transition-colors cursor-pointer"
-              title="Edit Package"
-            >
-              <Edit2 className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleOpenDeleteConfirm(row.original)}
-              className="p-1.5 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-              title="Delete Package"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ),
+        cell: ({ row }) => {
+          const pkg = row.original
+          const isSubscribed = isPackageSubscribed(pkg)
+
+          if (isSubscribed) {
+            return (
+              <div className="flex items-center justify-end">
+                <span
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-gray-100 text-gray-500 border border-gray-200/80 cursor-default select-none"
+                  title="This care package is already subscribed by residents. Editing and deletion are disabled."
+                >
+                  <Lock className="w-3 h-3 text-gray-400" />
+                  Subscribed
+                </span>
+              </div>
+            )
+          }
+
+          return (
+            <div className="flex items-center justify-end gap-1.5">
+              <button
+                type="button"
+                onClick={() => handleOpenEdit(row.original)}
+                className="p-1.5 rounded-lg text-gray-500 hover:text-[#005390] hover:bg-[#005390]/10 transition-colors cursor-pointer"
+                title="Edit Package"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOpenDeleteConfirm(row.original)}
+                className="p-1.5 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                title="Delete Package"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )
+        },
       },
     ],
-    [handleOpenEdit, handleOpenDeleteConfirm],
+    [handleOpenEdit, handleOpenDeleteConfirm, isPackageSubscribed],
   )
 
   return (
@@ -687,15 +807,13 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                   />
                 </div>
 
-                {/* 3. Select Tasks with Complimentary (manes 1 2 3 4 5 6) */}
+                {/* 3. Select Included Tasks */}
                 <div className="pt-2 border-t border-gray-100">
                   <div className="flex items-center justify-between mb-2">
                     <div>
-                      <span className="block text-xs font-bold text-gray-800">
-                        3. Select Tasks with Complimentary Sets
-                      </span>
+                      <span className="block text-xs font-bold text-gray-800">3. Select Included Tasks</span>
                       <p className="text-[11px] text-gray-500">
-                        Choose included tasks and specify complimentary count (e.g. 1, 2, 3, 4, 5, 6...)
+                        Free tasks are complimentary for the package. Paid tasks include configured complimentary sets.
                       </p>
                     </div>
                     <span className="text-xs font-extrabold text-[#005390] bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200/60">
@@ -703,110 +821,8 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                     </span>
                   </div>
 
-                  {/* Selected Tasks List with Quantity Steppers */}
-                  {selectedTasks.length > 0 && (
-                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                      {selectedTasks.map((st) => {
-                        const matched = availableTasks.find((t) => t.id === st.taskId)
-                        const name =
-                          st.careTaskName || st.taskName || matched?.careTaskName || matched?.taskName || 'Care Task'
-                        const monthlyRate = Number(
-                          st.monthlyRate ??
-                            matched?.monthlyRate ??
-                            (st.careTaskPrice !== undefined && st.careTaskPrice !== null
-                              ? st.careTaskPrice
-                              : (matched?.careTaskPrice ?? matched?.price)) ??
-                            0,
-                        )
-
-                        return (
-                          <div
-                            key={st.taskId}
-                            className="flex items-center justify-between p-2.5 rounded-xl border border-gray-200/80 bg-gray-50/70 text-xs"
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 bg-blue-100 text-[#005390]">
-                                <HeartHandshake className="w-3.5 h-3.5" />
-                              </span>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                  <span className="text-xs font-bold text-gray-900 truncate">{name}</span>
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold shrink-0 border bg-indigo-50 text-indigo-700 border-indigo-200/60">
-                                    Monthly
-                                  </span>
-                                </div>
-                                <div className="text-[10px] text-gray-500 mt-0.5">
-                                  Monthly Rate: {monthlyRate > 0 ? `₹${monthlyRate.toLocaleString('en-IN')}` : 'Free'}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2 shrink-0">
-                              {/* Complimentary Counter */}
-                              <div className="flex items-center gap-1 bg-white rounded-lg p-1 border border-gray-200">
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateComplimentaryCount(st.taskId, -1)}
-                                  className="w-6 h-6 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100 cursor-pointer"
-                                  title="Decrease complimentary count"
-                                >
-                                  <Minus className="w-3 h-3" />
-                                </button>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max="999"
-                                  value={st.complimentaryCount || 1}
-                                  onChange={(e) =>
-                                    handleUpdateComplimentaryCount(st.taskId, Number(e.target.value) || 1, true)
-                                  }
-                                  className="w-10 text-center text-xs font-bold text-[#005390] border-0 focus:outline-none p-0"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateComplimentaryCount(st.taskId, 1)}
-                                  className="w-6 h-6 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100 cursor-pointer"
-                                  title="Increase complimentary count"
-                                >
-                                  <Plus className="w-3 h-3" />
-                                </button>
-                              </div>
-
-                              {/* Quick Presets (1, 2, 4, 6) */}
-                              <div className="hidden sm:flex items-center gap-0.5">
-                                {[1, 2, 4, 6].map((cnt) => (
-                                  <button
-                                    key={cnt}
-                                    type="button"
-                                    onClick={() => handleUpdateComplimentaryCount(st.taskId, cnt, true)}
-                                    className={`w-6 h-6 text-[10px] font-bold rounded cursor-pointer transition-colors ${
-                                      st.complimentaryCount === cnt
-                                        ? 'bg-[#005390] text-white'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                    }`}
-                                  >
-                                    {cnt}
-                                  </button>
-                                ))}
-                              </div>
-
-                              {/* Remove from selection */}
-                              <button
-                                type="button"
-                                onClick={() => handleToggleTask({ id: st.taskId } as Task)}
-                                className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-
-                  {/* Task Picker Search */}
-                  <div className="rounded-2xl border border-gray-200 p-3 bg-gray-50/50">
+                  {/* Task Picker Search & List with In-Row Quantity Steppers */}
+                  <div className="rounded-2xl border border-gray-200 p-3 bg-gray-50/50 dark:border-gray-800 dark:bg-slate-900/50">
                     <div className="relative mb-2.5">
                       <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input
@@ -814,7 +830,7 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                         value={taskSearchQuery}
                         onChange={(e) => setTaskSearchQuery(e.target.value)}
                         placeholder="Search tasks from task master..."
-                        className="w-full pl-8 pr-12 py-1.5 text-xs bg-white rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-[#005390]"
+                        className="w-full pl-8 pr-12 py-1.5 text-xs bg-white rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-[#005390] dark:bg-slate-800 dark:border-gray-700 dark:text-white"
                       />
                       {isLoadingPickerTasks ? (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -831,7 +847,7 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                       ) : null}
                     </div>
 
-                    <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
+                    <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
                       {isLoadingPickerTasks && filteredAvailableTasks.length === 0 ? (
                         <div className="text-center py-6 text-xs text-gray-400">
                           <div className="w-5 h-5 border-2 border-[#005390] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
@@ -845,46 +861,136 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                         </div>
                       ) : (
                         filteredAvailableTasks.map((task) => {
-                          const isSelected = selectedTasks.some((t) => t.taskId === task.id)
+                          const selectedItem = selectedTasks.find((t) => t.taskId === task.id)
+                          const isSelected = Boolean(selectedItem)
                           const name = task.careTaskName || task.taskName || 'Care Task'
-                          const monthlyRate = Number(
-                            task.monthlyRate ??
-                              (task.careTaskPrice !== undefined && task.careTaskPrice !== null
-                                ? task.careTaskPrice
-                                : task.price) ??
-                              0,
-                          )
+                          const rawB = String(task.billingType || 'MONTHLY').toUpperCase()
+                          const isSession = rawB.startsWith('SESS')
+                          const price = Number(task.price ?? 0)
+                          const isFree = price <= 0
 
                           return (
-                            <button
+                            <div
                               key={task.id}
-                              type="button"
-                              onClick={() => handleToggleTask(task)}
-                              className={`w-full flex items-center justify-between p-2 rounded-xl text-left text-xs transition-colors cursor-pointer ${
+                              className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left text-xs transition-all ${
                                 isSelected
-                                  ? 'bg-[#005390]/10 border border-[#005390]/30 text-[#005390]'
-                                  : 'bg-white hover:bg-gray-100 border border-transparent text-gray-700'
+                                  ? 'bg-[#005390]/10 border border-[#005390]/40 text-[#005390] dark:bg-sky-950/30 dark:border-sky-800 dark:text-sky-300 shadow-2xs'
+                                  : 'bg-white hover:bg-gray-100/80 border border-gray-200/70 text-gray-700 dark:bg-slate-800 dark:hover:bg-slate-750 dark:border-gray-700 dark:text-gray-200'
                               }`}
                             >
-                              <div className="flex items-center gap-2 min-w-0">
+                              {/* Left: Checkbox + Name + Billing Badge */}
+                              <button
+                                type="button"
+                                onClick={() => handleToggleTask(task)}
+                                className="flex items-center gap-2.5 min-w-0 flex-1 mr-2 text-left cursor-pointer"
+                              >
                                 <span
-                                  className={`w-4 h-4 rounded flex items-center justify-center border ${
-                                    isSelected ? 'bg-[#005390] border-[#005390] text-white' : 'border-gray-300'
+                                  className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 transition-colors ${
+                                    isSelected
+                                      ? 'bg-[#005390] border-[#005390] text-white dark:bg-sky-600 dark:border-sky-600'
+                                      : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-slate-700'
                                   }`}
                                 >
-                                  {isSelected && <CheckSquare className="w-3 h-3" />}
+                                  {isSelected && <CheckSquare className="w-3.5 h-3.5" />}
                                 </span>
-                                <span className="font-semibold truncate">{name}</span>
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-indigo-50 text-indigo-700 border border-indigo-200/60">
-                                  Monthly
+                                <span className="font-bold truncate text-gray-900 dark:text-white">{name}</span>
+                                <span
+                                  className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold shrink-0 border ${
+                                    isSession
+                                      ? 'bg-amber-50 text-amber-700 border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60'
+                                      : 'bg-indigo-50 text-indigo-700 border-indigo-200/60 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/60'
+                                  }`}
+                                >
+                                  {isSession ? 'Session' : 'Monthly'}
                                 </span>
+                              </button>
+
+                              {/* Right: Quantity Stepper if Selected, or Price if Unselected */}
+                              <div className="flex items-center gap-2 shrink-0">
+                                {isSelected ? (
+                                  isFree ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800">
+                                      Free for package
+                                    </span>
+                                  ) : (
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 hidden sm:inline">
+                                        ₹{price.toLocaleString('en-IN')}
+                                        {isSession ? '/session' : ''}
+                                      </span>
+
+                                      {/* Complimentary - 1 + Counter */}
+                                      <div className="flex items-center gap-0.5 bg-white dark:bg-slate-900 rounded-lg p-0.5 border border-gray-200 dark:border-gray-700 shadow-xs">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleUpdateComplimentaryCount(task.id, -1)}
+                                          className="w-5 h-5 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800 cursor-pointer"
+                                          title="Decrease complimentary count"
+                                        >
+                                          <Minus className="w-3 h-3" />
+                                        </button>
+                                        <input
+                                          type="number"
+                                          min="1"
+                                          max="999"
+                                          value={selectedItem?.complimentaryCount || 1}
+                                          onClick={(e) => e.stopPropagation()}
+                                          onChange={(e) => {
+                                            e.stopPropagation()
+                                            handleUpdateComplimentaryCount(task.id, Number(e.target.value) || 1, true)
+                                          }}
+                                          className="w-8 text-center text-xs font-extrabold text-[#005390] dark:text-sky-400 border-0 focus:outline-none p-0 bg-transparent"
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleUpdateComplimentaryCount(task.id, 1)
+                                          }}
+                                          className="w-5 h-5 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800 cursor-pointer"
+                                          title="Increase complimentary count"
+                                        >
+                                          <Plus className="w-3 h-3" />
+                                        </button>
+                                      </div>
+
+                                      {/* Quick Presets (1, 2, 4) */}
+                                      <div className="hidden sm:flex items-center gap-0.5">
+                                        {[1, 2, 4].map((cnt) => (
+                                          <button
+                                            key={cnt}
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              handleUpdateComplimentaryCount(task.id, cnt, true)
+                                            }}
+                                            className={`w-5 h-5 text-[9px] font-bold rounded cursor-pointer transition-colors ${
+                                              selectedItem?.complimentaryCount === cnt
+                                                ? 'bg-[#005390] text-white'
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-800 dark:text-gray-300'
+                                            }`}
+                                          >
+                                            {cnt}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )
+                                ) : (
+                                  <span
+                                    className={`text-[11px] font-bold ${
+                                      price > 0
+                                        ? 'text-gray-600 dark:text-gray-300'
+                                        : 'text-emerald-600 dark:text-emerald-400'
+                                    }`}
+                                  >
+                                    {price > 0
+                                      ? `₹${price.toLocaleString('en-IN')}${isSession ? '/session' : ''}`
+                                      : 'Free'}
+                                  </span>
+                                )}
                               </div>
-                              <span
-                                className={`text-[11px] font-bold shrink-0 ${monthlyRate > 0 ? 'text-gray-600' : 'text-emerald-600'}`}
-                              >
-                                {monthlyRate > 0 ? `₹${monthlyRate.toLocaleString('en-IN')}` : 'Free'}
-                              </span>
-                            </button>
+                            </div>
                           )
                         })
                       )}

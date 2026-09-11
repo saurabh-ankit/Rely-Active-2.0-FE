@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Plus,
@@ -13,9 +13,9 @@ import {
   Upload,
   ImageIcon,
   Building2,
-  Clock,
   CalendarDays,
   Sparkles,
+  Lock,
 } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
 import {
@@ -24,13 +24,13 @@ import {
   useUpdateCareTaskMutation,
   useDeleteCareTaskMutation,
 } from '@/hooks/react-query/medical'
-import type { CareTask, PriceOption, Task } from '@/lib/types/medical'
+import type { CareTask, BillingType, Task } from '@/lib/types/medical'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { z } from 'zod'
 
-export type { PriceOption, CareTask, Task }
+export type { BillingType, CareTask, Task }
 
 export interface TasksTabProps {
   isPropertyMode?: boolean
@@ -40,9 +40,16 @@ export interface TasksTabProps {
 const careTaskFormSchema = z.object({
   careTaskName: z.string().trim().min(1, 'Care Task Name is required').max(255),
   careTaskDescription: z.string().trim().optional(),
-  dailyRate: z.union([z.number(), z.string()]).optional().nullable(),
-  monthlyRate: z.union([z.number(), z.string()]).optional().nullable(),
-  sessionRate: z.union([z.number(), z.string()]).optional().nullable(),
+  billingType: z.enum(['MONTHLY', 'SESSION'], {
+    message: 'Billing Type is mandatory (MONTHLY or SESSION)',
+  }),
+  price: z.union([z.number(), z.string()]).refine(
+    (val) => {
+      const n = Number(val)
+      return !isNaN(n) && n >= 0
+    },
+    { message: 'Price must be 0 or greater' },
+  ),
   careTaskImage: z.string().optional().nullable(),
   propertyId: z.string().optional().nullable(),
   isActive: z.boolean().optional(),
@@ -53,9 +60,8 @@ type CareTaskFormValues = z.infer<typeof careTaskFormSchema>
 const defaultFormValues: CareTaskFormValues = {
   careTaskName: '',
   careTaskDescription: '',
-  dailyRate: 0,
-  monthlyRate: 0,
-  sessionRate: 0,
+  billingType: 'MONTHLY',
+  price: 0,
 }
 
 const fieldInputClass =
@@ -122,6 +128,10 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
   const isSubmitting = createCareTaskMutation.isPending || updateCareTaskMutation.isPending
   const isDeleting = deleteCareTaskMutation.isPending
 
+  const isTaskAssigned = useCallback((task: CareTask) => {
+    return Boolean(task.isAssigned)
+  }, [])
+
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<CareTask | null>(null)
@@ -135,12 +145,16 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
   const {
     register,
     handleSubmit,
+    setValue,
+    control,
     reset,
     formState: { errors },
   } = useForm<CareTaskFormValues>({
     resolver: zodResolver(careTaskFormSchema),
     defaultValues: defaultFormValues,
   })
+
+  const watchBillingType = useWatch({ control, name: 'billingType' }) || 'MONTHLY'
 
   // Modal Handlers
   const handleOpenCreate = () => {
@@ -156,20 +170,26 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
 
   const handleOpenEdit = useCallback(
     (task: CareTask) => {
+      if (isTaskAssigned(task)) {
+        notifyError('Notice', 'Cannot edit this care task because it is already assigned to residents.')
+        return
+      }
       setEditingTask(task)
       setImageFile(null)
       setImagePreviewUrl(task.careTaskImage || '')
       setErrorMsg('')
+      const rawB = String(task.billingType || '').toUpperCase()
+      const bType: 'MONTHLY' | 'SESSION' = rawB.startsWith('SESS') ? 'SESSION' : 'MONTHLY'
+      const price = Number(task.price ?? 0)
       reset({
         careTaskName: task.careTaskName,
         careTaskDescription: task.careTaskDescription || '',
-        dailyRate: task.dailyRate ?? 0,
-        monthlyRate: task.monthlyRate ?? 0,
-        sessionRate: task.sessionRate ?? 0,
+        billingType: bType,
+        price,
       })
       setIsModalOpen(true)
     },
-    [reset],
+    [reset, isTaskAssigned],
   )
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -205,9 +225,9 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
         return isNaN(n) || n < 0 ? 0 : n
       }
 
-      formData.append('dailyRate', String(parseNum(data.dailyRate)))
-      formData.append('monthlyRate', String(parseNum(data.monthlyRate)))
-      formData.append('sessionRate', String(parseNum(data.sessionRate)))
+      const priceVal = parseNum(data.price)
+      formData.append('billingType', data.billingType)
+      formData.append('price', String(priceVal))
 
       if (imageFile) {
         formData.append('careTaskImage', imageFile)
@@ -242,10 +262,17 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
   }
 
   // Delete Handlers
-  const handleOpenDelete = useCallback((task: CareTask) => {
-    setTaskToDelete(task)
-    setIsDeleteModalOpen(true)
-  }, [])
+  const handleOpenDelete = useCallback(
+    (task: CareTask) => {
+      if (isTaskAssigned(task)) {
+        notifyError('Notice', 'Cannot delete this care task because it is already assigned to residents.')
+        return
+      }
+      setTaskToDelete(task)
+      setIsDeleteModalOpen(true)
+    },
+    [isTaskAssigned],
+  )
 
   const handleConfirmDelete = async () => {
     if (!taskToDelete) return
@@ -303,40 +330,41 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
         },
       },
       {
-        accessorKey: 'dailyRate',
-        header: 'Daily Rate',
+        accessorKey: 'billingType',
+        header: 'Billing Type',
         cell: ({ row }) => {
-          const rate = Number(row.original.dailyRate) || 0
+          const rawB = String(row.original.billingType || 'MONTHLY').toUpperCase()
+          const isSession = rawB.startsWith('SESS')
           return (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200/60 shadow-2xs">
-              <Clock className="w-3.5 h-3.5 text-sky-600" />₹{rate.toLocaleString('en-IN')}
-              <span className="text-[10px] text-sky-500 font-normal">/day</span>
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border shadow-2xs ${
+                isSession
+                  ? 'bg-amber-50 text-amber-700 border-amber-200/60'
+                  : 'bg-indigo-50 text-indigo-700 border-indigo-200/60'
+              }`}
+            >
+              {isSession ? (
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              ) : (
+                <CalendarDays className="w-3.5 h-3.5 text-indigo-600" />
+              )}
+              {isSession ? 'SESSION' : 'MONTHLY'}
             </span>
           )
         },
       },
       {
-        accessorKey: 'monthlyRate',
-        header: 'Monthly Rate',
+        accessorKey: 'price',
+        header: 'Rate / Price',
         cell: ({ row }) => {
-          const rate = Number(row.original.monthlyRate) || 0
+          const task = row.original
+          const rawB = String(task.billingType || 'MONTHLY').toUpperCase()
+          const isSession = rawB.startsWith('SESS')
+          const rate = Number(task.price ?? 0)
           return (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/60 shadow-2xs">
-              <CalendarDays className="w-3.5 h-3.5 text-indigo-600" />₹{rate.toLocaleString('en-IN')}
-              <span className="text-[10px] text-indigo-500 font-normal">/mo</span>
-            </span>
-          )
-        },
-      },
-      {
-        accessorKey: 'sessionRate',
-        header: 'Session Wise',
-        cell: ({ row }) => {
-          const rate = Number(row.original.sessionRate) || 0
-          return (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200/60 shadow-2xs">
-              <Sparkles className="w-3.5 h-3.5 text-amber-600" />₹{rate.toLocaleString('en-IN')}
-              <span className="text-[10px] text-amber-500 font-normal">/session</span>
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-gray-900">
+              ₹{rate.toLocaleString('en-IN')}
+              <span className="text-[10px] text-gray-400 font-normal">{isSession ? '/session' : '/mo'}</span>
             </span>
           )
         },
@@ -360,29 +388,48 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
       {
         id: 'actions',
         header: () => <span className="sr-only">Actions</span>,
-        cell: ({ row }) => (
-          <div className="flex items-center justify-end gap-1.5">
-            <button
-              type="button"
-              onClick={() => handleOpenEdit(row.original)}
-              className="p-1.5 rounded-lg text-[#005390] hover:bg-blue-50 transition-colors cursor-pointer"
-              title="Edit Care Task"
-            >
-              <Edit2 className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleOpenDelete(row.original)}
-              className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-              title="Delete Care Task"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ),
+        cell: ({ row }) => {
+          const task = row.original
+          const isAssigned = isTaskAssigned(task)
+
+          if (isAssigned) {
+            return (
+              <div className="flex items-center justify-end">
+                <span
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-gray-100 text-gray-500 border border-gray-200/80 cursor-default select-none dark:bg-slate-800 dark:border-gray-700 dark:text-gray-400"
+                  title="This care task is already assigned to residents. Editing and deletion are disabled."
+                >
+                  <Lock className="w-3 h-3 text-gray-400" />
+                  Assigned
+                </span>
+              </div>
+            )
+          }
+
+          return (
+            <div className="flex items-center justify-end gap-1.5">
+              <button
+                type="button"
+                onClick={() => handleOpenEdit(task)}
+                className="p-1.5 rounded-lg text-[#005390] hover:bg-blue-50 transition-colors cursor-pointer dark:hover:bg-sky-950/40"
+                title="Edit Care Task"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOpenDelete(task)}
+                className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer dark:hover:bg-rose-950/40"
+                title="Delete Care Task"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )
+        },
       },
     ],
-    [handleOpenEdit, handleOpenDelete],
+    [handleOpenEdit, handleOpenDelete, isTaskAssigned],
   )
 
   return (
@@ -509,7 +556,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                     {editingTask ? 'Edit Care Task' : 'Create Care Task'}
                   </h3>
                   <p className="text-[11px] text-gray-500 mt-0.5">
-                    Configure task details and set prices for all 3 categories simultaneously.
+                    Configure task details, select billing type (Monthly or Session), and set task rate.
                   </p>
                 </div>
               </div>
@@ -560,72 +607,98 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                 />
               </div>
 
-              {/* 3. Pricing Configuration (Enter rates for all applicable categories) * */}
+              {/* 3. Billing Type & Pricing Configuration (Mandatory Billing Type & Price) */}
               <div>
-                <span className="block text-xs font-bold text-gray-700 mb-1.5">
-                  3. Pricing Configuration (Enter rates for all applicable categories){' '}
-                  <span className="text-rose-500">*</span>
+                <span className="block text-xs font-bold text-gray-700 mb-1">
+                  3. Billing Type & Rate Configuration <span className="text-rose-500">*</span>
                 </span>
-                <div className="grid grid-cols-3 gap-3">
-                  {/* Daily Rate */}
-                  <div className="rounded-2xl border border-gray-200 bg-white p-3 hover:border-gray-300 transition-colors shadow-2xs">
-                    <div className="flex items-center gap-1.5 mb-2 text-gray-700">
-                      <Clock className="w-4 h-4 text-sky-600" />
-                      <span className="text-xs font-bold text-gray-800">Daily Rate</span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        {...register('dailyRate')}
-                        placeholder="0"
-                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-900 placeholder:text-gray-400 focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20"
-                      />
-                    </div>
-                  </div>
+                <p className="text-[11px] text-gray-500 mb-2.5">
+                  Select the billing frequency model. One of them is mandatory.
+                </p>
 
-                  {/* Monthly Rate */}
-                  <div className="rounded-2xl border border-gray-200 bg-white p-3 hover:border-gray-300 transition-colors shadow-2xs">
-                    <div className="flex items-center gap-1.5 mb-2 text-gray-700">
-                      <CalendarDays className="w-4 h-4 text-rose-500" />
-                      <span className="text-xs font-bold text-gray-800">Monthly Rate</span>
+                {/* Billing Type Toggle Selection */}
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  {/* Monthly */}
+                  <button
+                    type="button"
+                    onClick={() => setValue('billingType', 'MONTHLY')}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                      watchBillingType === 'MONTHLY'
+                        ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20 shadow-xs'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                        watchBillingType === 'MONTHLY' ? 'bg-[#005390] text-white' : 'bg-indigo-50 text-indigo-600'
+                      }`}
+                    >
+                      <CalendarDays className="w-4 h-4" />
                     </div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        {...register('monthlyRate')}
-                        placeholder="0"
-                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-900 placeholder:text-gray-400 focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20"
-                      />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-gray-900">Monthly</span>
+                        {watchBillingType === 'MONTHLY' && <span className="w-2 h-2 rounded-full bg-[#005390]" />}
+                      </div>
+                      <p className="text-[10px] text-gray-500 mt-0.5">Fixed recurring monthly charge</p>
                     </div>
-                  </div>
+                  </button>
 
-                  {/* Session Wise */}
-                  <div className="rounded-2xl border border-gray-200 bg-white p-3 hover:border-gray-300 transition-colors shadow-2xs">
-                    <div className="flex items-center gap-1.5 mb-2 text-gray-700">
-                      <Sparkles className="w-4 h-4 text-cyan-600" />
-                      <span className="text-xs font-bold text-gray-800">Session Wise</span>
+                  {/* Session */}
+                  <button
+                    type="button"
+                    onClick={() => setValue('billingType', 'SESSION')}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                      watchBillingType === 'SESSION'
+                        ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20 shadow-xs'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                        watchBillingType === 'SESSION' ? 'bg-[#005390] text-white' : 'bg-amber-50 text-amber-600'
+                      }`}
+                    >
+                      <Sparkles className="w-4 h-4" />
                     </div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        {...register('sessionRate')}
-                        placeholder="0"
-                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-900 placeholder:text-gray-400 focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20"
-                      />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-gray-900">Session</span>
+                        {watchBillingType === 'SESSION' && <span className="w-2 h-2 rounded-full bg-[#005390]" />}
+                      </div>
+                      <p className="text-[10px] text-gray-500 mt-0.5">Pay per completed session</p>
                     </div>
-                  </div>
+                  </button>
                 </div>
-                {(errors.dailyRate || errors.monthlyRate || errors.sessionRate) && (
-                  <p className="text-[11px] text-rose-500 mt-1">
-                    {errors.dailyRate?.message || errors.monthlyRate?.message || errors.sessionRate?.message}
-                  </p>
+                {errors.billingType && (
+                  <p className="text-[11px] text-rose-500 mb-2 font-medium">{errors.billingType.message}</p>
                 )}
+
+                {/* Price Input */}
+                <div className="rounded-2xl border border-gray-200 bg-gray-50/60 p-3.5">
+                  <label htmlFor="care-task-price" className="block text-xs font-bold text-gray-800 mb-1.5">
+                    {watchBillingType === 'SESSION' ? 'Session Rate (₹)' : 'Monthly Rate (₹)'}{' '}
+                    <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
+                      ₹
+                    </span>
+                    <input
+                      id="care-task-price"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      {...register('price')}
+                      placeholder="0.00"
+                      className="w-full rounded-xl border border-gray-200 bg-white pl-8 pr-20 py-2.5 text-xs font-bold text-gray-900 placeholder:text-gray-400 focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20"
+                    />
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-gray-400">
+                      {watchBillingType === 'SESSION' ? '/session' : '/month'}
+                    </span>
+                  </div>
+                  {errors.price && <p className="text-[11px] text-rose-500 mt-1 font-medium">{errors.price.message}</p>}
+                </div>
               </div>
 
               {/* 4. Task Image (Optional) */}
