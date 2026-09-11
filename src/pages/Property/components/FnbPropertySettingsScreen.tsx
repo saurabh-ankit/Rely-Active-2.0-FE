@@ -50,6 +50,9 @@ interface OptedResidentSub {
   endDate?: string | null
   dietaryPreference: string
   allergiesNotes?: string
+  diningType?: string
+  deliveryCharge?: number | string
+  totalPrice?: number | string
   status: string
   propertyPackageId: string
   propertyPackage?: {
@@ -854,7 +857,12 @@ export function FnbPropertySettingsScreen({
                                             : grp.primaryResidentName
 
                                           const pkgName = sub.propertyPackage?.globalPackage?.name || 'Package'
-                                          const price = sub.propertyPackage?.price || 0
+                                          const basePrice = sub.propertyPackage?.price || 0
+                                          const deliveryFee = Number(sub.deliveryCharge) || 0
+                                          const price =
+                                            sub.totalPrice != null
+                                              ? Number(sub.totalPrice)
+                                              : basePrice + (sub.diningType === 'home_delivery' ? deliveryFee : 0)
                                           const slots =
                                             (
                                               sub.propertyPackage?.globalPackage as unknown as {
@@ -883,7 +891,22 @@ export function FnbPropertySettingsScreen({
                                                   </span>
                                                 )}
                                               </td>
-                                              <td className="py-2.5 px-3 font-bold text-gray-900">{pkgName}</td>
+                                              <td className="py-2.5 px-3">
+                                                <div className="font-bold text-gray-900">{pkgName}</div>
+                                                {sub.diningType && (
+                                                  <span
+                                                    className={`inline-block text-[10px] font-semibold px-1.5 py-0.2 rounded border mt-0.5 ${
+                                                      sub.diningType === 'home_delivery'
+                                                        ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                                        : 'bg-blue-50 text-blue-800 border-blue-200'
+                                                    }`}
+                                                  >
+                                                    {sub.diningType === 'home_delivery'
+                                                      ? '🚚 Home Delivery'
+                                                      : '🍽️ Dine-in'}
+                                                  </span>
+                                                )}
+                                              </td>
                                               <td className="py-2.5 px-3">
                                                 <div className="flex flex-wrap gap-1">
                                                   {slots.map((s) => (
@@ -897,7 +920,12 @@ export function FnbPropertySettingsScreen({
                                                 </div>
                                               </td>
                                               <td className="py-2.5 px-3 font-extrabold text-emerald-700">
-                                                ₹{Number(price).toLocaleString('en-IN')}/mo
+                                                <div>₹{Number(price).toLocaleString('en-IN')}/mo</div>
+                                                {sub.diningType === 'home_delivery' && deliveryFee > 0 && (
+                                                  <div className="text-[9px] text-amber-700 font-semibold">
+                                                    (+₹{deliveryFee.toLocaleString('en-IN')} Del.)
+                                                  </div>
+                                                )}
                                               </td>
                                               <td className="py-2.5 px-3">
                                                 <span

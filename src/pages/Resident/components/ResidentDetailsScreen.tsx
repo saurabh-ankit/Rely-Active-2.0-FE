@@ -37,6 +37,9 @@ interface FnbSubscriptionItem {
   endDate?: string | null
   dietaryPreference?: string
   allergiesNotes?: string
+  diningType?: string
+  deliveryCharge?: number | string
+  totalPrice?: number | string
   status: string
   propertyPackage?: {
     id: string
@@ -320,6 +323,18 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
                       {primarySub.status || 'Active'}
                     </span>
                   )}
+
+                  {primarySub && (
+                    <span
+                      className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                        primarySub.diningType === 'home_delivery'
+                          ? 'bg-amber-50 text-amber-800 border-amber-300'
+                          : 'bg-blue-50 text-[#005390] border-blue-200'
+                      }`}
+                    >
+                      {primarySub.diningType === 'home_delivery' ? '🚚 Home Delivery' : '🍽️ Dine-in'}
+                    </span>
+                  )}
                 </div>
 
                 {primarySub && pkg ? (
@@ -367,14 +382,29 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
             </div>
 
             <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
-              {primarySub && pkg && (
-                <div className="text-right">
-                  <span className="text-[10px] font-bold uppercase text-gray-400 block">Monthly Rate</span>
-                  <span className="text-sm font-black text-[#005390] bg-white px-3 py-1 rounded-xl border border-blue-200 shadow-2xs inline-block">
-                    ₹{Number(pkg.price).toLocaleString('en-IN')}/mo
-                  </span>
-                </div>
-              )}
+              {primarySub &&
+                pkg &&
+                (() => {
+                  const basePrice = Number(pkg.price) || 0
+                  const deliveryFee = Number(primarySub.deliveryCharge) || 0
+                  const total =
+                    primarySub.totalPrice != null
+                      ? Number(primarySub.totalPrice)
+                      : basePrice + (primarySub.diningType === 'home_delivery' ? deliveryFee : 0)
+                  return (
+                    <div className="text-right">
+                      <span className="text-[10px] font-bold uppercase text-gray-400 block">Monthly Rate</span>
+                      <span className="text-sm font-black text-[#005390] bg-white px-3 py-1 rounded-xl border border-blue-200 shadow-2xs inline-block">
+                        ₹{total.toLocaleString('en-IN')}/mo
+                      </span>
+                      {primarySub.diningType === 'home_delivery' && deliveryFee > 0 && (
+                        <span className="block text-[9px] text-amber-700 font-semibold mt-0.5">
+                          (Base ₹{basePrice.toLocaleString('en-IN')} + ₹{deliveryFee.toLocaleString('en-IN')} Del.)
+                        </span>
+                      )}
+                    </div>
+                  )
+                })()}
             </div>
           </div>
         )
@@ -642,7 +672,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
                       return (
                         <div className="mt-3 pt-2.5 border-t border-purple-100/80 space-y-1.5 bg-purple-50/40 p-2.5 rounded-xl border border-purple-100">
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               <Utensils className="w-3.5 h-3.5 text-purple-700" />
                               <span className="text-[10px] font-extrabold uppercase text-purple-900 tracking-wider">
                                 Food Package:
@@ -654,13 +684,41 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
                               ) : (
                                 <span className="text-xs font-semibold text-gray-400 italic">No package assigned</span>
                               )}
+                              {fmSub && (
+                                <span
+                                  className={`text-[9px] font-bold uppercase px-1.5 py-0.2 rounded border ${
+                                    fmSub.diningType === 'home_delivery'
+                                      ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                      : 'bg-blue-50 text-[#005390] border-blue-200'
+                                  }`}
+                                >
+                                  {fmSub.diningType === 'home_delivery' ? '🚚 Home Delivery' : '🍽️ Dine-in'}
+                                </span>
+                              )}
                             </div>
 
-                            {fmSub && pkg && (
-                              <span className="text-xs font-extrabold text-[#005390] bg-white px-2 py-0.5 rounded border border-blue-200">
-                                ₹{Number(pkg.price).toLocaleString('en-IN')}/mo
-                              </span>
-                            )}
+                            {fmSub &&
+                              pkg &&
+                              (() => {
+                                const basePrice = Number(pkg.price) || 0
+                                const deliveryFee = Number(fmSub.deliveryCharge) || 0
+                                const total =
+                                  fmSub.totalPrice != null
+                                    ? Number(fmSub.totalPrice)
+                                    : basePrice + (fmSub.diningType === 'home_delivery' ? deliveryFee : 0)
+                                return (
+                                  <div className="text-right">
+                                    <span className="text-xs font-extrabold text-[#005390] bg-white px-2 py-0.5 rounded border border-blue-200 inline-block">
+                                      ₹{total.toLocaleString('en-IN')}/mo
+                                    </span>
+                                    {fmSub.diningType === 'home_delivery' && deliveryFee > 0 && (
+                                      <span className="block text-[8px] text-amber-700 font-semibold">
+                                        (+₹{deliveryFee.toLocaleString('en-IN')} Del.)
+                                      </span>
+                                    )}
+                                  </div>
+                                )
+                              })()}
                           </div>
 
                           {fmSub && pkg && (

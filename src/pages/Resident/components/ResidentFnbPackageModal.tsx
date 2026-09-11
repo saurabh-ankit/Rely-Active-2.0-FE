@@ -25,6 +25,9 @@ interface ActiveSubscription {
   startDate: string
   allergiesNotes?: string
   propertyPackage?: PropertyPackage
+  diningType?: 'dine_in' | 'home_delivery' | string
+  deliveryCharge?: number | string | null
+  totalPrice?: number | string | null
 }
 
 interface ResidentFnbPackageModalProps {
@@ -69,9 +72,11 @@ export function ResidentFnbPackageModal({
     return slot
   }
 
-  // Map of personId (or 'PRIMARY') -> selected propertyPackageId and startDate
+  // Map of personId (or 'PRIMARY') -> selected propertyPackageId, startDate, diningType, deliveryCharge
   const [selectedPackages, setSelectedPackages] = useState<Record<string, string>>({})
   const [startDates, setStartDates] = useState<Record<string, string>>({})
+  const [diningTypes, setDiningTypes] = useState<Record<string, 'dine_in' | 'home_delivery'>>({})
+  const [deliveryCharges, setDeliveryCharges] = useState<Record<string, string>>({})
   const [existingSubKeys, setExistingSubKeys] = useState<Set<string>>(new Set())
   const [errorMsg, setErrorMsg] = useState('')
   const [saving, setSaving] = useState(false)
@@ -82,6 +87,27 @@ export function ResidentFnbPackageModal({
     setStartDates((prev) => ({
       ...prev,
       [personKey]: date,
+    }))
+  }
+
+  const handleDiningTypeChange = (personKey: string, type: 'dine_in' | 'home_delivery') => {
+    setDiningTypes((prev) => ({
+      ...prev,
+      [personKey]: type,
+    }))
+    if (type === 'dine_in') {
+      setDeliveryCharges((prev) => ({
+        ...prev,
+        [personKey]: '',
+      }))
+    }
+  }
+
+  const handleDeliveryChargeChange = (personKey: string, val: string) => {
+    const sanitized = val.replace(/[^0-9.]/g, '')
+    setDeliveryCharges((prev) => ({
+      ...prev,
+      [personKey]: sanitized,
     }))
   }
 
@@ -116,6 +142,8 @@ export function ResidentFnbPackageModal({
 
       const pkgMap: Record<string, string> = {}
       const dateMap: Record<string, string> = {}
+      const diningTypeMap: Record<string, 'dine_in' | 'home_delivery'> = {}
+      const deliveryChargeMap: Record<string, string> = {}
       const existingKeys = new Set<string>()
 
       if (activeSubsResult.status === 'fulfilled' && activeSubsResult.value?.data?.success) {
@@ -125,17 +153,16 @@ export function ResidentFnbPackageModal({
           const propPkgId =
             sub.propertyPackageId || (sub as unknown as Record<string, string>).property_package_id || ''
           const sDate = sub.startDate || (sub as unknown as Record<string, string>).start_date
+          const dType = sub.diningType === 'home_delivery' ? 'home_delivery' : 'dine_in'
+          const dCharge = sub.deliveryCharge != null && Number(sub.deliveryCharge) > 0 ? String(sub.deliveryCharge) : ''
 
+          const key = famId || 'PRIMARY'
           if (propPkgId) {
-            if (famId) {
-              pkgMap[famId] = propPkgId
-              existingKeys.add(famId)
-              if (sDate) dateMap[famId] = sDate.split('T')[0]
-            } else {
-              pkgMap['PRIMARY'] = propPkgId
-              existingKeys.add('PRIMARY')
-              if (sDate) dateMap['PRIMARY'] = sDate.split('T')[0]
-            }
+            pkgMap[key] = propPkgId
+            existingKeys.add(key)
+            if (sDate) dateMap[key] = sDate.split('T')[0]
+            diningTypeMap[key] = dType
+            deliveryChargeMap[key] = dCharge
           }
         })
       }
@@ -143,6 +170,8 @@ export function ResidentFnbPackageModal({
       setExistingSubKeys(existingKeys)
       setSelectedPackages(pkgMap)
       setStartDates(dateMap)
+      setDiningTypes(diningTypeMap)
+      setDeliveryCharges(deliveryChargeMap)
     } catch (err) {
       console.error('Failed to load resident package info:', err)
     } finally {
@@ -186,23 +215,37 @@ export function ResidentFnbPackageModal({
         familyMemberId: string | null
         propertyPackageId: string | null
         startDate: string
+        diningType: 'dine_in' | 'home_delivery'
+        deliveryCharge: number
       }> = []
 
       // Primary Resident
+      const primaryDiningType = diningTypes['PRIMARY'] || 'dine_in'
+      const primaryDeliveryCharge =
+        primaryDiningType === 'home_delivery' ? Math.max(0, Number(deliveryCharges['PRIMARY']) || 0) : 0
+
       subscriptionsPayload.push({
         familyMemberId: null,
         propertyPackageId: selectedPackages['PRIMARY'] || null,
         startDate: startDates['PRIMARY'] || todayStr,
+        diningType: primaryDiningType,
+        deliveryCharge: primaryDeliveryCharge,
       })
 
       // Family Members
       familyMembers.forEach((fm) => {
         const fmId = fm.id || (fm as unknown as Record<string, string>)._id
         if (fmId) {
+          const fmDiningType = diningTypes[fmId] || 'dine_in'
+          const fmDeliveryCharge =
+            fmDiningType === 'home_delivery' ? Math.max(0, Number(deliveryCharges[fmId]) || 0) : 0
+
           subscriptionsPayload.push({
             familyMemberId: fmId,
             propertyPackageId: selectedPackages[fmId] || null,
             startDate: startDates[fmId] || todayStr,
+            diningType: fmDiningType,
+            deliveryCharge: fmDeliveryCharge,
           })
         }
       })
@@ -254,7 +297,7 @@ export function ResidentFnbPackageModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 sm:p-6 overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl space-y-6 relative max-h-[90vh] flex flex-col justify-between my-auto">
+      <div className="bg-white rounded-3xl max-w-5xl w-full p-6 sm:p-8 shadow-2xl space-y-6 relative max-h-[90vh] flex flex-col justify-between my-auto">
         {/* Header */}
         <div className="flex items-start justify-between border-b border-gray-100 pb-4">
           <div>
@@ -316,11 +359,11 @@ export function ResidentFnbPackageModal({
                 {/* Person-wise Food Package Selection Table */}
                 <div className="border border-gray-200/80 rounded-2xl overflow-hidden shadow-2xs">
                   <div className="bg-gray-50/80 px-4 py-3 border-b border-gray-200/80 text-xs font-bold text-gray-700 uppercase tracking-wider grid grid-cols-12 gap-3 items-center">
-                    <div className="col-span-12 sm:col-span-3">Resident / Family Member</div>
-                    <div className="col-span-12 sm:col-span-3">Select Food Package</div>
-                    <div className="col-span-12 sm:col-span-2">Start Date</div>
-                    <div className="hidden sm:block sm:col-span-2">Included Meals & Diet</div>
-                    <div className="hidden sm:block sm:col-span-2 text-right">Package Price</div>
+                    <div className="col-span-12 lg:col-span-3">Resident / Family Member</div>
+                    <div className="col-span-12 lg:col-span-3">Food Package</div>
+                    <div className="col-span-12 lg:col-span-2">Dining Type</div>
+                    <div className="col-span-12 lg:col-span-2">Start Date</div>
+                    <div className="col-span-12 lg:col-span-2 text-right">Package Price</div>
                   </div>
 
                   <div className="divide-y divide-gray-100 bg-white">
@@ -330,14 +373,21 @@ export function ResidentFnbPackageModal({
                       const gPkg = selectedPkg?.globalPackage
                       const isAlreadyAssigned = existingSubKeys.has(member.key)
                       const personStartDate = startDates[member.key] || new Date().toISOString().split('T')[0]
+                      const personDiningType = diningTypes[member.key] || 'dine_in'
+                      const personDeliveryCharge = deliveryCharges[member.key] || ''
+
+                      const basePrice = selectedPkg ? Number(selectedPkg.price) : 0
+                      const deliveryAmt =
+                        personDiningType === 'home_delivery' ? Math.max(0, Number(personDeliveryCharge) || 0) : 0
+                      const totalPrice = basePrice + deliveryAmt
 
                       return (
                         <div
                           key={member.key}
-                          className="p-4 grid grid-cols-12 gap-3 items-center hover:bg-gray-50/50 transition-colors"
+                          className="p-4 grid grid-cols-12 gap-3 items-start hover:bg-gray-50/50 transition-colors"
                         >
                           {/* Member Name & Badge */}
-                          <div className="col-span-12 sm:col-span-3 flex items-center gap-2.5">
+                          <div className="col-span-12 lg:col-span-3 flex items-center gap-2.5 pt-1">
                             <div
                               className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
                                 member.isPrimary
@@ -361,8 +411,8 @@ export function ResidentFnbPackageModal({
                             </div>
                           </div>
 
-                          {/* Food Package Dropdown */}
-                          <div className="col-span-12 sm:col-span-3">
+                          {/* Food Package Dropdown + Details */}
+                          <div className="col-span-12 lg:col-span-3 space-y-1.5">
                             <select
                               disabled={isAlreadyAssigned}
                               value={selectedPkgId}
@@ -386,34 +436,11 @@ export function ResidentFnbPackageModal({
                                 )
                               })}
                             </select>
-                            {isAlreadyAssigned && (
-                              <div className="text-[10px] font-extrabold text-amber-700 mt-1 flex items-center gap-1 uppercase tracking-wider">
-                                🔒 Package Assigned
-                              </div>
-                            )}
-                          </div>
 
-                          {/* Start Date */}
-                          <div className="col-span-12 sm:col-span-2">
-                            <input
-                              type="date"
-                              disabled={isAlreadyAssigned}
-                              value={personStartDate}
-                              onChange={(e) => handleStartDateChange(member.key, e.target.value)}
-                              className={`w-full px-2.5 py-1.5 text-xs border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] font-medium transition-all ${
-                                isAlreadyAssigned
-                                  ? 'bg-gray-100/90 text-gray-500 cursor-not-allowed border-gray-200 shadow-2xs'
-                                  : 'bg-white text-gray-800 border-gray-200'
-                              }`}
-                            />
-                          </div>
-
-                          {/* Meal Slots & Diet Preview */}
-                          <div className="col-span-6 sm:col-span-2 text-xs">
-                            {selectedPkg ? (
-                              <div className="space-y-1">
+                            {selectedPkg && (
+                              <div className="space-y-1 pt-0.5">
                                 <span
-                                  className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold capitalize border ${
+                                  className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-extrabold capitalize border ${
                                     gPkg?.dietaryType && gPkg.dietaryType.toLowerCase().includes('non')
                                       ? 'bg-rose-100 text-rose-800 border-rose-300'
                                       : gPkg?.dietaryType && gPkg.dietaryType.toLowerCase().includes('egg')
@@ -423,28 +450,98 @@ export function ResidentFnbPackageModal({
                                 >
                                   {gPkg?.dietaryType ? gPkg.dietaryType.replace('_', ' ') : 'Vegetarian'}
                                 </span>
-                                <div className="text-[11px] text-gray-500 flex flex-wrap gap-1">
+                                <div className="text-[10px] text-gray-500 flex flex-wrap gap-1">
                                   {gPkg?.includedMealSlots?.map((slot) => (
                                     <span
                                       key={slot}
-                                      className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-gray-200"
+                                      className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px] font-semibold border border-gray-200"
                                     >
                                       {getSlotDisplayName(slot)}
                                     </span>
                                   ))}
                                 </div>
                               </div>
-                            ) : (
-                              <span className="text-gray-400 italic text-[11px]">No package selected</span>
+                            )}
+
+                            {isAlreadyAssigned && (
+                              <div className="text-[10px] font-extrabold text-amber-700 mt-1 flex items-center gap-1 uppercase tracking-wider">
+                                🔒 Package Assigned
+                              </div>
                             )}
                           </div>
 
-                          {/* Price Tag */}
-                          <div className="col-span-6 sm:col-span-2 text-right">
+                          {/* Dining Type & Home Delivery Amount */}
+                          <div className="col-span-12 lg:col-span-2 space-y-1.5">
+                            <select
+                              disabled={isAlreadyAssigned || !selectedPkgId}
+                              value={personDiningType}
+                              onChange={(e) =>
+                                handleDiningTypeChange(member.key, e.target.value as 'dine_in' | 'home_delivery')
+                              }
+                              className={`w-full px-2.5 py-2 text-xs border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] font-medium transition-all ${
+                                isAlreadyAssigned || !selectedPkgId
+                                  ? 'bg-gray-100/90 text-gray-500 cursor-not-allowed border-gray-200 shadow-2xs'
+                                  : 'bg-white text-gray-800 border-gray-200'
+                              }`}
+                            >
+                              <option value="dine_in">🍽️ Dine-in</option>
+                              <option value="home_delivery">🚚 Home Delivery</option>
+                            </select>
+
+                            {personDiningType === 'home_delivery' && (
+                              <div className="space-y-1">
+                                <div className="relative">
+                                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-xs">
+                                    ₹
+                                  </span>
+                                  <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    disabled={isAlreadyAssigned || !selectedPkgId}
+                                    placeholder="Delivery fee"
+                                    value={personDeliveryCharge}
+                                    onChange={(e) => handleDeliveryChargeChange(member.key, e.target.value)}
+                                    className={`w-full pl-6 pr-2.5 py-1.5 text-xs border rounded-xl font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#005390] ${
+                                      isAlreadyAssigned || !selectedPkgId
+                                        ? 'bg-gray-100/90 text-gray-500 cursor-not-allowed border-gray-200'
+                                        : 'bg-blue-50/60 border-blue-200 text-gray-900 placeholder:text-gray-400 placeholder:font-normal'
+                                    }`}
+                                  />
+                                </div>
+                                <span className="text-[10px] text-gray-400 block pl-0.5">Extra per month</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Start Date */}
+                          <div className="col-span-12 lg:col-span-2">
+                            <input
+                              type="date"
+                              disabled={isAlreadyAssigned}
+                              value={personStartDate}
+                              onChange={(e) => handleStartDateChange(member.key, e.target.value)}
+                              className={`w-full px-2.5 py-2 text-xs border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] font-medium transition-all ${
+                                isAlreadyAssigned
+                                  ? 'bg-gray-100/90 text-gray-500 cursor-not-allowed border-gray-200 shadow-2xs'
+                                  : 'bg-white text-gray-800 border-gray-200'
+                              }`}
+                            />
+                          </div>
+
+                          {/* Price Tag with Breakdown */}
+                          <div className="col-span-12 lg:col-span-2 text-right pt-1">
                             {selectedPkg ? (
-                              <span className="text-xs font-extrabold text-[#005390] bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100 inline-block">
-                                ₹{Number(selectedPkg.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}/mo
-                              </span>
+                              <div className="space-y-1">
+                                <span className="text-xs font-black text-[#005390] bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100 inline-block">
+                                  ₹{totalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}/mo
+                                </span>
+                                {personDiningType === 'home_delivery' && deliveryAmt > 0 && (
+                                  <div className="text-[10px] text-gray-500 font-medium">
+                                    ₹{basePrice.toLocaleString('en-IN')} pkg + ₹{deliveryAmt.toLocaleString('en-IN')}{' '}
+                                    del
+                                  </div>
+                                )}
+                              </div>
                             ) : (
                               <span className="text-xs text-gray-400 font-mono">₹0.00</span>
                             )}
