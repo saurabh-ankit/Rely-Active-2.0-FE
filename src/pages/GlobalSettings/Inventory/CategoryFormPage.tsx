@@ -1,3 +1,5 @@
+import { useInventoryCategoryName } from '@/hooks/react-query/inventory'
+import { useDebounce } from '@/hooks/useDebounce'
 import { useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { FormProvider, useForm, useFieldArray, useWatch } from 'react-hook-form'
@@ -95,6 +97,9 @@ export function CategoryEditor({ record }: { record?: InventoryCategory }) {
         })) ?? [],
     },
   })
+  const categoryName = useWatch({ control: form.control, name: 'name' })
+  const debouncedName = useDebounce(categoryName.trim(), 300)
+  const availability = useInventoryCategoryName(debouncedName, record?.id)
   const fields = useFieldArray({ control: form.control, name: 'fieldDefinitions' })
   const image = useWatch({ control: form.control, name: 'image' })
   const [imageError, setImageError] = useState('')
@@ -112,6 +117,10 @@ export function CategoryEditor({ record }: { record?: InventoryCategory }) {
           noValidate
           onSubmit={form.handleSubmit(async (data) => {
             if (pending || imageError) return
+            if (debouncedName === data.name.trim() && availability.data?.available === false) {
+              form.setError('name', { message: 'Category with this name already exists' })
+              return
+            }
             try {
               await mutation.mutateAsync({
                 id: record?.id,
@@ -145,6 +154,11 @@ export function CategoryEditor({ record }: { record?: InventoryCategory }) {
             <FormSection title="Basic Information">
               <FieldGroup>
                 <FormInput name="name" label="Category Name *" />
+                {debouncedName === categoryName.trim() && availability.data?.available === false && (
+                  <p role="status" className="text-sm text-destructive">
+                    Category with this name already exists
+                  </p>
+                )}
                 <FormInput name="description" label="Description" type="textarea" />
                 <Field data-invalid={!!imageError}>
                   <FieldLabel htmlFor="category-image">Category Image</FieldLabel>

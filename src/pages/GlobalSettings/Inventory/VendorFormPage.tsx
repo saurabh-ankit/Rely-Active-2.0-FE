@@ -62,6 +62,10 @@ function VendorEditor({ record, locations }: { record?: InventoryVendor; locatio
         <form
           noValidate
           onSubmit={form.handleSubmit(async (data) => {
+            if (!record && !data.locationIds.length) {
+              form.setError('locationIds', { message: 'At least one location is required' })
+              return
+            }
             try {
               await mutation.mutateAsync({
                 id: record?.id,
@@ -78,10 +82,10 @@ function VendorEditor({ record, locations }: { record?: InventoryVendor; locatio
             <FormSection title="Vendor Information">
               <FieldGroup>
                 <FormInput name="name" label="Vendor Name *" />
-                <FormInput name="contactPerson" label="Contact Person" />
+                <FormInput name="contactPerson" label="Contact Person *" />
                 <FormInput name="email" label="Email Address" type="email" />
-                <FormInput name="phone" label="Phone Number" type="tel" />
-                <FormInput name="address" label="Address" type="textarea" />
+                <FormInput name="phone" label="Phone Number *" type="tel" />
+                <FormInput name="address" label="Address *" type="textarea" />
                 <FormCheck name="isActive" label="Active" />
               </FieldGroup>
             </FormSection>

@@ -9,6 +9,7 @@ import type {
   InventoryPayloads,
   InventoryFieldDefinition,
   InventoryVendorAssignment,
+  InventoryLocationThreshold,
 } from '@/lib/types/inventory'
 interface Envelope<T> {
   success: boolean
@@ -63,4 +64,31 @@ export async function uploadInventoryImage(file: File) {
   const body = new FormData()
   body.append('image', file)
   return (await api.post<Envelope<{ image: string }>>(endpoints.categoryImage, body)).data.data
+}
+
+export async function checkInventoryCategoryName(name: string, excludeCategoryId?: string) {
+  return (
+    await api.get<Envelope<{ available: boolean }>>('/inventory/categories/name-availability', {
+      params: { name, excludeCategoryId },
+    })
+  ).data.data
+}
+export async function saveInventoryThresholds(id: string, locations: InventoryLocationThreshold[]) {
+  return (await api.put(endpoints.detail('items', id) + '/thresholds', { locations })).data.data
+}
+export async function setInventoryVendorStatus(id: string, isActive: boolean) {
+  return (await api.put(endpoints.detail('vendors', id) + '/status', { isActive })).data.data
+}
+export async function downloadInventoryTemplate(id: string, rowCount: number): Promise<Blob> {
+  return (await api.get(`/inventory/categories/${id}/template`, { params: { rowCount }, responseType: 'blob' })).data
+}
+export async function importInventoryItems(id: string, file: File) {
+  const body = new FormData()
+  body.append('file', file)
+  return (
+    await api.post<Envelope<{ importedCount: number; createdCount: number; updatedCount: number }>>(
+      `/inventory/categories/${id}/import`,
+      body,
+    )
+  ).data.data
 }

@@ -31,6 +31,12 @@ export interface InventoryVendor {
   isActive: boolean
   locationIds: string[]
 }
+export interface InventoryLocationThreshold {
+  locationId: string
+  minQuantity: number
+  maxQuantity: number
+  threshold: number
+}
 export interface InventoryItem {
   id: string
   categoryId: string
@@ -39,9 +45,14 @@ export interface InventoryItem {
   packType: string
   packQuantity: number
   packUnit: string
+  /** Shared location thresholds, expressed in integer base units. */
+  minQuantity: number
+  maxQuantity: number
+  threshold: number
   locationIds: string[]
   customFields: { fieldDefinitionId: string; value: InventoryValue }[]
   vendorAssignments: InventoryVendorAssignment[]
+  locationThresholds?: InventoryLocationThreshold[]
 }
 export interface InventoryVendorAssignment {
   vendorId: string
@@ -57,6 +68,7 @@ export interface InventoryListParams {
   limit?: number
   search?: string
   categoryId?: string
+  vendorId?: string
   locationId?: string
   isActive?: 'true' | 'false'
   sortBy?: 'name' | 'createdAt' | 'updatedAt'
@@ -76,5 +88,5 @@ export interface InventoryPayloads {
     fieldDefinitions?: (Omit<InventoryFieldDefinition, 'id' | 'categoryId'> & { id?: string })[]
   }
   vendors: Pick<InventoryVendor, 'name' | 'contactPerson' | 'email' | 'phone' | 'address' | 'isActive' | 'locationIds'>
-  items: Omit<InventoryItem, 'id' | 'vendorAssignments'>
+  items: Omit<InventoryItem, 'id' | 'vendorAssignments' | 'locationThresholds'>
 }

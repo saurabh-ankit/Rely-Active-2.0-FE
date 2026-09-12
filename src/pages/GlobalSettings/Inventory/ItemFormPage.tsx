@@ -1,8 +1,9 @@
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { FormProvider, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
+import { useMutation } from '@tanstack/react-query'
 import { FieldGroup } from '@/components/ui/field'
 import { NativeSelectOption } from '@/components/ui/native-select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -13,7 +14,12 @@ import {
   useSaveInventory,
 } from '@/hooks/react-query/inventory'
 import { inventoryItemFormSchema, parseInventoryValue } from '@/lib/validations/inventory'
-import type { InventoryCategory, InventoryItem, InventoryPackageOptions } from '@/lib/types/inventory'
+import type {
+  InventoryCategory,
+  InventoryItem,
+  InventoryPackageOptions,
+  InventoryPayloads,
+} from '@/lib/types/inventory'
 import { InventoryPage, FormSection, InventoryLoading, InventoryLoadError } from './PageLayout'
 import { LocationTable, type LocationOption } from './LocationTable'
 import { inventoryLocationOptions } from './locationOptions'
@@ -60,15 +66,34 @@ export function ItemEditor({
   record,
   options,
   locations,
+  saveOverride,
+  onBack,
 }: {
   category: InventoryCategory
   record?: InventoryItem
   options: InventoryPackageOptions
   locations: LocationOption[]
+  saveOverride?: (input: { id: string | undefined; data: InventoryPayloads['items'] }) => Promise<unknown>
+  onBack?: () => void
 }) {
-  const { back } = useInventoryNavigation(categoryPath(category.id))
-  const mutation = useSaveInventory('items')
+  const navigation = useInventoryNavigation(categoryPath(category.id))
+  const back = onBack ?? navigation.back
+  const globalMutation = useSaveInventory('items')
+  const scopedMutation = useMutation({ mutationFn: saveOverride })
+  const mutation = saveOverride ? scopedMutation : globalMutation
   const schema = inventoryItemFormSchema(category.fieldDefinitions, options)
+  const sortedThresholds = [...(record?.locationThresholds ?? [])].sort((a, b) => {
+    const aName = locations.find((l) => l.id === a.locationId)?.name ?? ''
+    const bName = locations.find((l) => l.id === b.locationId)?.name ?? ''
+    return aName.localeCompare(bName) || a.locationId.localeCompare(b.locationId)
+  })
+  const initialThresholds = sortedThresholds[0] ?? record
+  const mixedThresholds = sortedThresholds.some(
+    (t) =>
+      t.minQuantity !== initialThresholds?.minQuantity ||
+      t.maxQuantity !== initialThresholds?.maxQuantity ||
+      t.threshold !== initialThresholds?.threshold,
+  )
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -77,6 +102,9 @@ export function ItemEditor({
       packType: record?.packType ?? '',
       packUnit: record?.packUnit ?? '',
       packQuantity: record?.packQuantity ?? 1,
+      minQuantity: (initialThresholds?.minQuantity ?? 0) / (record?.packQuantity ?? 1),
+      maxQuantity: (initialThresholds?.maxQuantity ?? 0) / (record?.packQuantity ?? 1),
+      threshold: (initialThresholds?.threshold ?? 0) / (record?.packQuantity ?? 1),
       locationIds: record?.locationIds ?? [],
       values: Object.fromEntries(
         category.fieldDefinitions.map((f) => [
@@ -106,6 +134,9 @@ export function ItemEditor({
                 id: record?.id,
                 data: {
                   ...data,
+                  minQuantity: data.minQuantity * data.packQuantity,
+                  maxQuantity: data.maxQuantity * data.packQuantity,
+                  threshold: data.threshold * data.packQuantity,
                   categoryId: category.id,
                   customFields: category.fieldDefinitions.map((f) => ({
                     fieldDefinitionId: f.id,
@@ -138,6 +169,38 @@ export function ItemEditor({
                 </FormInput>
               </FieldGroup>
             </FormSection>
+            <FormSection
+              title="Stock Thresholds"
+              description={
+                mixedThresholds
+                  ? 'Locations currently have different thresholds. Values shown are from the first location by name. Saving applies these values to all selected locations.'
+                  : 'Enter whole package counts. Saving applies these values to all selected locations.'
+              }
+            >
+              <FieldGroup>
+                <FormInput
+                  name="minQuantity"
+                  label={`Min Quantity${packType ? ` (${packType})` : ''} *`}
+                  type="number"
+                  min={0}
+                  step={1}
+                />
+                <FormInput
+                  name="maxQuantity"
+                  label={`Max Quantity${packType ? ` (${packType})` : ''} *`}
+                  type="number"
+                  min={0}
+                  step={1}
+                />
+                <FormInput
+                  name="threshold"
+                  label={`Threshold${packType ? ` (${packType})` : ''} *`}
+                  type="number"
+                  min={0}
+                  step={1}
+                />
+              </FieldGroup>
+            </FormSection>
             {category.fieldDefinitions.length > 0 && (
               <FormSection title="Additional Information">
                 <FieldGroup>
@@ -164,6 +227,15 @@ export function ItemEditor({
             )}
             <FormSection title="Locations" description="Select from the locations assigned to this category.">
               <LocationTable options={locations} />
+              {!locations.some((l) => !l.disabled) && (
+                <p className="mt-3 text-sm">
+                  No eligible locations.{' '}
+                  <Link className="underline" to={`${categoryPath(category.id)}/locations?returnTo=category`}>
+                    Manage category locations
+                  </Link>{' '}
+                  first.
+                </p>
+              )}
             </FormSection>
             <RootError />
             <FormActions pending={mutation.isPending} onClose={back} />

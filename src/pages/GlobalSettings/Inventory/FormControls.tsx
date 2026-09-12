@@ -12,11 +12,15 @@ export function FormInput({
   name,
   label,
   type = 'text',
+  min,
+  step,
   children,
 }: {
   name: string
   label: string
   type?: string
+  min?: number
+  step?: number
   children?: ReactNode
 }) {
   const { register, getFieldState, formState } = useFormContext()
@@ -35,7 +39,7 @@ export function FormInput({
       ) : type === 'textarea' ? (
         <Textarea {...props} />
       ) : (
-        <Input {...props} type={type} />
+        <Input {...props} type={type} min={min} step={step} />
       )}
       <FieldError id={`${name}-error`} errors={[error]} />
     </Field>

@@ -1,3 +1,7 @@
+import { toast } from 'sonner'
+import { ItemDetailsPage } from './ItemDetailsPage'
+import { ItemThresholdsPage } from './ItemThresholdsPage'
+import { ItemImportPage } from './ItemImportPage'
 import { Routes, Route, Link, useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom'
 import type { ColumnDef, PaginationState, SortingState, Updater } from '@tanstack/react-table'
 import { FolderOpen, Building2, Plus, MoreHorizontal, Pencil, MapPin, Users, ArrowUpDown } from 'lucide-react'
@@ -19,6 +23,7 @@ import {
   useInventoryDetail,
   useInventoryVendorOptions,
   useInventoryProperties,
+  useSetInventoryVendorStatus,
 } from '@/hooks/react-query/inventory'
 import type { InventoryCategory, InventoryVendor, InventoryItem, InventoryListParams } from '@/lib/types/inventory'
 import { InventoryPage, FormSection, InventoryLoading, InventoryLoadError } from './PageLayout'
@@ -27,7 +32,7 @@ import { VendorFormPage } from './VendorFormPage'
 import { ItemFormPage } from './ItemFormPage'
 import { LocationsPage } from './LocationsPage'
 import { ItemVendorsPage } from './ItemVendorsPage'
-import { inventoryBase, categoryPath } from './navigation'
+import { inventoryBase, categoryPath, withInventoryReturn } from './navigation'
 
 export default function InventorySettings() {
   return (
@@ -40,6 +45,9 @@ export default function InventorySettings() {
       <Route path="vendors/new" element={<VendorFormPage />} />
       <Route path="vendors/:vendorId/edit" element={<VendorFormPage />} />
       <Route path="vendors/:vendorId/locations" element={<LocationsPage kind="vendors" />} />
+      <Route path="categories/:categoryId/import" element={<ItemImportPage />} />
+      <Route path="categories/:categoryId/items/:itemId" element={<ItemDetailsPage />} />
+      <Route path="categories/:categoryId/items/:itemId/thresholds" element={<ItemThresholdsPage />} />
       <Route path="categories/:categoryId/items/new" element={<ItemFormPage />} />
       <Route path="categories/:categoryId/items/:itemId/edit" element={<ItemFormPage />} />
       <Route path="categories/:categoryId/items/:itemId/vendors" element={<ItemVendorsPage />} />
@@ -180,11 +188,13 @@ function GlobalInventory() {
     </InventoryPage>
   )
 }
-function MasterList({ kind }: { kind: 'categories' | 'vendors' }) {
+function MasterList({ kind, returnTo }: { returnTo?: string; kind: 'categories' | 'vendors' }) {
+  const statusMutation = useSetInventoryVendorStatus()
   const state = useListState()
   const query = useInventoryList(kind, state.params)
   const navigate = useNavigate()
   const { search } = useLocation()
+  const target = (path: string) => (returnTo ? withInventoryReturn(`${path}${search}`, returnTo) : `${path}${search}`)
   type Master = InventoryCategory | InventoryVendor
   const columns: ColumnDef<Master>[] = [
     {
@@ -244,6 +254,7 @@ function MasterList({ kind }: { kind: 'categories' | 'vendors' }) {
               ) : null,
           },
         ]),
+    ...(kind === 'vendors' ? [{ accessorKey: 'address', header: 'Address' }] : []),
     { accessorKey: 'isActive', header: 'Status', cell: ({ row }) => <Status active={row.original.isActive} /> },
     {
       id: 'actions',
@@ -265,12 +276,27 @@ function MasterList({ kind }: { kind: 'categories' | 'vendors' }) {
             {
               label: 'Edit',
               icon: Pencil,
-              onClick: () => navigate(`${inventoryBase}/${kind}/${row.original.id}/edit${search}`),
+              onClick: () => navigate(target(`${inventoryBase}/${kind}/${row.original.id}/edit`)),
             },
+            ...(kind === 'vendors'
+              ? [
+                  {
+                    label: row.original.isActive ? 'Deactivate' : 'Reactivate',
+                    icon: Pencil,
+                    onClick: () => {
+                      if (!statusMutation.isPending)
+                        void statusMutation
+                          .mutateAsync({ id: row.original.id, isActive: !row.original.isActive })
+                          .then(() => toast.success('Supplier status updated'))
+                          .catch(() => toast.error('Unable to update supplier status'))
+                    },
+                  },
+                ]
+              : []),
             {
               label: 'Manage Locations',
               icon: MapPin,
-              onClick: () => navigate(`${inventoryBase}/${kind}/${row.original.id}/locations${search}`),
+              onClick: () => navigate(target(`${inventoryBase}/${kind}/${row.original.id}/locations`)),
             },
           ]}
         />
@@ -296,7 +322,7 @@ function MasterList({ kind }: { kind: 'categories' | 'vendors' }) {
               Retry
             </Button>
           )}
-          <Button onClick={() => navigate(`${inventoryBase}/${kind}/new${search}`)}>
+          <Button onClick={() => navigate(target(`${inventoryBase}/${kind}/new`))}>
             <Plus data-icon="inline-start" />
             Add {kind === 'categories' ? 'Category' : 'Vendor'}
           </Button>
@@ -316,7 +342,9 @@ function CategoryItems() {
   const { categoryId = '' } = useParams()
   const category = useInventoryDetail('categories', categoryId)
   const state = useListState()
-  const items = useInventoryList('items', { ...state.params, categoryId })
+  const [categorySearch, setCategorySearch] = useSearchParams()
+  const vendorId = categorySearch.get('vendorId') ?? ''
+  const items = useInventoryList('items', { ...state.params, categoryId, ...(vendorId ? { vendorId } : {}) })
   const vendors = useInventoryVendorOptions()
   const properties = useInventoryProperties()
   const navigate = useNavigate()
@@ -333,12 +361,39 @@ function CategoryItems() {
       cell: ({ row }) => (
         <Link
           className="font-semibold hover:underline"
-          to={`${categoryPath(categoryId)}/items/${row.original.id}/edit${search}`}
+          to={`${categoryPath(categoryId)}/items/${row.original.id}${search}`}
         >
           {row.original.name}
+          {category.data.fieldDefinitions.some((f) => f.fieldName.toLowerCase() === 'formulation') && (
+            <span className="block text-xs font-normal text-muted-foreground">
+              {String(
+                row.original.customFields.find(
+                  (v) =>
+                    v.fieldDefinitionId ===
+                    category.data.fieldDefinitions.find((f) => f.fieldName.toLowerCase() === 'formulation')?.id,
+                )?.value ?? '',
+              )}
+            </span>
+          )}
         </Link>
       ),
     },
+    ...(category.data.fieldDefinitions.some((f) => f.fieldName.toLowerCase() === 'type')
+      ? [
+          {
+            id: 'type',
+            header: 'Type',
+            cell: ({ row }: { row: { original: InventoryItem } }) =>
+              String(
+                row.original.customFields.find(
+                  (v) =>
+                    v.fieldDefinitionId ===
+                    category.data.fieldDefinitions.find((f) => f.fieldName.toLowerCase() === 'type')?.id,
+                )?.value ?? '—',
+              ),
+          },
+        ]
+      : []),
     {
       id: 'package',
       header: 'Package',
@@ -392,7 +447,12 @@ function CategoryItems() {
               onClick: () => navigate(`${categoryPath(categoryId)}/items/${row.original.id}/edit${search}`),
             },
             {
-              label: 'Manage Vendors',
+              label: 'Manage Thresholds',
+              icon: Pencil,
+              onClick: () => navigate(`${categoryPath(categoryId)}/items/${row.original.id}/thresholds${search}`),
+            },
+            {
+              label: 'Manage Suppliers',
               icon: Users,
               onClick: () => navigate(`${categoryPath(categoryId)}/items/${row.original.id}/vendors${search}`),
             },
@@ -415,38 +475,90 @@ function CategoryItems() {
           Manage Locations
         </Button>
       </div>
-      <FormSection title="Inventory Items">
-        <DataTable
-          columns={columns}
-          data={items.data?.records ?? []}
-          isLoading={items.isPending}
-          error={items.isError ? 'Unable to load items. Try again.' : undefined}
-          onRetry={() => void items.refetch()}
-          getRowId={(r) => r.id}
-          searchValue={state.searchValue}
-          onSearchChange={state.onSearchChange}
-          searchPlaceholder="Search items…"
-          filterActions={
-            <>
-              {state.filter}
-              <Button
-                disabled={!category.data.isActive}
-                onClick={() => navigate(`${categoryPath(categoryId)}/items/new${search}`)}
-              >
-                <Plus data-icon="inline-start" />
-                Add Item
-              </Button>
-            </>
-          }
-          manualPagination
-          pagination={state.pagination}
-          onPaginationChange={state.onPaginationChange}
-          rowCount={items.data?.pagination.totalItems ?? 0}
-          manualSorting
-          sorting={state.sorting}
-          onSortingChange={state.onSortingChange}
-        />
-      </FormSection>
+      <Tabs
+        value={categorySearch.get('categoryTab') === 'suppliers' ? 'suppliers' : 'items'}
+        onValueChange={(value) =>
+          setCategorySearch((previous) => {
+            const next = new URLSearchParams(previous)
+            next.set('categoryTab', String(value))
+            next.delete('page')
+            next.delete('search')
+            next.delete('vendorId')
+            return next
+          })
+        }
+      >
+        <TabsList>
+          <TabsTrigger value="items">Items</TabsTrigger>
+          <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
+        </TabsList>
+        <TabsContent value="items">
+          <FormSection title="Inventory Items">
+            <DataTable
+              columns={columns}
+              data={items.data?.records ?? []}
+              isLoading={items.isPending}
+              error={items.isError ? 'Unable to load items. Try again.' : undefined}
+              onRetry={() => void items.refetch()}
+              getRowId={(r) => r.id}
+              searchValue={state.searchValue}
+              onSearchChange={state.onSearchChange}
+              searchPlaceholder="Search items…"
+              filterActions={
+                <>
+                  {state.filter}
+                  <NativeSelect
+                    aria-label="Filter supplier"
+                    value={vendorId}
+                    onChange={(e) =>
+                      setCategorySearch((previous) => {
+                        const next = new URLSearchParams(previous)
+                        if (e.target.value) next.set('vendorId', e.target.value)
+                        else next.delete('vendorId')
+                        next.set('page', '1')
+                        return next
+                      })
+                    }
+                  >
+                    <NativeSelectOption value="">All suppliers</NativeSelectOption>
+                    {vendors.data?.map((v) => (
+                      <NativeSelectOption key={v.id} value={v.id}>
+                        {v.name}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                  <Button
+                    variant="outline"
+                    disabled={!category.data.isActive}
+                    onClick={() => navigate(`${categoryPath(categoryId)}/import${search}`)}
+                  >
+                    Import Items
+                  </Button>
+                  <Button
+                    disabled={!category.data.isActive}
+                    onClick={() => navigate(`${categoryPath(categoryId)}/items/new${search}`)}
+                  >
+                    <Plus data-icon="inline-start" />
+                    Add Item
+                  </Button>
+                </>
+              }
+              manualPagination
+              pagination={state.pagination}
+              onPaginationChange={state.onPaginationChange}
+              rowCount={items.data?.pagination.totalItems ?? 0}
+              manualSorting
+              sorting={state.sorting}
+              onSortingChange={state.onSortingChange}
+            />
+          </FormSection>
+        </TabsContent>
+        <TabsContent value="suppliers">
+          <FormSection title="Suppliers">
+            <MasterList kind="vendors" returnTo={`${categoryPath(categoryId)}${search}`} />
+          </FormSection>
+        </TabsContent>
+      </Tabs>
     </InventoryPage>
   )
 }

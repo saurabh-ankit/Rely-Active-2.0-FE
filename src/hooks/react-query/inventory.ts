@@ -7,6 +7,7 @@ import type {
   InventoryPayloads,
   InventoryFieldDefinition,
   InventoryVendorAssignment,
+  InventoryLocationThreshold,
 } from '@/lib/types/inventory'
 export const inventoryKeys = {
   all: ['inventory', 'global'] as const,
@@ -55,3 +56,18 @@ export const useDeleteInventoryField = (categoryId: string) =>
   useInventoryMutation((id: string) => service.deleteInventoryField(categoryId, id))
 
 export const useUploadInventoryImage = () => useMutation({ mutationFn: service.uploadInventoryImage })
+
+export const useInventoryCategoryName = (name: string, id?: string) =>
+  useQuery({
+    queryKey: [...inventoryKeys.all, 'category-name', name, id],
+    queryFn: () => service.checkInventoryCategoryName(name, id),
+    enabled: name.trim().length >= 2,
+  })
+export const useSaveInventoryThresholds = (id: string) =>
+  useInventoryMutation((locations: InventoryLocationThreshold[]) => service.saveInventoryThresholds(id, locations))
+export const useSetInventoryVendorStatus = () =>
+  useInventoryMutation(({ id, isActive }: { id: string; isActive: boolean }) =>
+    service.setInventoryVendorStatus(id, isActive),
+  )
+export const useImportInventoryItems = (id: string) =>
+  useInventoryMutation((file: File) => service.importInventoryItems(id, file))

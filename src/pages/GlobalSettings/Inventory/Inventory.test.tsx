@@ -12,6 +12,8 @@ import type { InventoryCategory, InventoryItem, InventoryPackageOptions } from '
 vi.mock('@/lib/services/inventoryService')
 vi.mock('@/lib/services/propertyService')
 const categoryId = '00000000-0000-4000-8000-000000000001'
+const locationId = '00000000-0000-4000-8000-000000000004'
+const locationOptions = [{ id: locationId, name: 'Alpha' }]
 const fieldId = '00000000-0000-4000-8000-000000000002'
 const options: InventoryPackageOptions = {
   packageTypes: ['bottle', 'piece'],
@@ -53,6 +55,7 @@ function mount(children: ReactNode, initialEntry = '/global-settings/inventory')
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(getPropertiesAPI).mockResolvedValue([])
+  vi.mocked(service.checkInventoryCategoryName).mockResolvedValue({ available: true })
   vi.mocked(service.getInventoryPackageOptions).mockResolvedValue(options)
 })
 afterEach(cleanup)
@@ -104,13 +107,16 @@ describe('inventory forms and query refresh', () => {
       packType: 'bottle',
       packUnit: 'ml',
       packQuantity: 500,
-      locationIds: [],
+      minQuantity: 0,
+      maxQuantity: 0,
+      threshold: 0,
+      locationIds: [locationId],
       customFields: [{ fieldDefinitionId: fieldId, value: null }],
       vendorAssignments: [],
     }
     vi.mocked(service.saveInventory).mockResolvedValue(item)
     const user = userEvent.setup()
-    mount(<ItemEditor options={options} locations={[]} category={withField} record={item} />)
+    mount(<ItemEditor options={options} locations={locationOptions} category={withField} record={item} />)
     expect(await screen.findByLabelText('Notes')).toHaveValue('')
     await user.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() =>
@@ -139,10 +145,11 @@ describe('inventory forms and query refresh', () => {
       ],
     }
     const user = userEvent.setup()
-    mount(<ItemEditor options={options} locations={[]} category={withField} />)
+    mount(<ItemEditor options={options} locations={locationOptions} category={withField} />)
     await user.type(await screen.findByLabelText('Item Name *'), 'Cleaner')
     await user.selectOptions(screen.getByLabelText('Package Type *'), 'bottle')
-    await user.selectOptions(screen.getByLabelText('Stock Unit *'), 'ml')
+    await user.selectOptions(screen.getByLabelText('Pack Unit *'), 'ml')
+    await user.click(screen.getByRole('checkbox', { name: 'Alpha' }))
     await user.click(screen.getByRole('button', { name: 'Save' }))
     expect(await screen.findByText('This field is required')).toBeInTheDocument()
     expect(service.saveInventory).not.toHaveBeenCalled()
@@ -275,5 +282,113 @@ describe('inventory page navigation and editing', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
     await user.click(screen.getByRole('button', { name: 'Discard image selection' }))
     expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+  })
+})
+
+describe('shared item thresholds', () => {
+  const stripOptions: InventoryPackageOptions = {
+    packageTypes: ['strip'],
+    stockUnits: ['tablet'],
+    allowedUnitsByPackageType: { strip: ['tablet'] },
+  }
+  const item: InventoryItem = {
+    id: '00000000-0000-4000-8000-000000000003',
+    categoryId,
+    name: 'Tablets',
+    isActive: true,
+    packType: 'strip',
+    packUnit: 'tablet',
+    packQuantity: 10,
+    minQuantity: 30,
+    maxQuantity: 100,
+    threshold: 50,
+    locationIds: [locationId],
+    customFields: [],
+    vendorAssignments: [],
+  }
+  it('creates base-unit thresholds and reopens them as package counts', async () => {
+    vi.mocked(service.saveInventory).mockResolvedValue(item)
+    const user = userEvent.setup()
+    mount(<ItemEditor options={stripOptions} locations={locationOptions} category={category} />)
+    expect(screen.getByLabelText('Min Quantity *')).toHaveValue(0)
+    await user.type(screen.getByLabelText('Item Name *'), 'Tablets')
+    await user.selectOptions(screen.getByLabelText('Package Type *'), 'strip')
+    await user.selectOptions(screen.getByLabelText('Pack Unit *'), 'tablet')
+    await user.click(screen.getByRole('checkbox', { name: 'Alpha' }))
+    for (const [label, value] of [
+      ['Pack Quantity *', '10'],
+      ['Min Quantity (strip) *', '3'],
+      ['Max Quantity (strip) *', '10'],
+      ['Threshold (strip) *', '5'],
+    ]) {
+      await user.clear(screen.getByLabelText(label))
+      await user.type(screen.getByLabelText(label), value)
+    }
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() =>
+      expect(service.saveInventory).toHaveBeenCalledWith(
+        'items',
+        expect.objectContaining({ minQuantity: 30, maxQuantity: 100, threshold: 50 }),
+        undefined,
+      ),
+    )
+    cleanup()
+    mount(<ItemEditor options={stripOptions} locations={locationOptions} category={category} record={item} />)
+    expect(screen.getByLabelText('Min Quantity (strip) *')).toHaveValue(3)
+    expect(screen.getByLabelText('Max Quantity (strip) *')).toHaveValue(10)
+    expect(screen.getByLabelText('Threshold (strip) *')).toHaveValue(5)
+  })
+  it('shows partial API packages exactly and requests correction without silently rounding', async () => {
+    const user = userEvent.setup()
+    mount(
+      <ItemEditor
+        options={stripOptions}
+        locations={locationOptions}
+        category={category}
+        record={{ ...item, threshold: 5 }}
+      />,
+    )
+    expect(screen.getByLabelText('Threshold (strip) *')).toHaveValue(0.5)
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('Enter a whole number of packages')).toBeInTheDocument()
+    expect(service.saveInventory).not.toHaveBeenCalled()
+  })
+  it('retains package counts when packaging changes and saves using the new pack size', async () => {
+    vi.mocked(service.saveInventory).mockResolvedValue(item)
+    const user = userEvent.setup()
+    mount(<ItemEditor options={stripOptions} locations={locationOptions} category={category} record={item} />)
+    await user.clear(screen.getByLabelText('Pack Quantity *'))
+    await user.type(screen.getByLabelText('Pack Quantity *'), '20')
+    expect(screen.getByLabelText('Min Quantity (strip) *')).toHaveValue(3)
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() =>
+      expect(service.saveInventory).toHaveBeenCalledWith(
+        'items',
+        expect.objectContaining({ packQuantity: 20, minQuantity: 60, maxQuantity: 200, threshold: 100 }),
+        item.id,
+      ),
+    )
+  })
+  it('blocks an invalid range and allows explicitly clearing thresholds to zero', async () => {
+    vi.mocked(service.saveInventory).mockResolvedValue(item)
+    const user = userEvent.setup()
+    mount(<ItemEditor options={stripOptions} locations={locationOptions} category={category} record={item} />)
+    await user.clear(screen.getByLabelText('Max Quantity (strip) *'))
+    await user.type(screen.getByLabelText('Max Quantity (strip) *'), '2')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('Maximum must be at least minimum')).toBeInTheDocument()
+    expect(service.saveInventory).not.toHaveBeenCalled()
+    for (const label of ['Min Quantity (strip) *', 'Max Quantity (strip) *', 'Threshold (strip) *']) {
+      await user.clear(screen.getByLabelText(label))
+      await user.type(screen.getByLabelText(label), '0')
+    }
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() =>
+      expect(service.saveInventory).toHaveBeenCalledWith(
+        'items',
+        expect.objectContaining({ minQuantity: 0, maxQuantity: 0, threshold: 0 }),
+        item.id,
+      ),
+    )
   })
 })

@@ -23,6 +23,7 @@ import EventRegistrationsPage from '@/pages/Events/components/EventRegistrations
 import ShiftRosterPage from '@/pages/ShiftRoster'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
+const InventoryPage = lazy(() => import('@/pages/Inventory'))
 const InventorySettings = lazy(() => import('@/pages/GlobalSettings/Inventory'))
 
 export default function RootRouter() {
@@ -328,7 +329,7 @@ export default function RootRouter() {
           path="admin/inventory/*"
           element={
             <ProtectedRoute resourceKey="INVENTORY" action="view">
-              <SectionPage title="Inventory Management" />
+              <InventoryPage />
             </ProtectedRoute>
           }
         />
