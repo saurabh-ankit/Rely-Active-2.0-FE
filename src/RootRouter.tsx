@@ -1,3 +1,4 @@
+import { lazy } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Layout from '@/layouts/Layout'
 import CompanyPage from '@/pages/Company'
@@ -22,6 +23,8 @@ import EventRegistrationsPage from '@/pages/Events/components/EventRegistrations
 import ShiftRosterPage from '@/pages/ShiftRoster'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
+const InventorySettings = lazy(() => import('@/pages/GlobalSettings/Inventory'))
+
 export default function RootRouter() {
   return (
     <Routes>
@@ -44,6 +47,14 @@ export default function RootRouter() {
         <Route path="property" element={<PropertyPage />} />
         <Route path="property/create" element={<CreatePropertyPage />} />
         <Route path="property/edit/:id" element={<CreatePropertyPage />} />
+        <Route
+          path="global-settings/inventory/*"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <InventorySettings />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="global-settings"
           element={
