@@ -58,6 +58,8 @@ export interface PurchaseOrder {
   itemCount?: number
   items: POLine[]
   receipts: StockTransaction[]
+  transactionType?: 'purchase' | 'issue'
+  recipientName?: string | null
 }
 export interface ReceiptLine extends PackageSnapshot {
   mrpAmount?: number | null
