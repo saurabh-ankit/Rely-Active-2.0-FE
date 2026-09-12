@@ -9,3 +9,5 @@ export * from './ticket'
 export * from './fnb'
 export * from './roster'
 export * from './gate'
+export * from './billing'
+

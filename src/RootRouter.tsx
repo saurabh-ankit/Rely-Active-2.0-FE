@@ -20,7 +20,9 @@ import EventsPage from '@/pages/Events'
 import EventForm from '@/pages/Events/components/EventForm'
 import EventRegistrationsPage from '@/pages/Events/components/EventRegistrations'
 import ShiftRosterPage from '@/pages/ShiftRoster'
+import BillingManagementPage from '@/pages/BillingManagement'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
+
 
 export default function RootRouter() {
   return (
@@ -219,10 +221,11 @@ export default function RootRouter() {
           path="admin/billing-management/*"
           element={
             <ProtectedRoute resourceKey="BILLING" action="view">
-              <SectionPage title="Billing Management" />
+              <BillingManagementPage />
             </ProtectedRoute>
           }
         />
+
         <Route
           path="admin/shift-roster-management"
           element={
