@@ -105,22 +105,56 @@ export const FlatBillingDashboard: React.FC = () => {
   const defaultPeriodStart = `${currentYear}-${currentMonth}-01`
   const lastDayOfMonth = new Date(currentYear, today.getMonth() + 1, 0).getDate()
   const defaultPeriodEnd = `${currentYear}-${currentMonth}-${String(lastDayOfMonth).padStart(2, '0')}`
+  const defaultMonthStr = `${currentYear}-${currentMonth}`
 
   const dueTarget = new Date()
   dueTarget.setDate(dueTarget.getDate() + 10)
   const defaultDueDate = dueTarget.toISOString().split('T')[0]
 
+  const [billingMonth, setBillingMonth] = useState(defaultMonthStr)
   const [startDate, setStartDate] = useState(defaultPeriodStart)
   const [endDate, setEndDate] = useState(defaultPeriodEnd)
   const [dueDate, setDueDate] = useState(defaultDueDate)
   const [includePendingEvents, setIncludePendingEvents] = useState(true)
 
-  // Live calculation for the Generate tab
+  const handleMonthChange = (monthVal: string) => {
+    setBillingMonth(monthVal)
+    if (!monthVal) return
+    const parts = monthVal.split('-')
+    if (parts.length !== 2) return
+    const y = parseInt(parts[0], 10)
+    const m = parseInt(parts[1], 10)
+    if (isNaN(y) || isNaN(m)) return
+    const lastDay = new Date(y, m, 0).getDate()
+    setStartDate(`${monthVal}-01`)
+    setEndDate(`${monthVal}-${String(lastDay).padStart(2, '0')}`)
+  }
+
+  const handleModeChange = (mode: 'MONTHLY' | 'SUPPLEMENTARY' | 'FINAL_DISCHARGE') => {
+    setBillingMode(mode)
+    if (mode === 'MONTHLY') {
+      handleMonthChange(billingMonth)
+    }
+  }
+
+  const formatMonthDisplay = (monthVal: string) => {
+    if (!monthVal) return ''
+    const parts = monthVal.split('-')
+    if (parts.length !== 2) return monthVal
+    const y = parseInt(parts[0], 10)
+    const m = parseInt(parts[1], 10)
+    if (isNaN(y) || isNaN(m)) return monthVal
+    const dateObj = new Date(y, m - 1, 1)
+    return dateObj.toLocaleString('en-IN', { month: 'long', year: 'numeric' })
+  }
+
+  // Live calculation for the Generate tab (subscriptions excluded in SUPPLEMENTARY mode)
   const activeSubsSum = useMemo(() => {
+    if (billingMode === 'SUPPLEMENTARY') return 0
     return subscriptions
       .filter((s) => s.isActive)
       .reduce((acc, s) => acc + Number(s.unitPrice || 0), 0)
-  }, [subscriptions])
+  }, [subscriptions, billingMode])
 
   const pendingEventsSum = useMemo(() => {
     if (!includePendingEvents) return 0
@@ -147,6 +181,8 @@ export const FlatBillingDashboard: React.FC = () => {
         periodEnd: endDate,
         dueDate,
         includePendingEvents,
+        billingMode,
+        includeSubscriptions: billingMode !== 'SUPPLEMENTARY',
       })
 
       const invoiceData = res?.data
@@ -529,7 +565,7 @@ export const FlatBillingDashboard: React.FC = () => {
                       type="button"
                       variant={billingMode === 'MONTHLY' ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => setBillingMode('MONTHLY')}
+                      onClick={() => handleModeChange('MONTHLY')}
                       className={`text-xs h-9 ${billingMode === 'MONTHLY' ? 'bg-[#005390] text-white' : ''}`}
                     >
                       Monthly Cycle
@@ -538,7 +574,7 @@ export const FlatBillingDashboard: React.FC = () => {
                       type="button"
                       variant={billingMode === 'SUPPLEMENTARY' ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => setBillingMode('SUPPLEMENTARY')}
+                      onClick={() => handleModeChange('SUPPLEMENTARY')}
                       className={`text-xs h-9 ${billingMode === 'SUPPLEMENTARY' ? 'bg-[#005390] text-white' : ''}`}
                     >
                       Supplementary
@@ -547,7 +583,7 @@ export const FlatBillingDashboard: React.FC = () => {
                       type="button"
                       variant={billingMode === 'FINAL_DISCHARGE' ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => setBillingMode('FINAL_DISCHARGE')}
+                      onClick={() => handleModeChange('FINAL_DISCHARGE')}
                       className={`text-xs h-9 ${billingMode === 'FINAL_DISCHARGE' ? 'bg-rose-700 text-white' : ''}`}
                     >
                       Final Move-out
@@ -555,35 +591,96 @@ export const FlatBillingDashboard: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <Label className="text-xs font-semibold text-gray-600">Period Start Date</Label>
-                    <Input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="text-xs mt-1"
-                    />
+                {billingMode === 'SUPPLEMENTARY' && (
+                  <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-xl text-xs text-amber-900 flex items-start gap-2.5">
+                    <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold">Supplementary Invoice Mode Active</span>
+                      <p className="text-amber-800 text-[11px] mt-0.5">
+                        Invoices on-demand consumption and unbilled service charges only. Recurring monthly packages are automatically excluded to prevent duplicate charges.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <Label className="text-xs font-semibold text-gray-600">Period End Date</Label>
-                    <Input
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="text-xs mt-1"
-                    />
+                )}
+
+                {billingMode === 'FINAL_DISCHARGE' && (
+                  <div className="p-3 bg-rose-50/80 border border-rose-200/80 rounded-xl text-xs text-rose-900 flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold">Final Move-Out / Settlement Mode</span>
+                      <p className="text-rose-800 text-[11px] mt-0.5">
+                        Generates final pro-rata settlement invoice up to the move-out departure date, including all unbilled consumption charges.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <Label className="text-xs font-semibold text-gray-600">Payment Due Date</Label>
-                    <Input
-                      type="date"
-                      value={dueDate}
-                      onChange={(e) => setDueDate(e.target.value)}
-                      className="text-xs mt-1"
-                    />
+                )}
+
+                {billingMode === 'MONTHLY' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-[#005390]" />
+                        Billing Month
+                      </Label>
+                      <Input
+                        type="month"
+                        value={billingMonth}
+                        onChange={(e) => handleMonthChange(e.target.value)}
+                        className="text-xs mt-1 h-9 font-medium"
+                      />
+                      <div className="mt-1.5 flex items-center justify-between text-[11px] text-gray-500">
+                        <span>Cycle: <strong className="text-gray-800">{formatMonthDisplay(billingMonth)}</strong></span>
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-50/50 text-[#005390] border-blue-200">
+                          {startDate} → {endDate}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs font-semibold text-gray-700">Payment Due Date</Label>
+                      <Input
+                        type="date"
+                        value={dueDate}
+                        onChange={(e) => setDueDate(e.target.value)}
+                        className="text-xs mt-1 h-9"
+                      />
+                      <span className="text-[11px] text-gray-400 mt-1 block">
+                        Payment deadline for this monthly invoice
+                      </span>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-xs font-semibold text-gray-700">Period Start Date</Label>
+                      <Input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="text-xs mt-1 h-9"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-semibold text-gray-700">
+                        {billingMode === 'FINAL_DISCHARGE' ? 'Move-Out Date' : 'Period End Date'}
+                      </Label>
+                      <Input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="text-xs mt-1 h-9"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-semibold text-gray-700">Payment Due Date</Label>
+                      <Input
+                        type="date"
+                        value={dueDate}
+                        onChange={(e) => setDueDate(e.target.value)}
+                        className="text-xs mt-1 h-9"
+                      />
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -592,14 +689,37 @@ export const FlatBillingDashboard: React.FC = () => {
               <CardHeader className="pb-3 border-b border-gray-100 flex flex-row items-center justify-between">
                 <CardTitle className="text-sm font-bold text-gray-900 flex items-center gap-2">
                   <Package className="w-4 h-4 text-purple-600" />
-                  2. Recurring Subscriptions Included ({subscriptions.filter((s) => s.isActive).length})
+                  2. Recurring Subscriptions Included ({billingMode === 'SUPPLEMENTARY' ? 0 : subscriptions.filter((s) => s.isActive).length})
                 </CardTitle>
-                <span className="text-xs font-mono font-bold text-purple-700">
-                  ₹{activeSubsSum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                </span>
+                <div className="flex items-center gap-2">
+                  {billingMode === 'SUPPLEMENTARY' ? (
+                    <>
+                      <Badge variant="outline" className="text-[11px] bg-amber-50 text-amber-800 border-amber-200">
+                        Excluded in Supplementary
+                      </Badge>
+                      <span className="text-xs font-mono font-bold text-emerald-600">
+                        ₹0.00
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-xs font-mono font-bold text-purple-700">
+                      ₹{activeSubsSum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </span>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="pt-4">
-                {subscriptions.length === 0 ? (
+                {billingMode === 'SUPPLEMENTARY' ? (
+                  <div className="p-3 bg-amber-50/70 border border-amber-200/70 rounded-xl text-xs text-amber-900 space-y-1">
+                    <div className="font-semibold flex items-center gap-1.5 text-amber-800">
+                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                      Recurring packages excluded in Supplementary mode
+                    </div>
+                    <p className="text-[11px] text-amber-700 pl-5.5">
+                      This invoice only charges pending consumption and on-demand events (Care tasks, Medication/Inventory, etc.) without re-charging the monthly {subscriptions.filter(s => s.isActive).map(s => s.description || s.product?.productName).join(', ') || 'package'}.
+                    </p>
+                  </div>
+                ) : subscriptions.length === 0 ? (
                   <p className="text-xs text-gray-400 py-4 text-center">
                     No active recurring packages linked to this flat's folio.
                   </p>
@@ -735,6 +855,25 @@ export const FlatBillingDashboard: React.FC = () => {
                     </span>
                   </div>
                   <div className="flex justify-between text-gray-600">
+                    <span>Billing Mode:</span>
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] px-1.5 py-0 ${
+                        billingMode === 'SUPPLEMENTARY'
+                          ? 'bg-amber-50 text-amber-800 border-amber-200'
+                          : billingMode === 'FINAL_DISCHARGE'
+                            ? 'bg-rose-50 text-rose-800 border-rose-200'
+                            : 'bg-blue-50 text-[#005390] border-blue-200'
+                      }`}
+                    >
+                      {billingMode === 'SUPPLEMENTARY'
+                        ? 'Supplementary'
+                        : billingMode === 'FINAL_DISCHARGE'
+                          ? 'Final Move-out'
+                          : 'Monthly Cycle'}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
                     <span>Period:</span>
                     <span className="font-medium text-gray-800">{startDate} → {endDate}</span>
                   </div>
@@ -746,7 +885,12 @@ export const FlatBillingDashboard: React.FC = () => {
 
                 <div className="space-y-2.5 text-xs pt-2">
                   <div className="flex justify-between text-gray-600">
-                    <span>Subscriptions Subtotal:</span>
+                    <span>
+                      Subscriptions Subtotal:
+                      {billingMode === 'SUPPLEMENTARY' && (
+                        <span className="text-[10px] text-amber-600 font-semibold ml-1.5">(Excluded)</span>
+                      )}
+                    </span>
                     <span className="font-mono font-medium text-gray-900">
                       ₹{activeSubsSum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>

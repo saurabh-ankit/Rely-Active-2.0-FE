@@ -43,6 +43,9 @@ export interface InvoicePreviewPayload {
   issueDate?: string
   dueDate?: string
   isPreview?: boolean
+  billingMode?: 'MONTHLY' | 'SUPPLEMENTARY' | 'FINAL_DISCHARGE'
+  includeSubscriptions?: boolean
+  includePendingEvents?: boolean
 }
 
 export interface GenerateInvoicePayload {
@@ -52,6 +55,8 @@ export interface GenerateInvoicePayload {
   issueDate?: string
   dueDate?: string
   includePendingEvents?: boolean
+  billingMode?: 'MONTHLY' | 'SUPPLEMENTARY' | 'FINAL_DISCHARGE'
+  includeSubscriptions?: boolean
 }
 
 export interface BatchRunPayload {
