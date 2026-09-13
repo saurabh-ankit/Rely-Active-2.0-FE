@@ -27,7 +27,7 @@ export function SupplierList({
   access,
 }: {
   locationId: string
-  categoryId: string
+  categoryId?: string
   access: CenterAccess
 }) {
   const [search, setSearch] = useState(''),
@@ -36,7 +36,7 @@ export function SupplierList({
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 })
   const [selected, setSelected] = useState<{ supplier: CenterSupplier; mode: 'view' | 'edit' | 'delete' } | null>(null)
   const query = useCenterData<SupplierListResponse>(locationId, 'suppliers', {
-    categoryId,
+    ...(categoryId ? { categoryId } : {}),
     search: debouncedSearch,
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,

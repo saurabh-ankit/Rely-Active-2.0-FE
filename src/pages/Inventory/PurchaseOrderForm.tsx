@@ -25,13 +25,13 @@ export function PurchaseOrderForm({
   onSaved,
 }: {
   locationId: string
-  categoryId: string
+  categoryId?: string
   record?: PurchaseOrder
   onClose: () => void
   onSaved: (id: string) => void
 }) {
   const suppliers = useCenterOptions(locationId, 'suppliers')
-  const items = useCenterOptions(locationId, 'items', record ? {} : { categoryId })
+  const items = useCenterOptions(locationId, 'items', record || !categoryId ? {} : { categoryId })
   const mutation = useCenterMutation<PurchaseOrder>(locationId)
   const [requestId] = useState(() => crypto.randomUUID())
   const [supplierId, setSupplierId] = useState(record?.supplierId ?? '')

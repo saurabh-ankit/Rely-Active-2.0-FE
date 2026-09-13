@@ -83,13 +83,13 @@ export function AssignItemsForm({
   onSaved,
 }: {
   locationId: string
-  categoryId: string
+  categoryId?: string
   onClose: () => void
   onSaved: (id: string) => void
 }) {
   const [recipientType, setRecipientType] = useState<'resident' | 'staff'>('resident')
   const [recipient, setRecipient] = useState<AssignmentRecipient | null>(null)
-  const [category, setCategory] = useState(categoryId)
+  const [category, setCategory] = useState(categoryId ?? '')
   const [lines, setLines] = useState<{ item: CenterItem; quantity: number }[]>([])
   const [date, setDate] = useState(today)
   const [notes, setNotes] = useState('')

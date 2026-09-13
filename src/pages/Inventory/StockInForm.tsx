@@ -37,13 +37,13 @@ export function StockInForm({
   onSaved,
 }: {
   locationId: string
-  categoryId: string
+  categoryId?: string
   po?: PurchaseOrder
   onClose: () => void
   onSaved: (id: string) => void
 }) {
   const suppliers = useCenterOptions(locationId, 'suppliers')
-  const items = useCenterOptions(locationId, 'items', po ? {} : { categoryId })
+  const items = useCenterOptions(locationId, 'items', po || !categoryId ? {} : { categoryId })
   const mutation = useCenterMutation<StockTransaction>(locationId)
   const [requestId] = useState(() => crypto.randomUUID())
   const [supplierId, setSupplierId] = useState(po?.supplierId ?? '')

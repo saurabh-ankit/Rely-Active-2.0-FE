@@ -38,7 +38,7 @@ export function PODetail({
 }: {
   locationId: string
   id: string
-  categoryId: string
+  categoryId?: string
   access: CenterAccess
   onBack: () => void
   onTransaction: (id: string) => void
@@ -317,16 +317,24 @@ export function ItemDetail({
 }: {
   locationId: string
   id: string
-  category: CenterCategory
+  category?: CenterCategory
   access: CenterAccess
   onBack: () => void
   onTransaction: (id: string) => void
 }) {
   const query = useCenterData<CenterItem>(locationId, `items/${id}`)
   const [modal, setModal] = useState<'suppliers' | 'thresholds' | 'edit' | null>(null)
+  const item = query.data
+  const itemCategory = useCenterData<CenterCategory>(
+    locationId,
+    item?.categoryId ? `categories/${item.categoryId}` : '',
+    {},
+    !category && !!item?.categoryId,
+  )
+  const activeCategory = category || itemCategory.data
   if (query.isPending) return <Skeleton className="h-64" />
   if (query.isError) return <ErrorNotice error={query.error} retry={() => void query.refetch()} />
-  const item = query.data
+  if (!item) return null
   if (modal === 'edit') return <CenterItemEditor locationId={locationId} id={id} onClose={() => setModal(null)} />
   return (
     <div className="flex flex-col gap-5">
@@ -356,14 +364,14 @@ export function ItemDetail({
       <Section title="Item Information">
         <dl className="grid gap-4 sm:grid-cols-3">
           {[
-            ['Category', category.name],
+            ['Category', activeCategory?.name ?? '—'],
             ['Status', item.isActive ? 'Active' : 'Inactive'],
             ['Package', `${item.packQuantity} ${item.packUnit} per ${item.packType}`],
             ['Current Stock', item.stockDisplay],
             ['Minimum', quantityDisplay(item.minQuantity, item)],
             ['Threshold', quantityDisplay(item.threshold, item)],
             ['Maximum', item.maxQuantity ? quantityDisplay(item.maxQuantity, item) : 'No maximum'],
-            ...(category.fieldDefinitions ?? []).map((f) => [
+            ...(activeCategory?.fieldDefinitions ?? []).map((f) => [
               f.fieldLabel,
               String(item.customFields.find((v) => v.fieldDefinitionId === f.id)?.value ?? '—'),
             ]),
