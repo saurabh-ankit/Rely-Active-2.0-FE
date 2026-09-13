@@ -693,17 +693,24 @@ export const FlatBillingDashboard: React.FC = () => {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <Label className="text-xs font-semibold text-gray-700">Period Start Date</Label>
+                      <Label className="text-xs font-semibold text-gray-700">
+                        {billingMode === 'FINAL_DISCHARGE' ? 'Billing From (Start Date)' : 'Period Start Date'}
+                      </Label>
                       <Input
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
                         className="text-xs mt-1 h-9"
                       />
+                      <span className="text-[11px] text-gray-400 mt-1 block">
+                        {billingMode === 'FINAL_DISCHARGE'
+                          ? 'Start of unbilled final stay'
+                          : 'Billing cycle start date'}
+                      </span>
                     </div>
                     <div>
                       <Label className="text-xs font-semibold text-gray-700">
-                        {billingMode === 'FINAL_DISCHARGE' ? 'Move-Out Date' : 'Period End Date'}
+                        {billingMode === 'FINAL_DISCHARGE' ? 'Move-Out Date (Departure)' : 'Period End Date'}
                       </Label>
                       <Input
                         type="date"
@@ -711,6 +718,11 @@ export const FlatBillingDashboard: React.FC = () => {
                         onChange={(e) => setEndDate(e.target.value)}
                         className="text-xs mt-1 h-9"
                       />
+                      <span className="text-[11px] text-gray-400 mt-1 block">
+                        {billingMode === 'FINAL_DISCHARGE'
+                          ? 'Prorated rent & plans up to this day'
+                          : 'Billing cycle end date'}
+                      </span>
                     </div>
                     <div>
                       <Label className="text-xs font-semibold text-gray-700">Payment Due Date</Label>
@@ -720,6 +732,11 @@ export const FlatBillingDashboard: React.FC = () => {
                         onChange={(e) => setDueDate(e.target.value)}
                         className="text-xs mt-1 h-9"
                       />
+                      <span className="text-[11px] text-gray-400 mt-1 block">
+                        {billingMode === 'FINAL_DISCHARGE'
+                          ? 'Settlement payment deadline'
+                          : 'Payment deadline for invoice'}
+                      </span>
                     </div>
                   </div>
                 )}
