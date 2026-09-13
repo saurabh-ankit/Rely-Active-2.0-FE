@@ -4,6 +4,7 @@ import {
   type BatchRunPayload,
   type GenerateInvoicePayload,
   type InvoicePreviewPayload,
+  type TaxSettings,
   generateInvoiceAPI,
   getAccountLedgerStatementAPI,
   getAccountPendingEventsAPI,
@@ -13,10 +14,12 @@ import {
   getBillingRunsAPI,
   getInvoiceByIdAPI,
   getInvoicesAPI,
+  getTaxSettingsAPI,
   getUnitBilling360API,
   getUnitsBillingSummaryAPI,
   previewInvoiceAPI,
   triggerBatchRunAPI,
+  updateTaxSettingsAPI,
 } from '@/lib/services/billingService'
 
 type ApiError = { response?: { data?: { message?: string } }; message?: string }
@@ -177,4 +180,29 @@ export const useGetUnitBilling360 = (unitId: string | null, enabled = true) => {
     staleTime: 15_000,
   })
 }
+
+// ── 5. GLOBAL GST / TAX SETTINGS ───────────────────────────────────────────
+export const useGetTaxSettings = (enabled = true) => {
+  return useQuery({
+    queryKey: ['billing-tax-settings'],
+    queryFn: () => getTaxSettingsAPI(),
+    enabled,
+    staleTime: 60_000,
+  })
+}
+
+export const useUpdateTaxSettings = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: Partial<TaxSettings>) => updateTaxSettingsAPI(payload),
+    onSuccess: (data) => {
+      toast.success(data.message || 'Tax & GST settings updated successfully')
+      queryClient.invalidateQueries({ queryKey: ['billing-tax-settings'] })
+    },
+    onError: (error: ApiError) => {
+      toast.error(error?.response?.data?.message || error?.message || 'Failed to update tax settings')
+    },
+  })
+}
+
 

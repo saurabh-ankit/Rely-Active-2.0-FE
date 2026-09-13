@@ -36,6 +36,14 @@ export interface BillingRunsResponse {
   meta?: BillingPaginationMeta
 }
 
+export interface TaxSettings {
+  gstEnabled: boolean
+  defaultGstRate: number
+  cgstRate: number
+  sgstRate: number
+  companyGstNumber: string
+}
+
 export interface InvoicePreviewPayload {
   billingAccountId: string
   periodStart: string
@@ -46,6 +54,8 @@ export interface InvoicePreviewPayload {
   billingMode?: 'MONTHLY' | 'SUPPLEMENTARY' | 'FINAL_DISCHARGE'
   includeSubscriptions?: boolean
   includePendingEvents?: boolean
+  discountType?: 'FIXED' | 'PERCENTAGE'
+  discountValue?: number
 }
 
 export interface GenerateInvoicePayload {
@@ -57,6 +67,8 @@ export interface GenerateInvoicePayload {
   includePendingEvents?: boolean
   billingMode?: 'MONTHLY' | 'SUPPLEMENTARY' | 'FINAL_DISCHARGE'
   includeSubscriptions?: boolean
+  discountType?: 'FIXED' | 'PERCENTAGE'
+  discountValue?: number
 }
 
 export interface BatchRunPayload {
@@ -190,6 +202,24 @@ export const getUnitBilling360API = async (
 ): Promise<{ success: boolean; data: UnitBilling360 }> => {
   const response = await api.get<{ success: boolean; data: UnitBilling360 }>(
     API_ENDPOINTS.billing.unit360(unitId),
+  )
+  return response.data
+}
+
+// ── 5. GLOBAL GST / TAX SETTINGS ───────────────────────────────────────────
+export const getTaxSettingsAPI = async (): Promise<{ success: boolean; data: TaxSettings }> => {
+  const response = await api.get<{ success: boolean; data: TaxSettings }>(
+    API_ENDPOINTS.billing.taxSettings,
+  )
+  return response.data
+}
+
+export const updateTaxSettingsAPI = async (
+  payload: Partial<TaxSettings>,
+): Promise<{ success: boolean; data: TaxSettings; message?: string }> => {
+  const response = await api.put<{ success: boolean; data: TaxSettings; message?: string }>(
+    API_ENDPOINTS.billing.taxSettings,
+    payload,
   )
   return response.data
 }

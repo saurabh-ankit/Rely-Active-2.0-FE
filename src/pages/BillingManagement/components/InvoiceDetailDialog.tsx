@@ -20,6 +20,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useGetInvoiceById } from '@/hooks/react-query/billing'
+import { formatDateDDMMYYYY } from '@/lib/utils/dateFormat'
 
 interface InvoiceDetailDialogProps {
   invoiceId: string | null
@@ -122,7 +123,7 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
                 {getStatusBadge(invoice?.status)}
               </div>
               <DialogDescription className="text-xs text-gray-500">
-                Issued: {invoice?.issueDate || '-'} • Due: {invoice?.dueDate || '-'}
+                Issued: {formatDateDDMMYYYY(invoice?.issueDate)} • Due: {formatDateDDMMYYYY(invoice?.dueDate)}
               </DialogDescription>
             </div>
           </div>
@@ -180,8 +181,8 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
                       #{invoice.invoiceNumber}
                     </div>
                     <div className="text-xs text-gray-600">
-                      Billing Period: <span className="font-medium text-gray-900">{invoice.periodStart}</span> to{' '}
-                      <span className="font-medium text-gray-900">{invoice.periodEnd}</span>
+                      Billing Period: <span className="font-medium text-gray-900">{formatDateDDMMYYYY(invoice.periodStart)}</span> to{' '}
+                      <span className="font-medium text-gray-900">{formatDateDDMMYYYY(invoice.periodEnd)}</span>
                     </div>
                     <div className="text-xs text-gray-500">
                       Master Folio: <span className="font-mono font-semibold text-gray-700">{invoice.billingAccount?.accountNumber || invoice.billingAccountId}</span>
@@ -239,11 +240,11 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
                   <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
                     <div>
                       <span className="text-gray-500 block">Invoice Date:</span>
-                      <span className="font-semibold text-gray-900">{invoice.issueDate}</span>
+                      <span className="font-semibold text-gray-900">{formatDateDDMMYYYY(invoice.issueDate)}</span>
                     </div>
                     <div>
                       <span className="text-gray-500 block">Payment Due Date:</span>
-                      <span className="font-semibold text-rose-700">{invoice.dueDate}</span>
+                      <span className="font-semibold text-rose-700">{formatDateDDMMYYYY(invoice.dueDate)}</span>
                     </div>
                     <div>
                       <span className="text-gray-500 block">Currency:</span>

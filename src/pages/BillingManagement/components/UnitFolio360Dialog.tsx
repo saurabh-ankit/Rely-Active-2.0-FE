@@ -17,6 +17,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useGetUnitBilling360 } from '@/hooks/react-query/billing'
+import { formatDateDDMMYYYY } from '@/lib/utils/dateFormat'
 
 interface UnitFolio360DialogProps {
   unitId: string | null
@@ -256,11 +257,11 @@ export const UnitFolio360Dialog: React.FC<UnitFolio360DialogProps> = ({
                                 {inv.invoiceNumber}
                               </td>
                               <td className="px-3 py-3 text-gray-600">
-                                {inv.periodStart} to {inv.periodEnd}
+                                {formatDateDDMMYYYY(inv.periodStart)} to {formatDateDDMMYYYY(inv.periodEnd)}
                               </td>
                               <td className="px-3 py-3 text-gray-600">
-                                <div>Issued: {inv.issueDate}</div>
-                                <div className="text-[10px] text-gray-400">Due: {inv.dueDate}</div>
+                                <div>Issued: {formatDateDDMMYYYY(inv.issueDate)}</div>
+                                <div className="text-[10px] text-gray-400">Due: {formatDateDDMMYYYY(inv.dueDate)}</div>
                               </td>
                               <td className="px-3 py-3 text-right font-bold text-gray-900">
                                 ₹{Number(inv.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -377,7 +378,7 @@ export const UnitFolio360Dialog: React.FC<UnitFolio360DialogProps> = ({
                           {pendingEvents.map((evt) => (
                             <tr key={evt.id} className="hover:bg-slate-50 transition-colors">
                               <td className="px-4 py-3 text-gray-600 font-mono">
-                                {String(evt.serviceDate)}
+                                {formatDateDDMMYYYY(evt.serviceDate)}
                               </td>
                               <td className="px-3 py-3">
                                 <Badge variant="outline" className="text-[10px]">
@@ -434,7 +435,7 @@ export const UnitFolio360Dialog: React.FC<UnitFolio360DialogProps> = ({
                           {ledgerEntries.map((entry) => (
                             <tr key={entry.id} className="hover:bg-slate-50 transition-colors">
                               <td className="px-4 py-3 font-mono text-gray-600">
-                                {entry.entryDate}
+                                {formatDateDDMMYYYY(entry.entryDate)}
                               </td>
                               <td className="px-3 py-3 font-semibold text-gray-800">
                                 {entry.entryType}

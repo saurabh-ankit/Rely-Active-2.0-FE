@@ -378,6 +378,7 @@ export const API_ENDPOINTS = {
     events: `${BASE_URL}/billing/events`,
     cancelEvent: (id: string) => `${BASE_URL}/billing/events/${id}/cancel`,
     runs: `${BASE_URL}/billing/runs`,
+    taxSettings: `${BASE_URL}/billing/settings/tax`,
   },
 
   // Medical Management Endpoints (Care Tasks & Care Packages)

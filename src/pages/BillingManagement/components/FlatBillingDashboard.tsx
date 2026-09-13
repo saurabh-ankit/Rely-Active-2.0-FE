@@ -21,6 +21,7 @@ import {
   ReceiptIndianRupee,
   RefreshCw,
   Sparkles,
+  Tag,
   User,
   Utensils,
   Zap,
@@ -41,8 +42,10 @@ import {
   useGetUnitBilling360,
   useGetUnitsBillingSummary,
   useGenerateInvoice,
+  useGetTaxSettings,
 } from '@/hooks/react-query/billing'
 import { useLocationContext } from '@/hooks/useLocation'
+import { formatDateDDMMYYYY } from '@/lib/utils/dateFormat'
 import { InvoiceDetailDialog } from './InvoiceDetailDialog'
 
 export const FlatBillingDashboard: React.FC = () => {
@@ -117,6 +120,17 @@ export const FlatBillingDashboard: React.FC = () => {
   const [dueDate, setDueDate] = useState(defaultDueDate)
   const [includePendingEvents, setIncludePendingEvents] = useState(true)
 
+  // Discount configuration
+  const [discountType, setDiscountType] = useState<'FIXED' | 'PERCENTAGE'>('FIXED')
+  const [discountValue, setDiscountValue] = useState<number>(0)
+
+  // Global Tax & GST configuration
+  const { data: taxSettingsData } = useGetTaxSettings()
+  const taxSettings = taxSettingsData?.data
+  const gstEnabled = taxSettings?.gstEnabled ?? true
+  const cgstRate = gstEnabled ? Number(taxSettings?.cgstRate ?? 9) : 0
+  const sgstRate = gstEnabled ? Number(taxSettings?.sgstRate ?? 9) : 0
+
   const handleMonthChange = (monthVal: string) => {
     setBillingMonth(monthVal)
     if (!monthVal) return
@@ -162,9 +176,20 @@ export const FlatBillingDashboard: React.FC = () => {
   }, [pendingEvents, includePendingEvents])
 
   const subtotalEstimate = activeSubsSum + pendingEventsSum
-  const cgstEstimate = subtotalEstimate * 0.09
-  const sgstEstimate = subtotalEstimate * 0.09
-  const grandTotalEstimate = subtotalEstimate + cgstEstimate + sgstEstimate
+
+  const discountEstimate = useMemo(() => {
+    if (!discountValue || discountValue <= 0) return 0
+    if (discountType === 'PERCENTAGE') {
+      const pct = Math.min(100, Math.max(0, discountValue))
+      return Number(((subtotalEstimate * pct) / 100).toFixed(2))
+    }
+    return Math.min(subtotalEstimate, Math.max(0, discountValue))
+  }, [subtotalEstimate, discountType, discountValue])
+
+  const taxableSubtotalEstimate = Math.max(0, subtotalEstimate - discountEstimate)
+  const cgstEstimate = Number(((taxableSubtotalEstimate * cgstRate) / 100).toFixed(2))
+  const sgstEstimate = Number(((taxableSubtotalEstimate * sgstRate) / 100).toFixed(2))
+  const grandTotalEstimate = taxableSubtotalEstimate + cgstEstimate + sgstEstimate
 
   // Total Outstanding on this flat
   const totalOutstanding = invoices.reduce((acc, inv) => acc + Number(inv.amountDue || 0), 0)
@@ -183,6 +208,8 @@ export const FlatBillingDashboard: React.FC = () => {
         includePendingEvents,
         billingMode,
         includeSubscriptions: billingMode !== 'SUPPLEMENTARY',
+        discountType: discountValue > 0 ? discountType : undefined,
+        discountValue: discountValue > 0 ? discountValue : undefined,
       })
 
       const invoiceData = res?.data
@@ -631,7 +658,7 @@ export const FlatBillingDashboard: React.FC = () => {
                       <div className="mt-1.5 flex items-center justify-between text-[11px] text-gray-500">
                         <span>Cycle: <strong className="text-gray-800">{formatMonthDisplay(billingMonth)}</strong></span>
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-50/50 text-[#005390] border-blue-200">
-                          {startDate} → {endDate}
+                          {formatDateDDMMYYYY(startDate)} → {formatDateDDMMYYYY(endDate)}
                         </Badge>
                       </div>
                     </div>
@@ -799,7 +826,7 @@ export const FlatBillingDashboard: React.FC = () => {
                           <div>
                             <div className="font-semibold text-gray-900">{ev.description}</div>
                             <div className="text-[10px] text-gray-400 flex items-center gap-1.5">
-                              <span>{ev.serviceDate}</span>
+                              <span>{formatDateDDMMYYYY(ev.serviceDate)}</span>
                               <span>•</span>
                               <span
                                 className={`font-semibold uppercase ${
@@ -828,6 +855,83 @@ export const FlatBillingDashboard: React.FC = () => {
                       </div>
                     ))}
                   </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* 4. Invoice Discount & Concessions */}
+            <Card className="bg-white border-gray-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-gray-100 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-emerald-600" />
+                  4. Invoice Discount & Concessions
+                </CardTitle>
+                {discountEstimate > 0 && (
+                  <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs font-bold">
+                    -₹{discountEstimate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </Badge>
+                )}
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs font-semibold text-gray-700">Discount Type</Label>
+                    <div className="flex rounded-lg border border-gray-200 p-0.5 mt-1 bg-gray-50">
+                      <button
+                        type="button"
+                        onClick={() => setDiscountType('FIXED')}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors cursor-pointer ${
+                          discountType === 'FIXED'
+                            ? 'bg-white text-[#005390] shadow-xs'
+                            : 'text-gray-500 hover:text-gray-900'
+                        }`}
+                      >
+                        Fixed Amount (₹)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDiscountType('PERCENTAGE')}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors cursor-pointer ${
+                          discountType === 'PERCENTAGE'
+                            ? 'bg-white text-[#005390] shadow-xs'
+                            : 'text-gray-500 hover:text-gray-900'
+                        }`}
+                      >
+                        Percentage (%)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold text-gray-700">
+                      {discountType === 'PERCENTAGE' ? 'Discount Percentage (%)' : 'Discount Amount (₹)'}
+                    </Label>
+                    <div className="relative mt-1">
+                      <Input
+                        type="number"
+                        min="0"
+                        max={discountType === 'PERCENTAGE' ? 100 : subtotalEstimate}
+                        step={discountType === 'PERCENTAGE' ? '0.5' : '1'}
+                        value={discountValue || ''}
+                        placeholder="0"
+                        onChange={(e) => {
+                          const val = Math.max(0, Number(e.target.value))
+                          setDiscountValue(val)
+                        }}
+                        className="text-xs h-9 pr-8 font-medium"
+                      />
+                      <span className="absolute right-3 top-2.5 text-xs font-bold text-gray-400">
+                        {discountType === 'PERCENTAGE' ? '%' : '₹'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {discountEstimate > 0 && (
+                  <p className="text-xs text-emerald-600 bg-emerald-50/70 p-2.5 rounded-lg border border-emerald-100 flex items-center justify-between">
+                    <span>Discount applied before taxes:</span>
+                    <strong className="font-mono font-bold">-₹{discountEstimate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+                  </p>
                 )}
               </CardContent>
             </Card>
@@ -875,11 +979,11 @@ export const FlatBillingDashboard: React.FC = () => {
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Period:</span>
-                    <span className="font-medium text-gray-800">{startDate} → {endDate}</span>
+                    <span className="font-medium text-gray-800">{formatDateDDMMYYYY(startDate)} → {formatDateDDMMYYYY(endDate)}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Due Date:</span>
-                    <span className="font-medium text-gray-800">{dueDate}</span>
+                    <span className="font-medium text-gray-800">{formatDateDDMMYYYY(dueDate)}</span>
                   </div>
                 </div>
 
@@ -904,25 +1008,50 @@ export const FlatBillingDashboard: React.FC = () => {
                   </div>
 
                   <div className="flex justify-between text-gray-700 font-semibold pt-2 border-t border-gray-200">
-                    <span>Taxable Subtotal:</span>
+                    <span>Gross Subtotal:</span>
                     <span className="font-mono">
                       ₹{subtotalEstimate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
 
-                  <div className="flex justify-between text-gray-500 text-[11px]">
-                    <span>CGST (9%):</span>
+                  {discountEstimate > 0 && (
+                    <div className="flex justify-between text-emerald-600 font-semibold">
+                      <span>Discount ({discountType === 'PERCENTAGE' ? `${discountValue}%` : 'Flat ₹'}):</span>
+                      <span className="font-mono">
+                        -₹{discountEstimate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between text-gray-700 font-semibold pt-1 border-t border-dashed border-gray-200">
+                    <span>Taxable Subtotal:</span>
                     <span className="font-mono">
-                      ₹{cgstEstimate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      ₹{taxableSubtotalEstimate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
 
-                  <div className="flex justify-between text-gray-500 text-[11px]">
-                    <span>SGST (9%):</span>
-                    <span className="font-mono">
-                      ₹{sgstEstimate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
+                  {gstEnabled ? (
+                    <>
+                      <div className="flex justify-between text-gray-500 text-[11px]">
+                        <span>CGST ({cgstRate}%):</span>
+                        <span className="font-mono">
+                          ₹{cgstEstimate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between text-gray-500 text-[11px]">
+                        <span>SGST ({sgstRate}%):</span>
+                        <span className="font-mono">
+                          ₹{sgstEstimate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex justify-between text-gray-400 text-[11px]">
+                      <span>GST (Disabled globally):</span>
+                      <span className="font-mono">Exempt (0%)</span>
+                    </div>
+                  )}
 
                   <div className="flex justify-between text-base font-bold text-gray-900 pt-3 border-t-2 border-gray-200">
                     <span>Grand Total:</span>
@@ -1004,11 +1133,11 @@ export const FlatBillingDashboard: React.FC = () => {
                         {inv.invoiceNumber}
                       </td>
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                        {inv.periodStart} → {inv.periodEnd}
+                        {formatDateDDMMYYYY(inv.periodStart)} → {formatDateDDMMYYYY(inv.periodEnd)}
                       </td>
                       <td className="px-3 py-3 text-gray-500 whitespace-nowrap">
-                        <div>Issue: {inv.issueDate}</div>
-                        <div className="text-[10px]">Due: {inv.dueDate}</div>
+                        <div>Issue: {formatDateDDMMYYYY(inv.issueDate)}</div>
+                        <div className="text-[10px]">Due: {formatDateDDMMYYYY(inv.dueDate)}</div>
                       </td>
                       <td className="px-4 py-3 text-right font-mono font-bold text-gray-900 whitespace-nowrap">
                         ₹{Number(inv.grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -1079,7 +1208,7 @@ export const FlatBillingDashboard: React.FC = () => {
                   pendingEvents.map((ev) => (
                     <tr key={ev.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 font-mono text-gray-600 whitespace-nowrap">
-                        {ev.serviceDate}
+                        {formatDateDDMMYYYY(ev.serviceDate)}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
                         <Badge
@@ -1167,7 +1296,7 @@ export const FlatBillingDashboard: React.FC = () => {
                         {sub.prorationPolicy || 'DAILY'}
                       </td>
                       <td className="px-3 py-3 font-mono text-gray-600 whitespace-nowrap">
-                        {sub.startDate}
+                        {formatDateDDMMYYYY(sub.startDate)}
                       </td>
                       <td className="px-4 py-3 text-right font-mono font-bold text-gray-900 whitespace-nowrap">
                         ₹{Number(sub.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -1236,7 +1365,7 @@ export const FlatBillingDashboard: React.FC = () => {
                   ledgerEntries.map((entry) => (
                     <tr key={entry.id} className="hover:bg-slate-50 font-mono">
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                        {entry.entryDate || entry.createdAt?.split('T')[0]}
+                        {formatDateDDMMYYYY(entry.entryDate || entry.createdAt)}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
                         <Badge variant="outline" className="text-[10px] font-sans">

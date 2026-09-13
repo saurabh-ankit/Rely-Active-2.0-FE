@@ -132,6 +132,14 @@ export default function RootRouter() {
           }
         />
         <Route
+          path="global-settings/tax"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="gst-tax" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="global-settings/residents/edit/:id"
           element={
             <ProtectedRoute requireSuperAdmin>

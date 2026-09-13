@@ -6,6 +6,7 @@ import {
   Building2,
   HeartHandshake,
   Home,
+  Receipt,
   ShieldCheck,
   UserCheck,
   Utensils,
@@ -21,6 +22,7 @@ import FnbGlobalMealSlotsTab from './components/FnbGlobalMealSlotsTab'
 import { GlobalServicesTab } from './components/GlobalServicesTab'
 import { TasksTab } from './components/TasksTab'
 import { PackagesTab } from './components/PackagesTab'
+import { GstTaxSettingsTab } from './components/GstTaxSettingsTab'
 
 interface SettingItem {
   id: string
@@ -31,6 +33,13 @@ interface SettingItem {
 }
 
 const systemSettings: SettingItem[] = [
+  {
+    id: 'gst-tax',
+    name: 'GST & Tax Settings',
+    description: 'Configure Goods & Services Tax (GST) slabs, CGST/SGST ratios, and corporate GSTIN.',
+    link: '/global-settings/tax',
+    icon: Receipt,
+  },
   {
     id: 'inventory',
     name: 'Inventory',
@@ -136,6 +145,7 @@ interface GlobalSettingsPageProps {
     | 'global-services'
     | 'tasks'
     | 'packages'
+    | 'gst-tax'
 }
 
 export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSettingsPageProps) {
@@ -254,6 +264,21 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
         </button>
         <PackagesTab />
+      </div>
+    )
+  }
+
+  if (activeView === 'gst-tax') {
+    return (
+      <div className="space-y-6 pb-10">
+        <button
+          type="button"
+          onClick={() => navigate('/global-settings')}
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+        </button>
+        <GstTaxSettingsTab />
       </div>
     )
   }

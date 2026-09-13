@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { useGetAccountLedger } from '@/hooks/react-query/billing'
+import { formatDateDDMMYYYY } from '@/lib/utils/dateFormat'
 
 interface LedgerDialogProps {
   accountId: string | null
@@ -106,7 +107,7 @@ export const LedgerDialog: React.FC<LedgerDialogProps> = ({
                   {entries.map((entry) => (
                     <tr key={entry.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3 font-mono text-gray-600 whitespace-nowrap">
-                        {entry.entryDate}
+                        {formatDateDDMMYYYY(entry.entryDate)}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
                         {getEntryTypeBadge(entry.entryType)}
