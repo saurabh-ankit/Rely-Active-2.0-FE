@@ -4,11 +4,11 @@ import { ItemThresholdsPage } from './ItemThresholdsPage'
 import { ItemImportPage } from './ItemImportPage'
 import { Routes, Route, Link, useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom'
 import type { ColumnDef, PaginationState, SortingState, Updater } from '@tanstack/react-table'
-import { FolderOpen, Building2, Plus, MoreHorizontal, Pencil, MapPin, Users, ArrowUpDown } from 'lucide-react'
+import { FolderOpen, Building2, Plus, MoreHorizontal, Pencil, MapPin, Users, ArrowUpDown, Briefcase, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { ResponsiveTabs } from '@/components/common/ResponsiveTabs'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -26,7 +26,7 @@ import {
   useSetInventoryVendorStatus,
 } from '@/hooks/react-query/inventory'
 import type { InventoryCategory, InventoryVendor, InventoryItem, InventoryListParams } from '@/lib/types/inventory'
-import { InventoryPage, FormSection, InventoryLoading, InventoryLoadError } from './PageLayout'
+import { InventoryPage, InventoryLoading, InventoryLoadError } from './PageLayout'
 import { CategoryFormPage } from './CategoryFormPage'
 import { VendorFormPage } from './VendorFormPage'
 import { ItemFormPage } from './ItemFormPage'
@@ -164,27 +164,38 @@ function GlobalInventory() {
       title="Global Inventory Management"
       description="Manage categories, vendors and availability across your locations."
       onBack={() => navigate('/global-settings')}
+      backLabel="Back to Global Settings"
+      icon={Briefcase}
     >
-      <FormSection title="Inventory">
-        <Tabs value={tab} onValueChange={(value) => setSearch({ tab: String(value) })}>
-          <TabsList>
-            <TabsTrigger value="categories">
-              <FolderOpen />
-              Categories
-            </TabsTrigger>
-            <TabsTrigger value="vendors">
-              <Users />
-              Vendors
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="categories">
-            <MasterList kind="categories" />
-          </TabsContent>
-          <TabsContent value="vendors">
-            <MasterList kind="vendors" />
-          </TabsContent>
-        </Tabs>
-      </FormSection>
+      <ResponsiveTabs
+        value={tab}
+        onValueChange={(value) => setSearch({ tab: String(value) })}
+        className="w-full"
+        tabs={[
+          {
+            value: 'categories',
+            label: 'Categories',
+            shortLabel: 'Categories',
+            icon: FolderOpen,
+            content: (
+              <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+                <MasterList kind="categories" />
+              </div>
+            ),
+          },
+          {
+            value: 'vendors',
+            label: 'Vendors',
+            shortLabel: 'Vendors',
+            icon: Users,
+            content: (
+              <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+                <MasterList kind="vendors" />
+              </div>
+            ),
+          },
+        ]}
+      />
     </InventoryPage>
   )
 }
@@ -322,8 +333,11 @@ function MasterList({ kind, returnTo }: { returnTo?: string; kind: 'categories' 
               Retry
             </Button>
           )}
-          <Button onClick={() => navigate(target(`${inventoryBase}/${kind}/new`))}>
-            <Plus data-icon="inline-start" />
+          <Button
+            className="bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer"
+            onClick={() => navigate(target(`${inventoryBase}/${kind}/new`))}
+          >
+            <Plus className="w-4 h-4 mr-1" />
             Add {kind === 'categories' ? 'Category' : 'Vendor'}
           </Button>
         </>
@@ -466,16 +480,28 @@ function CategoryItems() {
       title={category.data.name}
       description={category.data.description ?? 'Manage inventory items in this category.'}
       onBack={() => navigate(`${inventoryBase}${params.get('origin') || ''}`)}
+      backLabel="Back to Categories"
+      icon={FolderOpen}
+      action={
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            className="rounded-xl border-gray-200"
+            onClick={() => navigate(`${categoryPath(categoryId)}/edit?${editParams}`)}
+          >
+            Edit Category
+          </Button>
+          <Button
+            variant="outline"
+            className="rounded-xl border-gray-200"
+            onClick={() => navigate(`${categoryPath(categoryId)}/locations?${editParams}`)}
+          >
+            Manage Locations
+          </Button>
+        </div>
+      }
     >
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onClick={() => navigate(`${categoryPath(categoryId)}/edit?${editParams}`)}>
-          Edit Category
-        </Button>
-        <Button variant="outline" onClick={() => navigate(`${categoryPath(categoryId)}/locations?${editParams}`)}>
-          Manage Locations
-        </Button>
-      </div>
-      <Tabs
+      <ResponsiveTabs
         value={categorySearch.get('categoryTab') === 'suppliers' ? 'suppliers' : 'items'}
         onValueChange={(value) =>
           setCategorySearch((previous) => {
@@ -487,78 +513,91 @@ function CategoryItems() {
             return next
           })
         }
-      >
-        <TabsList>
-          <TabsTrigger value="items">Items</TabsTrigger>
-          <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
-        </TabsList>
-        <TabsContent value="items">
-          <FormSection title="Inventory Items">
-            <DataTable
-              columns={columns}
-              data={items.data?.records ?? []}
-              isLoading={items.isPending}
-              error={items.isError ? 'Unable to load items. Try again.' : undefined}
-              onRetry={() => void items.refetch()}
-              getRowId={(r) => r.id}
-              searchValue={state.searchValue}
-              onSearchChange={state.onSearchChange}
-              searchPlaceholder="Search items…"
-              filterActions={
-                <>
-                  {state.filter}
-                  <NativeSelect
-                    aria-label="Filter supplier"
-                    value={vendorId}
-                    onChange={(e) =>
-                      setCategorySearch((previous) => {
-                        const next = new URLSearchParams(previous)
-                        if (e.target.value) next.set('vendorId', e.target.value)
-                        else next.delete('vendorId')
-                        next.set('page', '1')
-                        return next
-                      })
-                    }
-                  >
-                    <NativeSelectOption value="">All suppliers</NativeSelectOption>
-                    {vendors.data?.map((v) => (
-                      <NativeSelectOption key={v.id} value={v.id}>
-                        {v.name}
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
-                  <Button
-                    variant="outline"
-                    disabled={!category.data.isActive}
-                    onClick={() => navigate(`${categoryPath(categoryId)}/import${search}`)}
-                  >
-                    Import Items
-                  </Button>
-                  <Button
-                    disabled={!category.data.isActive}
-                    onClick={() => navigate(`${categoryPath(categoryId)}/items/new${search}`)}
-                  >
-                    <Plus data-icon="inline-start" />
-                    Add Item
-                  </Button>
-                </>
-              }
-              manualPagination
-              pagination={state.pagination}
-              onPaginationChange={state.onPaginationChange}
-              rowCount={items.data?.pagination.totalItems ?? 0}
-              manualSorting
-              sorting={state.sorting}
-              onSortingChange={state.onSortingChange}
-            />
-          </FormSection>
-        </TabsContent>
-        <TabsContent value="suppliers">
-          <FormSection title="Suppliers">
-            <MasterList kind="vendors" returnTo={`${categoryPath(categoryId)}${search}`} />
-          </FormSection>
-        </TabsContent>
-      </Tabs>
+        className="w-full"
+        tabs={[
+          {
+            value: 'items',
+            label: 'Items',
+            shortLabel: 'Items',
+            icon: Package,
+            content: (
+              <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+                <DataTable
+                  columns={columns}
+                  data={items.data?.records ?? []}
+                  isLoading={items.isPending}
+                  error={items.isError ? 'Unable to load items. Try again.' : undefined}
+                  onRetry={() => void items.refetch()}
+                  getRowId={(r) => r.id}
+                  searchValue={state.searchValue}
+                  onSearchChange={state.onSearchChange}
+                  searchPlaceholder="Search items…"
+                  filterActions={
+                    <>
+                      {state.filter}
+                      <NativeSelect
+                        aria-label="Filter supplier"
+                        value={vendorId}
+                        onChange={(e) =>
+                          setCategorySearch((previous) => {
+                            const next = new URLSearchParams(previous)
+                            if (e.target.value) next.set('vendorId', e.target.value)
+                            else next.delete('vendorId')
+                            next.set('page', '1')
+                            return next
+                          })
+                        }
+                        className="w-auto h-9 text-xs"
+                      >
+                        <NativeSelectOption value="">All suppliers</NativeSelectOption>
+                        {vendors.data?.map((v) => (
+                          <NativeSelectOption key={v.id} value={v.id}>
+                            {v.name}
+                          </NativeSelectOption>
+                        ))}
+                      </NativeSelect>
+                      <Button
+                        variant="outline"
+                        className="rounded-xl border-gray-200"
+                        disabled={!category.data.isActive}
+                        onClick={() => navigate(`${categoryPath(categoryId)}/import${search}`)}
+                      >
+                        Import Items
+                      </Button>
+                      <Button
+                        className="bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer"
+                        disabled={!category.data.isActive}
+                        onClick={() => navigate(`${categoryPath(categoryId)}/items/new${search}`)}
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add Item
+                      </Button>
+                    </>
+                  }
+                  manualPagination
+                  pagination={state.pagination}
+                  onPaginationChange={state.onPaginationChange}
+                  rowCount={items.data?.pagination.totalItems ?? 0}
+                  manualSorting
+                  sorting={state.sorting}
+                  onSortingChange={state.onSortingChange}
+                />
+              </div>
+            ),
+          },
+          {
+            value: 'suppliers',
+            label: 'Suppliers',
+            shortLabel: 'Suppliers',
+            icon: Users,
+            content: (
+              <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+                <MasterList kind="vendors" returnTo={`${categoryPath(categoryId)}${search}`} />
+              </div>
+            ),
+          },
+        ]}
+      />
     </InventoryPage>
   )
 }
