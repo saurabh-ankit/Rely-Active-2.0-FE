@@ -92,6 +92,10 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
     }
   }
 
+  const hasTax =
+    Number(invoice?.taxTotal || 0) > 0 ||
+    Boolean(invoice?.lines && invoice.lines.some((l) => Number(l.taxRate || 0) > 0))
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-4xl lg:max-w-5xl w-full max-h-[92vh] p-0 flex flex-col overflow-hidden bg-white border-gray-200 shadow-2xl rounded-2xl gap-0">
@@ -104,7 +108,7 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <DialogTitle className="text-base font-bold text-gray-900 font-mono">
-                  {invoice?.invoiceNumber || 'Tax Invoice'}
+                  {invoice?.invoiceNumber || (hasTax ? 'Tax Invoice' : 'Invoice')}
                 </DialogTitle>
                 {invoice?.invoiceNumber && (
                   <button
@@ -175,7 +179,7 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
                   {/* Right: Legal Tax Invoice Meta */}
                   <div className="sm:text-right space-y-1">
                     <span className="inline-block px-2.5 py-1 bg-slate-100 text-gray-800 text-xs font-extrabold tracking-wider uppercase rounded">
-                      Tax Invoice
+                      {hasTax ? 'Tax Invoice' : 'Invoice'}
                     </span>
                     <div className="text-sm font-mono font-bold text-[#005390]">
                       #{invoice.invoiceNumber}
@@ -275,8 +279,8 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
                         <th className="px-3 py-3 text-left">Consumer</th>
                         <th className="px-3 py-3 text-right">Qty</th>
                         <th className="px-3 py-3 text-right">Rate (₹)</th>
-                        <th className="px-3 py-3 text-right">Taxable (₹)</th>
-                        <th className="px-3 py-3 text-right">GST Rate</th>
+                        {hasTax && <th className="px-3 py-3 text-right">Taxable (₹)</th>}
+                        {hasTax && <th className="px-3 py-3 text-right">GST Rate</th>}
                         <th className="px-4 py-3 text-right">Total (₹)</th>
                       </tr>
                     </thead>
@@ -311,21 +315,25 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
                             <td className="px-3 py-3 text-right text-gray-700 font-mono">
                               ₹{Number(line.unitPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </td>
-                            <td className="px-3 py-3 text-right text-gray-800 font-mono">
-                              ₹{Number(line.taxableAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                            </td>
-                            <td className="px-3 py-3 text-right whitespace-nowrap">
-                              {Number(line.taxRate) > 0 ? (
-                                <span className="text-amber-700 font-mono font-semibold">
-                                  {Number(line.taxRate)}%{' '}
-                                  <span className="text-gray-400 font-normal">
-                                    (₹{Number(line.taxAmount).toFixed(2)})
+                            {hasTax && (
+                              <td className="px-3 py-3 text-right text-gray-800 font-mono">
+                                ₹{Number(line.taxableAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </td>
+                            )}
+                            {hasTax && (
+                              <td className="px-3 py-3 text-right whitespace-nowrap">
+                                {Number(line.taxRate) > 0 ? (
+                                  <span className="text-amber-700 font-mono font-semibold">
+                                    {Number(line.taxRate)}%{' '}
+                                    <span className="text-gray-400 font-normal">
+                                      (₹{Number(line.taxAmount).toFixed(2)})
+                                    </span>
                                   </span>
-                                </span>
-                              ) : (
-                                <span className="text-gray-400 font-medium">Exempt (0%)</span>
-                              )}
-                            </td>
+                                ) : (
+                                  <span className="text-gray-400 font-medium">Exempt (0%)</span>
+                                )}
+                              </td>
+                            )}
                             <td className="px-4 py-3 text-right font-mono font-bold text-gray-900 whitespace-nowrap">
                               ₹{Number(line.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </td>
@@ -333,7 +341,7 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
+                          <td colSpan={hasTax ? 8 : 6} className="px-4 py-8 text-center text-gray-400">
                             No itemized charges listed on this invoice.
                           </td>
                         </tr>
@@ -364,7 +372,7 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
                 {/* Totals Table */}
                 <div className="bg-gradient-to-b from-slate-50 to-white p-5 rounded-xl border border-slate-200 text-xs space-y-2.5">
                   <div className="flex justify-between text-gray-600">
-                    <span>Taxable Subtotal:</span>
+                    <span>{hasTax ? 'Taxable Subtotal:' : 'Subtotal:'}</span>
                     <span className="font-mono font-semibold text-gray-900">
                       ₹{Number(invoice.subtotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
@@ -386,12 +394,14 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
                     </div>
                   )}
 
-                  <div className="flex justify-between text-gray-600">
-                    <span>Total GST:</span>
-                    <span className="font-mono font-semibold text-gray-900">
-                      ₹{Number(invoice.taxTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
+                  {hasTax && (
+                    <div className="flex justify-between text-gray-600">
+                      <span>Total GST:</span>
+                      <span className="font-mono font-semibold text-gray-900">
+                        ₹{Number(invoice.taxTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  )}
 
                   {Number(invoice.roundingAdjustment) !== 0 && (
                     <div className="flex justify-between text-gray-500">
@@ -439,7 +449,9 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
         <div className="px-6 py-3 bg-slate-50 border-t border-gray-200 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>Computer generated legal tax invoice • No physical signature required</span>
+            <span>
+              Computer generated {hasTax ? 'legal tax invoice' : 'invoice'} • No physical signature required
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
