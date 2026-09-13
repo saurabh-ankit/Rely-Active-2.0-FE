@@ -16,7 +16,7 @@ export function InventoryPage({
   children: ReactNode
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 pb-10">
+    <div className="flex w-full flex-col gap-6 pb-10">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" onClick={onBack}>
           <ArrowLeft data-icon="inline-start" />
