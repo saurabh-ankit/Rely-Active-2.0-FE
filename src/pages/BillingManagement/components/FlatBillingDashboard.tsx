@@ -123,6 +123,7 @@ export const FlatBillingDashboard: React.FC = () => {
   // Discount configuration
   const [discountType, setDiscountType] = useState<'FIXED' | 'PERCENTAGE'>('FIXED')
   const [discountValue, setDiscountValue] = useState<number>(0)
+  const [discountNote, setDiscountNote] = useState<string>('')
 
   // Global Tax & GST configuration
   const { data: taxSettingsData } = useGetTaxSettings()
@@ -210,6 +211,7 @@ export const FlatBillingDashboard: React.FC = () => {
         includeSubscriptions: billingMode !== 'SUPPLEMENTARY',
         discountType: discountValue > 0 ? discountType : undefined,
         discountValue: discountValue > 0 ? discountValue : undefined,
+        discountNote: discountValue > 0 && discountNote ? discountNote.trim() : undefined,
       })
 
       const invoiceData = res?.data
@@ -927,6 +929,41 @@ export const FlatBillingDashboard: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Discount Note / Reason */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-gray-700">
+                      Discount Note / Reason
+                    </Label>
+                    <span className="text-[11px] text-gray-400">Optional justification for ledger & invoice</span>
+                  </div>
+                  <Input
+                    type="text"
+                    value={discountNote}
+                    onChange={(e) => setDiscountNote(e.target.value)}
+                    placeholder="e.g. Management approved concession, Festive discount, Special waiver"
+                    className="text-xs h-9 font-medium"
+                    maxLength={250}
+                  />
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span className="text-[10px] text-gray-400">Quick reasons:</span>
+                    {['Management Approval', 'Festive Offer', 'Early Settlement', 'Goodwill Waiver'].map((tag) => (
+                      <button
+                        type="button"
+                        key={tag}
+                        onClick={() => setDiscountNote(tag)}
+                        className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors cursor-pointer ${
+                          discountNote === tag
+                            ? 'bg-blue-100 text-[#005390] border-blue-300 font-bold'
+                            : 'bg-gray-100/80 text-gray-600 border-gray-200 hover:bg-gray-200/70'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {discountEstimate > 0 && (
                   <p className="text-xs text-emerald-600 bg-emerald-50/70 p-2.5 rounded-lg border border-emerald-100 flex items-center justify-between">
                     <span>Discount applied before taxes:</span>
@@ -1015,11 +1052,18 @@ export const FlatBillingDashboard: React.FC = () => {
                   </div>
 
                   {discountEstimate > 0 && (
-                    <div className="flex justify-between text-emerald-600 font-semibold">
-                      <span>Discount ({discountType === 'PERCENTAGE' ? `${discountValue}%` : 'Flat ₹'}):</span>
-                      <span className="font-mono">
-                        -₹{discountEstimate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </span>
+                    <div className="space-y-0.5">
+                      <div className="flex justify-between text-emerald-600 font-semibold">
+                        <span>Discount ({discountType === 'PERCENTAGE' ? `${discountValue}%` : 'Flat ₹'}):</span>
+                        <span className="font-mono">
+                          -₹{discountEstimate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      {discountNote.trim() && (
+                        <div className="text-[10px] text-emerald-700 font-medium italic pl-1 truncate" title={discountNote}>
+                          Reason: {discountNote.trim()}
+                        </div>
+                      )}
                     </div>
                   )}
 

@@ -202,6 +202,7 @@ export interface Invoice {
   dueDate: string
   subtotal: number
   discountTotal: number
+  discountNote?: string | null
   taxableAmount: number
   taxTotal: number
   roundingAdjustment: number

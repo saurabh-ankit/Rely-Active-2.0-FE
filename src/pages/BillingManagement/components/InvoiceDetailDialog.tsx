@@ -371,11 +371,18 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
                   </div>
 
                   {Number(invoice.discountTotal) > 0 && (
-                    <div className="flex justify-between text-emerald-600 font-medium">
-                      <span>Discount:</span>
-                      <span className="font-mono">
-                        -₹{Number(invoice.discountTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </span>
+                    <div className="space-y-0.5">
+                      <div className="flex justify-between text-emerald-600 font-medium">
+                        <span>Discount:</span>
+                        <span className="font-mono">
+                          -₹{Number(invoice.discountTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      {invoice.discountNote && (
+                        <div className="text-[11px] text-emerald-700/80 italic pl-1">
+                          Reason: {invoice.discountNote}
+                        </div>
+                      )}
                     </div>
                   )}
 

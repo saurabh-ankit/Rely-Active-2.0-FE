@@ -56,6 +56,7 @@ export interface InvoicePreviewPayload {
   includePendingEvents?: boolean
   discountType?: 'FIXED' | 'PERCENTAGE'
   discountValue?: number
+  discountNote?: string
 }
 
 export interface GenerateInvoicePayload {
@@ -69,6 +70,7 @@ export interface GenerateInvoicePayload {
   includeSubscriptions?: boolean
   discountType?: 'FIXED' | 'PERCENTAGE'
   discountValue?: number
+  discountNote?: string
 }
 
 export interface BatchRunPayload {
