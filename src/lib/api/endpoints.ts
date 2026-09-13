@@ -377,6 +377,8 @@ export const API_ENDPOINTS = {
     generateInvoice: `${BASE_URL}/billing/invoices/generate`,
     events: `${BASE_URL}/billing/events`,
     cancelEvent: (id: string) => `${BASE_URL}/billing/events/${id}/cancel`,
+    updateEvent: (id: string) => `${BASE_URL}/billing/events/${id}`,
+    eventAttachments: (id: string) => `${BASE_URL}/billing/events/${id}/attachments`,
     runs: `${BASE_URL}/billing/runs`,
     taxSettings: `${BASE_URL}/billing/settings/tax`,
   },

@@ -17,6 +17,7 @@ import {
   Mail,
   Package,
   Phone,
+  Pencil,
   Plus,
   ReceiptIndianRupee,
   RefreshCw,
@@ -31,13 +32,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog'
 import {
   useGetUnitBilling360,
   useGetUnitsBillingSummary,
@@ -47,6 +42,8 @@ import {
 import { useLocationContext } from '@/hooks/useLocation'
 import { formatDateDDMMYYYY } from '@/lib/utils/dateFormat'
 import { InvoiceDetailDialog } from './InvoiceDetailDialog'
+import { AddMiscellaneousChargeModal } from './AddMiscellaneousChargeModal'
+import type { BillingEvent } from '@/lib/types/billing'
 
 export const FlatBillingDashboard: React.FC = () => {
   const { unitId } = useParams<{ unitId: string }>()
@@ -61,11 +58,15 @@ export const FlatBillingDashboard: React.FC = () => {
   }, [unitId, navigate])
 
   // Navigation / Tabs
-  const [activeTab, setActiveTab] = useState<'generate' | 'invoices' | 'unbilled' | 'subscriptions' | 'ledger' | 'profile'>('generate')
+  const [activeTab, setActiveTab] = useState<
+    'generate' | 'invoices' | 'unbilled' | 'subscriptions' | 'ledger' | 'profile'
+  >('generate')
 
   // Invoice Detail Dialog
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null)
   const [isInvoiceDetailOpen, setIsInvoiceDetailOpen] = useState(false)
+  const [isAddChargeOpen, setIsAddChargeOpen] = useState(false)
+  const [editingBillingEvent, setEditingBillingEvent] = useState<BillingEvent | null>(null)
 
   // Success Dialog after generating invoice
   const [generatedInvoiceInfo, setGeneratedInvoiceInfo] = useState<{
@@ -164,12 +165,40 @@ export const FlatBillingDashboard: React.FC = () => {
   }
 
   // Live calculation for the Generate tab (subscriptions excluded in SUPPLEMENTARY mode)
-  const activeSubsSum = useMemo(() => {
-    if (billingMode === 'SUPPLEMENTARY') return 0
-    return subscriptions
-      .filter((s) => s.isActive)
-      .reduce((acc, s) => acc + Number(s.unitPrice || 0), 0)
-  }, [subscriptions, billingMode])
+  const billableSubscriptions = useMemo(() => {
+    if (billingMode === 'SUPPLEMENTARY') return []
+    const alreadyBilled = new Set(
+      invoices
+        .filter(
+          (invoice) =>
+            invoice.status !== 'CANCELLED' && invoice.periodStart <= endDate && invoice.periodEnd >= startDate,
+        )
+        .flatMap((invoice) => invoice.lines || [])
+        .map((line) => line.subscriptionId)
+        .filter((subscriptionId): subscriptionId is string => Boolean(subscriptionId)),
+    )
+    return subscriptions.filter((subscription) => subscription.isActive && !alreadyBilled.has(subscription.id))
+  }, [subscriptions, invoices, startDate, endDate, billingMode])
+
+  const billedInvoicesBySubscription = useMemo(() => {
+    const billed = new Map<string, (typeof invoices)[number]>()
+    invoices
+      .filter(
+        (invoice) =>
+          invoice.status !== 'CANCELLED' && invoice.periodStart <= endDate && invoice.periodEnd >= startDate,
+      )
+      .forEach((invoice) => {
+        invoice.lines?.forEach((line) => {
+          if (line.subscriptionId) billed.set(line.subscriptionId, invoice)
+        })
+      })
+    return billed
+  }, [invoices, startDate, endDate])
+
+  const activeSubsSum = useMemo(
+    () => billableSubscriptions.reduce((acc, subscription) => acc + Number(subscription.unitPrice || 0), 0),
+    [billableSubscriptions],
+  )
 
   const pendingEventsSum = useMemo(() => {
     if (!includePendingEvents) return 0
@@ -302,12 +331,7 @@ export const FlatBillingDashboard: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetchUnit()}
-            className="text-xs h-9 cursor-pointer"
-          >
+          <Button variant="outline" size="sm" onClick={() => refetchUnit()} className="text-xs h-9 cursor-pointer">
             <RefreshCw className="w-3.5 h-3.5 mr-1" />
             Refresh Data
           </Button>
@@ -325,9 +349,7 @@ export const FlatBillingDashboard: React.FC = () => {
               </div>
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="text-2xl font-black text-gray-900 font-mono tracking-tight">
-                    {unit.unitNumber}
-                  </h1>
+                  <h1 className="text-2xl font-black text-gray-900 font-mono tracking-tight">{unit.unitNumber}</h1>
                   {unit.unitType && (
                     <Badge variant="outline" className="text-xs bg-white text-gray-700 border-gray-300">
                       {unit.unitType}
@@ -393,9 +415,7 @@ export const FlatBillingDashboard: React.FC = () => {
                       <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
                       {primaryPayer.partyName}
                       {primaryPayer.role && (
-                        <span className="text-[10px] font-normal text-gray-500">
-                          ({primaryPayer.role})
-                        </span>
+                        <span className="text-[10px] font-normal text-gray-500">({primaryPayer.role})</span>
                       )}
                     </div>
                     {primaryPayer.partyPhone && (
@@ -413,9 +433,7 @@ export const FlatBillingDashboard: React.FC = () => {
                   </div>
                 ) : primaryResident ? (
                   <div className="space-y-0.5">
-                    <div className="font-medium text-sm text-gray-800">
-                      Self-Payer ({primaryResident.name})
-                    </div>
+                    <div className="font-medium text-sm text-gray-800">Self-Payer ({primaryResident.name})</div>
                     <div className="text-xs text-gray-400">Direct Resident Folio</div>
                   </div>
                 ) : (
@@ -429,7 +447,9 @@ export const FlatBillingDashboard: React.FC = () => {
 
       {/* 3. FLAT FINANCIAL KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className={`border shadow-sm ${totalOutstanding > 0 ? 'bg-rose-50/50 border-rose-200' : 'bg-white border-gray-100'}`}>
+        <Card
+          className={`border shadow-sm ${totalOutstanding > 0 ? 'bg-rose-50/50 border-rose-200' : 'bg-white border-gray-100'}`}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
               Outstanding Due
@@ -437,7 +457,9 @@ export const FlatBillingDashboard: React.FC = () => {
             <AlertCircle className={`w-4 h-4 ${totalOutstanding > 0 ? 'text-rose-600' : 'text-emerald-600'}`} />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold font-mono ${totalOutstanding > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+            <div
+              className={`text-2xl font-bold font-mono ${totalOutstanding > 0 ? 'text-rose-600' : 'text-emerald-600'}`}
+            >
               ₹{totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-gray-500 mt-1">
@@ -486,9 +508,7 @@ export const FlatBillingDashboard: React.FC = () => {
             <Zap className="w-4 h-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono text-amber-600">
-              {pendingEvents.length} Items
-            </div>
+            <div className="text-2xl font-bold font-mono text-amber-600">{pendingEvents.length} Items</div>
             <p className="text-xs text-gray-500 mt-1">
               ₹{pendingEventsSum.toLocaleString('en-IN', { minimumFractionDigits: 2 })} unbilled usage
             </p>
@@ -502,9 +522,7 @@ export const FlatBillingDashboard: React.FC = () => {
           type="button"
           onClick={() => setActiveTab('generate')}
           className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-            activeTab === 'generate'
-              ? 'border-[#005390] text-[#005390]'
-              : 'border-transparent hover:text-gray-800'
+            activeTab === 'generate' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
           }`}
         >
           <Sparkles className="w-4 h-4 text-amber-500" /> Generate Invoice
@@ -514,9 +532,7 @@ export const FlatBillingDashboard: React.FC = () => {
           type="button"
           onClick={() => setActiveTab('invoices')}
           className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-            activeTab === 'invoices'
-              ? 'border-[#005390] text-[#005390]'
-              : 'border-transparent hover:text-gray-800'
+            activeTab === 'invoices' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
           }`}
         >
           <FileText className="w-4 h-4" /> Invoices History ({invoices.length})
@@ -526,9 +542,7 @@ export const FlatBillingDashboard: React.FC = () => {
           type="button"
           onClick={() => setActiveTab('unbilled')}
           className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-            activeTab === 'unbilled'
-              ? 'border-[#005390] text-[#005390]'
-              : 'border-transparent hover:text-gray-800'
+            activeTab === 'unbilled' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
           }`}
         >
           <Zap className="w-4 h-4 text-amber-500" /> Unbilled Services ({pendingEvents.length})
@@ -538,9 +552,7 @@ export const FlatBillingDashboard: React.FC = () => {
           type="button"
           onClick={() => setActiveTab('subscriptions')}
           className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-            activeTab === 'subscriptions'
-              ? 'border-[#005390] text-[#005390]'
-              : 'border-transparent hover:text-gray-800'
+            activeTab === 'subscriptions' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
           }`}
         >
           <Layers className="w-4 h-4" /> Subscriptions & Packages ({subscriptions.length})
@@ -550,9 +562,7 @@ export const FlatBillingDashboard: React.FC = () => {
           type="button"
           onClick={() => setActiveTab('ledger')}
           className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-            activeTab === 'ledger'
-              ? 'border-[#005390] text-[#005390]'
-              : 'border-transparent hover:text-gray-800'
+            activeTab === 'ledger' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
           }`}
         >
           <BookOpen className="w-4 h-4" /> Sacred Ledger ({ledgerEntries.length})
@@ -562,9 +572,7 @@ export const FlatBillingDashboard: React.FC = () => {
           type="button"
           onClick={() => setActiveTab('profile')}
           className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-            activeTab === 'profile'
-              ? 'border-[#005390] text-[#005390]'
-              : 'border-transparent hover:text-gray-800'
+            activeTab === 'profile' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
           }`}
         >
           <User className="w-4 h-4" /> Occupants & Payers ({occupants.length + (folio?.parties?.length || 0)})
@@ -586,9 +594,7 @@ export const FlatBillingDashboard: React.FC = () => {
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
                 <div>
-                  <Label className="text-xs font-semibold text-gray-600 mb-2 block">
-                    Select Billing Mode
-                  </Label>
+                  <Label className="text-xs font-semibold text-gray-600 mb-2 block">Select Billing Mode</Label>
                   <div className="grid grid-cols-3 gap-2">
                     <Button
                       type="button"
@@ -626,7 +632,8 @@ export const FlatBillingDashboard: React.FC = () => {
                     <div>
                       <span className="font-bold">Supplementary Invoice Mode Active</span>
                       <p className="text-amber-800 text-[11px] mt-0.5">
-                        Invoices on-demand consumption and unbilled service charges only. Recurring monthly packages are automatically excluded to prevent duplicate charges.
+                        Invoices on-demand consumption and unbilled service charges only. Recurring monthly packages are
+                        automatically excluded to prevent duplicate charges.
                       </p>
                     </div>
                   </div>
@@ -638,7 +645,8 @@ export const FlatBillingDashboard: React.FC = () => {
                     <div>
                       <span className="font-bold">Final Move-Out / Settlement Mode</span>
                       <p className="text-rose-800 text-[11px] mt-0.5">
-                        Generates final pro-rata settlement invoice up to the move-out departure date, including all unbilled consumption charges.
+                        Generates final pro-rata settlement invoice up to the move-out departure date, including all
+                        unbilled consumption charges.
                       </p>
                     </div>
                   </div>
@@ -658,8 +666,13 @@ export const FlatBillingDashboard: React.FC = () => {
                         className="text-xs mt-1 h-9 font-medium"
                       />
                       <div className="mt-1.5 flex items-center justify-between text-[11px] text-gray-500">
-                        <span>Cycle: <strong className="text-gray-800">{formatMonthDisplay(billingMonth)}</strong></span>
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-50/50 text-[#005390] border-blue-200">
+                        <span>
+                          Cycle: <strong className="text-gray-800">{formatMonthDisplay(billingMonth)}</strong>
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] px-1.5 py-0 bg-blue-50/50 text-[#005390] border-blue-200"
+                        >
                           {formatDateDDMMYYYY(startDate)} → {formatDateDDMMYYYY(endDate)}
                         </Badge>
                       </div>
@@ -718,7 +731,8 @@ export const FlatBillingDashboard: React.FC = () => {
               <CardHeader className="pb-3 border-b border-gray-100 flex flex-row items-center justify-between">
                 <CardTitle className="text-sm font-bold text-gray-900 flex items-center gap-2">
                   <Package className="w-4 h-4 text-purple-600" />
-                  2. Recurring Subscriptions Included ({billingMode === 'SUPPLEMENTARY' ? 0 : subscriptions.filter((s) => s.isActive).length})
+                  2. Recurring Subscriptions Included (
+                  {billableSubscriptions.length})
                 </CardTitle>
                 <div className="flex items-center gap-2">
                   {billingMode === 'SUPPLEMENTARY' ? (
@@ -726,10 +740,12 @@ export const FlatBillingDashboard: React.FC = () => {
                       <Badge variant="outline" className="text-[11px] bg-amber-50 text-amber-800 border-amber-200">
                         Excluded in Supplementary
                       </Badge>
-                      <span className="text-xs font-mono font-bold text-emerald-600">
-                        ₹0.00
-                      </span>
+                      <span className="text-xs font-mono font-bold text-emerald-600">₹0.00</span>
                     </>
+                  ) : billedInvoicesBySubscription.size > 0 && billableSubscriptions.length === 0 ? (
+                    <Badge variant="outline" className="text-[11px] bg-emerald-50 text-emerald-800 border-emerald-200">
+                      {formatMonthDisplay(billingMonth)} already invoiced
+                    </Badge>
                   ) : (
                     <span className="text-xs font-mono font-bold text-purple-700">
                       ₹{activeSubsSum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -745,7 +761,13 @@ export const FlatBillingDashboard: React.FC = () => {
                       Recurring packages excluded in Supplementary mode
                     </div>
                     <p className="text-[11px] text-amber-700 pl-5.5">
-                      This invoice only charges pending consumption and on-demand events (Care tasks, Medication/Inventory, etc.) without re-charging the monthly {subscriptions.filter(s => s.isActive).map(s => s.description || s.product?.productName).join(', ') || 'package'}.
+                      This invoice only charges pending consumption and on-demand events (Care tasks,
+                      Medication/Inventory, etc.) without re-charging the monthly{' '}
+                      {subscriptions
+                        .filter((s) => s.isActive)
+                        .map((s) => s.description || s.product?.productName)
+                        .join(', ') || 'package'}
+                      .
                     </p>
                   </div>
                 ) : subscriptions.length === 0 ? (
@@ -754,6 +776,12 @@ export const FlatBillingDashboard: React.FC = () => {
                   </p>
                 ) : (
                   <div className="divide-y divide-gray-100">
+                    {billedInvoicesBySubscription.size > 0 && (
+                      <div className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                        <span className="font-semibold">{formatMonthDisplay(billingMonth)} subscription invoice generated.</span>{' '}
+                        It is excluded from this new invoice preview.
+                      </div>
+                    )}
                     {subscriptions.map((sub) => (
                       <div key={sub.id} className="py-2.5 flex items-center justify-between text-xs">
                         <div>
@@ -763,12 +791,19 @@ export const FlatBillingDashboard: React.FC = () => {
                           <div className="text-[11px] text-gray-400">
                             {sub.billingFrequency} • Proration: {sub.prorationPolicy || 'DAILY'}
                           </div>
+                          {billedInvoicesBySubscription.get(sub.id) && (
+                            <div className="mt-1 text-[10px] font-semibold text-emerald-700">
+                              Already invoiced: {billedInvoicesBySubscription.get(sub.id)?.invoiceNumber}
+                            </div>
+                          )}
                         </div>
                         <div className="text-right">
                           <span className="font-mono font-bold text-gray-900">
                             ₹{Number(sub.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </span>
-                          <span className="text-[10px] text-gray-400 block">/ month</span>
+                          <span className="text-[10px] text-gray-400 block">
+                            {billedInvoicesBySubscription.has(sub.id) ? 'already billed for this period' : '/ month'}
+                          </span>
                         </div>
                       </div>
                     ))}
@@ -784,15 +819,25 @@ export const FlatBillingDashboard: React.FC = () => {
                   <Zap className="w-4 h-4 text-amber-500" />
                   3. Pending Consumption Charges ({pendingEvents.length})
                 </CardTitle>
-                <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={includePendingEvents}
-                    onChange={(e) => setIncludePendingEvents(e.target.checked)}
-                    className="rounded border-gray-300 text-[#005390]"
-                  />
-                  <span>Include in Invoice</span>
-                </label>
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setIsAddChargeOpen(true)}
+                    className="h-8 bg-[#005390] px-2.5 text-xs hover:bg-[#004477]"
+                  >
+                    <Plus className="mr-1 h-3.5 w-3.5" /> Add Miscellaneous Charge
+                  </Button>
+                  <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={includePendingEvents}
+                      onChange={(e) => setIncludePendingEvents(e.target.checked)}
+                      className="rounded border-gray-300 text-[#005390]"
+                    />
+                    <span>Include in Invoice</span>
+                  </label>
+                </div>
               </CardHeader>
               <CardContent className="pt-4">
                 {pendingEvents.length === 0 ? (
@@ -800,7 +845,9 @@ export const FlatBillingDashboard: React.FC = () => {
                     No unbilled usage events recorded for this flat.
                   </p>
                 ) : (
-                  <div className={`divide-y divide-gray-100 ${!includePendingEvents ? 'opacity-40 pointer-events-none' : ''}`}>
+                  <div
+                    className={`divide-y divide-gray-100 ${!includePendingEvents ? 'opacity-40 pointer-events-none' : ''}`}
+                  >
                     {pendingEvents.map((ev) => (
                       <div key={ev.id} className="py-2.5 flex items-center justify-between text-xs">
                         <div className="flex items-center gap-3">
@@ -848,11 +895,28 @@ export const FlatBillingDashboard: React.FC = () => {
                         </div>
                         <div className="text-right">
                           <span className="font-mono font-bold text-gray-900">
-                            ₹{Number(ev.amount || ev.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            ₹
+                            {Number(ev.amount || ev.unitPrice || 0).toLocaleString('en-IN', {
+                              minimumFractionDigits: 2,
+                            })}
                           </span>
                           <span className="text-[10px] text-gray-400 block">
-                            Qty: {ev.quantity} × ₹{Number(ev.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            Qty: {ev.quantity} × ₹
+                            {Number(ev.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </span>
+                          {ev.sourceModule === 'MANUAL' && ev.status === 'PENDING' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="mt-1 h-6 px-1.5 text-[10px] text-[#005390]"
+                              onClick={() => {
+                                setEditingBillingEvent(ev)
+                                setIsAddChargeOpen(true)
+                              }}
+                            >
+                              <Pencil className="mr-1 h-3 w-3" /> Edit
+                            </Button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -932,9 +996,7 @@ export const FlatBillingDashboard: React.FC = () => {
                 {/* Discount Note / Reason */}
                 <div className="space-y-1.5 pt-1">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold text-gray-700">
-                      Discount Note / Reason
-                    </Label>
+                    <Label className="text-xs font-semibold text-gray-700">Discount Note / Reason</Label>
                     <span className="text-[11px] text-gray-400">Optional justification for ledger & invoice</span>
                   </div>
                   <Input
@@ -967,7 +1029,9 @@ export const FlatBillingDashboard: React.FC = () => {
                 {discountEstimate > 0 && (
                   <p className="text-xs text-emerald-600 bg-emerald-50/70 p-2.5 rounded-lg border border-emerald-100 flex items-center justify-between">
                     <span>Discount applied before taxes:</span>
-                    <strong className="font-mono font-bold">-₹{discountEstimate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+                    <strong className="font-mono font-bold">
+                      -₹{discountEstimate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </strong>
                   </p>
                 )}
               </CardContent>
@@ -1016,7 +1080,9 @@ export const FlatBillingDashboard: React.FC = () => {
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Period:</span>
-                    <span className="font-medium text-gray-800">{formatDateDDMMYYYY(startDate)} → {formatDateDDMMYYYY(endDate)}</span>
+                    <span className="font-medium text-gray-800">
+                      {formatDateDDMMYYYY(startDate)} → {formatDateDDMMYYYY(endDate)}
+                    </span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Due Date:</span>
@@ -1060,7 +1126,10 @@ export const FlatBillingDashboard: React.FC = () => {
                         </span>
                       </div>
                       {discountNote.trim() && (
-                        <div className="text-[10px] text-emerald-700 font-medium italic pl-1 truncate" title={discountNote}>
+                        <div
+                          className="text-[10px] text-emerald-700 font-medium italic pl-1 truncate"
+                          title={discountNote}
+                        >
                           Reason: {discountNote.trim()}
                         </div>
                       )}
@@ -1194,9 +1263,7 @@ export const FlatBillingDashboard: React.FC = () => {
                           ₹{Number(inv.amountDue).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </td>
-                      <td className="px-3 py-3 text-center whitespace-nowrap">
-                        {getStatusBadge(inv.status)}
-                      </td>
+                      <td className="px-3 py-3 text-center whitespace-nowrap">{getStatusBadge(inv.status)}</td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         <Button
                           variant="ghost"
@@ -1226,6 +1293,14 @@ export const FlatBillingDashboard: React.FC = () => {
             <div className="text-xs font-bold text-gray-700 uppercase tracking-wider">
               Pending Chargeable Usage for Flat {unit.unitNumber} ({pendingEvents.length} Events)
             </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setIsAddChargeOpen(true)}
+              className="h-8 bg-[#005390] px-2.5 text-xs hover:bg-[#004477]"
+            >
+              <Plus className="mr-1 h-3.5 w-3.5" /> Add Miscellaneous Charge
+            </Button>
           </div>
 
           <div className="overflow-x-auto">
@@ -1279,9 +1354,7 @@ export const FlatBillingDashboard: React.FC = () => {
                         ₹{Number(ev.amount || ev.unitPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-3 py-3 text-center whitespace-nowrap">
-                        <Badge className="bg-amber-100 text-amber-800 border-amber-200">
-                          {ev.status}
-                        </Badge>
+                        <Badge className="bg-amber-100 text-amber-800 border-amber-200">{ev.status}</Badge>
                       </td>
                     </tr>
                   ))
@@ -1327,18 +1400,14 @@ export const FlatBillingDashboard: React.FC = () => {
                         <div className="font-semibold text-gray-900">
                           {sub.description || sub.product?.productName || 'Recurring Service'}
                         </div>
-                        <div className="text-[11px] text-gray-400">
-                          {sub.product?.category || ''}
-                        </div>
+                        <div className="text-[11px] text-gray-400">{sub.product?.category || ''}</div>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
                         <Badge variant="outline" className="text-[10px]">
                           {sub.billingFrequency}
                         </Badge>
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-gray-600">
-                        {sub.prorationPolicy || 'DAILY'}
-                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-gray-600">{sub.prorationPolicy || 'DAILY'}</td>
                       <td className="px-3 py-3 font-mono text-gray-600 whitespace-nowrap">
                         {formatDateDDMMYYYY(sub.startDate)}
                       </td>
@@ -1462,9 +1531,7 @@ export const FlatBillingDashboard: React.FC = () => {
                     <div>
                       <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
                         {res.name}
-                        {res.isPrimary && (
-                          <Badge className="bg-blue-100 text-[#005390] text-[9px]">Primary</Badge>
-                        )}
+                        {res.isPrimary && <Badge className="bg-blue-100 text-[#005390] text-[9px]">Primary</Badge>}
                       </div>
                       <div className="text-xs text-gray-500 mt-1">Relationship: {res.relationship || 'Resident'}</div>
                       {res.phone && <div className="text-xs text-gray-500">Phone: {res.phone}</div>}
@@ -1496,20 +1563,12 @@ export const FlatBillingDashboard: React.FC = () => {
                       <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
                         {party.partyName}
                         {party.role === 'PRIMARY_PAYER' && (
-                          <Badge className="bg-emerald-100 text-emerald-800 text-[9px]">
-                            Primary Payer
-                          </Badge>
+                          <Badge className="bg-emerald-100 text-emerald-800 text-[9px]">Primary Payer</Badge>
                         )}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Role: {party.role || 'Payer'}
-                      </div>
-                      {party.partyPhone && (
-                        <div className="text-xs text-gray-500">Phone: {party.partyPhone}</div>
-                      )}
-                      {party.partyEmail && (
-                        <div className="text-xs text-gray-500">Email: {party.partyEmail}</div>
-                      )}
+                      <div className="text-xs text-gray-500 mt-1">Role: {party.role || 'Payer'}</div>
+                      {party.partyPhone && <div className="text-xs text-gray-500">Phone: {party.partyPhone}</div>}
+                      {party.partyEmail && <div className="text-xs text-gray-500">Email: {party.partyEmail}</div>}
                     </div>
                   </div>
                 ))
@@ -1526,9 +1585,7 @@ export const FlatBillingDashboard: React.FC = () => {
             <div className="mx-auto p-3 bg-emerald-100 text-emerald-700 rounded-full w-14 h-14 flex items-center justify-center mb-3">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <DialogTitle className="text-xl font-bold text-gray-900">
-              Invoice Generated Successfully!
-            </DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-900">Invoice Generated Successfully!</DialogTitle>
             <DialogDescription className="text-xs text-gray-500 mt-1">
               Bill has been finalized for Flat {unit.unitNumber} and posted to the ledger.
             </DialogDescription>
@@ -1536,9 +1593,7 @@ export const FlatBillingDashboard: React.FC = () => {
             <div className="bg-slate-50 p-4 rounded-xl border border-gray-100 my-4 text-left text-xs space-y-2">
               <div className="flex justify-between">
                 <span className="text-gray-500">Invoice Number:</span>
-                <span className="font-mono font-bold text-[#005390]">
-                  {generatedInvoiceInfo.invoiceNumber}
-                </span>
+                <span className="font-mono font-bold text-[#005390]">{generatedInvoiceInfo.invoiceNumber}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Grand Total:</span>
@@ -1549,12 +1604,7 @@ export const FlatBillingDashboard: React.FC = () => {
             </div>
 
             <DialogFooter className="flex gap-2 sm:justify-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setGeneratedInvoiceInfo(null)}
-                className="text-xs"
-              >
+              <Button variant="outline" size="sm" onClick={() => setGeneratedInvoiceInfo(null)} className="text-xs">
                 Done
               </Button>
               <Button
@@ -1586,6 +1636,17 @@ export const FlatBillingDashboard: React.FC = () => {
           }}
         />
       )}
+      <AddMiscellaneousChargeModal
+        open={isAddChargeOpen}
+        onOpenChange={(open) => {
+          setIsAddChargeOpen(open)
+          if (!open) setEditingBillingEvent(null)
+        }}
+        unit={unit}
+        folio={folio}
+        occupants={occupants}
+        billingEvent={editingBillingEvent}
+      />
     </div>
   )
 }

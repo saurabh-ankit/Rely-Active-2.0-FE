@@ -2,9 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   type BatchRunPayload,
+  type CreateBillingEventPayload,
   type GenerateInvoicePayload,
   type InvoicePreviewPayload,
   type TaxSettings,
+  cancelBillingEventAPI,
+  createBillingEventAPI,
+  updateBillingEventAPI,
+  uploadBillingEventAttachmentAPI,
   generateInvoiceAPI,
   getAccountLedgerStatementAPI,
   getAccountPendingEventsAPI,
@@ -205,4 +210,70 @@ export const useUpdateTaxSettings = () => {
   })
 }
 
+// ── 6. BILLING USAGE & MISCELLANEOUS EVENTS ───────────────────────────────
+export const useCreateBillingEvent = (unitId?: string) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: CreateBillingEventPayload) => createBillingEventAPI(payload),
+    onSuccess: () => {
+      toast.success('Miscellaneous charge added successfully!')
+      if (unitId) {
+        queryClient.invalidateQueries({ queryKey: ['billing-unit-360', unitId] })
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['billing-unit-360'] })
+      }
+      queryClient.invalidateQueries({ queryKey: ['billing-units-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['billing-accounts'] })
+      queryClient.invalidateQueries({ queryKey: ['billing-account-pending-events'] })
+    },
+    onError: (error: ApiError) => {
+      toast.error(error?.response?.data?.message || error?.message || 'Failed to add miscellaneous charge')
+    },
+  })
+}
 
+export const useCancelBillingEvent = (unitId?: string) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => cancelBillingEventAPI(id, reason),
+    onSuccess: () => {
+      toast.success('Billing event cancelled successfully')
+      if (unitId) {
+        queryClient.invalidateQueries({ queryKey: ['billing-unit-360', unitId] })
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['billing-unit-360'] })
+      }
+      queryClient.invalidateQueries({ queryKey: ['billing-units-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['billing-accounts'] })
+      queryClient.invalidateQueries({ queryKey: ['billing-account-pending-events'] })
+    },
+    onError: (error: ApiError) => {
+      toast.error(error?.response?.data?.message || error?.message || 'Failed to cancel billing event')
+    },
+  })
+}
+
+export const useUpdateBillingEvent = (unitId?: string) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: Partial<CreateBillingEventPayload> }) =>
+      updateBillingEventAPI(id, payload),
+    onSuccess: () => {
+      toast.success('Miscellaneous charge updated')
+      queryClient.invalidateQueries({ queryKey: unitId ? ['billing-unit-360', unitId] : ['billing-unit-360'] })
+    },
+    onError: (error: ApiError) => toast.error(error?.response?.data?.message || 'Failed to update charge'),
+  })
+}
+
+export const useUploadBillingEventAttachment = (unitId?: string) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) => uploadBillingEventAttachmentAPI(id, file),
+    onSuccess: () => {
+      toast.success('Bill uploaded successfully')
+      queryClient.invalidateQueries({ queryKey: unitId ? ['billing-unit-360', unitId] : ['billing-unit-360'] })
+    },
+    onError: (error: ApiError) => toast.error(error?.response?.data?.message || 'Failed to upload bill'),
+  })
+}

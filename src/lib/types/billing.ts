@@ -9,49 +9,21 @@ export type SubscriptionStatus = 'ACTIVE' | 'PAUSED' | 'CANCELLED' | 'COMPLETED'
 export type ProrationPolicy = 'DAILY' | 'FULL_MONTH' | 'NO_PRORATION'
 
 export type BillingEventSourceModule =
-  | 'FNB'
-  | 'CARE'
-  | 'TRANSPORT'
-  | 'ACTIVITY'
-  | 'INVENTORY'
-  | 'HOUSEKEEPING'
-  | 'MANUAL'
-  | 'SYSTEM'
+  'FNB' | 'CARE' | 'TRANSPORT' | 'ACTIVITY' | 'INVENTORY' | 'HOUSEKEEPING' | 'MANUAL' | 'SYSTEM'
 export type BillingEventStatus = 'PENDING' | 'INVOICED' | 'CANCELLED'
 
 export type InvoiceType = 'INVOICE' | 'CREDIT_NOTE' | 'DEBIT_NOTE'
 export type InvoiceStatus =
-  | 'DRAFT'
-  | 'PREVIEW'
-  | 'FINALIZED'
-  | 'SENT'
-  | 'PARTIALLY_PAID'
-  | 'PAID'
-  | 'CANCELLED'
-  | 'OVERDUE'
+  'DRAFT' | 'PREVIEW' | 'FINALIZED' | 'SENT' | 'PARTIALLY_PAID' | 'PAID' | 'CANCELLED' | 'OVERDUE'
 export type InvoiceLineType = 'SUBSCRIPTION' | 'USAGE' | 'DISCOUNT' | 'TAX' | 'ADJUSTMENT'
 
-export type PaymentMethod =
-  | 'CASH'
-  | 'BANK_TRANSFER'
-  | 'CHEQUE'
-  | 'UPI'
-  | 'NEFT'
-  | 'RTGS'
-  | 'CARD'
-  | 'OTHER'
+export type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'CHEQUE' | 'UPI' | 'NEFT' | 'RTGS' | 'CARD' | 'OTHER'
 export type PaymentStatus = 'PENDING' | 'CONFIRMED' | 'FAILED' | 'REVERSED'
 
 export type BillingRunType = 'SCHEDULED' | 'MANUAL' | 'PREVIEW'
 export type BillingRunStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED'
 
-export type LedgerEntryType =
-  | 'INVOICE'
-  | 'PAYMENT'
-  | 'CREDIT_NOTE'
-  | 'DEBIT_NOTE'
-  | 'CREDIT_APPLIED'
-  | 'REFUND'
+export type LedgerEntryType = 'INVOICE' | 'PAYMENT' | 'CREDIT_NOTE' | 'DEBIT_NOTE' | 'CREDIT_APPLIED' | 'REFUND'
 
 export interface BillingParty {
   id: string
@@ -143,6 +115,7 @@ export interface BillingEvent {
   occurredAt: string
   status: BillingEventStatus
   invoiceId?: string | null
+  attachments?: Array<{ name: string; url: string; contentType?: string; size?: number }> | null
   resident?: {
     id: string
     firstName: string
@@ -337,4 +310,3 @@ export interface UnitBilling360 {
     entries: BillingLedgerEntry[]
   }
 }
-
