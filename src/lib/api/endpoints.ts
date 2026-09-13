@@ -373,3 +373,13 @@ export const API_ENDPOINTS = {
   },
 }
 
+export const INVENTORY_ENDPOINTS = {
+  list: (kind: 'categories' | 'vendors' | 'items') => `/inventory/${kind}`,
+  detail: (kind: 'categories' | 'vendors' | 'items', id: string) => `/inventory/${kind}/${id}`,
+  locations: (kind: 'categories' | 'vendors' | 'items', id: string) => `/inventory/${kind}/${id}/locations`,
+  itemVendors: (id: string) => `/inventory/items/${id}/vendors`,
+  fields: (categoryId: string) => `/inventory/categories/${categoryId}/fields`,
+  field: (categoryId: string, id: string) => `/inventory/categories/${categoryId}/fields/${id}`,
+  packageOptions: '/inventory/package-options',
+  categoryImage: '/inventory/category-image',
+}

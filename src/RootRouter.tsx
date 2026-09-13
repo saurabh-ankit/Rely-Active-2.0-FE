@@ -1,3 +1,4 @@
+import { lazy } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Layout from '@/layouts/Layout'
 import CompanyPage from '@/pages/Company'
@@ -23,6 +24,8 @@ import ShiftRosterPage from '@/pages/ShiftRoster'
 import BillingManagementPage from '@/pages/BillingManagement'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
+const InventoryPage = lazy(() => import('@/pages/Inventory'))
+const InventorySettings = lazy(() => import('@/pages/GlobalSettings/Inventory'))
 
 export default function RootRouter() {
   return (
@@ -46,6 +49,14 @@ export default function RootRouter() {
         <Route path="property" element={<PropertyPage />} />
         <Route path="property/create" element={<CreatePropertyPage />} />
         <Route path="property/edit/:id" element={<CreatePropertyPage />} />
+        <Route
+          path="global-settings/inventory/*"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <InventorySettings />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="global-settings"
           element={
@@ -320,7 +331,7 @@ export default function RootRouter() {
           path="admin/inventory/*"
           element={
             <ProtectedRoute resourceKey="INVENTORY" action="view">
-              <SectionPage title="Inventory Management" />
+              <InventoryPage />
             </ProtectedRoute>
           }
         />

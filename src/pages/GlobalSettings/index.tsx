@@ -20,6 +20,13 @@ interface SettingItem {
 
 const systemSettings: SettingItem[] = [
   {
+    id: 'inventory',
+    name: 'Inventory',
+    description: 'Manage inventory categories, vendors, items, and property assignments.',
+    link: '/global-settings/inventory',
+    icon: Briefcase,
+  },
+  {
     id: 'company',
     name: 'Company Profile',
     description: 'Manage core company profile, tax GST info, bank & accountant signatures',
