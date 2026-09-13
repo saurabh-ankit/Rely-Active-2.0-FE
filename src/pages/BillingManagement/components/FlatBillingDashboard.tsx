@@ -701,7 +701,7 @@ export const FlatBillingDashboard: React.FC = () => {
                             ₹{Number(ev.amount || ev.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </span>
                           <span className="text-[10px] text-gray-400 block">
-                            Qty: {ev.quantity} × ₹{Number(ev.unitPrice || 0).toLocaleString('en-IN')}
+                            Qty: {ev.quantity} × ₹{Number(ev.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </span>
                         </div>
                       </div>
