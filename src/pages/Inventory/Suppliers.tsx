@@ -47,7 +47,7 @@ export function SupplierList({
     <div className="flex flex-col gap-5">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          ['Total Suppliers', query.data?.summary.totalSuppliers],
+          ['Total Vendors', query.data?.summary.totalSuppliers],
           ['Active', query.data?.summary.activeSuppliers],
           ['Inactive', query.data?.summary.inactiveSuppliers],
           ['Total Orders', query.data?.summary.totalPurchaseOrders],
@@ -72,10 +72,10 @@ export function SupplierList({
           setSearch(value)
           setPagination((p) => ({ ...p, pageIndex: 0 }))
         }}
-        searchPlaceholder="Search suppliers…"
+        searchPlaceholder="Search vendors…"
         filterActions={
           <NativeSelect
-            aria-label="Supplier status"
+            aria-label="Vendor status"
             value={status}
             onChange={(e) => {
               setStatus(e.target.value)
@@ -90,7 +90,7 @@ export function SupplierList({
         columns={[
           {
             accessorKey: 'name',
-            header: 'Supplier Name',
+            header: 'Vendor Name',
             cell: ({ row }) => (
               <Button variant="link" onClick={() => setSelected({ supplier: row.original, mode: 'view' })}>
                 {row.original.name}
@@ -204,11 +204,11 @@ function SupplierDialog({
             </div>
             <div>
               <DialogTitle className="text-lg font-bold text-gray-900">
-                {mode === 'view' ? 'Supplier Details' : mode === 'edit' ? 'Edit Supplier' : 'Delete Supplier'}
+                {mode === 'view' ? 'Vendor Details' : mode === 'edit' ? 'Edit Vendor' : 'Delete Vendor'}
               </DialogTitle>
               <DialogDescription className="text-xs text-gray-500 mt-0.5">
                 {mode === 'delete'
-                  ? `Delete ${supplier.name}? The supplier will be deactivated. Existing transaction history is retained.`
+                  ? `Delete ${supplier.name}? The vendor will be deactivated. Existing transaction history is retained.`
                   : supplier.name}
               </DialogDescription>
             </div>
@@ -238,7 +238,7 @@ function SupplierDialog({
               </Button>
               {canUpdate && (
                 <Button className="bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer" onClick={onEdit}>
-                  Edit Supplier
+                  Edit Vendor
                 </Button>
               )}
             </DialogFooter>
@@ -254,7 +254,7 @@ function SupplierDialog({
                   method: mode === 'delete' ? 'delete' : 'put',
                   ...(mode === 'edit' ? { data: form } : {}),
                 })
-                toast.success(mode === 'delete' ? 'Supplier removed' : 'Supplier updated')
+                toast.success(mode === 'delete' ? 'Vendor removed' : 'Vendor updated')
                 onClose()
               } catch {
                 /* inline error */
@@ -267,7 +267,7 @@ function SupplierDialog({
                   <FormField
                     key={key}
                     id={`supplier-${key}`}
-                    label={`${['Supplier Name', 'Contact Person', 'Email', 'Phone'][index]}${key === 'email' ? '' : ' *'}`}
+                    label={`${['Vendor Name', 'Contact Person', 'Email', 'Phone'][index]}${key === 'email' ? '' : ' *'}`}
                   >
                     <Input
                       id={`supplier-${key}`}
@@ -314,7 +314,7 @@ function SupplierDialog({
                 }
                 disabled={mutation.isPending}
               >
-                {mutation.isPending ? 'Saving…' : mode === 'delete' ? 'Delete Supplier' : 'Save Changes'}
+                {mutation.isPending ? 'Saving…' : mode === 'delete' ? 'Delete Vendor' : 'Save Changes'}
               </Button>
             </DialogFooter>
           </form>

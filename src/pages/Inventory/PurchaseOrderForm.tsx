@@ -68,7 +68,7 @@ export function PurchaseOrderForm({
             </div>
             <div>
               <DialogTitle className="text-lg font-bold text-gray-900">{record ? 'Edit Purchase Order' : 'Create Purchase Order'}</DialogTitle>
-              <DialogDescription className="text-xs text-gray-500 mt-0.5">Select a supplier and the items to order.</DialogDescription>
+              <DialogDescription className="text-xs text-gray-500 mt-0.5">Select a vendor and the items to order.</DialogDescription>
             </div>
           </div>
         </DialogHeader>
@@ -86,7 +86,7 @@ export function PurchaseOrderForm({
                 notes: notes || null,
                 items: lines.map((l) => {
                   const item = eligible.find((i) => i.id === l.itemId)
-                  if (!item) throw new Error('Select an item supplied by this supplier')
+                  if (!item) throw new Error('Select an item supplied by this vendor')
                   const agreedPrice = l.price
                   if (!Number.isInteger(l.packages)) throw new Error('Purchase orders must contain whole packages')
                   return {
@@ -109,7 +109,7 @@ export function PurchaseOrderForm({
           }}
         >
           <FieldGroup>
-            <FormField id="po-supplier" label="Supplier *">
+            <FormField id="po-supplier" label="Vendor *">
               <NativeSelect
                 id="po-supplier"
                 value={supplierId}
@@ -119,7 +119,7 @@ export function PurchaseOrderForm({
                   setLines([{ key: crypto.randomUUID(), itemId: '', packages: 1, price: 0 }])
                 }}
               >
-                <NativeSelectOption value="">Select supplier</NativeSelectOption>
+                <NativeSelectOption value="">Select vendor</NativeSelectOption>
                 {suppliers.data
                   ?.filter((s) => s.isActive)
                   .map((s) => (

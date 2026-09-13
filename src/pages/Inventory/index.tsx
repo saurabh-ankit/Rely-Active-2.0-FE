@@ -63,7 +63,7 @@ export default function InventoryPage() {
           <p className="text-sm md:text-base text-gray-600 mt-1">
             {selectedLocationName
               ? `Track and manage inventory at ${selectedLocationName}`
-              : 'Track and manage items, stock levels, suppliers, and purchase orders'}
+              : 'Track and manage items, stock levels, vendors, and purchase orders'}
           </p>
         </div>
         {stats && (
@@ -113,7 +113,8 @@ function PropertyInventory({ locationId }: { locationId: string }) {
   const [params, setParams] = useSearchParams()
 
   const sameProperty = !params.get('locationId') || params.get('locationId') === locationId
-  const activeTab = sameProperty ? (params.get('tab') ?? 'items') : 'items'
+  const rawTab = sameProperty ? (params.get('tab') ?? 'items') : 'items'
+  const activeTab = rawTab === 'suppliers' ? 'vendors' : rawTab
   const categoryId = sameProperty ? (params.get('categoryId') ?? params.get('id') ?? '') : ''
   const poId = sameProperty ? (params.get('poId') ?? '') : ''
   const transactionId = sameProperty ? (params.get('transactionId') ?? '') : ''
@@ -276,9 +277,9 @@ function PropertyInventory({ locationId }: { locationId: string }) {
             ),
           },
           {
-            value: 'suppliers',
-            label: 'Suppliers',
-            shortLabel: 'Suppliers',
+            value: 'vendors',
+            label: 'Vendors',
+            shortLabel: 'Vendors',
             icon: Users,
             content: (
               <Card>
@@ -509,12 +510,12 @@ function SupplierFilter({
   const suppliers = useCenterOptions(locationId, 'suppliers')
   return (
     <NativeSelect
-      aria-label="Filter by supplier"
+      aria-label="Filter by vendor"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="w-auto h-9 text-xs"
     >
-      <NativeSelectOption value="">All Suppliers</NativeSelectOption>
+      <NativeSelectOption value="">All Vendors</NativeSelectOption>
       {suppliers.data?.map((s) => (
         <NativeSelectOption key={s.id} value={s.id}>
           {s.name}
@@ -564,8 +565,8 @@ function ItemList({
     },
     {
       id: 'suppliers',
-      header: 'Suppliers',
-      cell: ({ row }) => row.original.suppliers.map((s) => s.name).join(', ') || 'No suppliers assigned',
+      header: 'Vendors',
+      cell: ({ row }) => row.original.suppliers.map((s) => s.name).join(', ') || 'No vendors assigned',
     },
     {
       id: 'stock',
@@ -697,7 +698,7 @@ function POList({
     },
     {
       id: 'supplier',
-      header: 'Supplier / Recipient',
+      header: 'Vendor',
       cell: ({ row }) =>
         row.original.transactionType === 'issue'
           ? (row.original.recipientName ?? '—')
@@ -815,7 +816,7 @@ function TransactionList({
     },
     {
       id: 'supplier',
-      header: 'Supplier / Recipient',
+      header: 'Vendor / Recipient',
       cell: ({ row }) =>
         row.original.transactionType === 'issue'
           ? (row.original.recipientName ?? '—')

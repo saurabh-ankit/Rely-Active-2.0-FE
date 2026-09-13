@@ -84,7 +84,7 @@ export function StockInForm({
               <DialogDescription className="text-xs text-gray-500 mt-0.5">
                 {po
                   ? 'Enter received quantities. Leave unreceived items at zero.'
-                  : 'Record stock received from a supplier.'}
+                  : 'Record stock received from a vendor.'}
               </DialogDescription>
             </div>
           </div>
@@ -105,7 +105,7 @@ export function StockInForm({
                 notes: notes || null,
                 stockEntries: received.map((l) => {
                   const item = eligible.find((i) => i.id === l.itemId)
-                  if (!item) throw new Error('Select an item supplied by this supplier')
+                  if (!item) throw new Error('Select an item supplied by this vendor')
                   return {
                     itemId: l.itemId,
                     quantity: baseQuantity(l.packages, item.packQuantity),
@@ -132,7 +132,7 @@ export function StockInForm({
         >
           <FieldGroup>
             <div className="grid gap-4 sm:grid-cols-2">
-              <FormField id="receipt-supplier" label="Supplier *">
+              <FormField id="receipt-supplier" label="Vendor *">
                 <NativeSelect
                   id="receipt-supplier"
                   value={supplierId}
@@ -143,7 +143,7 @@ export function StockInForm({
                     setLines([newLine()])
                   }}
                 >
-                  <NativeSelectOption value="">Select supplier</NativeSelectOption>
+                  <NativeSelectOption value="">Select vendor</NativeSelectOption>
                   {suppliers.data
                     ?.filter((s) => s.isActive || s.id === po?.supplierId)
                     .map((s) => (

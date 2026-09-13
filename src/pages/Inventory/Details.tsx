@@ -99,7 +99,7 @@ export function PODetail({
       <Section title="Purchase Order Information">
         <dl className="grid gap-4 sm:grid-cols-3">
           {[
-            ['Supplier', po.supplier?.name ?? '—'],
+            ['Vendor', po.supplier?.name ?? '—'],
             ['Order Date', new Date(po.createdAt).toLocaleDateString()],
             ['Total Amount', money(po.totalAmount)],
             ['Notes', po.notes || '—'],
@@ -260,7 +260,7 @@ export function TransactionDetail({
             ['Type', record.transactionType === 'issue' ? 'Stock Out' : 'Stock In'],
             ['Date', record.date],
             [
-              record.transactionType === 'issue' ? 'Recipient' : 'Supplier',
+              record.transactionType === 'issue' ? 'Recipient' : 'Vendor',
               record.transactionType === 'issue' ? (record.recipientName ?? '—') : (record.supplier?.name ?? '—'),
             ],
             ...(record.transactionType === 'issue'
@@ -361,7 +361,7 @@ export function ItemDetail({
                 Edit Item
               </Button>
               <Button variant="outline" onClick={() => setModal('suppliers')}>
-                Manage Suppliers
+                Manage Vendors
               </Button>
               <Button variant="outline" onClick={() => setModal('thresholds')}>
                 Manage Thresholds
@@ -392,12 +392,12 @@ export function ItemDetail({
           ))}
         </dl>
       </Section>
-      <Section title="Assigned Suppliers">
+      <Section title="Assigned Vendors">
         <DataTable
           data={item.suppliers}
           getRowId={(r) => r.id}
           columns={[
-            { accessorKey: 'name', header: 'Supplier' },
+            { accessorKey: 'name', header: 'Vendor' },
             { accessorKey: 'contactPerson', header: 'Contact Person' },
             { accessorKey: 'phone', header: 'Phone' },
             { accessorKey: 'email', header: 'Email' },
@@ -463,7 +463,7 @@ function ItemSettings({
             </div>
             <div>
               <DialogTitle className="text-lg font-bold text-gray-900">
-                Manage {mode === 'suppliers' ? 'Suppliers' : 'Thresholds'} — {item.name}
+                Manage {mode === 'suppliers' ? 'Vendors' : 'Thresholds'} — {item.name}
               </DialogTitle>
               <DialogDescription className="text-xs text-gray-500 mt-0.5">Changes apply to the selected property.</DialogDescription>
             </div>
