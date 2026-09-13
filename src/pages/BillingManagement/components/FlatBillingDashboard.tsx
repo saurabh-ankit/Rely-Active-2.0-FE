@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   BookOpen,
   Calendar,
+  CalendarCheck,
   CheckCircle2,
   ChevronDown,
   CreditCard,
@@ -133,6 +134,23 @@ export const FlatBillingDashboard: React.FC = () => {
   const cgstRate = gstEnabled ? Number(taxSettings?.cgstRate ?? 9) : 0
   const sgstRate = gstEnabled ? Number(taxSettings?.sgstRate ?? 9) : 0
 
+  // Track the latest periodEnd that has already been invoiced for this flat
+  const lastInvoicedPeriodEnd = useMemo(() => {
+    const validInvoices = invoices.filter((inv) => inv.status !== 'CANCELLED' && inv.periodEnd)
+    if (validInvoices.length === 0) return null
+    return validInvoices.reduce(
+      (latest, inv) => (inv.periodEnd > latest ? inv.periodEnd : latest),
+      validInvoices[0].periodEnd,
+    )
+  }, [invoices])
+
+  const nextUnbilledStartDate = useMemo(() => {
+    if (!lastInvoicedPeriodEnd) return defaultPeriodStart
+    const d = new Date(lastInvoicedPeriodEnd)
+    d.setDate(d.getDate() + 1)
+    return d.toISOString().split('T')[0]
+  }, [lastInvoicedPeriodEnd, defaultPeriodStart])
+
   const handleMonthChange = (monthVal: string) => {
     setBillingMonth(monthVal)
     if (!monthVal) return
@@ -150,6 +168,10 @@ export const FlatBillingDashboard: React.FC = () => {
     setBillingMode(mode)
     if (mode === 'MONTHLY') {
       handleMonthChange(billingMonth)
+    } else if (mode === 'FINAL_DISCHARGE') {
+      if (nextUnbilledStartDate) {
+        setStartDate(nextUnbilledStartDate)
+      }
     }
   }
 
@@ -640,15 +662,33 @@ export const FlatBillingDashboard: React.FC = () => {
                 )}
 
                 {billingMode === 'FINAL_DISCHARGE' && (
-                  <div className="p-3 bg-rose-50/80 border border-rose-200/80 rounded-xl text-xs text-rose-900 flex items-start gap-2.5">
-                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-bold">Final Move-Out / Settlement Mode</span>
-                      <p className="text-rose-800 text-[11px] mt-0.5">
-                        Generates final pro-rata settlement invoice up to the move-out departure date, including all
-                        unbilled consumption charges.
-                      </p>
+                  <div className="p-3 bg-rose-50/80 border border-rose-200/80 rounded-xl text-xs text-rose-900 space-y-2">
+                    <div className="flex items-start gap-2.5">
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold">Final Move-Out / Settlement Mode</span>
+                        <p className="text-rose-800 text-[11px] mt-0.5">
+                          Generates final pro-rata settlement invoice up to the move-out departure date, including all
+                          unbilled consumption charges.
+                        </p>
+                      </div>
                     </div>
+
+                    {lastInvoicedPeriodEnd ? (
+                      <div className="flex items-center gap-1.5 text-[11px] text-rose-950 bg-white/80 px-2.5 py-1.5 rounded-lg border border-rose-200/70">
+                        <CalendarCheck className="w-3.5 h-3.5 text-rose-700 shrink-0" />
+                        <span>
+                          Previously invoiced up to: <strong>{formatDateDDMMYYYY(lastInvoicedPeriodEnd)}</strong>.
+                          Unbilled departure stay begins on{' '}
+                          <strong>{formatDateDDMMYYYY(nextUnbilledStartDate)}</strong>.
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-[11px] text-rose-800 bg-white/80 px-2.5 py-1.5 rounded-lg border border-rose-200/70">
+                        <CalendarCheck className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                        <span>No previous invoices issued for this flat yet. Billing from start of tenancy.</span>
+                      </div>
+                    )}
                   </div>
                 )}
 
