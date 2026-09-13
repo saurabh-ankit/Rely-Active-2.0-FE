@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { ArrowDownLeft, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -72,14 +73,21 @@ export function StockInForm({
         if (!open && !mutation.isPending) onClose()
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-5xl">
-        <DialogHeader>
-          <DialogTitle>{po ? `Stock In — ${po.poNumber}` : 'Stock In'}</DialogTitle>
-          <DialogDescription>
-            {po
-              ? 'Enter received quantities. Leave unreceived items at zero.'
-              : 'Record stock received from a supplier.'}
-          </DialogDescription>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-5xl rounded-3xl p-6 shadow-2xl border border-gray-100">
+        <DialogHeader className="pb-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-cyan-50 text-cyan-700 border border-cyan-100">
+              <ArrowDownLeft className="w-5 h-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-lg font-bold text-gray-900">{po ? `Stock In — ${po.poNumber}` : 'Stock In'}</DialogTitle>
+              <DialogDescription className="text-xs text-gray-500 mt-0.5">
+                {po
+                  ? 'Enter received quantities. Leave unreceived items at zero.'
+                  : 'Record stock received from a supplier.'}
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
         <form
           className="flex flex-col gap-5"
@@ -153,8 +161,32 @@ export function StockInForm({
               const item = eligible.find((i) => i.id === line.itemId)
               const orderLine = po?.items.find((l) => l.itemId === line.itemId)
               return (
-                <FieldGroup className="rounded-lg border p-4" key={line.key}>
-                  <div className="grid gap-4 sm:grid-cols-3">
+                <div className="rounded-2xl border border-gray-200 bg-gray-50/50 p-4 space-y-3" key={line.key}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      Item Entry #{index + 1}
+                    </span>
+                    {lines.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg cursor-pointer h-7 px-2"
+                        onClick={() => setLines((current) => current.filter((_, i) => i !== index))}
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-1" />
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                  {orderLine && (
+                    <div className="rounded-xl bg-blue-50/70 border border-blue-100 px-3 py-1.5 text-xs text-blue-700 font-medium">
+                      Ordered: <span className="font-bold">{orderLine.orderedDisplay}</span> · Received:{' '}
+                      <span className="font-bold">{orderLine.receivedDisplay}</span> · Remaining:{' '}
+                      <span className="font-bold">{quantityDisplay(orderLine.remainingQuantity, orderLine)}</span>
+                    </div>
+                  )}
+                  <div className="grid gap-3 sm:grid-cols-3">
                     <FormField id={`receipt-item-${index}`} label="Item *">
                       <NativeSelect
                         id={`receipt-item-${index}`}
@@ -201,13 +233,7 @@ export function StockInForm({
                       />
                     </FormField>
                   </div>
-                  {orderLine && (
-                    <p className="text-sm text-muted-foreground">
-                      Ordered: {orderLine.orderedDisplay} · Received: {orderLine.receivedDisplay} · Remaining:{' '}
-                      {quantityDisplay(orderLine.remainingQuantity, orderLine)}
-                    </p>
-                  )}
-                  <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="grid gap-3 sm:grid-cols-3">
                     <FormField
                       id={`receipt-transit-${index}`}
                       label={`Transit ID${po && line.packages > 0 ? ' *' : ''}`}
@@ -267,23 +293,17 @@ export function StockInForm({
                       />
                     </FormField>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={lines.length === 1}
-                    onClick={() => setLines((current) => current.filter((_, i) => i !== index))}
-                  >
-                    Remove item
-                  </Button>
-                </FieldGroup>
+                </div>
               )
             })}
             <Button
               type="button"
               variant="outline"
+              className="rounded-xl border-dashed border-[#005390]/40 text-[#005390] hover:bg-[#005390]/5 font-semibold transition cursor-pointer flex items-center justify-center gap-2 py-2.5"
               disabled={!supplierId || lines.length >= 100}
               onClick={() => setLines((current) => [...current, newLine()])}
             >
+              <Plus className="w-4 h-4" />
               Add Item / Batch
             </Button>
             <FormField id="receipt-notes" label="Notes">
@@ -291,11 +311,21 @@ export function StockInForm({
             </FormField>
           </FieldGroup>
           {(error || items.error || suppliers.error) && <ErrorNotice error={error || items.error || suppliers.error} />}
-          <DialogFooter>
-            <Button type="button" variant="outline" disabled={mutation.isPending} onClick={onClose}>
+          <DialogFooter className="border-t border-gray-100 pt-4 flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl border-gray-200 cursor-pointer"
+              disabled={mutation.isPending}
+              onClick={onClose}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={mutation.isPending || items.isPending || suppliers.isPending}>
+            <Button
+              type="submit"
+              className="bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer"
+              disabled={mutation.isPending || items.isPending || suppliers.isPending}
+            >
               {mutation.isPending ? 'Receiving…' : 'Stock In'}
             </Button>
           </DialogFooter>

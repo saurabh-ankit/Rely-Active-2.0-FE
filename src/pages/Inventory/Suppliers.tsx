@@ -3,6 +3,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { toast } from 'sonner'
 import type { PaginationState } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
+import { Truck, AlertTriangle } from 'lucide-react'
 import { DataTable } from '@/components/ui/data-table'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -189,20 +190,33 @@ function SupplierDialog({
         if (!open && !mutation.isPending) onClose()
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            {mode === 'view' ? 'Supplier Details' : mode === 'edit' ? 'Edit Supplier' : 'Delete Supplier'}
-          </DialogTitle>
-          <DialogDescription>
-            {mode === 'delete'
-              ? `Delete ${supplier.name}? The supplier will be deactivated. Existing transaction history is retained.`
-              : supplier.name}
-          </DialogDescription>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl rounded-3xl p-6 shadow-2xl border border-gray-100">
+        <DialogHeader className="pb-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div
+              className={`p-2.5 rounded-2xl border ${
+                mode === 'delete'
+                  ? 'bg-red-50 text-red-600 border-red-100'
+                  : 'bg-blue-50 text-blue-700 border-blue-100'
+              }`}
+            >
+              {mode === 'delete' ? <AlertTriangle className="w-5 h-5" /> : <Truck className="w-5 h-5" />}
+            </div>
+            <div>
+              <DialogTitle className="text-lg font-bold text-gray-900">
+                {mode === 'view' ? 'Supplier Details' : mode === 'edit' ? 'Edit Supplier' : 'Delete Supplier'}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-gray-500 mt-0.5">
+                {mode === 'delete'
+                  ? `Delete ${supplier.name}? The supplier will be deactivated. Existing transaction history is retained.`
+                  : supplier.name}
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
         {mode === 'view' ? (
           <>
-            <dl className="grid gap-4 sm:grid-cols-2">
+            <dl className="grid gap-4 sm:grid-cols-2 rounded-2xl bg-gray-50/70 border border-gray-100 p-4">
               {[
                 ['Name', supplier.name],
                 ['Contact Person', supplier.contactPerson],
@@ -212,17 +226,21 @@ function SupplierDialog({
                 ['Status', supplier.isActive ? 'Active' : 'Inactive'],
                 ['Purchase Orders', supplier.purchaseOrderCount],
               ].map(([label, value]) => (
-                <div key={label}>
-                  <dt className="text-sm text-muted-foreground">{label}</dt>
-                  <dd>{value ?? '—'}</dd>
+                <div key={label} className="space-y-0.5">
+                  <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{label}</dt>
+                  <dd className="text-sm font-medium text-gray-900">{value ?? '—'}</dd>
                 </div>
               ))}
             </dl>
-            <DialogFooter>
-              <Button variant="outline" onClick={onClose}>
+            <DialogFooter className="border-t border-gray-100 pt-4 flex items-center justify-end gap-2">
+              <Button variant="outline" className="rounded-xl border-gray-200 cursor-pointer" onClick={onClose}>
                 Close
               </Button>
-              {canUpdate && <Button onClick={onEdit}>Edit</Button>}
+              {canUpdate && (
+                <Button className="bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer" onClick={onEdit}>
+                  Edit Supplier
+                </Button>
+              )}
             </DialogFooter>
           </>
         ) : (
@@ -282,13 +300,18 @@ function SupplierDialog({
               </FieldGroup>
             )}
             {mutation.error && <ErrorNotice error={mutation.error} />}
-            <DialogFooter>
-              <Button type="button" variant="outline" disabled={mutation.isPending} onClick={onClose}>
+            <DialogFooter className="border-t border-gray-100 pt-4 flex items-center justify-end gap-2">
+              <Button type="button" variant="outline" className="rounded-xl border-gray-200 cursor-pointer" disabled={mutation.isPending} onClick={onClose}>
                 Cancel
               </Button>
               <Button
                 type="submit"
                 variant={mode === 'delete' ? 'destructive' : 'default'}
+                className={
+                  mode === 'delete'
+                    ? 'bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md cursor-pointer'
+                    : 'bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer'
+                }
                 disabled={mutation.isPending}
               >
                 {mutation.isPending ? 'Saving…' : mode === 'delete' ? 'Delete Supplier' : 'Save Changes'}

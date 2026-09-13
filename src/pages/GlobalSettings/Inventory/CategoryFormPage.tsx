@@ -281,16 +281,24 @@ export function CategoryEditor({ record }: { record?: InventoryCategory }) {
       </FormProvider>
       {remove !== undefined && (
         <InventoryDialog title="Remove custom field?" onClose={() => setRemove(undefined)}>
-          <p>This change takes effect when you save the category. Fields containing item values cannot be removed.</p>
-          <Button
-            variant="destructive"
-            onClick={() => {
-              fields.remove(remove)
-              setRemove(undefined)
-            }}
-          >
-            Remove field
-          </Button>
+          <p className="text-sm text-gray-600">
+            This change takes effect when you save the category. Fields containing item values cannot be removed.
+          </p>
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+            <Button variant="outline" className="rounded-xl border-gray-200 cursor-pointer" onClick={() => setRemove(undefined)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              className="bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md cursor-pointer"
+              onClick={() => {
+                fields.remove(remove)
+                setRemove(undefined)
+              }}
+            >
+              Remove field
+            </Button>
+          </div>
         </InventoryDialog>
       )}
     </InventoryPage>
