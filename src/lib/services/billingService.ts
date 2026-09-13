@@ -51,6 +51,7 @@ export interface GenerateInvoicePayload {
   periodEnd: string
   issueDate?: string
   dueDate?: string
+  includePendingEvents?: boolean
 }
 
 export interface BatchRunPayload {

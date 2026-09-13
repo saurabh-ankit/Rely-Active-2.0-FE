@@ -146,6 +146,7 @@ export const FlatBillingDashboard: React.FC = () => {
         periodStart: startDate,
         periodEnd: endDate,
         dueDate,
+        includePendingEvents,
       })
 
       const invoiceData = res?.data
