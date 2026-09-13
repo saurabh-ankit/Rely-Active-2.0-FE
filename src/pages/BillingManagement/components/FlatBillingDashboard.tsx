@@ -11,6 +11,7 @@ import {
   Eye,
   FileCheck,
   FileText,
+  HeartPulse,
   Home,
   Layers,
   Mail,
@@ -653,8 +654,22 @@ export const FlatBillingDashboard: React.FC = () => {
                     {pendingEvents.map((ev) => (
                       <div key={ev.id} className="py-2.5 flex items-center justify-between text-xs">
                         <div className="flex items-center gap-3">
-                          <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600">
-                            {ev.sourceModule === 'FNB' ? (
+                          <div
+                            className={`p-1.5 rounded-lg ${
+                              ev.sourceModule === 'INVENTORY'
+                                ? 'bg-indigo-50 text-indigo-600'
+                                : ev.sourceModule === 'CARE'
+                                  ? 'bg-rose-50 text-rose-600'
+                                  : ev.sourceModule === 'FNB'
+                                    ? 'bg-amber-50 text-amber-600'
+                                    : 'bg-blue-50 text-blue-600'
+                            }`}
+                          >
+                            {ev.sourceModule === 'INVENTORY' ? (
+                              <Package className="w-3.5 h-3.5" />
+                            ) : ev.sourceModule === 'CARE' ? (
+                              <HeartPulse className="w-3.5 h-3.5" />
+                            ) : ev.sourceModule === 'FNB' ? (
                               <Utensils className="w-3.5 h-3.5" />
                             ) : (
                               <Zap className="w-3.5 h-3.5" />
@@ -662,8 +677,22 @@ export const FlatBillingDashboard: React.FC = () => {
                           </div>
                           <div>
                             <div className="font-semibold text-gray-900">{ev.description}</div>
-                            <div className="text-[10px] text-gray-400">
-                              {ev.serviceDate} • {ev.sourceModule}
+                            <div className="text-[10px] text-gray-400 flex items-center gap-1.5">
+                              <span>{ev.serviceDate}</span>
+                              <span>•</span>
+                              <span
+                                className={`font-semibold uppercase ${
+                                  ev.sourceModule === 'INVENTORY'
+                                    ? 'text-indigo-600'
+                                    : ev.sourceModule === 'CARE'
+                                      ? 'text-rose-600'
+                                      : ev.sourceModule === 'FNB'
+                                        ? 'text-amber-600'
+                                        : 'text-gray-500'
+                                }`}
+                              >
+                                {ev.sourceModule}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -908,7 +937,18 @@ export const FlatBillingDashboard: React.FC = () => {
                         {ev.serviceDate}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
-                        <Badge variant="outline" className="text-[10px]">
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] font-semibold ${
+                            ev.sourceModule === 'INVENTORY'
+                              ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                              : ev.sourceModule === 'CARE'
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                : ev.sourceModule === 'FNB'
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                  : 'bg-slate-50 text-slate-700 border-slate-200'
+                          }`}
+                        >
                           {ev.sourceModule}
                         </Badge>
                       </td>

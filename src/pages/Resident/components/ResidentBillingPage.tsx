@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Calendar, CheckCircle2, Clock, Plus, Printer, Receipt, Sparkles, Trash2, User } from 'lucide-react'
+import { ArrowLeft, Calendar, CheckCircle2, Clock, Package, Plus, Printer, Receipt, Sparkles, Trash2, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -139,6 +139,7 @@ export const ResidentBillingPage: React.FC = () => {
     currentMonthCharges,
     refundCharges,
     addonTasks,
+    inventoryCharges,
     grossTotal,
     refundTotal,
     subtotal,
@@ -150,6 +151,7 @@ export const ResidentBillingPage: React.FC = () => {
         currentMonthCharges: [],
         refundCharges: [],
         addonTasks: [],
+        inventoryCharges: [],
         grossTotal: 0,
         refundTotal: 0,
         subtotal: 0,
@@ -177,6 +179,13 @@ export const ResidentBillingPage: React.FC = () => {
         (Number(s.total) || 0) >= 0,
     )
 
+    // Inventory & Consumables Issued (Assigned Items)
+    const invCharges = inv.services.filter(
+      (s) =>
+        (s.category === 'Inventory' || s.type === 'INVENTORY_ISSUE') &&
+        (Number(s.total) || 0) >= 0,
+    )
+
     // Group same tasks by name & unit price to ensure increased quantity
     const addTasksMap = new Map<string, (typeof rawAddTasks)[0]>()
     for (const task of rawAddTasks) {
@@ -197,10 +206,11 @@ export const ResidentBillingPage: React.FC = () => {
     // Sum everything
     const advanceSum = currCharges.reduce((sum, item) => sum + (Number(item.total) || 0), 0)
     const addonSum = addTasks.reduce((sum, item) => sum + (Number(item.total) || 0), 0)
+    const inventorySum = invCharges.reduce((sum, item) => sum + (Number(item.total) || 0), 0)
     const miscSum = miscServices.reduce((sum, item) => sum + (Number(item.total) || 0), 0)
     const refundSum = refCharges.reduce((sum, item) => sum + Math.abs(Number(item.total) || 0), 0)
 
-    const grossChargesTotal = advanceSum + addonSum + miscSum
+    const grossChargesTotal = advanceSum + addonSum + inventorySum + miscSum
     const rawSubtotal = Math.max(0, grossChargesTotal - refundSum)
 
     let calculatedDiscount = 0
@@ -216,6 +226,7 @@ export const ResidentBillingPage: React.FC = () => {
       currentMonthCharges: currCharges,
       refundCharges: refCharges,
       addonTasks: addTasks,
+      inventoryCharges: invCharges,
       grossTotal: Math.round(grossChargesTotal * 100) / 100,
       refundTotal: Math.round(refundSum * 100) / 100,
       subtotal: Math.round(rawSubtotal * 100) / 100,
@@ -617,7 +628,52 @@ export const ResidentBillingPage: React.FC = () => {
                     ))
                   )}
 
-                  {/* ── Section 3: Miscellaneous Services ── */}
+                  {/* ── Section 4: Inventory & Consumables Issued (Assigned Items) ── */}
+                  {inventoryCharges.length > 0 && (
+                    <>
+                      <tr className="bg-indigo-50/60">
+                        <td
+                          colSpan={5}
+                          className="py-2.5 px-6 text-xs font-black text-indigo-700 uppercase tracking-wider"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Package className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>Inventory & Consumables Issued (Assigned Items)</span>
+                          </div>
+                        </td>
+                      </tr>
+                      {inventoryCharges.map((svc) => (
+                        <tr key={svc.id} className="hover:bg-indigo-50/30 transition-colors">
+                          <td className="py-3.5 px-6 font-bold text-gray-900">
+                            <div className="flex items-center gap-2">
+                              <span>{svc.name}</span>
+                              <span className="text-[10px] font-black text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full uppercase">
+                                Inventory
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-6 text-gray-600 text-xs">
+                            <div className="font-medium text-gray-800">{svc.description}</div>
+                            {(svc.formattedDate || svc.date) && (
+                              <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5">
+                                <Calendar className="w-3 h-3 shrink-0 text-gray-400" />
+                                <span>{svc.formattedDate || svc.date}</span>
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-6 text-right text-gray-900 font-semibold">{svc.quantity}</td>
+                          <td className="py-3.5 px-6 text-right font-semibold text-gray-900">
+                            ₹{Number(svc.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="py-3.5 px-6 text-right font-bold text-gray-900">
+                            ₹{Number(svc.total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
+
+                  {/* ── Section 5: Miscellaneous Services ── */}
                   {miscServices.length > 0 && (
                     <>
                       <tr className="bg-purple-50/60">
