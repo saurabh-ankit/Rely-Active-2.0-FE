@@ -73,7 +73,7 @@ export function StockInForm({
         if (!open && !mutation.isPending) onClose()
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-5xl">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>{po ? `Stock In — ${po.poNumber}` : 'Stock In'}</DialogTitle>
           <DialogDescription>
@@ -83,7 +83,7 @@ export function StockInForm({
           </DialogDescription>
         </DialogHeader>
         <form
-          className="flex flex-col gap-5"
+          className="flex min-w-0 flex-col gap-6"
           onSubmit={async (event) => {
             event.preventDefault()
             setError(null)
@@ -154,7 +154,7 @@ export function StockInForm({
               const item = eligible.find((i) => i.id === line.itemId)
               const orderLine = po?.items.find((l) => l.itemId === line.itemId)
               return (
-                <FieldGroup className="rounded-lg border p-4" key={line.key}>
+                <FieldGroup className="rounded-xl border bg-muted/20 p-4" key={line.key}>
                   <div className="grid gap-4 sm:grid-cols-3">
                     <FormField id={`receipt-item-${index}`} label="Item *">
                       <NativeSelect

@@ -1,11 +1,23 @@
-import { useState } from 'react'
+import { useState, useMemo, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import type { ColumnDef, PaginationState } from '@tanstack/react-table'
-import { FolderOpen, Package, Users, ClipboardList, ArrowLeftRight } from 'lucide-react'
+import type { ColumnDef } from '@tanstack/react-table'
+import {
+  FolderOpen,
+  Package,
+  Users,
+  ClipboardList,
+  ArrowLeftRight,
+  AlertTriangle,
+  Clock,
+  ArrowLeft,
+  Plus,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { InventoryTabs } from '@/components/inventory/InventoryTabs'
+import { ActiveStatus, InventoryStatus } from '@/components/inventory/InventoryStatus'
+import StatCard from '@/pages/AssetManagement/components/StatCard'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -31,19 +43,13 @@ import { AssignItemsForm } from './AssignItemsForm'
 import { StockInForm } from './StockInForm'
 import { SupplierList } from './Suppliers'
 import { PODetail, TransactionDetail, ItemDetail } from './Details'
-const tabs = [
-  { value: 'items', label: 'Items', icon: Package },
-  { value: 'suppliers', label: 'Suppliers', icon: Users },
-  { value: 'purchase-orders', label: 'Purchase Orders', icon: ClipboardList },
-  { value: 'transactions', label: 'Transactions', icon: ArrowLeftRight },
-] as const
 export default function InventoryPage() {
   const { selectedLocationId, selectedLocationName } = useLocation()
   return (
-    <div className="flex flex-col gap-6 pb-8">
+    <div className="min-w-0 space-y-6 pb-8">
       <div>
-        <h1 className="text-2xl font-bold">Inventory</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Inventory</h1>
+        <p className="mt-1 text-sm text-gray-600 md:text-base">
           {selectedLocationName ? `Manage inventory at ${selectedLocationName}` : 'Manage property inventory'}
         </p>
       </div>
@@ -96,7 +102,7 @@ function CategoryList({ locationId, onSelect }: { locationId: string; onSelect: 
             accessorKey: 'name',
             header: 'Name',
             cell: ({ row }) => (
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
                 {row.original.image ? (
                   <img src={row.original.image} alt="" className="size-10 rounded-lg object-cover" />
                 ) : (
@@ -115,7 +121,7 @@ function CategoryList({ locationId, onSelect }: { locationId: string; onSelect: 
           {
             id: 'status',
             header: 'Status',
-            cell: ({ row }) => <Badge variant="secondary">{row.original.isActive ? 'Active' : 'Inactive'}</Badge>,
+            cell: ({ row }) => <ActiveStatus active={row.original.isActive} />,
           },
           {
             id: 'actions',
@@ -147,7 +153,9 @@ function CategoryInventory({
   const category = useCenterData<CenterCategory>(locationId, `categories/${categoryId}`)
   const stats = useCenterData<CenterStats>(locationId, 'stats', { categoryId })
   const [modal, setModal] = useState<'po' | 'stock' | 'assign' | null>(null)
-  const current = tabs.find((t) => t.value === params.get('tab'))?.value ?? 'items'
+  const current = ['items', 'suppliers', 'purchase-orders', 'transactions'].includes(params.get('tab') ?? '')
+    ? params.get('tab')!
+    : 'items'
   const poId = params.get('poId'),
     transactionId = params.get('transactionId'),
     itemId = params.get('itemId')
@@ -158,14 +166,15 @@ function CategoryInventory({
   if (category.isPending) return <Skeleton className="h-64" />
   if (category.isError) return <ErrorNotice error={category.error} retry={() => void category.refetch()} />
   return (
-    <div className="flex flex-col gap-5">
+    <div className="min-w-0 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <Button variant="ghost" onClick={() => navigate({})}>
+            <ArrowLeft data-icon="inline-start" />
             Back to Categories
           </Button>
           <div>
-            <h2 className="text-xl font-semibold">{category.data.name}</h2>
+            <h2 className="break-words text-xl font-semibold text-gray-900">{category.data.name}</h2>
             <p className="text-sm text-muted-foreground">{category.data.description}</p>
           </div>
         </div>
@@ -173,116 +182,150 @@ function CategoryInventory({
       {stats.isError ? (
         <ErrorNotice error={stats.error} retry={() => void stats.refetch()} />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {[
-            ['Total Items', stats.data?.totalItems],
-            ['Low Stock', stats.data?.lowStockItems],
-            ['Expiring Soon', stats.data?.expiringSoon],
-          ].map(([label, value]) => (
-            <Section key={label} title={String(label)}>
-              {value === undefined ? <Skeleton className="h-8" /> : <p className="text-2xl font-semibold">{value}</p>}
-            </Section>
-          ))}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <StatCard
+            title="Total Items"
+            value={stats.data?.totalItems ?? '—'}
+            description="Items in this category"
+            icon={Package}
+            color="blue"
+            isLoading={stats.isPending}
+          />
+          <StatCard
+            title="Low Stock"
+            value={stats.data?.lowStockItems ?? '—'}
+            description="Items needing replenishment"
+            icon={AlertTriangle}
+            color="orange"
+            isLoading={stats.isPending}
+          />
+          <StatCard
+            title="Expiring Soon"
+            value={stats.data?.expiringSoon ?? '—'}
+            description="Items approaching expiry"
+            icon={Clock}
+            color="red"
+            isLoading={stats.isPending}
+          />
         </div>
       )}
-      <Tabs value={current} onValueChange={(value) => go({ tab: String(value) })}>
-        <div className="overflow-x-auto">
-          <TabsList variant="line">
-            {tabs.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value}>
-                <tab.icon />
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
-        <TabsContent value="items">
-          <Tabs defaultValue="inventory">
-            <TabsList variant="line">
-              <TabsTrigger value="inventory">Inventory Items</TabsTrigger>
-            </TabsList>
-            <TabsContent value="inventory">
-              {itemId ? (
-                <ItemDetail
-                  locationId={locationId}
-                  id={itemId}
-                  category={category.data}
-                  access={access}
-                  onBack={() => go({ tab: 'items' })}
-                  onTransaction={showTransaction}
-                />
-              ) : (
-                <Section title="Inventory Items">
-                  <ItemList
+      <InventoryTabs
+        value={current}
+        onValueChange={(value) => go({ tab: value })}
+        tabs={[
+          {
+            value: 'items',
+            label: 'Items',
+            shortLabel: 'Items',
+            icon: Package,
+            content: (
+              <>
+                {itemId ? (
+                  <ItemDetail
                     locationId={locationId}
-                    categoryId={categoryId}
-                    onSelect={(id) => go({ tab: 'items', itemId: id })}
-                    onPO={() => setModal('po')}
-                    canCreate={access.create}
+                    id={itemId}
+                    category={category.data}
+                    access={access}
+                    onBack={() => go({ tab: 'items' })}
+                    onTransaction={showTransaction}
                   />
+                ) : (
+                  <Section title="Inventory Items">
+                    <ItemList
+                      locationId={locationId}
+                      categoryId={categoryId}
+                      onSelect={(id) => go({ tab: 'items', itemId: id })}
+                      onPO={() => setModal('po')}
+                      canCreate={access.create}
+                    />
+                  </Section>
+                )}
+              </>
+            ),
+          },
+          {
+            value: 'suppliers',
+            label: 'Suppliers',
+            shortLabel: 'Suppliers',
+            icon: Users,
+            content: (
+              <>
+                <Section title="Suppliers">
+                  <SupplierList locationId={locationId} categoryId={categoryId} access={access} />
                 </Section>
-              )}
-            </TabsContent>
-          </Tabs>
-        </TabsContent>
-        <TabsContent value="suppliers">
-          <Section title="Suppliers">
-            <SupplierList locationId={locationId} categoryId={categoryId} access={access} />
-          </Section>
-        </TabsContent>
-        <TabsContent value="purchase-orders">
-          {poId ? (
-            <PODetail
-              locationId={locationId}
-              id={poId}
-              categoryId={categoryId}
-              access={access}
-              onBack={() => go({ tab: 'purchase-orders' })}
-              onTransaction={showTransaction}
-            />
-          ) : (
-            <Section
-              title="Purchase Orders"
-              action={access.create ? <Button onClick={() => setModal('po')}>Create Purchase Order</Button> : undefined}
-            >
-              <POList locationId={locationId} categoryId={categoryId} onSelect={showPO} />
-            </Section>
-          )}
-        </TabsContent>
-        <TabsContent value="transactions">
-          <Tabs defaultValue="inventory">
-            <TabsList variant="line">
-              <TabsTrigger value="inventory">Inventory Item Transactions</TabsTrigger>
-            </TabsList>
-            <TabsContent value="inventory">
-              {transactionId ? (
-                <TransactionDetail
-                  locationId={locationId}
-                  id={transactionId}
-                  onBack={() => go({ tab: 'transactions' })}
-                  onPO={showPO}
-                />
-              ) : (
-                <Section
-                  title="Inventory Item Transactions"
-                  action={
-                    access.create ? (
-                      <div className="flex flex-wrap gap-2">
-                        <Button onClick={() => setModal('stock')}>Stock In</Button>
-                        <Button variant="outline" onClick={() => setModal('assign')}>
-                          Assign Items
+              </>
+            ),
+          },
+          {
+            value: 'purchase-orders',
+            label: 'Purchase Orders',
+            shortLabel: 'Purchase Orders',
+            icon: ClipboardList,
+            content: (
+              <>
+                {poId ? (
+                  <PODetail
+                    locationId={locationId}
+                    id={poId}
+                    categoryId={categoryId}
+                    access={access}
+                    onBack={() => go({ tab: 'purchase-orders' })}
+                    onTransaction={showTransaction}
+                  />
+                ) : (
+                  <Section
+                    title="Purchase Orders"
+                    action={
+                      access.create ? (
+                        <Button onClick={() => setModal('po')}>
+                          <Plus data-icon="inline-start" />
+                          Create Purchase Order
                         </Button>
-                      </div>
-                    ) : undefined
-                  }
-                >
-                  <TransactionList locationId={locationId} categoryId={categoryId} onSelect={showTransaction} />
-                </Section>
-              )}
-            </TabsContent>
-          </Tabs>
-        </TabsContent>
-      </Tabs>
+                      ) : undefined
+                    }
+                  >
+                    <POList locationId={locationId} categoryId={categoryId} onSelect={showPO} />
+                  </Section>
+                )}
+              </>
+            ),
+          },
+          {
+            value: 'transactions',
+            label: 'Transactions',
+            shortLabel: 'Transactions',
+            icon: ArrowLeftRight,
+            content: (
+              <>
+                {transactionId ? (
+                  <TransactionDetail
+                    locationId={locationId}
+                    id={transactionId}
+                    onBack={() => go({ tab: 'transactions' })}
+                    onPO={showPO}
+                  />
+                ) : (
+                  <Section
+                    title="Inventory Item Transactions"
+                    action={
+                      access.create ? (
+                        <div className="flex flex-wrap gap-2">
+                          <Button onClick={() => setModal('stock')}>Stock In</Button>
+                          <Button variant="outline" onClick={() => setModal('assign')}>
+                            Assign Items
+                          </Button>
+                        </div>
+                      ) : undefined
+                    }
+                  >
+                    <TransactionList locationId={locationId} categoryId={categoryId} onSelect={showTransaction} />
+                  </Section>
+                )}
+              </>
+            ),
+          },
+        ]}
+      />
       {modal === 'po' && (
         <PurchaseOrderForm
           locationId={locationId}
@@ -325,16 +368,23 @@ function InventoryTable<K extends keyof CenterLists>({
   categoryId,
   columns,
   filters = {},
+  filterActions,
 }: {
   locationId: string
   kind: K
   categoryId?: string
   columns: ColumnDef<CenterLists[K]>[]
   filters?: CenterListParams
+  filterActions?: ReactNode
 }) {
-  const [search, setSearch] = useState('')
-  const debouncedSearch = useDebounce(search, 300)
-  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 })
+  const scope = JSON.stringify({ locationId, kind, categoryId, filters })
+  const [state, setState] = useState({ scope, search: '', pagination: { pageIndex: 0, pageSize: 10 } })
+  // Reset results when filters change without remounting the toolbar's focused controls.
+  if (state.scope !== scope) setState({ scope, search: '', pagination: { pageIndex: 0, pageSize: 10 } })
+  const { search, pagination } = state
+  const searchInput = useMemo(() => ({ scope: state.scope, search }), [state.scope, search])
+  const debounced = useDebounce(searchInput, 300)
+  const debouncedSearch = debounced.scope === scope ? debounced.search : ''
   const query = useCenterList(locationId, kind, {
     ...filters,
     ...(categoryId ? { categoryId } : {}),
@@ -352,13 +402,18 @@ function InventoryTable<K extends keyof CenterLists>({
       onRetry={() => void query.refetch()}
       manualPagination
       pagination={pagination}
-      onPaginationChange={setPagination}
+      onPaginationChange={(updater) =>
+        setState((current) => ({
+          ...current,
+          pagination: typeof updater === 'function' ? updater(current.pagination) : updater,
+        }))
+      }
       rowCount={query.data?.pagination.totalItems ?? 0}
       searchValue={search}
       onSearchChange={(value) => {
-        setSearch(value)
-        setPagination((p) => ({ ...p, pageIndex: 0 }))
+        setState((current) => ({ ...current, search: value, pagination: { ...current.pagination, pageIndex: 0 } }))
       }}
+      filterActions={filterActions}
       searchPlaceholder={`Search ${kind === 'purchase-orders' ? 'purchase orders' : kind}…`}
     />
   )
@@ -432,7 +487,7 @@ function ItemList({
           </span>
           {row.original.quantity < row.original.threshold && (
             <div>
-              <Badge variant="destructive">Low Stock</Badge>
+              <InventoryStatus tone="amber">Low Stock</InventoryStatus>
               {canCreate && (
                 <Button variant="link" onClick={onPO}>
                   Create PO
@@ -446,7 +501,7 @@ function ItemList({
     {
       id: 'status',
       header: 'Status',
-      cell: ({ row }) => <Badge variant="secondary">{row.original.isActive ? 'Active' : 'Inactive'}</Badge>,
+      cell: ({ row }) => <ActiveStatus active={row.original.isActive} />,
     },
     {
       id: 'actions',
@@ -460,17 +515,23 @@ function ItemList({
   ]
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-3">
-        <SupplierFilter locationId={locationId} value={supplierId} onChange={setSupplierId} />
-        <NativeSelect aria-label="Filter by stock" value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
-          <NativeSelectOption value="">All Stock</NativeSelectOption>
-          <NativeSelectOption value="below_min">Below Minimum</NativeSelectOption>
-          <NativeSelectOption value="below_threshold">Below Threshold</NativeSelectOption>
-          <NativeSelectOption value="out_of_stock">Out of Stock</NativeSelectOption>
-        </NativeSelect>
-      </div>
       <InventoryTable
-        key={`${supplierId}-${stockFilter}`}
+        filterActions={
+          <div className="flex flex-wrap gap-3">
+            <SupplierFilter locationId={locationId} value={supplierId} onChange={setSupplierId} />
+            <NativeSelect
+              aria-label="Filter by stock"
+              value={stockFilter}
+              onChange={(e) => setStockFilter(e.target.value)}
+            >
+              <NativeSelectOption value="">All Stock</NativeSelectOption>
+              <NativeSelectOption value="below_min">Below Minimum</NativeSelectOption>
+              <NativeSelectOption value="below_threshold">Below Threshold</NativeSelectOption>
+              <NativeSelectOption value="out_of_stock">Out of Stock</NativeSelectOption>
+            </NativeSelect>
+          </div>
+        }
+
         locationId={locationId}
         categoryId={categoryId}
         kind="items"
@@ -525,19 +586,21 @@ function POList({
   ]
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-3">
-        <SupplierFilter locationId={locationId} value={supplierId} onChange={setSupplierId} />
-        <NativeSelect aria-label="Filter PO status" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <NativeSelectOption value="">All Statuses</NativeSelectOption>
-          {Object.entries(poStatusLabels).map(([value, label]) => (
-            <NativeSelectOption key={value} value={value}>
-              {label}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </div>
       <InventoryTable
-        key={`${status}-${supplierId}`}
+        filterActions={
+          <div className="flex flex-wrap gap-3">
+            <SupplierFilter locationId={locationId} value={supplierId} onChange={setSupplierId} />
+            <NativeSelect aria-label="Filter PO status" value={status} onChange={(e) => setStatus(e.target.value)}>
+              <NativeSelectOption value="">All Statuses</NativeSelectOption>
+              {Object.entries(poStatusLabels).map(([value, label]) => (
+                <NativeSelectOption key={value} value={value}>
+                  {label}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </div>
+        }
+
         locationId={locationId}
         categoryId={categoryId}
         kind="purchase-orders"
@@ -616,42 +679,60 @@ function TransactionList({
   ]
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-3 sm:grid-cols-3">
-        {[
-          ['Total Transactions', stats.data?.totalTransactions],
-          ['Total Purchases', stats.data?.totalPurchases],
-          ['Total Issues', stats.data?.totalIssues],
-        ].map(([label, value]) => (
-          <Section title={String(label)} key={label}>
-            <p className="text-2xl font-semibold">{value ?? '—'}</p>
-          </Section>
-        ))}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <StatCard
+          title="Total Transactions"
+          value={stats.data?.totalTransactions ?? '—'}
+          description="All inventory movements"
+          icon={ArrowLeftRight}
+          color="blue"
+          isLoading={stats.isPending}
+        />
+        <StatCard
+          title="Total Purchases"
+          value={stats.data?.totalPurchases ?? '—'}
+          description="Stock received"
+          icon={Package}
+          color="green"
+          isLoading={stats.isPending}
+        />
+        <StatCard
+          title="Total Issues"
+          value={stats.data?.totalIssues ?? '—'}
+          description="Stock assigned"
+          icon={Users}
+          color="purple"
+          isLoading={stats.isPending}
+        />
       </div>
-      <div className="flex flex-wrap items-end gap-3">
-        <SupplierFilter locationId={locationId} value={supplierId} onChange={setSupplierId} />
-        <label htmlFor="transaction-from" className="flex flex-col gap-1 text-sm">
-          From
-          <Input
-            id="transaction-from"
-            type="date"
-            value={startDate}
-            max={endDate || undefined}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-        </label>
-        <label htmlFor="transaction-to" className="flex flex-col gap-1 text-sm">
-          To
-          <Input
-            id="transaction-to"
-            type="date"
-            value={endDate}
-            min={startDate || undefined}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-        </label>
-      </div>
+
       <InventoryTable
-        key={`${supplierId}-${startDate}-${endDate}`}
+        filterActions={
+          <div className="flex flex-wrap items-end gap-3">
+            <SupplierFilter locationId={locationId} value={supplierId} onChange={setSupplierId} />
+            <label htmlFor="transaction-from" className="flex flex-col gap-1 text-sm">
+              From
+              <Input
+                id="transaction-from"
+                type="date"
+                value={startDate}
+                max={endDate || undefined}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </label>
+            <label htmlFor="transaction-to" className="flex flex-col gap-1 text-sm">
+              To
+              <Input
+                id="transaction-to"
+                type="date"
+                value={endDate}
+                min={startDate || undefined}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </label>
+          </div>
+        }
+
         locationId={locationId}
         categoryId={categoryId}
         kind="transactions"

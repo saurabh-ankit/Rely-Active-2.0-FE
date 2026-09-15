@@ -11,6 +11,7 @@ import { ItemEditor } from './ItemFormPage'
 import type { InventoryCategory, InventoryItem, InventoryPackageOptions } from '@/lib/types/inventory'
 vi.mock('@/lib/services/inventoryService')
 vi.mock('@/lib/services/propertyService')
+vi.mock('@/hooks/use-mobile', () => ({ useIsMobile: () => false }))
 const categoryId = '00000000-0000-4000-8000-000000000001'
 const locationId = '00000000-0000-4000-8000-000000000004'
 const locationOptions = [{ id: locationId, name: 'Alpha' }]

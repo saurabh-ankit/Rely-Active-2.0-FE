@@ -16,15 +16,15 @@ export function InventoryPage({
   children: ReactNode
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 pb-10">
-      <div className="flex items-center gap-3">
+    <div className="flex w-full min-w-0 flex-col gap-6 pb-8">
+      <div className="flex flex-wrap items-start gap-3">
         <Button variant="ghost" size="sm" onClick={onBack}>
           <ArrowLeft data-icon="inline-start" />
           Back
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">{title}</h1>
-          {description && <p className="text-sm text-muted-foreground">{description}</p>}
+          <h1 className="break-words text-2xl font-bold text-gray-900 sm:text-3xl">{title}</h1>
+          {description && <p className="mt-1 text-sm text-gray-600 md:text-base">{description}</p>}
         </div>
       </div>
       {children}
@@ -43,10 +43,10 @@ export function FormSection({
   action?: ReactNode
 }) {
   return (
-    <Card>
+    <Card className="min-w-0 [--card-spacing:--spacing(6)]">
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle>{title}</CardTitle>
+          <CardTitle className="text-lg font-semibold">{title}</CardTitle>
           {action}
         </div>
         {description && <CardDescription>{description}</CardDescription>}

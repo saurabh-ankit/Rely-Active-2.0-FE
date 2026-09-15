@@ -4,7 +4,9 @@ import { toast } from 'sonner'
 import type { PaginationState } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
-import { Badge } from '@/components/ui/badge'
+import { ActiveStatus } from '@/components/inventory/InventoryStatus'
+import StatCard from '@/pages/AssetManagement/components/StatCard'
+import { Users, UserCheck, UserX, ClipboardList } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -19,7 +21,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { useCenterData, useCenterMutation } from '@/hooks/react-query/centerInventory'
 import type { CenterAccess, CenterSupplier, SupplierListResponse } from '@/lib/types/centerInventory'
-import { ErrorNotice, FormField, Section } from './shared'
+import { ErrorNotice, FormField } from './shared'
 
 export function SupplierList({
   locationId,
@@ -43,18 +45,39 @@ export function SupplierList({
     ...(status ? { isActive: status } : {}),
   })
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex min-w-0 flex-col gap-6">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          ['Total Suppliers', query.data?.summary.totalSuppliers],
-          ['Active', query.data?.summary.activeSuppliers],
-          ['Inactive', query.data?.summary.inactiveSuppliers],
-          ['Total Orders', query.data?.summary.totalPurchaseOrders],
-        ].map(([label, value]) => (
-          <Section title={String(label)} key={label}>
-            <p className="text-2xl font-semibold">{value ?? '—'}</p>
-          </Section>
-        ))}
+        <StatCard
+          title="Total Suppliers"
+          value={query.data?.summary.totalSuppliers ?? '—'}
+          description="Suppliers for this category"
+          icon={Users}
+          color="blue"
+          isLoading={query.isPending}
+        />
+        <StatCard
+          title="Active"
+          value={query.data?.summary.activeSuppliers ?? '—'}
+          description="Available for purchases"
+          icon={UserCheck}
+          color="green"
+          isLoading={query.isPending}
+        />
+        <StatCard
+          title="Inactive"
+          value={query.data?.summary.inactiveSuppliers ?? '—'}
+          description="Currently unavailable"
+          icon={UserX}
+          isLoading={query.isPending}
+        />
+        <StatCard
+          title="Total Orders"
+          value={query.data?.summary.totalPurchaseOrders ?? '—'}
+          description="Supplier purchase orders"
+          icon={ClipboardList}
+          color="purple"
+          isLoading={query.isPending}
+        />
       </div>
       <DataTable
         data={query.data?.records ?? []}
@@ -114,11 +137,7 @@ export function SupplierList({
           {
             id: 'status',
             header: 'Status',
-            cell: ({ row }) => (
-              <Badge variant={row.original.isActive ? 'secondary' : 'outline'}>
-                {row.original.isActive ? 'Active' : 'Inactive'}
-              </Badge>
-            ),
+            cell: ({ row }) => <ActiveStatus active={row.original.isActive} />,
           },
           { accessorKey: 'purchaseOrderCount', header: 'Purchase Orders' },
           {
@@ -189,7 +208,7 @@ function SupplierDialog({
         if (!open && !mutation.isPending) onClose()
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
             {mode === 'view' ? 'Supplier Details' : mode === 'edit' ? 'Edit Supplier' : 'Delete Supplier'}
@@ -209,14 +228,20 @@ function SupplierDialog({
                 ['Email', supplier.email],
                 ['Phone', supplier.phone],
                 ['Address', supplier.address],
-                ['Status', supplier.isActive ? 'Active' : 'Inactive'],
+
                 ['Purchase Orders', supplier.purchaseOrderCount],
               ].map(([label, value]) => (
                 <div key={label}>
                   <dt className="text-sm text-muted-foreground">{label}</dt>
-                  <dd>{value ?? '—'}</dd>
+                  <dd className="mt-1 break-words font-medium">{value ?? '—'}</dd>
                 </div>
               ))}
+              <div>
+                <dt className="text-sm text-muted-foreground">Status</dt>
+                <dd className="mt-1">
+                  <ActiveStatus active={supplier.isActive} />
+                </dd>
+              </div>
             </dl>
             <DialogFooter>
               <Button variant="outline" onClick={onClose}>
@@ -227,7 +252,7 @@ function SupplierDialog({
           </>
         ) : (
           <form
-            className="flex flex-col gap-5"
+            className="flex min-w-0 flex-col gap-6"
             onSubmit={async (event) => {
               event.preventDefault()
               try {

@@ -60,13 +60,13 @@ export function PurchaseOrderForm({
         if (!open && !mutation.isPending) onClose()
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>{record ? 'Edit Purchase Order' : 'Create Purchase Order'}</DialogTitle>
           <DialogDescription>Select a supplier and the items to order.</DialogDescription>
         </DialogHeader>
         <form
-          className="flex flex-col gap-5"
+          className="flex min-w-0 flex-col gap-6"
           onSubmit={async (event) => {
             event.preventDefault()
             setError(null)
@@ -125,7 +125,7 @@ export function PurchaseOrderForm({
             {lines.map((line, index) => {
               const item = eligible.find((i) => i.id === line.itemId)
               return (
-                <FieldGroup key={line.key} className="rounded-lg border p-4">
+                <FieldGroup key={line.key} className="rounded-xl border bg-muted/20 p-4">
                   <div className="grid gap-4 sm:grid-cols-3">
                     <FormField id={`po-item-${index}`} label="Item *">
                       <NativeSelect

@@ -59,13 +59,13 @@ export function PODetail({
     }
   }
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex min-w-0 flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <Button variant="ghost" onClick={onBack}>
             Back
           </Button>
-          <h2 className="text-xl font-semibold">{po.poNumber}</h2>
+          <h2 className="break-words text-xl font-semibold text-gray-900">{po.poNumber}</h2>
           <Status status={po.status} />
         </div>
         <div className="flex flex-wrap gap-2">
@@ -105,7 +105,7 @@ export function PODetail({
           ].map(([label, value]) => (
             <div key={label}>
               <dt className="text-sm text-muted-foreground">{label}</dt>
-              <dd>{value}</dd>
+              <dd className="mt-1 break-words font-medium">{value}</dd>
             </div>
           ))}
         </dl>
@@ -238,12 +238,12 @@ export function TransactionDetail({
   if (query.isError) return <ErrorNotice error={query.error} retry={() => void query.refetch()} />
   const record = query.data
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex min-w-0 flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="ghost" onClick={onBack}>
           Back
         </Button>
-        <h2 className="text-xl font-semibold">{record.transactionNumber}</h2>
+        <h2 className="break-words text-xl font-semibold text-gray-900">{record.transactionNumber}</h2>
       </div>
       <Section title="Transaction Information">
         <dl className="grid gap-4 sm:grid-cols-3">
@@ -263,12 +263,12 @@ export function TransactionDetail({
           ].map(([label, value]) => (
             <div key={label}>
               <dt className="text-sm text-muted-foreground">{label}</dt>
-              <dd>{value}</dd>
+              <dd className="mt-1 break-words font-medium">{value}</dd>
             </div>
           ))}
           <div>
             <dt className="text-sm text-muted-foreground">Purchase Order</dt>
-            <dd>
+            <dd className="mt-1 break-words font-medium">
               {record.purchaseOrderId ? (
                 <Button variant="link" onClick={() => onPO(record.purchaseOrderId!)}>
                   {record.poNumber}
@@ -329,13 +329,13 @@ export function ItemDetail({
   const item = query.data
   if (modal === 'edit') return <CenterItemEditor locationId={locationId} id={id} onClose={() => setModal(null)} />
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex min-w-0 flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <Button variant="ghost" onClick={onBack}>
             Back
           </Button>
-          <h2 className="text-xl font-semibold">{item.name}</h2>
+          <h2 className="break-words text-xl font-semibold text-gray-900">{item.name}</h2>
         </div>
         <div className="flex flex-wrap gap-2">
           {access.update && (
@@ -370,7 +370,7 @@ export function ItemDetail({
           ].map(([label, value], index) => (
             <div key={`${label}-${index}`}>
               <dt className="text-sm text-muted-foreground">{label}</dt>
-              <dd>{value}</dd>
+              <dd className="mt-1 break-words font-medium">{value}</dd>
             </div>
           ))}
         </dl>
@@ -446,7 +446,7 @@ function ItemSettings({
           <DialogDescription>Changes apply to the selected property.</DialogDescription>
         </DialogHeader>
         <form
-          className="flex flex-col gap-5"
+          className="flex min-w-0 flex-col gap-6"
           onSubmit={async (event) => {
             event.preventDefault()
             try {
@@ -467,7 +467,7 @@ function ItemSettings({
               ? suppliers.data
                   ?.filter((s) => s.isActive || supplierIds.includes(s.id))
                   .map((s) => (
-                    <label className="flex items-center gap-3" key={s.id}>
+                    <label className="flex min-w-0 flex-wrap items-center gap-3" key={s.id}>
                       <Checkbox
                         checked={supplierIds.includes(s.id)}
                         onCheckedChange={(checked) =>

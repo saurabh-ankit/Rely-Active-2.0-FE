@@ -156,7 +156,7 @@ export function AssignItemsForm({
         if (!open && !busy) onClose()
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-5xl">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>Assign Items</DialogTitle>
           <DialogDescription>
@@ -179,7 +179,7 @@ export function AssignItemsForm({
               },
             )
           }}
-          className="flex flex-col gap-5"
+          className="flex min-w-0 flex-col gap-6"
         >
           <fieldset disabled={busy} className="min-w-0">
             <FieldGroup>
