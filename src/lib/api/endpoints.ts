@@ -46,6 +46,13 @@ export const API_ENDPOINTS = {
     billing: (id: string) => `${BASE_URL}/residents/billing/${id}`,
   },
 
+  dashboard: {
+    getStats: (locationId?: string | null) =>
+      locationId && locationId !== 'ALL'
+        ? `${BASE_URL}/location/${encodeURIComponent(locationId)}/dashboard/stats`
+        : `${BASE_URL}/dashboard/stats`,
+  },
+
   globalRbac: {
     getRoles: `${BASE_URL}/roles`,
     createRole: `${BASE_URL}/roles`,
