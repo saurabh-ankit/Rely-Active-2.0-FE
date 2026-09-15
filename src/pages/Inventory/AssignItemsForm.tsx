@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils/uuid'
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -93,7 +94,7 @@ export function AssignItemsForm({
   const [lines, setLines] = useState<{ item: CenterItem; quantity: number }[]>([])
   const [date, setDate] = useState(today)
   const [notes, setNotes] = useState('')
-  const [requestId, setRequestId] = useState(() => crypto.randomUUID())
+  const [requestId, setRequestId] = useState(() => generateUUID())
   const categories = useCenterOptions(locationId, 'categories')
   const items = useCenterOptions(locationId, 'items', category ? { categoryId: category } : {})
   const mutation = useCenterMutation<StockTransaction>(locationId)
@@ -144,7 +145,7 @@ export function AssignItemsForm({
   })
   const currentPreview = debounced === payload ? preview.data : undefined
   const edit = () => {
-    setRequestId(crypto.randomUUID())
+    setRequestId(generateUUID())
     mutation.reset()
   }
   const busy = mutation.isPending

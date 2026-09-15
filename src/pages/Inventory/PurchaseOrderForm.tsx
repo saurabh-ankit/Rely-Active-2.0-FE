@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils/uuid'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -33,18 +34,18 @@ export function PurchaseOrderForm({
   const suppliers = useCenterOptions(locationId, 'suppliers')
   const items = useCenterOptions(locationId, 'items', record ? {} : { categoryId })
   const mutation = useCenterMutation<PurchaseOrder>(locationId)
-  const [requestId] = useState(() => crypto.randomUUID())
+  const [requestId] = useState(() => generateUUID())
   const [supplierId, setSupplierId] = useState(record?.supplierId ?? '')
   const [notes, setNotes] = useState(record?.notes ?? '')
   const [error, setError] = useState<unknown>(null)
   const [lines, setLines] = useState(
     () =>
       record?.items.map((l) => ({
-        key: crypto.randomUUID(),
+        key: generateUUID(),
         itemId: l.itemId,
         packages: l.orderedQuantity / l.packQuantity,
         price: Number(l.agreedPrice),
-      })) ?? [{ key: crypto.randomUUID(), itemId: '', packages: 1, price: 0 }],
+      })) ?? [{ key: generateUUID(), itemId: '', packages: 1, price: 0 }],
   )
   const update = (index: number, patch: Partial<(typeof lines)[number]>) =>
     setLines((current) => current.map((l, i) => (i === index ? { ...l, ...patch } : l)))
@@ -108,7 +109,7 @@ export function PurchaseOrderForm({
                 required
                 onChange={(e) => {
                   setSupplierId(e.target.value)
-                  setLines([{ key: crypto.randomUUID(), itemId: '', packages: 1, price: 0 }])
+                  setLines([{ key: generateUUID(), itemId: '', packages: 1, price: 0 }])
                 }}
               >
                 <NativeSelectOption value="">Select supplier</NativeSelectOption>
@@ -189,7 +190,7 @@ export function PurchaseOrderForm({
               variant="outline"
               disabled={!supplierId || lines.length >= 100}
               onClick={() =>
-                setLines((current) => [...current, { key: crypto.randomUUID(), itemId: '', packages: 1, price: 0 }])
+                setLines((current) => [...current, { key: generateUUID(), itemId: '', packages: 1, price: 0 }])
               }
             >
               Add Item

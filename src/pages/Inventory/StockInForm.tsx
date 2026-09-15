@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils/uuid'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -18,7 +19,7 @@ import type { PurchaseOrder, ReceiptInput, StockTransaction } from '@/lib/types/
 import { ErrorNotice, FormField } from './shared'
 import { baseQuantity, today, quantityDisplay } from './utils'
 const newLine = () => ({
-  key: crypto.randomUUID(),
+  key: generateUUID(),
   itemId: '',
   packages: 0,
   unitCost: 0,
@@ -45,7 +46,7 @@ export function StockInForm({
   const suppliers = useCenterOptions(locationId, 'suppliers')
   const items = useCenterOptions(locationId, 'items', po ? {} : { categoryId })
   const mutation = useCenterMutation<StockTransaction>(locationId)
-  const [requestId] = useState(() => crypto.randomUUID())
+  const [requestId] = useState(() => generateUUID())
   const [supplierId, setSupplierId] = useState(po?.supplierId ?? '')
   const [date, setDate] = useState(today)
   const [notes, setNotes] = useState('')
