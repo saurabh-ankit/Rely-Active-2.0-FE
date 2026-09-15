@@ -1,3 +1,4 @@
+import { ActiveStatus } from '@/components/inventory/InventoryStatus'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { useInventoryDetail, useInventoryProperties, useInventoryVendorOptions } from '@/hooks/react-query/inventory'
 import { Button } from '@/components/ui/button'
@@ -57,7 +58,7 @@ export function ItemDetailsPage() {
           {[
             ['Name', record.name],
             ['Category', category.data.name],
-            ['Status', record.isActive ? 'Active' : 'Inactive'],
+
             ['Package', `${record.packQuantity} ${record.packUnit} per ${record.packType}`],
             ...category.data.fieldDefinitions.map((f) => [
               f.fieldLabel,
@@ -66,9 +67,15 @@ export function ItemDetailsPage() {
           ].map(([name, value], index) => (
             <div key={`${name}-${index}`}>
               <dt className="text-sm text-muted-foreground">{name}</dt>
-              <dd>{value}</dd>
+              <dd className="mt-1 break-words font-medium">{value}</dd>
             </div>
           ))}
+          <div>
+            <dt className="text-sm text-muted-foreground">Status</dt>
+            <dd className="mt-1">
+              <ActiveStatus active={record.isActive} />
+            </dd>
+          </div>
         </dl>
       </FormSection>
       <FormSection title="Suppliers by Location">

@@ -5,7 +5,9 @@ import type { PaginationState } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Truck, AlertTriangle } from 'lucide-react'
 import { DataTable } from '@/components/ui/data-table'
-import { Badge } from '@/components/ui/badge'
+import { ActiveStatus } from '@/components/inventory/InventoryStatus'
+import StatCard from '@/pages/AssetManagement/components/StatCard'
+import { Users, UserCheck, UserX, ClipboardList } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -20,7 +22,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { useCenterData, useCenterMutation } from '@/hooks/react-query/centerInventory'
 import type { CenterAccess, CenterSupplier, SupplierListResponse } from '@/lib/types/centerInventory'
-import { ErrorNotice, FormField, Section } from './shared'
+import { ErrorNotice, FormField } from './shared'
 
 export function SupplierList({
   locationId,
@@ -44,18 +46,39 @@ export function SupplierList({
     ...(status ? { isActive: status } : {}),
   })
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex min-w-0 flex-col gap-6">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          ['Total Vendors', query.data?.summary.totalSuppliers],
-          ['Active', query.data?.summary.activeSuppliers],
-          ['Inactive', query.data?.summary.inactiveSuppliers],
-          ['Total Orders', query.data?.summary.totalPurchaseOrders],
-        ].map(([label, value]) => (
-          <Section title={String(label)} key={label}>
-            <p className="text-2xl font-semibold">{value ?? '—'}</p>
-          </Section>
-        ))}
+        <StatCard
+          title="Total Vendors"
+          value={query.data?.summary.totalSuppliers ?? '—'}
+          description="Vendors for this category"
+          icon={Users}
+          color="blue"
+          isLoading={query.isPending}
+        />
+        <StatCard
+          title="Active"
+          value={query.data?.summary.activeSuppliers ?? '—'}
+          description="Available for purchases"
+          icon={UserCheck}
+          color="green"
+          isLoading={query.isPending}
+        />
+        <StatCard
+          title="Inactive"
+          value={query.data?.summary.inactiveSuppliers ?? '—'}
+          description="Currently unavailable"
+          icon={UserX}
+          isLoading={query.isPending}
+        />
+        <StatCard
+          title="Total Orders"
+          value={query.data?.summary.totalPurchaseOrders ?? '—'}
+          description="Vendor purchase orders"
+          icon={ClipboardList}
+          color="purple"
+          isLoading={query.isPending}
+        />
       </div>
       <DataTable
         data={query.data?.records ?? []}
@@ -115,11 +138,7 @@ export function SupplierList({
           {
             id: 'status',
             header: 'Status',
-            cell: ({ row }) => (
-              <Badge variant={row.original.isActive ? 'secondary' : 'outline'}>
-                {row.original.isActive ? 'Active' : 'Inactive'}
-              </Badge>
-            ),
+            cell: ({ row }) => <ActiveStatus active={row.original.isActive} />,
           },
           { accessorKey: 'purchaseOrderCount', header: 'Purchase Orders' },
           {
@@ -190,14 +209,12 @@ function SupplierDialog({
         if (!open && !mutation.isPending) onClose()
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl rounded-3xl p-6 shadow-2xl border border-gray-100">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl rounded-3xl p-6 shadow-2xl border border-gray-100">
         <DialogHeader className="pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div
               className={`p-2.5 rounded-2xl border ${
-                mode === 'delete'
-                  ? 'bg-red-50 text-red-600 border-red-100'
-                  : 'bg-blue-50 text-blue-700 border-blue-100'
+                mode === 'delete' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-blue-50 text-blue-700 border-blue-100'
               }`}
             >
               {mode === 'delete' ? <AlertTriangle className="w-5 h-5" /> : <Truck className="w-5 h-5" />}
@@ -223,7 +240,7 @@ function SupplierDialog({
                 ['Email', supplier.email],
                 ['Phone', supplier.phone],
                 ['Address', supplier.address],
-                ['Status', supplier.isActive ? 'Active' : 'Inactive'],
+
                 ['Purchase Orders', supplier.purchaseOrderCount],
               ].map(([label, value]) => (
                 <div key={label} className="space-y-0.5">
@@ -231,13 +248,22 @@ function SupplierDialog({
                   <dd className="text-sm font-medium text-gray-900">{value ?? '—'}</dd>
                 </div>
               ))}
+              <div className="space-y-0.5">
+                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</dt>
+                <dd className="mt-1">
+                  <ActiveStatus active={supplier.isActive} />
+                </dd>
+              </div>
             </dl>
             <DialogFooter className="border-t border-gray-100 pt-4 flex items-center justify-end gap-2">
               <Button variant="outline" className="rounded-xl border-gray-200 cursor-pointer" onClick={onClose}>
                 Close
               </Button>
               {canUpdate && (
-                <Button className="bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer" onClick={onEdit}>
+                <Button
+                  className="bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer"
+                  onClick={onEdit}
+                >
                   Edit Vendor
                 </Button>
               )}
@@ -245,7 +271,7 @@ function SupplierDialog({
           </>
         ) : (
           <form
-            className="flex flex-col gap-5"
+            className="flex min-w-0 flex-col gap-6"
             onSubmit={async (event) => {
               event.preventDefault()
               try {
@@ -301,7 +327,13 @@ function SupplierDialog({
             )}
             {mutation.error && <ErrorNotice error={mutation.error} />}
             <DialogFooter className="border-t border-gray-100 pt-4 flex items-center justify-end gap-2">
-              <Button type="button" variant="outline" className="rounded-xl border-gray-200 cursor-pointer" disabled={mutation.isPending} onClick={onClose}>
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-xl border-gray-200 cursor-pointer"
+                disabled={mutation.isPending}
+                onClick={onClose}
+              >
                 Cancel
               </Button>
               <Button

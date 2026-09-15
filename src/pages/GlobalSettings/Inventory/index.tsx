@@ -4,11 +4,23 @@ import { ItemThresholdsPage } from './ItemThresholdsPage'
 import { ItemImportPage } from './ItemImportPage'
 import { Routes, Route, Link, useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom'
 import type { ColumnDef, PaginationState, SortingState, Updater } from '@tanstack/react-table'
-import { FolderOpen, Building2, Plus, MoreHorizontal, Pencil, MapPin, Users, ArrowUpDown, Briefcase, Package } from 'lucide-react'
+import {
+  FolderOpen,
+  Building2,
+  Plus,
+  MoreHorizontal,
+  Pencil,
+  MapPin,
+  Users,
+  ArrowUpDown,
+  Briefcase,
+  Package,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
-import { ResponsiveTabs } from '@/components/common/ResponsiveTabs'
+import { InventoryTabs } from '@/components/inventory/InventoryTabs'
+import { ActiveStatus } from '@/components/inventory/InventoryStatus'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -26,7 +38,7 @@ import {
   useSetInventoryVendorStatus,
 } from '@/hooks/react-query/inventory'
 import type { InventoryCategory, InventoryVendor, InventoryItem, InventoryListParams } from '@/lib/types/inventory'
-import { InventoryPage, InventoryLoading, InventoryLoadError } from './PageLayout'
+import { InventoryPage, FormSection, InventoryLoading, InventoryLoadError } from './PageLayout'
 import { CategoryFormPage } from './CategoryFormPage'
 import { VendorFormPage } from './VendorFormPage'
 import { ItemFormPage } from './ItemFormPage'
@@ -86,9 +98,6 @@ function RowActions({
       </DropdownMenuContent>
     </DropdownMenu>
   )
-}
-function Status({ active }: { active: boolean }) {
-  return <Badge variant={active ? 'secondary' : 'outline'}>{active ? 'Active' : 'Inactive'}</Badge>
 }
 function useListState() {
   const [search, setSearch] = useSearchParams()
@@ -167,10 +176,9 @@ function GlobalInventory() {
       backLabel="Back to Global Settings"
       icon={Briefcase}
     >
-      <ResponsiveTabs
+      <InventoryTabs
         value={tab}
-        onValueChange={(value) => setSearch({ tab: String(value) })}
-        className="w-full"
+        onValueChange={(value) => setSearch({ tab: value })}
         tabs={[
           {
             value: 'categories',
@@ -178,9 +186,9 @@ function GlobalInventory() {
             shortLabel: 'Categories',
             icon: FolderOpen,
             content: (
-              <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+              <FormSection title="Categories">
                 <MasterList kind="categories" />
-              </div>
+              </FormSection>
             ),
           },
           {
@@ -189,9 +197,9 @@ function GlobalInventory() {
             shortLabel: 'Vendors',
             icon: Users,
             content: (
-              <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+              <FormSection title="Vendors">
                 <MasterList kind="vendors" />
-              </div>
+              </FormSection>
             ),
           },
         ]}
@@ -266,7 +274,7 @@ function MasterList({ kind, returnTo }: { returnTo?: string; kind: 'categories' 
           },
         ]),
     ...(kind === 'vendors' ? [{ accessorKey: 'address', header: 'Address' }] : []),
-    { accessorKey: 'isActive', header: 'Status', cell: ({ row }) => <Status active={row.original.isActive} /> },
+    { accessorKey: 'isActive', header: 'Status', cell: ({ row }) => <ActiveStatus active={row.original.isActive} /> },
     {
       id: 'actions',
       header: 'Actions',
@@ -447,7 +455,7 @@ function CategoryItems() {
         </div>
       ),
     },
-    { accessorKey: 'isActive', header: 'Status', cell: ({ row }) => <Status active={row.original.isActive} /> },
+    { accessorKey: 'isActive', header: 'Status', cell: ({ row }) => <ActiveStatus active={row.original.isActive} /> },
     {
       id: 'actions',
       header: 'Actions',
@@ -501,7 +509,7 @@ function CategoryItems() {
         </div>
       }
     >
-      <ResponsiveTabs
+      <InventoryTabs
         value={categorySearch.get('categoryTab') === 'suppliers' ? 'suppliers' : 'items'}
         onValueChange={(value) =>
           setCategorySearch((previous) => {
@@ -513,7 +521,6 @@ function CategoryItems() {
             return next
           })
         }
-        className="w-full"
         tabs={[
           {
             value: 'items',
@@ -521,7 +528,7 @@ function CategoryItems() {
             shortLabel: 'Items',
             icon: Package,
             content: (
-              <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+              <FormSection title="Inventory Items">
                 <DataTable
                   columns={columns}
                   data={items.data?.records ?? []}
@@ -582,7 +589,7 @@ function CategoryItems() {
                   sorting={state.sorting}
                   onSortingChange={state.onSortingChange}
                 />
-              </div>
+              </FormSection>
             ),
           },
           {
@@ -591,9 +598,9 @@ function CategoryItems() {
             shortLabel: 'Suppliers',
             icon: Users,
             content: (
-              <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+              <FormSection title="Suppliers">
                 <MasterList kind="vendors" returnTo={`${categoryPath(categoryId)}${search}`} />
-              </div>
+              </FormSection>
             ),
           },
         ]}

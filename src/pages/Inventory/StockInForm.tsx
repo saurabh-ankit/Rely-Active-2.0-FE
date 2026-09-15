@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils/uuid'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { ArrowDownLeft, Plus, Trash2 } from 'lucide-react'
@@ -19,7 +20,7 @@ import type { PurchaseOrder, ReceiptInput, StockTransaction } from '@/lib/types/
 import { ErrorNotice, FormField } from './shared'
 import { baseQuantity, today, quantityDisplay } from './utils'
 const newLine = () => ({
-  key: crypto.randomUUID(),
+  key: generateUUID(),
   itemId: '',
   packages: 0,
   unitCost: 0,
@@ -46,7 +47,7 @@ export function StockInForm({
   const suppliers = useCenterOptions(locationId, 'suppliers')
   const items = useCenterOptions(locationId, 'items', po || !categoryId ? {} : { categoryId })
   const mutation = useCenterMutation<StockTransaction>(locationId)
-  const [requestId] = useState(() => crypto.randomUUID())
+  const [requestId] = useState(() => generateUUID())
   const [supplierId, setSupplierId] = useState(po?.supplierId ?? '')
   const [date, setDate] = useState(today)
   const [notes, setNotes] = useState('')
@@ -73,14 +74,16 @@ export function StockInForm({
         if (!open && !mutation.isPending) onClose()
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-5xl rounded-3xl p-6 shadow-2xl border border-gray-100">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-5xl rounded-3xl p-6 shadow-2xl border border-gray-100">
         <DialogHeader className="pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-2xl bg-cyan-50 text-cyan-700 border border-cyan-100">
               <ArrowDownLeft className="w-5 h-5" />
             </div>
             <div>
-              <DialogTitle className="text-lg font-bold text-gray-900">{po ? `Stock In — ${po.poNumber}` : 'Stock In'}</DialogTitle>
+              <DialogTitle className="text-lg font-bold text-gray-900">
+                {po ? `Stock In — ${po.poNumber}` : 'Stock In'}
+              </DialogTitle>
               <DialogDescription className="text-xs text-gray-500 mt-0.5">
                 {po
                   ? 'Enter received quantities. Leave unreceived items at zero.'
@@ -90,7 +93,7 @@ export function StockInForm({
           </div>
         </DialogHeader>
         <form
-          className="flex flex-col gap-5"
+          className="flex min-w-0 flex-col gap-6"
           onSubmit={async (event) => {
             event.preventDefault()
             setError(null)

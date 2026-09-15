@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils/uuid'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { ClipboardList, Plus, Trash2 } from 'lucide-react'
@@ -34,18 +35,18 @@ export function PurchaseOrderForm({
   const suppliers = useCenterOptions(locationId, 'suppliers')
   const items = useCenterOptions(locationId, 'items', record || !categoryId ? {} : { categoryId })
   const mutation = useCenterMutation<PurchaseOrder>(locationId)
-  const [requestId] = useState(() => crypto.randomUUID())
+  const [requestId] = useState(() => generateUUID())
   const [supplierId, setSupplierId] = useState(record?.supplierId ?? '')
   const [notes, setNotes] = useState(record?.notes ?? '')
   const [error, setError] = useState<unknown>(null)
   const [lines, setLines] = useState(
     () =>
       record?.items.map((l) => ({
-        key: crypto.randomUUID(),
+        key: generateUUID(),
         itemId: l.itemId,
         packages: l.orderedQuantity / l.packQuantity,
         price: Number(l.agreedPrice),
-      })) ?? [{ key: crypto.randomUUID(), itemId: '', packages: 1, price: 0 }],
+      })) ?? [{ key: generateUUID(), itemId: '', packages: 1, price: 0 }],
   )
   const update = (index: number, patch: Partial<(typeof lines)[number]>) =>
     setLines((current) => current.map((l, i) => (i === index ? { ...l, ...patch } : l)))
@@ -60,20 +61,24 @@ export function PurchaseOrderForm({
         if (!open && !mutation.isPending) onClose()
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl rounded-3xl p-6 shadow-2xl border border-gray-100">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-4xl rounded-3xl p-6 shadow-2xl border border-gray-100">
         <DialogHeader className="pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-2xl bg-blue-50 text-blue-700 border border-blue-100">
               <ClipboardList className="w-5 h-5" />
             </div>
             <div>
-              <DialogTitle className="text-lg font-bold text-gray-900">{record ? 'Edit Purchase Order' : 'Create Purchase Order'}</DialogTitle>
-              <DialogDescription className="text-xs text-gray-500 mt-0.5">Select a vendor and the items to order.</DialogDescription>
+              <DialogTitle className="text-lg font-bold text-gray-900">
+                {record ? 'Edit Purchase Order' : 'Create Purchase Order'}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-gray-500 mt-0.5">
+                Select a vendor and the items to order.
+              </DialogDescription>
             </div>
           </div>
         </DialogHeader>
         <form
-          className="flex flex-col gap-5"
+          className="flex min-w-0 flex-col gap-6"
           onSubmit={async (event) => {
             event.preventDefault()
             setError(null)
@@ -116,7 +121,7 @@ export function PurchaseOrderForm({
                 required
                 onChange={(e) => {
                   setSupplierId(e.target.value)
-                  setLines([{ key: crypto.randomUUID(), itemId: '', packages: 1, price: 0 }])
+                  setLines([{ key: generateUUID(), itemId: '', packages: 1, price: 0 }])
                 }}
               >
                 <NativeSelectOption value="">Select vendor</NativeSelectOption>
@@ -134,9 +139,7 @@ export function PurchaseOrderForm({
               return (
                 <div key={line.key} className="rounded-2xl border border-gray-200 bg-gray-50/50 p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                      Item #{index + 1}
-                    </span>
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Item #{index + 1}</span>
                     {lines.length > 1 && (
                       <Button
                         type="button"
@@ -193,7 +196,8 @@ export function PurchaseOrderForm({
                   </div>
                   {item && (
                     <div className="rounded-xl bg-blue-50/70 border border-blue-100 px-3 py-1.5 text-xs text-blue-700 font-medium">
-                      {item.packQuantity} {item.packUnit} per {item.packType} · Stock: <span className="font-bold">{item.stockDisplay}</span>
+                      {item.packQuantity} {item.packUnit} per {item.packType} · Stock:{' '}
+                      <span className="font-bold">{item.stockDisplay}</span>
                     </div>
                   )}
                 </div>
@@ -205,7 +209,7 @@ export function PurchaseOrderForm({
               className="rounded-xl border-dashed border-[#005390]/40 text-[#005390] hover:bg-[#005390]/5 font-semibold transition cursor-pointer flex items-center justify-center gap-2 py-2.5"
               disabled={!supplierId || lines.length >= 100}
               onClick={() =>
-                setLines((current) => [...current, { key: crypto.randomUUID(), itemId: '', packages: 1, price: 0 }])
+                setLines((current) => [...current, { key: generateUUID(), itemId: '', packages: 1, price: 0 }])
               }
             >
               <Plus className="w-4 h-4" />
@@ -224,10 +228,20 @@ export function PurchaseOrderForm({
           </div>
           {(error || suppliers.error || items.error) && <ErrorNotice error={error || suppliers.error || items.error} />}
           <DialogFooter className="border-t border-gray-100 pt-4 flex items-center justify-end gap-2">
-            <Button type="button" variant="outline" className="rounded-xl border-gray-200 cursor-pointer" onClick={onClose} disabled={mutation.isPending}>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl border-gray-200 cursor-pointer"
+              onClick={onClose}
+              disabled={mutation.isPending}
+            >
               Cancel
             </Button>
-            <Button type="submit" className="bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer" disabled={mutation.isPending || items.isPending || suppliers.isPending}>
+            <Button
+              type="submit"
+              className="bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer"
+              disabled={mutation.isPending || items.isPending || suppliers.isPending}
+            >
               {mutation.isPending ? 'Saving…' : record ? 'Save Changes' : 'Create Purchase Order'}
             </Button>
           </DialogFooter>

@@ -22,7 +22,7 @@ export function InventoryPage({
   children: ReactNode
 }) {
   return (
-    <div className="space-y-6 pb-10">
+    <div className="w-full min-w-0 space-y-6 pb-10">
       <button
         type="button"
         onClick={onBack}

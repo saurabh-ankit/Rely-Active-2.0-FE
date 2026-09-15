@@ -117,7 +117,7 @@ export function FormActions({
   disabled?: boolean
 }) {
   return (
-    <div className="flex justify-end gap-2">
+    <div className="flex flex-col-reverse gap-2 rounded-xl border bg-muted/50 p-4 sm:flex-row sm:justify-end">
       <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
         Cancel
       </Button>

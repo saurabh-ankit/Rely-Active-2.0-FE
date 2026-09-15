@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
@@ -11,6 +11,7 @@ import { ItemEditor } from './ItemFormPage'
 import type { InventoryCategory, InventoryItem, InventoryPackageOptions } from '@/lib/types/inventory'
 vi.mock('@/lib/services/inventoryService')
 vi.mock('@/lib/services/propertyService')
+vi.mock('@/hooks/use-mobile', () => ({ useIsMobile: () => false }))
 const categoryId = '00000000-0000-4000-8000-000000000001'
 const locationId = '00000000-0000-4000-8000-000000000004'
 const locationOptions = [{ id: locationId, name: 'Alpha' }]
@@ -149,7 +150,7 @@ describe('inventory forms and query refresh', () => {
     await user.type(await screen.findByLabelText('Item Name *'), 'Cleaner')
     await user.selectOptions(screen.getByLabelText('Package Type *'), 'bottle')
     await user.selectOptions(screen.getByLabelText('Pack Unit *'), 'ml')
-    await user.click(screen.getByRole('checkbox', { name: 'Alpha' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Alpha' }))
     await user.click(screen.getByRole('button', { name: 'Save' }))
     expect(await screen.findByText('This field is required')).toBeInTheDocument()
     expect(service.saveInventory).not.toHaveBeenCalled()
@@ -314,7 +315,7 @@ describe('shared item thresholds', () => {
     await user.type(screen.getByLabelText('Item Name *'), 'Tablets')
     await user.selectOptions(screen.getByLabelText('Package Type *'), 'strip')
     await user.selectOptions(screen.getByLabelText('Pack Unit *'), 'tablet')
-    await user.click(screen.getByRole('checkbox', { name: 'Alpha' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Alpha' }))
     for (const [label, value] of [
       ['Pack Quantity *', '10'],
       ['Min Quantity (strip) *', '3'],

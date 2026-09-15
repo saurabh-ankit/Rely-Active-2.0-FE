@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils/uuid'
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -93,7 +94,7 @@ export function AssignItemsForm({
   const [lines, setLines] = useState<{ item: CenterItem; quantity: number }[]>([])
   const [date, setDate] = useState(today)
   const [notes, setNotes] = useState('')
-  const [requestId, setRequestId] = useState(() => crypto.randomUUID())
+  const [requestId, setRequestId] = useState(() => generateUUID())
   const categories = useCenterOptions(locationId, 'categories')
   const items = useCenterOptions(locationId, 'items', category ? { categoryId: category } : {})
   const mutation = useCenterMutation<StockTransaction>(locationId)
@@ -144,7 +145,7 @@ export function AssignItemsForm({
   })
   const currentPreview = debounced === payload ? preview.data : undefined
   const edit = () => {
-    setRequestId(crypto.randomUUID())
+    setRequestId(generateUUID())
     mutation.reset()
   }
   const busy = mutation.isPending
@@ -155,7 +156,7 @@ export function AssignItemsForm({
         if (!open && !busy) onClose()
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl rounded-3xl p-6 shadow-2xl border border-gray-100">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-5xl rounded-3xl p-6 shadow-2xl border border-gray-100">
         <DialogHeader className="pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100">
@@ -164,7 +165,8 @@ export function AssignItemsForm({
             <div>
               <DialogTitle className="text-lg font-bold text-gray-900">Assign Items</DialogTitle>
               <DialogDescription className="text-xs text-gray-500 mt-0.5">
-                Assign center stock to a resident or staff member. MRP amounts use the oldest received stock first (FIFO).
+                Assign center stock to a resident or staff member. MRP amounts use the oldest received stock first
+                (FIFO).
               </DialogDescription>
             </div>
           </div>
@@ -185,7 +187,7 @@ export function AssignItemsForm({
               },
             )
           }}
-          className="flex flex-col gap-5 pt-2"
+          className="flex min-w-0 flex-col gap-6 pt-2"
         >
           <fieldset disabled={busy} className="min-w-0">
             <FieldGroup>
@@ -227,7 +229,10 @@ export function AssignItemsForm({
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <FormField id="assignment-recipient" label={recipientType === 'resident' ? 'Resident *' : 'Staff user *'}>
+                <FormField
+                  id="assignment-recipient"
+                  label={recipientType === 'resident' ? 'Resident *' : 'Staff user *'}
+                >
                   <Picker
                     id="assignment-recipient"
                     items={recipients.data ?? []}
@@ -269,7 +274,11 @@ export function AssignItemsForm({
                 <FormField id="assignment-item" label="Add item">
                   <Picker
                     id="assignment-item"
-                    items={items.data?.filter((i) => i.isActive && i.quantity > 0 && !lines.some((l) => l.item.id === i.id)) ?? []}
+                    items={
+                      items.data?.filter(
+                        (i) => i.isActive && i.quantity > 0 && !lines.some((l) => l.item.id === i.id),
+                      ) ?? []
+                    }
                     value={null}
                     onChange={(item) => {
                       if (item) {
@@ -337,15 +346,15 @@ export function AssignItemsForm({
                                   edit()
                                   setLines((previous) =>
                                     previous.map((l) =>
-                                      l.item.id === line.item.id ? { ...l, quantity: Number(e.target.value) * step } : l,
+                                      l.item.id === line.item.id
+                                        ? { ...l, quantity: Number(e.target.value) * step }
+                                        : l,
                                     ),
                                   )
                                 }}
                                 className="rounded-xl border-gray-200 text-xs w-28 h-9"
                               />
-                              {invalid && (
-                                <p className="text-destructive text-xs mt-1">Enter a valid quantity.</p>
-                              )}
+                              {invalid && <p className="text-destructive text-xs mt-1">Enter a valid quantity.</p>}
                             </FormField>
                           </TableCell>
                           <TableCell className="font-medium">
@@ -356,7 +365,9 @@ export function AssignItemsForm({
                                   line.item,
                                 )}
                           </TableCell>
-                          <TableCell className="font-semibold text-gray-900">{estimate ? money(estimate.mrpAmount) : '—'}</TableCell>
+                          <TableCell className="font-semibold text-gray-900">
+                            {estimate ? money(estimate.mrpAmount) : '—'}
+                          </TableCell>
                           <TableCell>
                             <Button
                               type="button"
@@ -409,7 +420,13 @@ export function AssignItemsForm({
             </div>
           </div>
           <DialogFooter className="pt-2 border-t border-gray-100 gap-2 sm:gap-0">
-            <Button type="button" variant="outline" className="rounded-xl border-gray-200 cursor-pointer" disabled={busy} onClick={onClose}>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl border-gray-200 cursor-pointer"
+              disabled={busy}
+              onClick={onClose}
+            >
               Cancel
             </Button>
             <Button

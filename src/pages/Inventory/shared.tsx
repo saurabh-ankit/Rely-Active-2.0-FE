@@ -3,7 +3,7 @@ import { errorMessage } from './utils'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { InventoryStatus } from '@/components/inventory/InventoryStatus'
 import { poStatusLabels, type POStatus } from '@/lib/types/centerInventory'
 export function ErrorNotice({ error, retry }: { error: unknown; retry?: () => void }) {
   return (
@@ -21,10 +21,10 @@ export function ErrorNotice({ error, retry }: { error: unknown; retry?: () => vo
 }
 export function Section({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
   return (
-    <Card>
+    <Card className="min-w-0 [--card-spacing:--spacing(6)]">
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle>{title}</CardTitle>
+          <CardTitle className="text-lg font-semibold">{title}</CardTitle>
           {action}
         </div>
       </CardHeader>
@@ -43,13 +43,15 @@ export function FormField({ label, id, children }: { label: string; id: string; 
   )
 }
 export function Status({ status }: { status: POStatus }) {
-  return (
-    <Badge
-      variant={
-        status === 'cancelled' || status === 'rejected' ? 'destructive' : status === 'draft' ? 'outline' : 'secondary'
-      }
-    >
-      {poStatusLabels[status]}
-    </Badge>
-  )
+  const tone = {
+    draft: 'neutral',
+    approval_pending: 'amber',
+    pending: 'amber',
+    partially_received: 'amber',
+    approved: 'blue',
+    received: 'green',
+    rejected: 'red',
+    cancelled: 'red',
+  } as const
+  return <InventoryStatus tone={tone[status]}>{poStatusLabels[status]}</InventoryStatus>
 }

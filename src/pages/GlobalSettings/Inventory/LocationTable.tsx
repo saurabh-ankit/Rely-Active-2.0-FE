@@ -46,7 +46,7 @@ export function LocationTable({ options }: { options: LocationOption[] }) {
                   header: 'Assigned',
                   cell: ({ row }) => (
                     <Checkbox
-                      aria-label={`Assign ${row.original.name}`}
+                      aria-label={row.original.name}
                       checked={selected.includes(row.original.id)}
                       disabled={row.original.disabled && !selected.includes(row.original.id)}
                       onCheckedChange={(checked) =>

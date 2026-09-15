@@ -60,13 +60,13 @@ export function PODetail({
     }
   }
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex min-w-0 flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <Button variant="ghost" onClick={onBack}>
             Back
           </Button>
-          <h2 className="text-xl font-semibold">{po.poNumber}</h2>
+          <h2 className="break-words text-xl font-semibold text-gray-900">{po.poNumber}</h2>
           <Status status={po.status} />
         </div>
         <div className="flex flex-wrap gap-2">
@@ -106,7 +106,7 @@ export function PODetail({
           ].map(([label, value]) => (
             <div key={label}>
               <dt className="text-sm text-muted-foreground">{label}</dt>
-              <dd>{value}</dd>
+              <dd className="mt-1 break-words font-medium">{value}</dd>
             </div>
           ))}
         </dl>
@@ -201,7 +201,12 @@ export function PODetail({
             </DialogHeader>
             {mutation.error && <ErrorNotice error={mutation.error} />}
             <DialogFooter className="border-t border-gray-100 pt-4 flex items-center justify-end gap-2">
-              <Button variant="outline" className="rounded-xl border-gray-200 cursor-pointer" disabled={mutation.isPending} onClick={() => setModal(null)}>
+              <Button
+                variant="outline"
+                className="rounded-xl border-gray-200 cursor-pointer"
+                disabled={mutation.isPending}
+                onClick={() => setModal(null)}
+              >
                 Keep Order
               </Button>
               <Button
@@ -247,12 +252,12 @@ export function TransactionDetail({
   if (query.isError) return <ErrorNotice error={query.error} retry={() => void query.refetch()} />
   const record = query.data
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex min-w-0 flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="ghost" onClick={onBack}>
           Back
         </Button>
-        <h2 className="text-xl font-semibold">{record.transactionNumber}</h2>
+        <h2 className="break-words text-xl font-semibold text-gray-900">{record.transactionNumber}</h2>
       </div>
       <Section title="Transaction Information">
         <dl className="grid gap-4 sm:grid-cols-3">
@@ -272,12 +277,12 @@ export function TransactionDetail({
           ].map(([label, value]) => (
             <div key={label}>
               <dt className="text-sm text-muted-foreground">{label}</dt>
-              <dd>{value}</dd>
+              <dd className="mt-1 break-words font-medium">{value}</dd>
             </div>
           ))}
           <div>
             <dt className="text-sm text-muted-foreground">Purchase Order</dt>
-            <dd>
+            <dd className="mt-1 break-words font-medium">
               {record.purchaseOrderId ? (
                 <Button variant="link" onClick={() => onPO(record.purchaseOrderId!)}>
                   {record.poNumber}
@@ -346,13 +351,13 @@ export function ItemDetail({
   if (!item) return null
   if (modal === 'edit') return <CenterItemEditor locationId={locationId} id={id} onClose={() => setModal(null)} />
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex min-w-0 flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <Button variant="ghost" onClick={onBack}>
             Back
           </Button>
-          <h2 className="text-xl font-semibold">{item.name}</h2>
+          <h2 className="break-words text-xl font-semibold text-gray-900">{item.name}</h2>
         </div>
         <div className="flex flex-wrap gap-2">
           {access.update && (
@@ -387,7 +392,7 @@ export function ItemDetail({
           ].map(([label, value], index) => (
             <div key={`${label}-${index}`}>
               <dt className="text-sm text-muted-foreground">{label}</dt>
-              <dd>{value}</dd>
+              <dd className="mt-1 break-words font-medium">{value}</dd>
             </div>
           ))}
         </dl>
@@ -465,12 +470,14 @@ function ItemSettings({
               <DialogTitle className="text-lg font-bold text-gray-900">
                 Manage {mode === 'suppliers' ? 'Vendors' : 'Thresholds'} — {item.name}
               </DialogTitle>
-              <DialogDescription className="text-xs text-gray-500 mt-0.5">Changes apply to the selected property.</DialogDescription>
+              <DialogDescription className="text-xs text-gray-500 mt-0.5">
+                Changes apply to the selected property.
+              </DialogDescription>
             </div>
           </div>
         </DialogHeader>
         <form
-          className="flex flex-col gap-5"
+          className="flex min-w-0 flex-col gap-6"
           onSubmit={async (event) => {
             event.preventDefault()
             try {
@@ -491,7 +498,10 @@ function ItemSettings({
               ? suppliers.data
                   ?.filter((s) => s.isActive || supplierIds.includes(s.id))
                   .map((s) => (
-                    <label key={s.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50/50 hover:bg-gray-100/50 cursor-pointer transition">
+                    <label
+                      key={s.id}
+                      className="flex min-w-0 items-center gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50/50 hover:bg-gray-100/50 cursor-pointer transition"
+                    >
                       <Checkbox
                         checked={supplierIds.includes(s.id)}
                         onCheckedChange={(checked) =>
@@ -523,10 +533,20 @@ function ItemSettings({
           </FieldGroup>
           {(mutation.error || suppliers.error) && <ErrorNotice error={mutation.error || suppliers.error} />}
           <DialogFooter className="border-t border-gray-100 pt-4 flex items-center justify-end gap-2">
-            <Button type="button" variant="outline" className="rounded-xl border-gray-200 cursor-pointer" disabled={mutation.isPending} onClick={onClose}>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl border-gray-200 cursor-pointer"
+              disabled={mutation.isPending}
+              onClick={onClose}
+            >
               Cancel
             </Button>
-            <Button type="submit" className="bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer" disabled={mutation.isPending || (mode === 'suppliers' && suppliers.isPending)}>
+            <Button
+              type="submit"
+              className="bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer"
+              disabled={mutation.isPending || (mode === 'suppliers' && suppliers.isPending)}
+            >
               {mutation.isPending ? 'Saving…' : 'Save Changes'}
             </Button>
           </DialogFooter>
