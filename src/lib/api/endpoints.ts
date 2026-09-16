@@ -299,6 +299,17 @@ export const API_ENDPOINTS = {
     listByLocation: `${BASE_URL}/location/:locationId/global-services`,
   },
 
+  specializations: {
+    list: `${BASE_URL}/specializations`,
+    create: `${BASE_URL}/specializations`,
+    getById: (id: string) => `${BASE_URL}/specializations/${id}`,
+    update: (id: string) => `${BASE_URL}/specializations/${id}`,
+    updateStatus: (id: string) => `${BASE_URL}/specializations/${id}/status`,
+    delete: (id: string) => `${BASE_URL}/specializations/${id}`,
+    doctors: (id: string) => `${BASE_URL}/specializations/${id}/doctors`,
+    doctorSpecializations: (userId: string) => `${BASE_URL}/specializations/doctors/${userId}`,
+  },
+
   eventManagement: {
     createVenue: `${BASE_URL}/location/:locationId/venues`,
     listVenues: `${BASE_URL}/location/:locationId/venues`,

@@ -18,6 +18,7 @@ import {
   Plus,
   Shield,
   ShieldCheck,
+  Stethoscope,
   User,
   UserCheck,
   UserPlus,
@@ -38,6 +39,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { notifyError, notifySuccess } from '@/utils/toast'
+import { getSpecializationsAPI, type Specialization } from '@/lib/services/specializationService'
 import { RoleModuleManagement } from './RoleModuleManagement'
 
 const ROLE_HIERARCHY_ORDER: Record<string, number> = {
@@ -153,6 +155,10 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
   const { data: availableProperties = [] } = usePropertiesQuery()
 
   const createUserMutation = useCreateUserMutation()
+  const [specializations, setSpecializations] = useState<Specialization[]>([])
+  const [selectedSpecializationIds, setSelectedSpecializationIds] = useState<string[]>([])
+  const [primarySpecializationId, setPrimarySpecializationId] = useState<string>('')
+  const [specializationError, setSpecializationError] = useState<string | null>(null)
   const updateUserMutation = useUpdateUserMutation()
   const updateUserPropertiesMutation = useUpdateUserPropertiesMutation()
 
@@ -280,6 +286,36 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
   }, [selectedRoleCode, medDepartment, selectedDepartmentId, selectedJobCategoryId, setValue])
 
   useEffect(() => {
+    if (!isDoctorRole || specializations.length > 0) return
+    let ignore = false
+    const load = async () => {
+      try {
+        const data = await getSpecializationsAPI({ isActive: true })
+        if (!ignore) setSpecializations(data)
+      } catch {
+        if (!ignore) notifyError('Could not load specializations')
+      }
+    }
+    load()
+    return () => {
+      ignore = true
+    }
+  }, [isDoctorRole, specializations.length])
+
+  const toggleSpecialization = (id: string) => {
+    setSpecializationError(null)
+    setSelectedSpecializationIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+      setPrimarySpecializationId((currentPrimary) => {
+        if (next.length === 0) return ''
+        if (!currentPrimary || !next.includes(currentPrimary)) return next[0] as string
+        return currentPrimary
+      })
+      return next
+    })
+  }
+
+  useEffect(() => {
     if (!isMultiPropertyRole && selectedPropertyIds.size > 1) {
       const timer = setTimeout(() => {
         const firstId = Array.from(selectedPropertyIds)[0]
@@ -328,6 +364,12 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
       userLoc?.manager_id ||
       (userLoc?.manager as { id?: string } | undefined)?.id ||
       '') as string
+    const userSpecializations = ((u as unknown as { specializations?: Array<{ id: string; isPrimary?: boolean }> })
+      .specializations || []) as Array<{ id: string; isPrimary?: boolean }>
+    setSelectedSpecializationIds(userSpecializations.map((sp) => sp.id))
+    setPrimarySpecializationId(userSpecializations.find((sp) => sp.isPrimary)?.id || userSpecializations[0]?.id || '')
+    setSpecializationError(null)
+
     setValue('selectedRoleCode', firstRole)
     setValue('selectedDepartmentId', firstDept)
     setValue('selectedJobCategoryId', firstJobCat)
@@ -450,6 +492,16 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
 
     setPropertySelectionError(null)
 
+    const isDoctorSubmission = (values.selectedRoleCode || '').toUpperCase() === 'DOCTOR'
+    if (isDoctorSubmission && selectedSpecializationIds.length === 0) {
+      const msg = 'Select at least one specialization for a Doctor.'
+      setSpecializationError(msg)
+      setErrorMsg(msg)
+      notifyError('Validation Error', msg)
+      return
+    }
+    setSpecializationError(null)
+
     try {
       const payload = {
         username: values.username?.trim() || undefined,
@@ -476,6 +528,13 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
           : undefined,
         managerId: values.selectedManagerId || undefined,
         propertyIds: propertyIdsToSave,
+        // Doctors carry their specializations in the same request.
+        ...(isDoctorSubmission
+          ? {
+              specializationIds: selectedSpecializationIds,
+              primarySpecializationId: primarySpecializationId || selectedSpecializationIds[0],
+            }
+          : {}),
       }
 
       console.log('[FE AdminUserManagement] Submitting unified form payload:', payload)
@@ -799,6 +858,71 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                       )}
                     </div>
                   </div>
+
+                  {isDoctorRole && (
+                    <div className="mt-5">
+                      <span className="block text-xs font-semibold text-gray-700 mb-1.5">
+                        Specializations <span className="text-red-500 font-bold">*</span>
+                      </span>
+                      <p className="text-[11px] text-gray-500 mb-2.5">
+                        Used to match this doctor to residents and appointment slots. Manage the list in Global Settings
+                        → Doctor Specializations.
+                      </p>
+
+                      {specializations.length === 0 ? (
+                        <p className="text-xs text-gray-500 italic">No active specializations available.</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {specializations.map((sp) => {
+                            const selected = selectedSpecializationIds.includes(sp.id)
+                            return (
+                              <button
+                                type="button"
+                                key={sp.id}
+                                onClick={() => toggleSpecialization(sp.id)}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors cursor-pointer ${
+                                  selected
+                                    ? 'bg-[#005390] border-[#005390] text-white'
+                                    : 'bg-white border-gray-200 text-gray-700 hover:border-[#005390]'
+                                }`}
+                              >
+                                <Stethoscope className="w-3.5 h-3.5" />
+                                {sp.name}
+                                {selected && <Check className="w-3.5 h-3.5" />}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+
+                      {selectedSpecializationIds.length > 1 && (
+                        <div className="mt-3 max-w-xs">
+                          <label
+                            htmlFor="primary-specialization-select"
+                            className="block text-xs font-semibold text-gray-700 mb-1.5"
+                          >
+                            Primary Specialization
+                          </label>
+                          <select
+                            id="primary-specialization-select"
+                            value={primarySpecializationId}
+                            onChange={(e) => setPrimarySpecializationId(e.target.value)}
+                            className="w-full rounded-xl border border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20 bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:outline-none focus:ring-2 font-medium shadow-2xs"
+                          >
+                            {selectedSpecializationIds.map((id) => (
+                              <option key={id} value={id}>
+                                {specializations.find((sp) => sp.id === id)?.name || id}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {specializationError && (
+                        <p className="mt-1.5 text-xs font-semibold text-red-500">{specializationError}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -93,6 +93,14 @@ export default function RootRouter() {
           }
         />
         <Route
+          path="global-settings/specializations"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="specializations" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="global-settings/global-services"
           element={
             <ProtectedRoute requireSuperAdmin>

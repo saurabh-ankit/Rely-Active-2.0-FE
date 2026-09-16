@@ -116,6 +116,9 @@ export interface CreateUserPayload {
   managerId?: string
   propertyIds?: string[]
   locIds?: string[]
+  /** Doctors only: specializations to assign with the user. */
+  specializationIds?: string[]
+  primarySpecializationId?: string
   companyId?: string
   defaultLocationId?: string
 }

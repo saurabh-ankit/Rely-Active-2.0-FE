@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Briefcase, Building2, Home, ShieldCheck, UserCheck, Utensils } from 'lucide-react'
+import { ArrowLeft, Briefcase, Building2, Home, ShieldCheck, Stethoscope, UserCheck, Utensils } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { AdminUserManagement } from './components/AdminUserManagement'
 import { ResidentListScreen } from '../Resident/components/ResidentListScreen'
@@ -9,6 +9,7 @@ import { FnbGlobalPackagesTab } from './components/FnbGlobalPackagesTab'
 import { FnbDishesMasterTab } from './components/FnbDishesMasterTab'
 import FnbGlobalMealSlotsTab from './components/FnbGlobalMealSlotsTab'
 import { GlobalServicesTab } from './components/GlobalServicesTab'
+import { SpecializationsTab } from './components/SpecializationsTab'
 
 interface SettingItem {
   id: string
@@ -53,6 +54,13 @@ const accessSettings: SettingItem[] = [
 ]
 
 const servicesSettings: SettingItem[] = [
+  {
+    id: 'specializations',
+    name: 'Doctor Specializations',
+    description: 'Manage the specializations used when assigning doctors to residents and booking appointment slots.',
+    icon: Stethoscope,
+    link: '/global-settings/specializations',
+  },
   {
     id: 'global-services',
     name: 'Event Global Services',
@@ -101,6 +109,7 @@ interface GlobalSettingsPageProps {
     | 'fnb-packages'
     | 'fnb-dishes'
     | 'global-services'
+    | 'specializations'
 }
 
 export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSettingsPageProps) {
@@ -174,6 +183,21 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
         </button>
         <FnbDishesMasterTab />
+      </div>
+    )
+  }
+
+  if (activeView === 'specializations') {
+    return (
+      <div className="space-y-6 pb-10">
+        <button
+          type="button"
+          onClick={() => navigate('/global-settings')}
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+        </button>
+        <SpecializationsTab />
       </div>
     )
   }
