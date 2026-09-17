@@ -26,7 +26,37 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
   }
 
   const handlePrint = useCallback(() => {
+    const printElement = document.getElementById('printable-invoice-content')
+    if (!printElement) {
+      window.print()
+      return
+    }
+
+    // Remove any previous print clone
+    const existing = document.getElementById('print-invoice-root')
+    if (existing) existing.remove()
+
+    // Clone the invoice content directly to body to bypass modal transforms/positioning
+    const clone = printElement.cloneNode(true) as HTMLElement
+    clone.id = 'print-invoice-root'
+    document.body.appendChild(clone)
+    document.body.classList.add('is-printing-invoice')
+
+    const cleanup = () => {
+      if (document.body.contains(clone)) {
+        clone.remove()
+      }
+      document.body.classList.remove('is-printing-invoice')
+      window.removeEventListener('afterprint', cleanup)
+    }
+
+    window.addEventListener('afterprint', cleanup)
+
+    // Trigger browser print
     window.print()
+
+    // Fallback cleanup
+    setTimeout(cleanup, 5000)
   }, [])
 
   // Intercept Ctrl+P / Cmd+P while invoice dialog is open to trigger isolated iframe print
@@ -471,7 +501,7 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
           @media print {
             @page {
               size: A4 portrait;
-              margin: 8mm 12mm;
+              margin: 10mm 12mm;
             }
             html,
             body {
@@ -485,67 +515,41 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
             }
-            #root,
-            .no-print,
-            button,
-            [data-slot="dialog-overlay"],
-            [data-slot="dialog-close"] {
+            body.is-printing-invoice > *:not(#print-invoice-root),
+            body:has(#print-invoice-root) > *:not(#print-invoice-root) {
               display: none !important;
             }
-            [data-slot="dialog-portal"] {
-              position: static !important;
+            #print-invoice-root {
               display: block !important;
-              width: 100% !important;
-              margin: 0 !important;
-              padding: 0 !important;
-            }
-            [data-slot="dialog-content"],
-            [role="dialog"] {
               position: static !important;
-              top: auto !important;
-              left: auto !important;
-              transform: none !important;
+              width: 100% !important;
               max-width: 100% !important;
-              width: 100% !important;
-              max-height: none !important;
-              height: auto !important;
-              box-shadow: none !important;
-              border: none !important;
-              border-radius: 0 !important;
-              padding: 0 !important;
               margin: 0 !important;
-              overflow: visible !important;
+              padding: 0 !important;
               background: #ffffff !important;
-            }
-            #printable-invoice-content,
-            .invoice-scroll-body {
               overflow: visible !important;
-              max-height: none !important;
               height: auto !important;
-              padding: 0 !important;
-              margin: 0 !important;
-              width: 100% !important;
-              display: block !important;
+              max-height: none !important;
             }
-            table {
+            #print-invoice-root * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              box-shadow: none !important;
+            }
+            #print-invoice-root table {
               page-break-inside: auto;
               width: 100% !important;
               border-collapse: collapse !important;
             }
-            tr {
+            #print-invoice-root tr {
               page-break-inside: avoid;
               page-break-after: auto;
             }
-            thead {
+            #print-invoice-root thead {
               display: table-header-group;
             }
-            tfoot {
+            #print-invoice-root tfoot {
               display: table-footer-group;
-            }
-            * {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              box-shadow: none !important;
             }
           }
         `}</style>
