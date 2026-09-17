@@ -44,6 +44,9 @@ export const API_ENDPOINTS = {
     delete: (id: string) => `${BASE_URL}/residents/${id}`,
     login: `${BASE_URL}/residents/auth/login`,
     billing: (id: string) => `${BASE_URL}/residents/billing/${id}`,
+    careTeam: (residentId: string) => `${BASE_URL}/residents/${residentId}/care-team`,
+    removeCareTeamMember: (residentId: string, memberId: string) =>
+      `${BASE_URL}/residents/${residentId}/care-team/${memberId}`,
   },
 
   globalRbac: {

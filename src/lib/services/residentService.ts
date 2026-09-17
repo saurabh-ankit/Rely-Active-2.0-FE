@@ -7,6 +7,39 @@ import type {
   UnitResidentsPayload,
 } from '@/lib/types/resident'
 
+// ── Care Team types (local, shared between service + hooks) ───────────────────
+export type CareTeamRole = 'DOCTOR' | 'NURSE'
+
+export interface CareTeamMember {
+  id: string
+  residentId: string
+  userId: string
+  role: CareTeamRole
+  locId: string
+  note?: string | null
+  isActive: boolean
+  user?: {
+    id: string
+    username?: string | null
+    profile?: {
+      firstName?: string
+      lastName?: string
+      photoUrl?: string | null
+      employeeCode?: string
+    }
+    userLocations?: Array<{
+      role?: { code?: string; name?: string }
+    }>
+  }
+}
+
+export interface AssignCareTeamPayload {
+  userId: string
+  role: CareTeamRole
+  locId: string
+  note?: string | null
+}
+
 export const createResidentAPI = async (payload: CreateResidentPayload): Promise<ResidentItem> => {
   const response = await api.post(API_ENDPOINTS.resident.create, payload)
   return response.data?.data || response.data
@@ -110,6 +143,25 @@ export const getResidentBillingAPI = async (
   return response.data?.data || response.data
 }
 
+// ── Care Team API functions ───────────────────────────────────────────────────
+
+export const getCareTeamAPI = async (residentId: string): Promise<CareTeamMember[]> => {
+  const response = await api.get(API_ENDPOINTS.resident.careTeam(residentId))
+  return response.data?.data || response.data
+}
+
+export const assignCareTeamMemberAPI = async (
+  residentId: string,
+  payload: AssignCareTeamPayload,
+): Promise<CareTeamMember> => {
+  const response = await api.post(API_ENDPOINTS.resident.careTeam(residentId), payload)
+  return response.data?.data || response.data
+}
+
+export const removeCareTeamMemberAPI = async (residentId: string, memberId: string): Promise<void> => {
+  await api.delete(API_ENDPOINTS.resident.removeCareTeamMember(residentId, memberId))
+}
+
 export const residentService = {
   createResident: createResidentAPI,
   getResidents: getResidentsAPI,
@@ -118,6 +170,9 @@ export const residentService = {
   updateResident: updateResidentAPI,
   deleteResident: deleteResidentAPI,
   getResidentBilling: getResidentBillingAPI,
+  getCareTeam: getCareTeamAPI,
+  assignCareTeamMember: assignCareTeamMemberAPI,
+  removeCareTeamMember: removeCareTeamMemberAPI,
 }
 
 export default residentService

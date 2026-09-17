@@ -14,7 +14,6 @@ import {
   KeyRound,
   Mail,
   Phone,
-  Plus,
   RefreshCw,
   UserCheck,
   Users,
@@ -27,6 +26,7 @@ import { ResidentFnbPackageModal } from './ResidentFnbPackageModal'
 import { useLocationContext } from '@/hooks/useLocation'
 import { AssignedTasksTab } from '@/pages/Medical/components/AssignedTasksTab'
 import { AssignCareTaskDialog } from '@/components/common/AssignCareTaskDialog'
+import { AssignCareTeamDialog } from '@/components/common/AssignCareTeamDialog'
 import { getFileUrl } from '@/lib/utils'
 
 import { fnbService } from '@/lib/services/fnbService'
@@ -74,6 +74,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   const [error, setError] = useState<string | null>(null)
   const [isFnbModalOpen, setIsFnbModalOpen] = useState<boolean>(false)
   const [isCareTaskModalOpen, setIsCareTaskModalOpen] = useState<boolean>(false)
+  const [isCareTeamModalOpen, setIsCareTeamModalOpen] = useState<boolean>(false)
 
   const [fnbSubscriptions, setFnbSubscriptions] = useState<FnbSubscriptionItem[]>([])
   const [globalMealSlots, setGlobalMealSlots] = useState<Array<{ id: string; name: string; code?: string }>>([])
@@ -281,6 +282,15 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
                 Assign Food Package
               </Button>
             )}
+
+            <Button
+              variant="secondary"
+              icon={<Users className="w-4 h-4 text-rose-500" />}
+              onClick={() => setIsCareTeamModalOpen(true)}
+              className="rounded-xl"
+            >
+              Assign Care Team
+            </Button>
 
             <Button
               variant="secondary"
@@ -722,15 +732,6 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
               <HeartPulse className="w-5 h-5 text-rose-500" />
               Assigned Care Tasks & Clinical Care
             </h2>
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<Plus className="w-4 h-4" />}
-              onClick={() => setIsCareTaskModalOpen(true)}
-              className="rounded-xl text-xs"
-            >
-              Assign New Task
-            </Button>
           </div>
 
           <AssignedTasksTab
@@ -766,6 +767,17 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
           onOpenChange={setIsCareTaskModalOpen}
           initialResidentId={resident.id}
           initialPropertyId={resident.locId || (resident as unknown as Record<string, string>).loc_id || null}
+        />
+      )}
+
+      {/* Assign Care Team Modal */}
+      {resident && (
+        <AssignCareTeamDialog
+          open={isCareTeamModalOpen}
+          onOpenChange={setIsCareTeamModalOpen}
+          residentId={resident.id}
+          residentName={fullName}
+          propertyId={resident.locId || (resident as unknown as Record<string, string>).loc_id || null}
         />
       )}
     </div>
