@@ -1599,7 +1599,7 @@ export const FlatBillingDashboard: React.FC = () => {
       {/* TAB 5: SACRED LEDGER STATEMENT */}
       {activeTab === 'ledger' && (
         <Card className="bg-white border-gray-200 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="text-xs font-bold text-gray-700 uppercase tracking-wider">
                 Chronological Sacred Ledger Statement
@@ -1608,11 +1608,21 @@ export const FlatBillingDashboard: React.FC = () => {
                 Append-only financial audit trail for Folio {folio?.accountNumber || unit.unitNumber}
               </p>
             </div>
-            <div className="text-right">
-              <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Current Balance</span>
-              <span className="font-mono font-bold text-sm text-[#005390]">
-                ₹{Number(folio?.creditBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </span>
+            <div className="flex items-center gap-4 text-right">
+              <div>
+                <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Net Outstanding Due</span>
+                <span
+                  className={`font-mono font-bold text-sm ${totalOutstanding > 0 ? 'text-rose-600' : 'text-emerald-600'}`}
+                >
+                  ₹{totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="border-l border-gray-200 pl-4">
+                <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Advance Credit</span>
+                <span className="font-mono font-bold text-sm text-emerald-600">
+                  ₹{creditBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -1647,8 +1657,55 @@ export const FlatBillingDashboard: React.FC = () => {
                           {entry.entryType}
                         </Badge>
                       </td>
-                      <td className="px-3 py-3 text-[#005390] font-semibold whitespace-nowrap">
-                        {entry.referenceId || 'N/A'}
+                      <td className="px-3 py-3 font-semibold whitespace-nowrap">
+                        {(() => {
+                          const desc = entry.description || ''
+                          const match = desc.match(/#(INV-[\w-]+|REC-[\w-]+)/i)
+                          const refCode = match ? match[1] : null
+
+                          if (refCode?.startsWith('INV-')) {
+                            const matchedInv = invoices.find((i) => i.invoiceNumber === refCode)
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (matchedInv) {
+                                    setSelectedInvoiceId(matchedInv.id)
+                                    setIsInvoiceDetailOpen(true)
+                                  } else if (entry.referenceId) {
+                                    setSelectedInvoiceId(entry.referenceId)
+                                    setIsInvoiceDetailOpen(true)
+                                  }
+                                }}
+                                className="font-mono font-bold text-[#005390] hover:underline cursor-pointer flex items-center gap-1"
+                                title="Click to view invoice"
+                              >
+                                {refCode}
+                              </button>
+                            )
+                          }
+
+                          if (refCode?.startsWith('REC-')) {
+                            return (
+                              <span className="font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-[11px]">
+                                {refCode}
+                              </span>
+                            )
+                          }
+
+                          if (
+                            entry.referenceId &&
+                            !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(entry.referenceId)
+                          ) {
+                            return <span className="font-mono text-[#005390]">{entry.referenceId}</span>
+                          }
+
+                          return (
+                            <span className="font-mono text-gray-400">
+                              {entry.referenceId ? `${entry.referenceId.slice(0, 8)}...` : 'N/A'}
+                            </span>
+                          )
+                        })()}
                       </td>
                       <td className="px-4 py-3 font-sans text-gray-800">{entry.description}</td>
                       <td className="px-3 py-3 text-right text-rose-600 whitespace-nowrap">

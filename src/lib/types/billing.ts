@@ -122,6 +122,10 @@ export interface BillingAccount {
     phone?: string
   }
   parties?: BillingParty[]
+  property?: {
+    id?: string
+    name?: string
+  }
 }
 
 export interface BillingSubscription {
@@ -244,6 +248,10 @@ export interface Invoice {
   unit?: {
     id: string
     unit_number: string
+  }
+  property?: {
+    id?: string
+    name?: string
   }
 }
 
