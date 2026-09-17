@@ -20,6 +20,24 @@ export function formatDisplayDate(date?: string | Date | null): string {
   }
 }
 
+export function formatDisplayDateTime(date?: string | Date | null): string {
+  if (!date) return '-'
+  try {
+    const d = typeof date === 'string' ? new Date(date) : date
+    if (isNaN(d.getTime())) return '-'
+    return d.toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    })
+  } catch {
+    return '-'
+  }
+}
+
 export function getFileUrl(path?: string | null): string {
   if (!path) return ''
   if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {

@@ -2,9 +2,10 @@ import React from 'react'
 import { ResidentListScreen } from './components/ResidentListScreen'
 import { OnboardResidentScreen } from './components/OnboardResidentScreen'
 import { ResidentDetailsScreen } from './components/ResidentDetailsScreen'
+import { ResidentBillingPage } from './components/ResidentBillingPage'
 
 interface ResidentPageProps {
-  initialView?: 'list' | 'create' | 'edit' | 'view'
+  initialView?: 'list' | 'create' | 'edit' | 'view' | 'billing'
 }
 
 export const ResidentPage: React.FC<ResidentPageProps> = ({ initialView = 'list' }) => {
@@ -20,7 +21,12 @@ export const ResidentPage: React.FC<ResidentPageProps> = ({ initialView = 'list'
     return <ResidentDetailsScreen isGlobalMode={false} />
   }
 
+  if (initialView === 'billing') {
+    return <ResidentBillingPage />
+  }
+
   return <ResidentListScreen />
 }
 
+export { ResidentBillingPage }
 export default ResidentPage

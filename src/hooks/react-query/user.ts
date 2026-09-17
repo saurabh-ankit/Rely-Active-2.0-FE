@@ -4,6 +4,7 @@ import {
   getUserAccessiblePropertiesAPI,
   getUserByIdAPI,
   getUsersAPI,
+  getUsersByRoleAPI,
   updateUserAPI,
   updateUserPropertiesAPI,
 } from '@/lib/services/userService'
@@ -14,6 +15,7 @@ export const USER_KEYS = {
   all: (locationId?: string | null, search?: string) => ['users', locationId || 'all', search || ''] as const,
   byId: (id?: string) => ['users', id] as const,
   accessibleProperties: ['users', 'accessible-properties'] as const,
+  byRole: (roleCodes: string[], locationId?: string | null) => ['users', 'by-role', roleCodes, locationId] as const,
 }
 
 export const useUsersQuery = (search?: string, overrideLocationId?: string | null) => {
@@ -22,6 +24,15 @@ export const useUsersQuery = (search?: string, overrideLocationId?: string | nul
   return useQuery({
     queryKey: USER_KEYS.all(locationId, search),
     queryFn: () => getUsersAPI(locationId, search),
+  })
+}
+
+/** Query only users with specific roles (e.g. Doctor, Nurse) */
+export const useUsersByRoleQuery = (roleCodes: string[], locationId?: string | null, enabled = true) => {
+  return useQuery({
+    queryKey: USER_KEYS.byRole(roleCodes, locationId),
+    queryFn: () => getUsersByRoleAPI(roleCodes, locationId),
+    enabled: enabled && roleCodes.length > 0,
   })
 }
 
