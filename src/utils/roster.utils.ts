@@ -76,10 +76,10 @@ export const assignShiftFormSchema = z
     startDate: dateYmd,
     endDate: dateYmd,
     targetType: z.enum(['area', 'unit']),
-    areaId: z.string().optional().or(z.literal('')),
-    blockId: z.string().optional().or(z.literal('')),
-    floorSelection: z.string().optional().or(z.literal('')),
-    flatSelection: z.string().optional().or(z.literal('')),
+    areaIds: z.array(z.string().uuid()),
+    blockIds: z.array(z.string().uuid()),
+    floorIds: z.array(z.string().uuid()),
+    unitIds: z.array(z.string().uuid()),
     notes: z.string().max(500).optional().or(z.literal('')),
     workingDays: z.array(z.enum(WEEK_DAYS as unknown as [WeekDay, ...WeekDay[]])),
   })
@@ -98,18 +98,18 @@ export const assignShiftFormSchema = z
         path: ['workingDays'],
       })
     }
-    if (data.targetType === 'area' && !data.areaId) {
+    if (data.targetType === 'area' && data.areaIds.length === 0) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Area is required',
-        path: ['areaId'],
+        message: 'Select at least one area',
+        path: ['areaIds'],
       })
     }
-    if (data.targetType === 'unit' && !data.blockId) {
+    if (data.targetType === 'unit' && data.blockIds.length === 0) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Block is required',
-        path: ['blockId'],
+        message: 'Select at least one block',
+        path: ['blockIds'],
       })
     }
   })
@@ -125,10 +125,10 @@ export const assignShiftFormDefaultValues: AssignShiftFormValues = {
   startDate: '',
   endDate: '',
   targetType: 'area',
-  areaId: '',
-  blockId: '',
-  floorSelection: '',
-  flatSelection: '',
+  areaIds: [],
+  blockIds: [],
+  floorIds: [],
+  unitIds: [],
   notes: '',
   workingDays: [],
 }

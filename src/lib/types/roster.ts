@@ -122,8 +122,11 @@ export interface BulkCreateEmployeeShiftPayload {
   areaId?: string | null
   areaIds?: string[]
   unitId?: string | null
+  unitIds?: string[]
   blockId?: string | null
+  blockIds?: string[]
   floorId?: string | null
+  floorIds?: string[]
   slotTimeRange?: string | null
 }
 
