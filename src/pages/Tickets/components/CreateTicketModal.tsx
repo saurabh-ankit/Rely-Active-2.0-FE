@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { X, Loader2, Building2, Home, Mic, Square, Play, Pause, Trash2, Volume2, Paperclip } from 'lucide-react'
+import { Loader2, Building2, Home, Mic, Square, Play, Pause, Trash2, Volume2, Paperclip, X } from 'lucide-react'
 import { z } from 'zod'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import apiClient from '@/lib/api/axios'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import type { TicketPriority } from '@/lib/types'
@@ -413,22 +414,14 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h2 className="text-xl font-extrabold text-gray-900">Add Ticket</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-xl max-h-[90vh] p-0 rounded-2xl bg-white border border-gray-100 shadow-2xl overflow-hidden flex flex-col">
+        <DialogHeader className="p-6 pb-4 border-b border-gray-100 shrink-0">
+          <DialogTitle className="text-xl font-extrabold text-gray-900">Add Ticket</DialogTitle>
+        </DialogHeader>
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[85vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-6 pt-4 space-y-5 overflow-y-auto flex-1 pr-5">
           {errorMsg && (
             <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs font-semibold text-rose-700">
               {errorMsg}
@@ -772,11 +765,18 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
           </div>
 
           {/* Create CTA Button (Fully enabled & vibrant with inline validation on click) */}
-          <div className="pt-3">
+          <div className="pt-3 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors"
+            >
+              Cancel
+            </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-36 py-3 bg-[#005390] hover:bg-[#004273] active:scale-98 text-white font-extrabold text-sm rounded-xl transition-all cursor-pointer shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+              className="px-6 py-2.5 bg-[#005390] hover:bg-[#004273] active:scale-98 text-white font-extrabold text-xs rounded-xl transition-all cursor-pointer shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>
@@ -788,7 +788,7 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
