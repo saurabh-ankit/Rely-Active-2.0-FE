@@ -137,3 +137,90 @@ body {
     @apply font-sans;
   }
 }
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm 12mm;
+  }
+
+  /* When an invoice dialog is present in the DOM */
+  body:has(#printable-invoice-content) {
+    background: #ffffff !important;
+    color: #111827 !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body:has(#printable-invoice-content) #root,
+  body:has(#printable-invoice-content) .no-print,
+  body:has(#printable-invoice-content) button,
+  body:has(#printable-invoice-content) [data-slot='dialog-overlay'],
+  body:has(#printable-invoice-content) [data-slot='dialog-close'] {
+    display: none !important;
+  }
+
+  body:has(#printable-invoice-content) [data-slot='dialog-portal'] {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body:has(#printable-invoice-content) [data-slot='dialog-content'],
+  body:has(#printable-invoice-content) [role='dialog'] {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  body:has(#printable-invoice-content) #printable-invoice-content,
+  body:has(#printable-invoice-content) .invoice-scroll-body {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    display: block !important;
+  }
+
+  table {
+    page-break-inside: auto;
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  thead {
+    display: table-header-group;
+  }
+  tfoot {
+    display: table-footer-group;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-shadow: none !important;
+  }
+}

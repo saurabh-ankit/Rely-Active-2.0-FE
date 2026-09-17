@@ -26,99 +26,8 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
   }
 
   const handlePrint = useCallback(() => {
-    const printElement = document.getElementById('printable-invoice-content')
-    if (!printElement) {
-      window.print()
-      return
-    }
-
-    // Create an invisible iframe to isolate the invoice for clean, unclipped printing
-    const iframe = document.createElement('iframe')
-    iframe.style.position = 'fixed'
-    iframe.style.right = '0'
-    iframe.style.bottom = '0'
-    iframe.style.width = '0'
-    iframe.style.height = '0'
-    iframe.style.border = '0'
-    iframe.setAttribute('aria-hidden', 'true')
-    document.body.appendChild(iframe)
-
-    const doc = iframe.contentWindow?.document
-    if (!doc) return
-
-    // Extract all styles and links from the parent document so Tailwind CSS classes apply
-    let stylesHtml = ''
-    document.querySelectorAll('link[rel="stylesheet"], style').forEach((node) => {
-      stylesHtml += node.outerHTML
-    })
-
-    doc.open()
-    doc.write(`
-      <!DOCTYPE html>
-      <html lang="en">
-        <head>
-          <title>${invoice?.invoiceNumber || 'Tax Invoice'}</title>
-          <meta charset="utf-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          ${stylesHtml}
-          <style>
-            @page {
-              size: A4 portrait;
-              margin: 12mm 14mm;
-            }
-            body {
-              background: #ffffff !important;
-              color: #111827 !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            }
-            * {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              box-shadow: none !important;
-            }
-            .no-print {
-              display: none !important;
-            }
-            table {
-              page-break-inside: auto;
-              width: 100% !important;
-            }
-            tr {
-              page-break-inside: avoid;
-              page-break-after: auto;
-            }
-            thead {
-              display: table-header-group;
-            }
-            tfoot {
-              display: table-footer-group;
-            }
-          </style>
-        </head>
-        <body class="bg-white text-gray-900">
-          <div class="p-1 space-y-6">
-            ${printElement.innerHTML}
-          </div>
-        </body>
-      </html>
-    `)
-    doc.close()
-
-    // Wait for iframe styles and fonts to settle, then invoke print
-    setTimeout(() => {
-      iframe.contentWindow?.focus()
-      iframe.contentWindow?.print()
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe)
-        }
-      }, 1500)
-    }, 250)
-  }, [invoice])
+    window.print()
+  }, [])
 
   // Intercept Ctrl+P / Cmd+P while invoice dialog is open to trigger isolated iframe print
   useEffect(() => {
@@ -557,23 +466,47 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
           </div>
         </div>
 
-        {/* PRINT CSS FOR BROWSER PRINT FALLBACK (CTRL+P) */}
+        {/* PRINT CSS FOR CLEAN FULL-PAGE PRINTING */}
         <style>{`
           @media print {
+            @page {
+              size: A4 portrait;
+              margin: 8mm 12mm;
+            }
+            html,
             body {
+              background: #ffffff !important;
+              color: #111827 !important;
               overflow: visible !important;
               height: auto !important;
+              min-height: 0 !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
-            body > *:not([data-radix-portal]) {
+            #root,
+            .no-print,
+            button,
+            [data-slot="dialog-overlay"],
+            [data-slot="dialog-close"] {
               display: none !important;
             }
-            [data-radix-portal] > div:first-child {
-              display: none !important;
+            [data-slot="dialog-portal"] {
+              position: static !important;
+              display: block !important;
+              width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
             }
+            [data-slot="dialog-content"],
             [role="dialog"] {
               position: static !important;
+              top: auto !important;
+              left: auto !important;
               transform: none !important;
               max-width: 100% !important;
+              width: 100% !important;
               max-height: none !important;
               height: auto !important;
               box-shadow: none !important;
@@ -582,16 +515,37 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
               padding: 0 !important;
               margin: 0 !important;
               overflow: visible !important;
+              background: #ffffff !important;
             }
-            .no-print,
-            button[aria-label="Close"] {
-              display: none !important;
-            }
-            #printable-invoice-content {
+            #printable-invoice-content,
+            .invoice-scroll-body {
               overflow: visible !important;
               max-height: none !important;
               height: auto !important;
-              padding: 10mm !important;
+              padding: 0 !important;
+              margin: 0 !important;
+              width: 100% !important;
+              display: block !important;
+            }
+            table {
+              page-break-inside: auto;
+              width: 100% !important;
+              border-collapse: collapse !important;
+            }
+            tr {
+              page-break-inside: avoid;
+              page-break-after: auto;
+            }
+            thead {
+              display: table-header-group;
+            }
+            tfoot {
+              display: table-footer-group;
+            }
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              box-shadow: none !important;
             }
           }
         `}</style>
