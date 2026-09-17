@@ -26,6 +26,7 @@ import {
   Tag,
   User,
   Utensils,
+  Wrench,
   Zap,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -990,7 +991,12 @@ export const FlatBillingDashboard: React.FC = () => {
                                     ? 'bg-rose-50 text-rose-600'
                                     : ev.sourceModule === 'FNB'
                                       ? 'bg-amber-50 text-amber-600'
-                                      : 'bg-blue-50 text-blue-600'
+                                      : ev.sourceModule === 'ACTIVITY'
+                                        ? 'bg-emerald-50 text-emerald-600'
+                                        : ev.description?.toLowerCase().includes('maintenance') ||
+                                            ev.description?.toLowerCase().includes('repair')
+                                          ? 'bg-orange-50 text-orange-600'
+                                          : 'bg-blue-50 text-blue-600'
                               }`}
                             >
                               {ev.sourceModule === 'INVENTORY' ? (
@@ -999,6 +1005,11 @@ export const FlatBillingDashboard: React.FC = () => {
                                 <HeartPulse className="w-3.5 h-3.5" />
                               ) : ev.sourceModule === 'FNB' ? (
                                 <Utensils className="w-3.5 h-3.5" />
+                              ) : ev.sourceModule === 'ACTIVITY' ? (
+                                <Calendar className="w-3.5 h-3.5" />
+                              ) : ev.description?.toLowerCase().includes('maintenance') ||
+                                ev.description?.toLowerCase().includes('repair') ? (
+                                <Wrench className="w-3.5 h-3.5" />
                               ) : (
                                 <Zap className="w-3.5 h-3.5" />
                               )}
@@ -1016,10 +1027,20 @@ export const FlatBillingDashboard: React.FC = () => {
                                         ? 'text-rose-600'
                                         : ev.sourceModule === 'FNB'
                                           ? 'text-amber-600'
-                                          : 'text-gray-500'
+                                          : ev.sourceModule === 'ACTIVITY'
+                                            ? 'text-emerald-600'
+                                            : ev.description?.toLowerCase().includes('maintenance') ||
+                                                ev.description?.toLowerCase().includes('repair')
+                                              ? 'text-orange-600'
+                                              : 'text-gray-500'
                                   }`}
                                 >
-                                  {ev.sourceModule}
+                                  {ev.sourceModule === 'ACTIVITY'
+                                    ? 'EVENT'
+                                    : ev.description?.toLowerCase().includes('maintenance') ||
+                                        ev.description?.toLowerCase().includes('repair')
+                                      ? 'MAINTENANCE'
+                                      : ev.sourceModule}
                                 </span>
                               </div>
                             </div>
@@ -1501,10 +1522,20 @@ export const FlatBillingDashboard: React.FC = () => {
                                 ? 'bg-rose-50 text-rose-700 border-rose-200'
                                 : ev.sourceModule === 'FNB'
                                   ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                  : 'bg-slate-50 text-slate-700 border-slate-200'
+                                  : ev.sourceModule === 'ACTIVITY'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : ev.description?.toLowerCase().includes('maintenance') ||
+                                        ev.description?.toLowerCase().includes('repair')
+                                      ? 'bg-orange-50 text-orange-700 border-orange-200'
+                                      : 'bg-slate-50 text-slate-700 border-slate-200'
                           }`}
                         >
-                          {ev.sourceModule}
+                          {ev.sourceModule === 'ACTIVITY'
+                            ? 'EVENT'
+                            : ev.description?.toLowerCase().includes('maintenance') ||
+                                ev.description?.toLowerCase().includes('repair')
+                              ? 'MAINTENANCE'
+                              : ev.sourceModule}
                         </Badge>
                       </td>
                       <td className="px-4 py-3 font-medium text-gray-900">{ev.description}</td>
