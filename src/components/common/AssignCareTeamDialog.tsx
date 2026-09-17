@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Loader2, UserCheck, Stethoscope, Heart, Search, Trash2, AlertTriangle } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
 import { toast } from 'sonner'
@@ -144,7 +145,7 @@ const AssignCareTeamContent: React.FC<{
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-white/40 bg-white shadow-2xl dark:border-gray-800 dark:bg-slate-900 flex flex-col max-h-[90vh]">
+    <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-white/40 bg-white shadow-2xl dark:border-gray-800 dark:bg-slate-900 flex flex-col max-h-[90vh] my-auto animate-in zoom-in-95 duration-200">
       {/* Header */}
       <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
         <div className="flex items-center gap-3">
@@ -474,17 +475,27 @@ export const AssignCareTeamDialog: React.FC<AssignCareTeamDialogProps> = ({
 }) => {
   if (!open) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <AssignCareTeamContent
-        key={residentId}
-        onClose={() => onOpenChange(false)}
-        residentId={residentId}
-        residentName={residentName}
-        propertyId={propertyId}
-        onSuccess={onSuccess}
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+      <button
+        type="button"
+        aria-label="Close dialog backdrop"
+        tabIndex={-1}
+        className="fixed inset-0 bg-black/60 backdrop-blur-xs cursor-default"
+        onClick={() => onOpenChange(false)}
       />
-    </div>
+      <div className="relative z-10 w-full max-w-2xl max-h-[90vh] my-auto">
+        <AssignCareTeamContent
+          key={residentId}
+          onClose={() => onOpenChange(false)}
+          residentId={residentId}
+          residentName={residentName}
+          propertyId={propertyId}
+          onSuccess={onSuccess}
+        />
+      </div>
+    </div>,
+    document.body,
   )
 }
 
