@@ -29,18 +29,26 @@ import { getPropertyByIdAPI } from '@/lib/services/propertyService'
 import type { EmployeeShiftAssignment, ShiftV2, WeekDay } from '@/lib/services/rosterService'
 import type { UserItem } from '@/lib/types'
 import { useLocationStore } from '@/lib/stores/locationStore'
-import { assignShiftFormDefaultValues, assignShiftFormSchema, type AssignShiftFormValues } from '@/utils/roster.utils'
+import {
+  assignShiftFormDefaultValues,
+  assignShiftFormSchema,
+  MEDICAL_ROSTER_ROLE_OPTIONS,
+  type AssignShiftFormValues,
+} from '@/utils/roster.utils'
 import {
   doTimeWindowsOverlap,
   generateShiftSlots,
   generateSlotsByCount,
   getUserDisplayName,
   getUserRoleLabel,
+  getUserSpecializationLabel,
   hasWindowStartPassedOnDate,
+  isMedicalDepartment,
   isSlotWithinShift,
   parseLocalYmd,
   resolveAssignmentWindow,
   todayYmdLocal,
+  userHasRoleCode,
   WEEK_DAYS,
   weekdaysInDateRange,
 } from '../../utils'
@@ -128,6 +136,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
     reset,
     watch,
     setValue,
+    setError,
     formState: { errors },
   } = useForm<AssignShiftFormValues>({
     resolver: zodResolver(assignShiftFormSchema),
@@ -136,6 +145,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
   })
 
   const departmentId = watch('departmentId')
+  const roleCode = watch('roleCode')
   const employeeIds = watch('employeeIds')
   const shiftId = watch('shiftId')
   const slotValue = watch('slotValue')
@@ -147,6 +157,13 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
   const floorSelection = watch('floorSelection')
   const flatSelection = watch('flatSelection')
   const workingDays = watch('workingDays')
+
+  const selectedDepartment = useMemo(
+    () => activeDepartments.find((d) => d.id === departmentId) || null,
+    [activeDepartments, departmentId],
+  )
+  const isMedicalDept = isMedicalDepartment(selectedDepartment)
+  const canSelectEmployees = !!departmentId && (!isMedicalDept || !!roleCode)
 
   const blocks = useMemo(
     () =>
@@ -188,14 +205,20 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
   const employeesInDepartment = useMemo(() => {
     const list = Array.isArray(users) ? users : []
     if (!departmentId) return []
+    if (isMedicalDept && !roleCode) return []
     return list.filter((user) => {
       if (user.isActive === false || user.status === 'INACTIVE') return false
-      return (user.userLocations || []).some((ul) => {
+      const inDepartment = (user.userLocations || []).some((ul) => {
         const deptId = ul.departmentId || (ul as { department_id?: string }).department_id
         return deptId === departmentId
       })
+      if (!inDepartment) return false
+      if (isMedicalDept && roleCode) {
+        return userHasRoleCode(user, roleCode)
+      }
+      return true
     })
-  }, [users, departmentId])
+  }, [users, departmentId, isMedicalDept, roleCode])
 
   useEffect(() => {
     if (open) {
@@ -211,8 +234,13 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
   }, [open, shift, today, reset])
 
   useEffect(() => {
+    setValue('roleCode', '', { shouldValidate: true })
     setValue('employeeIds', [], { shouldValidate: true })
   }, [departmentId, setValue])
+
+  useEffect(() => {
+    setValue('employeeIds', [], { shouldValidate: true })
+  }, [roleCode, setValue])
 
   useEffect(() => {
     setValue('slotValue', FULL_SHIFT_VALUE, { shouldValidate: true })
@@ -304,6 +332,12 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
   }, [employeeIds, effectiveWindow, startDate, endDate, workingDays, existingAssignments, employeesInDepartment])
 
   const onSubmit = async (values: AssignShiftFormValues) => {
+    const selectedDept = activeDepartments.find((d) => d.id === values.departmentId) || null
+    if (isMedicalDepartment(selectedDept) && !values.roleCode) {
+      setError('roleCode', { type: 'manual', message: 'Role is required for Medical department' })
+      return
+    }
+
     const effectiveShiftId = shift?.id || values.shiftId
     if (!effectiveShiftId || values.employeeIds.length === 0 || !locationTargetValid) return
     if (timeValidationError) {
@@ -372,6 +406,32 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
             {errors.departmentId && <p className="text-sm text-red-600">{errors.departmentId.message}</p>}
           </div>
 
+          {isMedicalDept && (
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Controller
+                name="roleCode"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value || undefined} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MEDICAL_ROSTER_ROLE_OPTIONS.map((role) => (
+                        <SelectItem key={role.code} value={role.code}>
+                          {role.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.roleCode && <p className="text-sm text-red-600">{errors.roleCode.message}</p>}
+              <p className="text-xs text-gray-500">Select Doctor or Nurse before choosing employees.</p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label>Employees</Label>
             <Controller
@@ -379,6 +439,16 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
               control={control}
               render={({ field }) => {
                 const selected = employeesInDepartment.filter((emp) => field.value.includes(emp.id))
+                const employeePlaceholder = !departmentId
+                  ? 'Select a department first'
+                  : isMedicalDept && !roleCode
+                    ? 'Select a role first'
+                    : 'Select employees...'
+                const searchPlaceholder = !departmentId
+                  ? 'Select a department first'
+                  : isMedicalDept && !roleCode
+                    ? 'Select a role first'
+                    : 'Search employees...'
                 return (
                   <div className="space-y-1.5">
                     <Combobox
@@ -388,18 +458,16 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                       onValueChange={(vals: UserItem[]) => field.onChange(vals.map((emp) => emp.id))}
                       itemToStringLabel={(item) => getUserDisplayName(item)}
                       isItemEqualToValue={(a, b) => a.id === b.id}
-                      disabled={!departmentId}
+                      disabled={!canSelectEmployees}
                     >
                       <ComboboxChips ref={employeeChipsAnchor} className="w-full min-h-9 rounded-md">
                         {selected.length === 0 && (
-                          <span className="flex-1 text-sm text-muted-foreground">
-                            {departmentId ? 'Select employees...' : 'Select a department first'}
-                          </span>
+                          <span className="flex-1 text-sm text-muted-foreground">{employeePlaceholder}</span>
                         )}
                         {selected.map((emp) => (
                           <ComboboxChip key={emp.id}>{getUserDisplayName(emp)}</ComboboxChip>
                         ))}
-                        <ComboboxTrigger className="ml-auto shrink-0 self-center" disabled={!departmentId} />
+                        <ComboboxTrigger className="ml-auto shrink-0 self-center" disabled={!canSelectEmployees} />
                       </ComboboxChips>
                       <ComboboxContent
                         anchor={employeeChipsAnchor}
@@ -408,19 +476,20 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                         className="w-[var(--anchor-width)]"
                       >
                         <ComboboxInput
-                          placeholder={departmentId ? 'Search employees...' : 'Select a department first'}
-                          disabled={!departmentId}
+                          placeholder={searchPlaceholder}
+                          disabled={!canSelectEmployees}
                           showTrigger={false}
                           className="w-full"
                         />
                         <ComboboxList className="max-h-60">
                           {(emp: UserItem) => {
-                            const roleLabel = getUserRoleLabel(emp)
+                            const subLabel =
+                              roleCode === 'DOCTOR' ? getUserSpecializationLabel(emp) : getUserRoleLabel(emp)
                             return (
                               <ComboboxItem key={emp.id} value={emp} className="py-2">
                                 <div className="flex flex-col gap-0.5 min-w-0 pr-6">
                                   <span className="font-semibold text-sm text-gray-900">{getUserDisplayName(emp)}</span>
-                                  {roleLabel ? <span className="text-xs text-[#5b8ab8]">{roleLabel}</span> : null}
+                                  {subLabel ? <span className="text-xs text-[#5b8ab8]">{subLabel}</span> : null}
                                 </div>
                               </ComboboxItem>
                             )
@@ -439,8 +508,12 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
               }}
             />
             {errors.employeeIds && <p className="text-sm text-red-600">{errors.employeeIds.message}</p>}
-            {departmentId && employeesInDepartment.length === 0 && (
-              <p className="text-xs text-gray-500">No employees found in this department.</p>
+            {canSelectEmployees && employeesInDepartment.length === 0 && (
+              <p className="text-xs text-gray-500">
+                {isMedicalDept
+                  ? `No ${roleCode === 'DOCTOR' ? 'doctors' : 'nurses'} found in this department.`
+                  : 'No employees found in this department.'}
+              </p>
             )}
           </div>
 
@@ -724,6 +797,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                 pending ||
                 !selectedShiftId ||
                 !departmentId ||
+                (isMedicalDept && !roleCode) ||
                 employeeIds.length === 0 ||
                 !locationTargetValid ||
                 !!timeValidationError ||

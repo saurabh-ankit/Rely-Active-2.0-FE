@@ -57,9 +57,19 @@ export const manageSlotTimeFormDefaultValues: ManageSlotTimeFormValues = {
   slotDurationInput: '60',
 }
 
+/** Roles available when assigning roster under the Medical department. */
+export const MEDICAL_ROSTER_ROLE_OPTIONS = [
+  { code: 'DOCTOR', label: 'Doctor' },
+  { code: 'NURSE', label: 'Nurse' },
+] as const
+
+export type MedicalRosterRoleCode = (typeof MEDICAL_ROSTER_ROLE_OPTIONS)[number]['code']
+
 export const assignShiftFormSchema = z
   .object({
     departmentId: z.string().min(1, 'Department is required'),
+    /** Required when department is Medical — Doctor or Nurse. */
+    roleCode: z.string().optional().or(z.literal('')),
     employeeIds: z.array(z.string().uuid()).min(1, 'Select at least one employee'),
     shiftId: z.string().min(1, 'Shift is required'),
     slotValue: z.string().min(1),
@@ -108,6 +118,7 @@ export type AssignShiftFormValues = z.infer<typeof assignShiftFormSchema>
 
 export const assignShiftFormDefaultValues: AssignShiftFormValues = {
   departmentId: '',
+  roleCode: '',
   employeeIds: [],
   shiftId: '',
   slotValue: '__full__',

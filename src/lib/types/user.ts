@@ -86,6 +86,14 @@ export interface UserItem {
     }
   }>
   assignedProperties?: Array<{ id: string; property_name: string }>
+  /** Doctors only — returned by user list/detail APIs. */
+  specializations?: Array<{
+    id: string
+    name: string
+    code: string
+    description?: string | null
+    isPrimary?: boolean
+  }>
   createdAt: string
 }
 
