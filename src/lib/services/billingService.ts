@@ -55,6 +55,7 @@ export interface InvoicePreviewPayload {
   billingMode?: 'MONTHLY' | 'SUPPLEMENTARY' | 'FINAL_DISCHARGE'
   includeSubscriptions?: boolean
   includePendingEvents?: boolean
+  pendingEventIds?: string[]
   discountType?: 'FIXED' | 'PERCENTAGE'
   discountValue?: number
   discountNote?: string
@@ -67,6 +68,7 @@ export interface GenerateInvoicePayload {
   issueDate?: string
   dueDate?: string
   includePendingEvents?: boolean
+  pendingEventIds?: string[]
   billingMode?: 'MONTHLY' | 'SUPPLEMENTARY' | 'FINAL_DISCHARGE'
   includeSubscriptions?: boolean
   discountType?: 'FIXED' | 'PERCENTAGE'

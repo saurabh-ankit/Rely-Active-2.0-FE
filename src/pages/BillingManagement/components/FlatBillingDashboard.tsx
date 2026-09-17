@@ -120,7 +120,35 @@ export const FlatBillingDashboard: React.FC = () => {
   const [startDate, setStartDate] = useState(defaultPeriodStart)
   const [endDate, setEndDate] = useState(defaultPeriodEnd)
   const [dueDate, setDueDate] = useState(defaultDueDate)
-  const [includePendingEvents, setIncludePendingEvents] = useState(true)
+  const [deselectedEventIds, setDeselectedEventIds] = useState<Set<string>>(new Set())
+
+  const selectedEvents = useMemo(
+    () => pendingEvents.filter((ev) => !deselectedEventIds.has(ev.id)),
+    [pendingEvents, deselectedEventIds],
+  )
+  const selectedEventIds = useMemo(() => new Set(selectedEvents.map((ev) => ev.id)), [selectedEvents])
+  const isAllEventsSelected = pendingEvents.length > 0 && selectedEvents.length === pendingEvents.length
+  const isSomeEventsSelected = selectedEvents.length > 0 && selectedEvents.length < pendingEvents.length
+
+  const handleToggleAllEvents = (checked: boolean) => {
+    if (checked) {
+      setDeselectedEventIds(new Set())
+    } else {
+      setDeselectedEventIds(new Set(pendingEvents.map((ev) => ev.id)))
+    }
+  }
+
+  const handleToggleEvent = (eventId: string) => {
+    setDeselectedEventIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(eventId)) {
+        next.delete(eventId)
+      } else {
+        next.add(eventId)
+      }
+      return next
+    })
+  }
 
   // Discount configuration
   const [discountType, setDiscountType] = useState<'FIXED' | 'PERCENTAGE'>('FIXED')
@@ -221,10 +249,15 @@ export const FlatBillingDashboard: React.FC = () => {
     [billableSubscriptions],
   )
 
-  const pendingEventsSum = useMemo(() => {
-    if (!includePendingEvents) return 0
+  const allPendingEventsSum = useMemo(() => {
     return pendingEvents.reduce((acc, ev) => acc + Number(ev.amount || ev.unitPrice || 0), 0)
-  }, [pendingEvents, includePendingEvents])
+  }, [pendingEvents])
+
+  const pendingEventsSum = useMemo(() => {
+    return pendingEvents
+      .filter((ev) => selectedEventIds.has(ev.id))
+      .reduce((acc, ev) => acc + Number(ev.amount || ev.unitPrice || 0), 0)
+  }, [pendingEvents, selectedEventIds])
 
   const subtotalEstimate = activeSubsSum + pendingEventsSum
 
@@ -251,12 +284,14 @@ export const FlatBillingDashboard: React.FC = () => {
   const handleGenerateInvoice = async () => {
     if (!folio?.id) return
     try {
+      const selectedIds = Array.from(selectedEventIds)
       const res = await generateInvoiceMutation.mutateAsync({
         billingAccountId: folio.id,
         periodStart: startDate,
         periodEnd: endDate,
         dueDate,
-        includePendingEvents,
+        includePendingEvents: selectedIds.length > 0,
+        pendingEventIds: selectedIds,
         billingMode,
         includeSubscriptions: billingMode !== 'SUPPLEMENTARY',
         discountType: discountValue > 0 ? discountType : undefined,
@@ -531,7 +566,7 @@ export const FlatBillingDashboard: React.FC = () => {
           <CardContent>
             <div className="text-2xl font-bold font-mono text-amber-600">{pendingEvents.length} Items</div>
             <p className="text-xs text-gray-500 mt-1">
-              ₹{pendingEventsSum.toLocaleString('en-IN', { minimumFractionDigits: 2 })} unbilled usage
+              ₹{allPendingEventsSum.toLocaleString('en-IN', { minimumFractionDigits: 2 })} unbilled usage
             </p>
           </CardContent>
         </Card>
@@ -875,6 +910,11 @@ export const FlatBillingDashboard: React.FC = () => {
                 <CardTitle className="text-sm font-bold text-gray-900 flex items-center gap-2">
                   <Zap className="w-4 h-4 text-amber-500" />
                   3. Pending Consumption Charges ({pendingEvents.length})
+                  {pendingEvents.length > 0 && (
+                    <span className="text-[11px] font-normal text-gray-500 ml-1">
+                      ({selectedEventIds.size} of {pendingEvents.length} selected)
+                    </span>
+                  )}
                 </CardTitle>
                 <div className="flex items-center gap-3">
                   <Button
@@ -885,15 +925,22 @@ export const FlatBillingDashboard: React.FC = () => {
                   >
                     <Plus className="mr-1 h-3.5 w-3.5" /> Add Miscellaneous Charge
                   </Button>
-                  <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={includePendingEvents}
-                      onChange={(e) => setIncludePendingEvents(e.target.checked)}
-                      className="rounded border-gray-300 text-[#005390]"
-                    />
-                    <span>Include in Invoice</span>
-                  </label>
+                  {pendingEvents.length > 0 && (
+                    <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none bg-slate-50 hover:bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-md transition-colors">
+                      <input
+                        type="checkbox"
+                        ref={(el) => {
+                          if (el) {
+                            el.indeterminate = isSomeEventsSelected
+                          }
+                        }}
+                        checked={isAllEventsSelected}
+                        onChange={(e) => handleToggleAllEvents(e.target.checked)}
+                        className="rounded border-gray-300 text-[#005390] focus:ring-[#005390] w-4 h-4 cursor-pointer"
+                      />
+                      <span>Select All</span>
+                    </label>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="pt-4">
@@ -902,81 +949,93 @@ export const FlatBillingDashboard: React.FC = () => {
                     No unbilled usage events recorded for this flat.
                   </p>
                 ) : (
-                  <div
-                    className={`divide-y divide-gray-100 ${!includePendingEvents ? 'opacity-40 pointer-events-none' : ''}`}
-                  >
-                    {pendingEvents.map((ev) => (
-                      <div key={ev.id} className="py-2.5 flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`p-1.5 rounded-lg ${
-                              ev.sourceModule === 'INVENTORY'
-                                ? 'bg-indigo-50 text-indigo-600'
-                                : ev.sourceModule === 'CARE'
-                                  ? 'bg-rose-50 text-rose-600'
-                                  : ev.sourceModule === 'FNB'
-                                    ? 'bg-amber-50 text-amber-600'
-                                    : 'bg-blue-50 text-blue-600'
-                            }`}
-                          >
-                            {ev.sourceModule === 'INVENTORY' ? (
-                              <Package className="w-3.5 h-3.5" />
-                            ) : ev.sourceModule === 'CARE' ? (
-                              <HeartPulse className="w-3.5 h-3.5" />
-                            ) : ev.sourceModule === 'FNB' ? (
-                              <Utensils className="w-3.5 h-3.5" />
-                            ) : (
-                              <Zap className="w-3.5 h-3.5" />
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-semibold text-gray-900">{ev.description}</div>
-                            <div className="text-[10px] text-gray-400 flex items-center gap-1.5">
-                              <span>{formatDateDDMMYYYY(ev.serviceDate)}</span>
-                              <span>•</span>
-                              <span
-                                className={`font-semibold uppercase ${
-                                  ev.sourceModule === 'INVENTORY'
-                                    ? 'text-indigo-600'
-                                    : ev.sourceModule === 'CARE'
-                                      ? 'text-rose-600'
-                                      : ev.sourceModule === 'FNB'
-                                        ? 'text-amber-600'
-                                        : 'text-gray-500'
-                                }`}
-                              >
-                                {ev.sourceModule}
-                              </span>
+                  <div className="divide-y divide-gray-100">
+                    {pendingEvents.map((ev) => {
+                      const isSelected = selectedEventIds.has(ev.id)
+                      return (
+                        <div
+                          key={ev.id}
+                          className={`py-2.5 flex items-center justify-between text-xs px-2 -mx-2 rounded-md transition-colors ${
+                            isSelected ? 'bg-white hover:bg-slate-50/70' : 'bg-slate-50/40 opacity-60 hover:opacity-80'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleToggleEvent(ev.id)}
+                              className="rounded border-gray-300 text-[#005390] focus:ring-[#005390] w-4 h-4 cursor-pointer shrink-0"
+                            />
+                            <div
+                              className={`p-1.5 rounded-lg shrink-0 ${
+                                ev.sourceModule === 'INVENTORY'
+                                  ? 'bg-indigo-50 text-indigo-600'
+                                  : ev.sourceModule === 'CARE'
+                                    ? 'bg-rose-50 text-rose-600'
+                                    : ev.sourceModule === 'FNB'
+                                      ? 'bg-amber-50 text-amber-600'
+                                      : 'bg-blue-50 text-blue-600'
+                              }`}
+                            >
+                              {ev.sourceModule === 'INVENTORY' ? (
+                                <Package className="w-3.5 h-3.5" />
+                              ) : ev.sourceModule === 'CARE' ? (
+                                <HeartPulse className="w-3.5 h-3.5" />
+                              ) : ev.sourceModule === 'FNB' ? (
+                                <Utensils className="w-3.5 h-3.5" />
+                              ) : (
+                                <Zap className="w-3.5 h-3.5" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-gray-900">{ev.description}</div>
+                              <div className="text-[10px] text-gray-400 flex items-center gap-1.5">
+                                <span>{formatDateDDMMYYYY(ev.serviceDate)}</span>
+                                <span>•</span>
+                                <span
+                                  className={`font-semibold uppercase ${
+                                    ev.sourceModule === 'INVENTORY'
+                                      ? 'text-indigo-600'
+                                      : ev.sourceModule === 'CARE'
+                                        ? 'text-rose-600'
+                                        : ev.sourceModule === 'FNB'
+                                          ? 'text-amber-600'
+                                          : 'text-gray-500'
+                                  }`}
+                                >
+                                  {ev.sourceModule}
+                                </span>
+                              </div>
                             </div>
                           </div>
+                          <div className="text-right">
+                            <span className="font-mono font-bold text-gray-900">
+                              ₹
+                              {Number(ev.amount || ev.unitPrice || 0).toLocaleString('en-IN', {
+                                minimumFractionDigits: 2,
+                              })}
+                            </span>
+                            <span className="text-[10px] text-gray-400 block">
+                              Qty: {ev.quantity} × ₹
+                              {Number(ev.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </span>
+                            {ev.sourceModule === 'MANUAL' && ev.status === 'PENDING' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="mt-1 h-6 px-1.5 text-[10px] text-[#005390]"
+                                onClick={() => {
+                                  setEditingBillingEvent(ev)
+                                  setIsAddChargeOpen(true)
+                                }}
+                              >
+                                <Pencil className="mr-1 h-3 w-3" /> Edit
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <span className="font-mono font-bold text-gray-900">
-                            ₹
-                            {Number(ev.amount || ev.unitPrice || 0).toLocaleString('en-IN', {
-                              minimumFractionDigits: 2,
-                            })}
-                          </span>
-                          <span className="text-[10px] text-gray-400 block">
-                            Qty: {ev.quantity} × ₹
-                            {Number(ev.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </span>
-                          {ev.sourceModule === 'MANUAL' && ev.status === 'PENDING' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="mt-1 h-6 px-1.5 text-[10px] text-[#005390]"
-                              onClick={() => {
-                                setEditingBillingEvent(ev)
-                                setIsAddChargeOpen(true)
-                              }}
-                            >
-                              <Pencil className="mr-1 h-3 w-3" /> Edit
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </CardContent>
