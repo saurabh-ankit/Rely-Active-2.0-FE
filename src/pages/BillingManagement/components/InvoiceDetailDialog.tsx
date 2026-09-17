@@ -289,25 +289,25 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
                 </div>
 
                 <div className="border border-gray-200 rounded-xl overflow-hidden shadow-xs">
-                  <table className="min-w-full divide-y divide-gray-200 text-xs">
-                    <thead className="bg-slate-50 text-gray-600 font-semibold uppercase tracking-wider">
+                  <table className="w-full divide-y divide-gray-200 text-xs">
+                    <thead className="bg-slate-50 text-gray-600 font-semibold uppercase tracking-wider text-[11px]">
                       <tr>
-                        <th className="px-3 py-3 text-center w-10">#</th>
-                        <th className="px-4 py-3 text-left">Description & Category</th>
-                        <th className="px-3 py-3 text-left">Consumer</th>
-                        <th className="px-3 py-3 text-right">Qty</th>
-                        <th className="px-3 py-3 text-right">Rate (₹)</th>
-                        {hasTax && <th className="px-3 py-3 text-right">Taxable (₹)</th>}
-                        {hasTax && <th className="px-3 py-3 text-right">GST Rate</th>}
-                        <th className="px-4 py-3 text-right">Total (₹)</th>
+                        <th className="px-2 py-2.5 text-center w-8">#</th>
+                        <th className="px-3 py-2.5 text-left">Description</th>
+                        <th className="px-2.5 py-2.5 text-left whitespace-nowrap">Consumer</th>
+                        <th className="px-2.5 py-2.5 text-right whitespace-nowrap">Qty</th>
+                        <th className="px-2.5 py-2.5 text-right whitespace-nowrap">Rate (₹)</th>
+                        {hasTax && <th className="px-2.5 py-2.5 text-right whitespace-nowrap">Taxable</th>}
+                        {hasTax && <th className="px-2.5 py-2.5 text-right whitespace-nowrap">GST %</th>}
+                        <th className="px-3 py-2.5 text-right whitespace-nowrap">Total (₹)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 bg-white">
                       {invoice.lines && invoice.lines.length > 0 ? (
                         invoice.lines.map((line, idx) => (
                           <tr key={line.id || idx} className="hover:bg-slate-50/80 transition-colors">
-                            <td className="px-3 py-3 text-center text-gray-400 font-mono">{idx + 1}</td>
-                            <td className="px-4 py-3 text-gray-900">
+                            <td className="px-2 py-2.5 text-center text-gray-400 font-mono">{idx + 1}</td>
+                            <td className="px-3 py-2.5 text-gray-900">
                               <div className="font-semibold text-gray-900">{line.description}</div>
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 <span className="px-1.5 py-0.2 text-[10px] rounded bg-slate-100 text-gray-600 font-medium">
@@ -318,24 +318,24 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
                                 )}
                               </div>
                             </td>
-                            <td className="px-3 py-3 text-gray-600 whitespace-nowrap">
+                            <td className="px-2.5 py-2.5 text-gray-600 whitespace-nowrap">
                               {line.consumedByResident
                                 ? `${line.consumedByResident.firstName} ${line.consumedByResident.lastName}`
                                 : invoice.billToName || 'Resident'}
                             </td>
-                            <td className="px-3 py-3 text-right text-gray-700 font-mono">
+                            <td className="px-2.5 py-2.5 text-right text-gray-700 font-mono whitespace-nowrap">
                               {Number(line.quantity).toFixed(line.quantity % 1 === 0 ? 0 : 2)}
                             </td>
-                            <td className="px-3 py-3 text-right text-gray-700 font-mono">
+                            <td className="px-2.5 py-2.5 text-right text-gray-700 font-mono whitespace-nowrap">
                               ₹{Number(line.unitPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </td>
                             {hasTax && (
-                              <td className="px-3 py-3 text-right text-gray-800 font-mono">
+                              <td className="px-2.5 py-2.5 text-right text-gray-800 font-mono whitespace-nowrap">
                                 ₹{Number(line.taxableAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </td>
                             )}
                             {hasTax && (
-                              <td className="px-3 py-3 text-right whitespace-nowrap">
+                              <td className="px-2.5 py-2.5 text-right whitespace-nowrap">
                                 {Number(line.taxRate) > 0 ? (
                                   <span className="text-amber-700 font-mono font-semibold">
                                     {Number(line.taxRate)}%{' '}
@@ -348,7 +348,7 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
                                 )}
                               </td>
                             )}
-                            <td className="px-4 py-3 text-right font-mono font-bold text-gray-900 whitespace-nowrap">
+                            <td className="px-3 py-2.5 text-right font-mono font-bold text-gray-900 whitespace-nowrap">
                               ₹{Number(line.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </td>
                           </tr>
@@ -501,7 +501,7 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
           @media print {
             @page {
               size: A4 portrait;
-              margin: 10mm 12mm;
+              margin: 8mm 8mm;
             }
             html,
             body {
@@ -530,16 +530,34 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
               overflow: visible !important;
               height: auto !important;
               max-height: none !important;
+              box-sizing: border-box !important;
             }
             #print-invoice-root * {
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
               box-shadow: none !important;
+              box-sizing: border-box !important;
+            }
+            #print-invoice-root .border {
+              overflow: visible !important;
             }
             #print-invoice-root table {
               page-break-inside: auto;
               width: 100% !important;
+              max-width: 100% !important;
               border-collapse: collapse !important;
+              table-layout: auto !important;
+            }
+            #print-invoice-root table th,
+            #print-invoice-root table td {
+              padding-left: 6px !important;
+              padding-right: 6px !important;
+              padding-top: 5px !important;
+              padding-bottom: 5px !important;
+              font-size: 10.5px !important;
+            }
+            #print-invoice-root table th {
+              font-size: 9.5px !important;
             }
             #print-invoice-root tr {
               page-break-inside: avoid;

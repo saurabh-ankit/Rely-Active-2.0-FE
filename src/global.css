@@ -141,7 +141,7 @@ body {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm 12mm;
+    margin: 8mm 8mm;
   }
 
   html,
@@ -173,18 +173,39 @@ body {
     overflow: visible !important;
     height: auto !important;
     max-height: none !important;
+    box-sizing: border-box !important;
   }
 
   #print-invoice-root * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     box-shadow: none !important;
+    box-sizing: border-box !important;
+  }
+
+  #print-invoice-root .border {
+    overflow: visible !important;
   }
 
   #print-invoice-root table {
     page-break-inside: auto;
     width: 100% !important;
+    max-width: 100% !important;
     border-collapse: collapse !important;
+    table-layout: auto !important;
+  }
+
+  #print-invoice-root table th,
+  #print-invoice-root table td {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+    font-size: 10.5px !important;
+  }
+
+  #print-invoice-root table th {
+    font-size: 9.5px !important;
   }
 
   #print-invoice-root tr {
