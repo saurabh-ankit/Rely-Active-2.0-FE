@@ -57,6 +57,7 @@ type DataTableProps<TData, TValue> = {
   onPageChange?: (pageIndex: number) => void
   totalCount?: number
   hidePagination?: boolean
+  onRowClick?: (row: TData) => void
 }
 
 export function DataTable<TData, TValue>({
@@ -84,6 +85,7 @@ export function DataTable<TData, TValue>({
   onPageChange,
   totalCount,
   hidePagination = false,
+  onRowClick,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [filters, setFilters] = useState<ColumnFiltersState>([])
@@ -230,13 +232,23 @@ export function DataTable<TData, TValue>({
                       <TableRow
                         key={row.id}
                         data-state={row.getIsSelected() && 'selected'}
-                        className="hover:bg-blue-50/30 dark:hover:bg-gray-800/40 transition-colors border-b border-gray-100 dark:border-gray-800/60"
+                        onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                        className={`hover:bg-blue-50/30 dark:hover:bg-gray-800/40 transition-colors border-b border-gray-100 dark:border-gray-800/60 ${
+                          onRowClick ? 'cursor-pointer' : ''
+                        }`}
                       >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id} className="py-3.5 px-4 text-xs text-gray-700 dark:text-gray-300">
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </TableCell>
-                        ))}
+                        {row.getVisibleCells().map((cell) => {
+                          const isActionsCol = cell.column.id === 'actions' || cell.column.id === 'select'
+                          return (
+                            <TableCell
+                              key={cell.id}
+                              className="py-3.5 px-4 text-xs text-gray-700 dark:text-gray-300"
+                              onClick={isActionsCol ? (e) => e.stopPropagation() : undefined}
+                            >
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
+                          )
+                        })}
                       </TableRow>
                     ))
                   ) : (

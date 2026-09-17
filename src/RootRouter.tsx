@@ -196,6 +196,14 @@ export default function RootRouter() {
           }
         />
         <Route
+          path="global-settings/users/details/:id"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="view-user" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="global-settings/permissions"
           element={
             <ProtectedRoute requireSuperAdmin>
@@ -283,6 +291,14 @@ export default function RootRouter() {
           element={
             <ProtectedRoute resourceKey="EMPLOYEE" action="update">
               <EmployeeDirectoryPage initialView="edit" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/employees/details/:id"
+          element={
+            <ProtectedRoute resourceKey="EMPLOYEE" action="view">
+              <EmployeeDirectoryPage initialView="view" />
             </ProtectedRoute>
           }
         />

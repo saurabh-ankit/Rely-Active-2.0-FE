@@ -43,7 +43,11 @@ export interface UserItem {
     address?: string | null
     qualification?: string | null
     experience?: string | null
+    photoUrl?: string | null
+    photo_url?: string | null
   } | null
+  lastLogin?: string | null
+  last_login?: string | null
   userRoles?: UserRoleItem[]
   userLocations?: Array<{
     id: string

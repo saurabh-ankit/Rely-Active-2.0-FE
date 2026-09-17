@@ -17,6 +17,7 @@ import { AdminUserManagement } from './components/AdminUserManagement'
 import { ResidentListScreen } from '../Resident/components/ResidentListScreen'
 import { OnboardResidentScreen } from '../Resident/components/OnboardResidentScreen'
 import { ResidentDetailsScreen } from '../Resident/components/ResidentDetailsScreen'
+import { EmployeeDetailsScreen } from '../Employees/components/EmployeeDetailsScreen'
 import { FnbGlobalPackagesTab } from './components/FnbGlobalPackagesTab'
 import { FnbDishesMasterTab } from './components/FnbDishesMasterTab'
 import FnbGlobalMealSlotsTab from './components/FnbGlobalMealSlotsTab'
@@ -148,6 +149,7 @@ interface GlobalSettingsPageProps {
     | 'residents'
     | 'edit-resident'
     | 'view-resident'
+    | 'view-user'
     | 'fnb-meal-slots'
     | 'fnb-packages'
     | 'fnb-dishes'
@@ -186,6 +188,10 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
 
   if (activeView === 'view-resident') {
     return <ResidentDetailsScreen isGlobalMode={true} />
+  }
+
+  if (activeView === 'view-user') {
+    return <EmployeeDetailsScreen isGlobalMode={true} />
   }
 
   if (activeView === 'fnb-meal-slots') {

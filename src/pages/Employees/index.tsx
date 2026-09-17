@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Check, Edit, MoreVertical, Plus, Shield, UserCheck } from 'lucide-react'
+import { Check, Edit, Eye, MoreVertical, Plus, Shield, UserCheck } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
@@ -12,6 +12,7 @@ import { useLocationStore } from '@/lib/stores/locationStore'
 import type { UserItem } from '@/lib/types'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { AdminUserManagement } from '@/pages/GlobalSettings/components/AdminUserManagement'
+import { EmployeeDetailsScreen } from '@/pages/Employees/components/EmployeeDetailsScreen'
 import { useLocationContext } from '@/hooks/useLocation'
 
 import { useDebounce } from '@/hooks/useDebounce'
@@ -55,7 +56,7 @@ interface RoleRec {
 }
 
 interface EmployeeDirectoryPageProps {
-  initialView?: 'list' | 'create' | 'edit'
+  initialView?: 'list' | 'create' | 'edit' | 'view'
 }
 
 export default function EmployeeDirectoryPage({ initialView = 'list' }: EmployeeDirectoryPageProps) {
@@ -86,6 +87,10 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
 
   if (initialView === 'edit') {
     return <AdminUserManagement initialMode="edit" isLocationScoped={true} />
+  }
+
+  if (initialView === 'view') {
+    return <EmployeeDetailsScreen isGlobalMode={false} />
   }
 
   const getAvailableManagers = (targetUser: UserItem) => {
@@ -453,6 +458,13 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
                   className="w-56 rounded-2xl p-1.5 shadow-xl border border-gray-100 bg-white dark:bg-slate-900 dark:border-gray-800"
                 >
                   <DropdownMenuItem
+                    onClick={() => navigate(`/admin/employees/details/${u.id}`)}
+                    className="flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-xl px-3 py-2 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                  >
+                    <Eye className="h-3.5 w-3.5 text-[#005390]" />
+                    View Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
                     onClick={() => navigate(`/admin/employees/edit/${u.id}`)}
                     className="flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-xl px-3 py-2 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
                   >
@@ -478,7 +490,26 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <span className="text-[10px] text-gray-400 font-medium">Read Only</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 hover:border-[#005390] hover:bg-[#005390]/10 hover:text-[#005390] transition-colors cursor-pointer shadow-2xs dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+                  title="Actions"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-56 rounded-2xl p-1.5 shadow-xl border border-gray-100 bg-white dark:bg-slate-900 dark:border-gray-800"
+                >
+                  <DropdownMenuItem
+                    onClick={() => navigate(`/admin/employees/details/${u.id}`)}
+                    className="flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-xl px-3 py-2 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                  >
+                    <Eye className="h-3.5 w-3.5 text-[#005390]" />
+                    View Profile
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         )
@@ -519,6 +550,7 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Search employees by name, code, phone, or email..."
+        onRowClick={(u) => navigate(`/admin/employees/details/${u.id}`)}
         filterActions={
           <div className="flex items-center gap-2">
             <select
