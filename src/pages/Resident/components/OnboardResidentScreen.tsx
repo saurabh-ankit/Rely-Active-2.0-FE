@@ -277,6 +277,14 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
   const watchedPayRentToCompany = useWatch({ control, name: 'payRentToCompany' })
   const watchedCarePackageId = useWatch({ control, name: 'carePackageId' })
 
+  const isResidingEffective = watchedResidentType === 'TENANT' ? true : Boolean(watchedIsResiding)
+
+  useEffect(() => {
+    if (!isResidingEffective) {
+      setValue('carePackageId', '')
+    }
+  }, [isResidingEffective, setValue])
+
   // Query care packages for this property/global
   const { data: carePackagesData, isLoading: isLoadingPackages } = useCarePackagesQuery(
     { propertyId: selectedLocationId, includeGlobal: true },
@@ -728,7 +736,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
 
     setIsSubmitting(true)
 
-    const effectiveIsResiding = values.residentType === 'TENANT' ? true : values.isResiding
+    const effectiveIsResiding = values.residentType === 'TENANT' ? true : Boolean(values.isResiding)
     const formattedTaskSchedules = Object.values(packageTaskSchedules).map((sched) => ({
       taskId: sched.taskId,
       taskName: sched.taskName,
@@ -744,8 +752,11 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
           ? Number(values.rentAmount)
           : null,
       payRentToCompany: values.residentType === 'TENANT' ? Boolean(values.payRentToCompany) : false,
-      carePackageId: values.carePackageId || null,
-      taskSchedules: values.carePackageId && formattedTaskSchedules.length > 0 ? formattedTaskSchedules : undefined,
+      carePackageId: effectiveIsResiding ? values.carePackageId || null : null,
+      taskSchedules:
+        effectiveIsResiding && values.carePackageId && formattedTaskSchedules.length > 0
+          ? formattedTaskSchedules
+          : undefined,
       familyMembers: (values.familyMembers || []).map((fm) => ({
         ...fm,
         isResiding: effectiveIsResiding,
@@ -1718,127 +1729,129 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
             </div>
           </div>
 
-          {/* Section: Care Package Subscription Card */}
-          <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Boxes className="w-5 h-5 text-[#005390]" />
-                Care Package Subscription (Optional)
-              </h2>
-              <span className="text-xs font-medium text-gray-500">
-                Bundled wellness & clinical tasks for the resident
-              </span>
-            </div>
-
-            {isLoadingPackages ? (
-              <div className="text-center py-6 text-xs text-gray-400">
-                <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-[#005390]" />
-                Loading care packages...
+          {/* Section: Care Package Subscription Card (Hidden if Non-residing / isResiding = false) */}
+          {isResidingEffective && (
+            <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Boxes className="w-5 h-5 text-[#005390]" />
+                  Care Package Subscription (Optional)
+                </h2>
+                <span className="text-xs font-medium text-gray-500">
+                  Bundled wellness & clinical tasks for the resident
+                </span>
               </div>
-            ) : carePackages.length === 0 ? (
-              <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-xs text-gray-500 text-center">
-                No active Care Packages configured. You can configure them in Settings &gt; Packages.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* Option for No Package */}
-                <button
-                  type="button"
-                  onClick={() => setValue('carePackageId', '', { shouldValidate: true })}
-                  className={cn(
-                    'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full',
-                    !watchedCarePackageId
-                      ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20'
-                      : 'border-gray-200 bg-white hover:border-gray-300',
-                  )}
-                >
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-gray-800">No Care Package</span>
-                      {!watchedCarePackageId && (
-                        <span className="inline-flex items-center justify-center size-5 rounded-full bg-[#005390] text-white">
-                          <Check className="w-3 h-3" />
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-gray-500 mt-1">
-                      Resident will not be subscribed to any care package upon onboarding.
-                    </p>
-                  </div>
-                </button>
 
-                {/* Available Care Packages */}
-                {carePackages.map((pkg) => {
-                  const isSelected = watchedCarePackageId === pkg.id
-                  const taskCount = pkg.features?.length || pkg.tasks?.length || 0
-                  return (
-                    <button
-                      key={pkg.id}
-                      type="button"
-                      onClick={() => setValue('carePackageId', pkg.id, { shouldValidate: true })}
-                      className={cn(
-                        'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full',
-                        isSelected
-                          ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20'
-                          : 'border-gray-200 bg-white hover:border-gray-300',
-                      )}
-                    >
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-gray-900">{pkg.packageName}</span>
-                          {isSelected && (
-                            <span className="inline-flex items-center justify-center size-5 rounded-full bg-[#005390] text-white">
-                              <Check className="w-3 h-3" />
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <span className="text-sm font-black text-[#005390]">
-                            ₹{Number(pkg.packageCost).toLocaleString('en-IN')}
+              {isLoadingPackages ? (
+                <div className="text-center py-6 text-xs text-gray-400">
+                  <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-[#005390]" />
+                  Loading care packages...
+                </div>
+              ) : carePackages.length === 0 ? (
+                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-xs text-gray-500 text-center">
+                  No active Care Packages configured. You can configure them in Settings &gt; Packages.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Option for No Package */}
+                  <button
+                    type="button"
+                    onClick={() => setValue('carePackageId', '', { shouldValidate: true })}
+                    className={cn(
+                      'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full',
+                      !watchedCarePackageId
+                        ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20'
+                        : 'border-gray-200 bg-white hover:border-gray-300',
+                    )}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-gray-800">No Care Package</span>
+                        {!watchedCarePackageId && (
+                          <span className="inline-flex items-center justify-center size-5 rounded-full bg-[#005390] text-white">
+                            <Check className="w-3 h-3" />
                           </span>
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
-                            {pkg.duration}
-                          </span>
-                        </div>
-
-                        {pkg.description && (
-                          <p className="text-[11px] text-gray-500 mt-1 line-clamp-2">{pkg.description}</p>
-                        )}
-
-                        {taskCount > 0 && (
-                          <div className="mt-2.5 pt-2 border-t border-gray-100 flex flex-wrap gap-1">
-                            {(pkg.features || []).map((feat) => {
-                              const count = feat?.CarePackageFeaturesMap?.complimentaryCount ?? 0
-                              return (
-                                <span
-                                  key={feat.id}
-                                  className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                >
-                                  {feat.taskName || feat.careTaskName || 'Task'} {count > 0 ? `× ${count}` : '(Free)'}
-                                </span>
-                              )
-                            })}
-                          </div>
                         )}
                       </div>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
+                      <p className="text-[11px] text-gray-500 mt-1">
+                        Resident will not be subscribed to any care package upon onboarding.
+                      </p>
+                    </div>
+                  </button>
 
-            {/* Package Tasks Frequency & Times Schedule Configuration */}
-            {selectedOnboardPackage && onboardPackageTasks.length > 0 && (
-              <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
-                <PackageTaskSchedulesConfig
-                  tasks={onboardPackageTasks}
-                  schedules={packageTaskSchedules}
-                  onChange={setPackageTaskSchedules}
-                />
-              </div>
-            )}
-          </div>
+                  {/* Available Care Packages */}
+                  {carePackages.map((pkg) => {
+                    const isSelected = watchedCarePackageId === pkg.id
+                    const taskCount = pkg.features?.length || pkg.tasks?.length || 0
+                    return (
+                      <button
+                        key={pkg.id}
+                        type="button"
+                        onClick={() => setValue('carePackageId', pkg.id, { shouldValidate: true })}
+                        className={cn(
+                          'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full',
+                          isSelected
+                            ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20'
+                            : 'border-gray-200 bg-white hover:border-gray-300',
+                        )}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-gray-900">{pkg.packageName}</span>
+                            {isSelected && (
+                              <span className="inline-flex items-center justify-center size-5 rounded-full bg-[#005390] text-white">
+                                <Check className="w-3 h-3" />
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <span className="text-sm font-black text-[#005390]">
+                              ₹{Number(pkg.packageCost).toLocaleString('en-IN')}
+                            </span>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                              {pkg.duration}
+                            </span>
+                          </div>
+
+                          {pkg.description && (
+                            <p className="text-[11px] text-gray-500 mt-1 line-clamp-2">{pkg.description}</p>
+                          )}
+
+                          {taskCount > 0 && (
+                            <div className="mt-2.5 pt-2 border-t border-gray-100 flex flex-wrap gap-1">
+                              {(pkg.features || []).map((feat) => {
+                                const count = feat?.CarePackageFeaturesMap?.complimentaryCount ?? 0
+                                return (
+                                  <span
+                                    key={feat.id}
+                                    className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  >
+                                    {feat.taskName || feat.careTaskName || 'Task'} {count > 0 ? `× ${count}` : '(Free)'}
+                                  </span>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Package Tasks Frequency & Times Schedule Configuration */}
+              {selectedOnboardPackage && onboardPackageTasks.length > 0 && (
+                <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+                  <PackageTaskSchedulesConfig
+                    tasks={onboardPackageTasks}
+                    schedules={packageTaskSchedules}
+                    onChange={setPackageTaskSchedules}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Section 4: Mobile App Credentials Card */}
           <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-5">
