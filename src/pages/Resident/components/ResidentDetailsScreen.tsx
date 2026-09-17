@@ -286,23 +286,27 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
               </Button>
             )}
 
-            <Button
-              variant="secondary"
-              icon={<Users className="w-4 h-4 text-rose-500" />}
-              onClick={() => setIsCareTeamModalOpen(true)}
-              className="rounded-xl"
-            >
-              Assign Care Team
-            </Button>
+            {resident.isResiding && (
+              <Button
+                variant="secondary"
+                icon={<Users className="w-4 h-4 text-rose-500" />}
+                onClick={() => setIsCareTeamModalOpen(true)}
+                className="rounded-xl"
+              >
+                Assign Care Team
+              </Button>
+            )}
 
-            <Button
-              variant="secondary"
-              icon={<HeartPulse className="w-4 h-4 text-rose-500" />}
-              onClick={() => setIsCareTaskModalOpen(true)}
-              className="rounded-xl"
-            >
-              Assign Care Task
-            </Button>
+            {resident.isResiding && (
+              <Button
+                variant="secondary"
+                icon={<HeartPulse className="w-4 h-4 text-rose-500" />}
+                onClick={() => setIsCareTaskModalOpen(true)}
+                className="rounded-xl"
+              >
+                Assign Care Task
+              </Button>
+            )}
 
             <Button
               variant="primary"
@@ -317,121 +321,122 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
       </div>
 
       {/* ── Primary Resident Active Food Package Summary Bar (ABOVE) ───────────── */}
-      {(() => {
-        const primarySub = fnbSubscriptions.find((s) => !s.familyMemberId && (!s.familyMember || !s.familyMember.id))
-        const pkg = primarySub?.propertyPackage
-        const gPkg = pkg?.globalPackage
-        const isNonVeg = gPkg?.dietaryType === 'non_veg' || gPkg?.dietaryType === 'NON_VEG'
-        const isEgg = gPkg?.dietaryType === 'egg' || gPkg?.dietaryType === 'EGG'
+      {resident.isResiding &&
+        (() => {
+          const primarySub = fnbSubscriptions.find((s) => !s.familyMemberId && (!s.familyMember || !s.familyMember.id))
+          const pkg = primarySub?.propertyPackage
+          const gPkg = pkg?.globalPackage
+          const isNonVeg = gPkg?.dietaryType === 'non_veg' || gPkg?.dietaryType === 'NON_VEG'
+          const isEgg = gPkg?.dietaryType === 'egg' || gPkg?.dietaryType === 'EGG'
 
-        return (
-          <div className="rounded-3xl border border-[#005390]/20 bg-gradient-to-r from-blue-50/90 via-sky-50/50 to-white p-5 shadow-lg backdrop-blur-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5 min-w-0">
-              <div className="p-3 rounded-2xl bg-[#005390] text-white shadow-xs shrink-0">
-                <Utensils className="w-5 h-5" />
-              </div>
-              <div className="space-y-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-black uppercase text-gray-400 tracking-wider">
-                    Primary Resident Food Package:
-                  </span>
-                  {primarySub && pkg ? (
-                    <span className="text-sm font-extrabold text-gray-900">{gPkg?.name || 'Assigned Package'}</span>
-                  ) : (
-                    <span className="text-xs font-semibold text-gray-400 italic">No package assigned</span>
-                  )}
-
-                  {primarySub && (
-                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                      {primarySub.status || 'Active'}
-                    </span>
-                  )}
-
-                  {primarySub && (
-                    <span
-                      className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
-                        primarySub.diningType === 'home_delivery'
-                          ? 'bg-amber-50 text-amber-800 border-amber-300'
-                          : 'bg-blue-50 text-[#005390] border-blue-200'
-                      }`}
-                    >
-                      {primarySub.diningType === 'home_delivery' ? '🚚 Home Delivery' : '🍽️ Dine-in'}
-                    </span>
-                  )}
+          return (
+            <div className="rounded-3xl border border-[#005390]/20 bg-gradient-to-r from-blue-50/90 via-sky-50/50 to-white p-5 shadow-lg backdrop-blur-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="p-3 rounded-2xl bg-[#005390] text-white shadow-xs shrink-0">
+                  <Utensils className="w-5 h-5" />
                 </div>
-
-                {primarySub && pkg ? (
-                  <div className="flex items-center gap-2 flex-wrap text-xs">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold capitalize border ${
-                        isNonVeg
-                          ? 'bg-rose-100 text-rose-800 border-rose-300'
-                          : isEgg
-                            ? 'bg-amber-100 text-amber-800 border-amber-300'
-                            : 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                      }`}
-                    >
-                      {gPkg?.dietaryType ? gPkg.dietaryType.replace('_', ' ') : 'Vegetarian'}
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-black uppercase text-gray-400 tracking-wider">
+                      Primary Resident Food Package:
                     </span>
-
-                    {gPkg?.includedMealSlots && gPkg.includedMealSlots.length > 0 && (
-                      <>
-                        <span className="text-gray-300">•</span>
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-gray-400 font-semibold">Meals Included:</span>
-                          {gPkg.includedMealSlots.map((slot) => (
-                            <span
-                              key={slot}
-                              className="bg-white text-gray-700 border border-gray-200 px-1.5 py-0.5 rounded text-[10px] font-bold"
-                            >
-                              {getSlotDisplayName(slot)}
-                            </span>
-                          ))}
-                        </div>
-                      </>
+                    {primarySub && pkg ? (
+                      <span className="text-sm font-extrabold text-gray-900">{gPkg?.name || 'Assigned Package'}</span>
+                    ) : (
+                      <span className="text-xs font-semibold text-gray-400 italic">No package assigned</span>
                     )}
 
-                    <span className="text-gray-300">•</span>
-                    <span className="text-[10px] text-gray-400 font-mono">
-                      Started: {primarySub.startDate ? primarySub.startDate.split('T')[0] : 'N/A'}
-                    </span>
+                    {primarySub && (
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        {primarySub.status || 'Active'}
+                      </span>
+                    )}
+
+                    {primarySub && (
+                      <span
+                        className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                          primarySub.diningType === 'home_delivery'
+                            ? 'bg-amber-50 text-amber-800 border-amber-300'
+                            : 'bg-blue-50 text-[#005390] border-blue-200'
+                        }`}
+                      >
+                        {primarySub.diningType === 'home_delivery' ? '🚚 Home Delivery' : '🍽️ Dine-in'}
+                      </span>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-[11px] text-gray-400">
-                    Assign a monthly dining plan for {fullName} using the Manage Food Package button above.
-                  </p>
-                )}
+
+                  {primarySub && pkg ? (
+                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold capitalize border ${
+                          isNonVeg
+                            ? 'bg-rose-100 text-rose-800 border-rose-300'
+                            : isEgg
+                              ? 'bg-amber-100 text-amber-800 border-amber-300'
+                              : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        }`}
+                      >
+                        {gPkg?.dietaryType ? gPkg.dietaryType.replace('_', ' ') : 'Vegetarian'}
+                      </span>
+
+                      {gPkg?.includedMealSlots && gPkg.includedMealSlots.length > 0 && (
+                        <>
+                          <span className="text-gray-300">•</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-gray-400 font-semibold">Meals Included:</span>
+                            {gPkg.includedMealSlots.map((slot) => (
+                              <span
+                                key={slot}
+                                className="bg-white text-gray-700 border border-gray-200 px-1.5 py-0.5 rounded text-[10px] font-bold"
+                              >
+                                {getSlotDisplayName(slot)}
+                              </span>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      <span className="text-gray-300">•</span>
+                      <span className="text-[10px] text-gray-400 font-mono">
+                        Started: {primarySub.startDate ? primarySub.startDate.split('T')[0] : 'N/A'}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-gray-400">
+                      Assign a monthly dining plan for {fullName} using the Manage Food Package button above.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                {primarySub &&
+                  pkg &&
+                  (() => {
+                    const basePrice = Number(pkg.price) || 0
+                    const deliveryFee = Number(primarySub.deliveryCharge) || 0
+                    const total =
+                      primarySub.totalPrice != null
+                        ? Number(primarySub.totalPrice)
+                        : basePrice + (primarySub.diningType === 'home_delivery' ? deliveryFee : 0)
+                    return (
+                      <div className="text-right">
+                        <span className="text-[10px] font-bold uppercase text-gray-400 block">Monthly Rate</span>
+                        <span className="text-sm font-black text-[#005390] bg-white px-3 py-1 rounded-xl border border-blue-200 shadow-2xs inline-block">
+                          ₹{total.toLocaleString('en-IN')}/mo
+                        </span>
+                        {primarySub.diningType === 'home_delivery' && deliveryFee > 0 && (
+                          <span className="block text-[9px] text-amber-700 font-semibold mt-0.5">
+                            (Base ₹{basePrice.toLocaleString('en-IN')} + ₹{deliveryFee.toLocaleString('en-IN')} Del.)
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })()}
               </div>
             </div>
-
-            <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
-              {primarySub &&
-                pkg &&
-                (() => {
-                  const basePrice = Number(pkg.price) || 0
-                  const deliveryFee = Number(primarySub.deliveryCharge) || 0
-                  const total =
-                    primarySub.totalPrice != null
-                      ? Number(primarySub.totalPrice)
-                      : basePrice + (primarySub.diningType === 'home_delivery' ? deliveryFee : 0)
-                  return (
-                    <div className="text-right">
-                      <span className="text-[10px] font-bold uppercase text-gray-400 block">Monthly Rate</span>
-                      <span className="text-sm font-black text-[#005390] bg-white px-3 py-1 rounded-xl border border-blue-200 shadow-2xs inline-block">
-                        ₹{total.toLocaleString('en-IN')}/mo
-                      </span>
-                      {primarySub.diningType === 'home_delivery' && deliveryFee > 0 && (
-                        <span className="block text-[9px] text-amber-700 font-semibold mt-0.5">
-                          (Base ₹{basePrice.toLocaleString('en-IN')} + ₹{deliveryFee.toLocaleString('en-IN')} Del.)
-                        </span>
-                      )}
-                    </div>
-                  )
-                })()}
-            </div>
-          </div>
-        )
-      })()}
+          )
+        })()}
 
       {/* ── Main Details Grid (2 Columns) ─────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -784,20 +789,22 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
         </div>
 
         {/* ── Section 5: Assigned Care Tasks & Clinical Care ───────────────────── */}
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4 md:col-span-2">
-          <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
-            <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <HeartPulse className="w-5 h-5 text-rose-500" />
-              Assigned Care Tasks & Clinical Care
-            </h2>
-          </div>
+        {resident.isResiding && (
+          <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4 md:col-span-2">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+              <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <HeartPulse className="w-5 h-5 text-rose-500" />
+                Assigned Care Tasks & Clinical Care
+              </h2>
+            </div>
 
-          <AssignedTasksTab
-            forcedResidentId={resident.id}
-            forcedPropertyId={resident.locId || (resident as unknown as Record<string, string>).loc_id || null}
-            isCompact={true}
-          />
-        </div>
+            <AssignedTasksTab
+              forcedResidentId={resident.id}
+              forcedPropertyId={resident.locId || (resident as unknown as Record<string, string>).loc_id || null}
+              isCompact={true}
+            />
+          </div>
+        )}
       </div>
 
       {/* F&B Package Modal */}
