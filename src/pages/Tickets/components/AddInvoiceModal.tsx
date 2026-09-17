@@ -37,6 +37,7 @@ export function AddInvoiceModal({ isOpen, onClose, ticket, locationId, onSuccess
 
       const url = API_ENDPOINTS.tickets.updateOptions(ticket.id, locationId)
       await apiClient.patch(url, {
+        invoiceAmount: Number(amount) || 0,
         resolutionNotes:
           `Invoice #${invoiceNumber || 'N/A'} - Total: ₹${amount || '0'} (Materials: ₹${materialCost || '0'}, Labor: ₹${laborCost || '0'}). ${notes}`.trim(),
       })
