@@ -123,6 +123,8 @@ const ReceivePaymentForm: React.FC<ReceivePaymentModalProps> = ({
     }
   }
 
+  const amountInputRef = React.useRef<HTMLInputElement>(null)
+
   // Handle toggling FULL vs PARTIAL
   const handleModeChange = (mode: 'FULL' | 'PARTIAL') => {
     setPaymentMode(mode)
@@ -130,6 +132,11 @@ const ReceivePaymentForm: React.FC<ReceivePaymentModalProps> = ({
 
     if (mode === 'FULL' && currentInvoice) {
       setPaymentAmount(String(currentInvoice.amountDue))
+    } else if (mode === 'PARTIAL') {
+      setTimeout(() => {
+        amountInputRef.current?.focus()
+        amountInputRef.current?.select()
+      }, 50)
     }
   }
 
@@ -376,26 +383,38 @@ const ReceivePaymentForm: React.FC<ReceivePaymentModalProps> = ({
             </div>
 
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₹</span>
-              <Input
+              <span className="pointer-events-none select-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">
+                ₹
+              </span>
+              <input
+                ref={amountInputRef}
                 type="number"
-                step="0.01"
-                min="0.01"
-                max={selectedInvoiceId !== 'ADVANCE' && currentInvoice ? currentInvoice.amountDue : undefined}
+                step="any"
+                min="0"
                 value={paymentAmount}
                 onChange={(e) => {
                   setPaymentAmount(e.target.value)
                   setError(null)
                 }}
+                onFocus={(e) => e.target.select()}
                 disabled={paymentMode === 'FULL' && selectedInvoiceId !== 'ADVANCE'}
-                placeholder="Enter amount in ₹"
-                className={`pl-7 h-11 text-base font-mono font-bold text-gray-900 ${
+                placeholder="0.00"
+                className={`w-full pl-8 pr-3 h-11 text-base font-mono font-bold rounded-xl border transition-colors outline-none ${
                   paymentMode === 'FULL' && selectedInvoiceId !== 'ADVANCE'
                     ? 'bg-emerald-50/50 border-emerald-200 text-emerald-800'
-                    : 'border-gray-300'
+                    : 'bg-white border-gray-300 text-gray-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20'
                 }`}
               />
             </div>
+
+            {paymentMode === 'PARTIAL' &&
+              selectedInvoiceId !== 'ADVANCE' &&
+              currentDue > 0 &&
+              amountNum > currentDue && (
+                <p className="text-xs text-rose-600 font-medium">
+                  Partial payment cannot exceed the balance due of ₹{currentDue.toLocaleString('en-IN')}.
+                </p>
+              )}
 
             {/* Quick partial percentages if in partial mode */}
             {paymentMode === 'PARTIAL' && currentInvoice && currentDue > 0 && (
