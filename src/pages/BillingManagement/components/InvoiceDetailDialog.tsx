@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { FileText, User, Home, ShieldCheck, Printer, Copy, Check, Building, CreditCard } from 'lucide-react'
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
@@ -25,9 +25,116 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handlePrint = () => {
-    window.print()
-  }
+  const handlePrint = useCallback(() => {
+    const printElement = document.getElementById('printable-invoice-content')
+    if (!printElement) {
+      window.print()
+      return
+    }
+
+    // Create an invisible iframe to isolate the invoice for clean, unclipped printing
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+    iframe.setAttribute('aria-hidden', 'true')
+    document.body.appendChild(iframe)
+
+    const doc = iframe.contentWindow?.document
+    if (!doc) return
+
+    // Extract all styles and links from the parent document so Tailwind CSS classes apply
+    let stylesHtml = ''
+    document.querySelectorAll('link[rel="stylesheet"], style').forEach((node) => {
+      stylesHtml += node.outerHTML
+    })
+
+    doc.open()
+    doc.write(`
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <title>${invoice?.invoiceNumber || 'Tax Invoice'}</title>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          ${stylesHtml}
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 12mm 14mm;
+            }
+            body {
+              background: #ffffff !important;
+              color: #111827 !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            }
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              box-shadow: none !important;
+            }
+            .no-print {
+              display: none !important;
+            }
+            table {
+              page-break-inside: auto;
+              width: 100% !important;
+            }
+            tr {
+              page-break-inside: avoid;
+              page-break-after: auto;
+            }
+            thead {
+              display: table-header-group;
+            }
+            tfoot {
+              display: table-footer-group;
+            }
+          </style>
+        </head>
+        <body class="bg-white text-gray-900">
+          <div class="p-1 space-y-6">
+            ${printElement.innerHTML}
+          </div>
+        </body>
+      </html>
+    `)
+    doc.close()
+
+    // Wait for iframe styles and fonts to settle, then invoke print
+    setTimeout(() => {
+      iframe.contentWindow?.focus()
+      iframe.contentWindow?.print()
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe)
+        }
+      }, 1500)
+    }, 250)
+  }, [invoice])
+
+  // Intercept Ctrl+P / Cmd+P while invoice dialog is open to trigger isolated iframe print
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+        e.preventDefault()
+        handlePrint()
+      }
+    }
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown)
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen, handlePrint])
 
   const getStatusBadge = (status?: string) => {
     switch (status) {
@@ -64,7 +171,7 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-4xl lg:max-w-5xl w-full max-h-[92vh] p-0 flex flex-col overflow-hidden bg-white border-gray-200 shadow-2xl rounded-2xl gap-0">
         {/* MODAL ACTION BAR */}
-        <div className="px-6 py-4 bg-slate-50 border-b border-gray-200 flex items-center justify-between shrink-0">
+        <div className="no-print invoice-dialog-header px-6 py-4 bg-slate-50 border-b border-gray-200 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-[#005390]/10 text-[#005390]">
               <FileText className="w-5 h-5" />
@@ -107,7 +214,10 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
         </div>
 
         {/* BODY CONTAINER */}
-        <div className="overflow-y-auto flex-1 p-6 sm:p-8 bg-white space-y-6">
+        <div
+          id="printable-invoice-content"
+          className="invoice-scroll-body overflow-y-auto flex-1 p-6 sm:p-8 bg-white space-y-6"
+        >
           {isLoading ? (
             <div className="py-20 text-center space-y-2">
               <div className="w-7 h-7 border-2 border-[#005390] border-t-transparent rounded-full animate-spin mx-auto" />
@@ -130,7 +240,9 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
                         RELY ACTIVE <span className="text-[#005390]">2.0</span>
                       </span>
                     </div>
-                    <p className="text-xs font-semibold text-gray-700">Green Valley Residency</p>
+                    <p className="text-xs font-semibold text-gray-700">
+                      {invoice.property?.name || invoice.billingAccount?.property?.name || 'Green Valley Residency'}
+                    </p>
                     <p className="text-[11px] text-gray-500 max-w-sm leading-relaxed">
                       Integrated Senior Living & Community Management • Residential Billing & Accounting
                     </p>
@@ -174,7 +286,10 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
                     <div className="flex items-center gap-2 text-xs text-gray-600">
                       <Home className="w-3.5 h-3.5 text-gray-400" />
                       <span>
-                        Unit / Flat: <strong className="text-gray-900">{invoice.unit?.unit_number || 'A-14'}</strong>
+                        Unit / Flat:{' '}
+                        <strong className="text-gray-900">
+                          {invoice.unit?.unit_number || invoice.billingAccount?.unit?.unit_number || '—'}
+                        </strong>
                       </span>
                     </div>
                     {invoice.billToPhone && (
@@ -267,7 +382,7 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
                             <td className="px-3 py-3 text-gray-600 whitespace-nowrap">
                               {line.consumedByResident
                                 ? `${line.consumedByResident.firstName} ${line.consumedByResident.lastName}`
-                                : 'Mahesh Sinha'}
+                                : invoice.billToName || 'Resident'}
                             </td>
                             <td className="px-3 py-3 text-right text-gray-700 font-mono">
                               {Number(line.quantity).toFixed(line.quantity % 1 === 0 ? 0 : 2)}
@@ -402,12 +517,25 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
                   </div>
                 </div>
               </div>
+
+              {/* LEGAL TAX INVOICE FOOTER NOTE (INCLUDED ON PRINT SHEET) */}
+              <div className="pt-6 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between text-[11px] text-gray-500 gap-2">
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>
+                    Computer generated {hasTax ? 'legal tax invoice' : 'invoice'} • No physical signature required
+                  </span>
+                </div>
+                <div className="font-mono text-[10px] text-gray-400">
+                  #{invoice.invoiceNumber} • Generated: {new Date().toLocaleDateString('en-IN')}
+                </div>
+              </div>
             </>
           )}
         </div>
 
         {/* MODAL FOOTER */}
-        <div className="px-6 py-3 bg-slate-50 border-t border-gray-200 flex items-center justify-between shrink-0">
+        <div className="no-print invoice-dialog-footer px-6 py-3 bg-slate-50 border-t border-gray-200 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
             <span>Computer generated {hasTax ? 'legal tax invoice' : 'invoice'} • No physical signature required</span>
@@ -428,6 +556,45 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
             </Button>
           </div>
         </div>
+
+        {/* PRINT CSS FOR BROWSER PRINT FALLBACK (CTRL+P) */}
+        <style>{`
+          @media print {
+            body {
+              overflow: visible !important;
+              height: auto !important;
+            }
+            body > *:not([data-radix-portal]) {
+              display: none !important;
+            }
+            [data-radix-portal] > div:first-child {
+              display: none !important;
+            }
+            [role="dialog"] {
+              position: static !important;
+              transform: none !important;
+              max-width: 100% !important;
+              max-height: none !important;
+              height: auto !important;
+              box-shadow: none !important;
+              border: none !important;
+              border-radius: 0 !important;
+              padding: 0 !important;
+              margin: 0 !important;
+              overflow: visible !important;
+            }
+            .no-print,
+            button[aria-label="Close"] {
+              display: none !important;
+            }
+            #printable-invoice-content {
+              overflow: visible !important;
+              max-height: none !important;
+              height: auto !important;
+              padding: 10mm !important;
+            }
+          }
+        `}</style>
       </DialogContent>
     </Dialog>
   )
