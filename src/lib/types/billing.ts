@@ -20,6 +20,56 @@ export type InvoiceLineType = 'SUBSCRIPTION' | 'USAGE' | 'DISCOUNT' | 'TAX' | 'A
 export type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'CHEQUE' | 'UPI' | 'NEFT' | 'RTGS' | 'CARD' | 'OTHER'
 export type PaymentStatus = 'PENDING' | 'CONFIRMED' | 'FAILED' | 'REVERSED'
 
+export interface PaymentAllocationItem {
+  invoiceId: string
+  amount: number
+}
+
+export interface PaymentAllocation {
+  id: string
+  paymentId: string
+  invoiceId: string
+  amount: number
+  createdAt: string
+  invoice?: Partial<Invoice>
+}
+
+export interface Payment {
+  id: string
+  paymentNumber: string
+  billingAccountId: string
+  amount: number
+  paymentDate: string
+  paymentMethod: PaymentMethod
+  transactionReference?: string | null
+  bankName?: string | null
+  chequeNumber?: string | null
+  status: PaymentStatus
+  notes?: string | null
+  performedBy?: string | null
+  createdAt: string
+  updatedAt: string
+  allocations?: PaymentAllocation[]
+}
+
+export interface RecordPaymentPayload {
+  billingAccountId: string
+  amount: number
+  paymentDate: string
+  paymentMethod: PaymentMethod
+  transactionReference?: string | null
+  bankName?: string | null
+  chequeNumber?: string | null
+  notes?: string | null
+  allocations: PaymentAllocationItem[]
+}
+
+export interface RecordPaymentResponse {
+  payment: Payment
+  allocations: PaymentAllocation[]
+  updatedInvoices: Invoice[]
+}
+
 export type BillingRunType = 'SCHEDULED' | 'MANUAL' | 'PREVIEW'
 export type BillingRunStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED'
 

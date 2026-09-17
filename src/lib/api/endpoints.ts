@@ -402,6 +402,8 @@ export const API_ENDPOINTS = {
     eventAttachments: (id: string) => `${BASE_URL}/billing/events/${id}/attachments`,
     runs: `${BASE_URL}/billing/runs`,
     taxSettings: `${BASE_URL}/billing/settings/tax`,
+    payments: `${BASE_URL}/billing/payments`,
+    accountPayments: (id: string) => `${BASE_URL}/billing/accounts/${id}/payments`,
   },
 
   // Medical Management Endpoints (Care Tasks & Care Packages)

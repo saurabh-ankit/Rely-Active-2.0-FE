@@ -44,7 +44,8 @@ import { useLocationContext } from '@/hooks/useLocation'
 import { formatDateDDMMYYYY } from '@/lib/utils/dateFormat'
 import { InvoiceDetailDialog } from './InvoiceDetailDialog'
 import { AddMiscellaneousChargeModal } from './AddMiscellaneousChargeModal'
-import type { BillingEvent } from '@/lib/types/billing'
+import { ReceivePaymentModal } from './ReceivePaymentModal'
+import type { BillingEvent, Invoice } from '@/lib/types/billing'
 
 export const FlatBillingDashboard: React.FC = () => {
   const { unitId } = useParams<{ unitId: string }>()
@@ -68,6 +69,10 @@ export const FlatBillingDashboard: React.FC = () => {
   const [isInvoiceDetailOpen, setIsInvoiceDetailOpen] = useState(false)
   const [isAddChargeOpen, setIsAddChargeOpen] = useState(false)
   const [editingBillingEvent, setEditingBillingEvent] = useState<BillingEvent | null>(null)
+
+  // Receive Payment Modal
+  const [isReceivePaymentOpen, setIsReceivePaymentOpen] = useState(false)
+  const [selectedPaymentInvoice, setSelectedPaymentInvoice] = useState<Invoice | null>(null)
 
   // Success Dialog after generating invoice
   const [generatedInvoiceInfo, setGeneratedInvoiceInfo] = useState<{
@@ -387,6 +392,17 @@ export const FlatBillingDashboard: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={() => {
+              setSelectedPaymentInvoice(null)
+              setIsReceivePaymentOpen(true)
+            }}
+            className="text-xs h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-medium cursor-pointer shadow-xs"
+          >
+            <ReceiptIndianRupee className="w-3.5 h-3.5 mr-1" />
+            Receive Payment
+          </Button>
           <Button variant="outline" size="sm" onClick={() => refetchUnit()} className="text-xs h-9 cursor-pointer">
             <RefreshCw className="w-3.5 h-3.5 mr-1" />
             Refresh Data
@@ -1325,13 +1341,25 @@ export const FlatBillingDashboard: React.FC = () => {
             <div className="text-xs font-bold text-gray-700 uppercase tracking-wider">
               Flat {unit.unitNumber} Invoice Statement ({invoices.length} Bills)
             </div>
-            <Button
-              size="sm"
-              onClick={() => setActiveTab('generate')}
-              className="text-xs h-8 bg-[#005390] hover:bg-[#004273] text-white"
-            >
-              <Plus className="w-3.5 h-3.5 mr-1" /> New Bill
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                onClick={() => {
+                  setSelectedPaymentInvoice(null)
+                  setIsReceivePaymentOpen(true)
+                }}
+                className="text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+              >
+                <ReceiptIndianRupee className="w-3.5 h-3.5 mr-1" /> Receive Payment
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setActiveTab('generate')}
+                className="text-xs h-8 bg-[#005390] hover:bg-[#004273] text-white"
+              >
+                <Plus className="w-3.5 h-3.5 mr-1" /> New Bill
+              </Button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -1381,17 +1409,35 @@ export const FlatBillingDashboard: React.FC = () => {
                       </td>
                       <td className="px-3 py-3 text-center whitespace-nowrap">{getStatusBadge(inv.status)}</td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedInvoiceId(inv.id)
-                            setIsInvoiceDetailOpen(true)
-                          }}
-                          className="text-[#005390] hover:bg-[#005390]/10 text-xs h-7 px-2"
-                        >
-                          <Eye className="w-3.5 h-3.5 mr-1" /> View Bill
-                        </Button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {Number(inv.amountDue) > 0 ? (
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                setSelectedPaymentInvoice(inv)
+                                setIsReceivePaymentOpen(true)
+                              }}
+                              className="text-xs h-7 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer font-medium"
+                            >
+                              <ReceiptIndianRupee className="w-3.5 h-3.5 mr-1" /> Receive Payment
+                            </Button>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Settled
+                            </span>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedInvoiceId(inv.id)
+                              setIsInvoiceDetailOpen(true)
+                            }}
+                            className="text-[#005390] hover:bg-[#005390]/10 text-xs h-7 px-2"
+                          >
+                            <Eye className="w-3.5 h-3.5 mr-1" /> View Bill
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -1762,6 +1808,22 @@ export const FlatBillingDashboard: React.FC = () => {
         folio={folio}
         occupants={occupants}
         billingEvent={editingBillingEvent}
+      />
+      <ReceivePaymentModal
+        open={isReceivePaymentOpen}
+        onOpenChange={(open) => {
+          setIsReceivePaymentOpen(open)
+          if (!open) setSelectedPaymentInvoice(null)
+        }}
+        unit={unit}
+        folio={folio}
+        primaryPayer={primaryPayer}
+        primaryResident={primaryResident}
+        invoice={selectedPaymentInvoice}
+        invoices={invoices}
+        onSuccess={() => {
+          refetchUnit()
+        }}
       />
     </div>
   )

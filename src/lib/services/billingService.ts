@@ -8,6 +8,9 @@ import type {
   BillingRun,
   BillingSubscription,
   Invoice,
+  Payment,
+  RecordPaymentPayload,
+  RecordPaymentResponse,
   UnitBillingSummary,
   UnitBilling360,
 } from '@/lib/types/billing'
@@ -265,4 +268,21 @@ export const uploadBillingEventAttachmentAPI = async (
     formData,
   )
   return response.data
+}
+
+// ── 7. PAYMENTS & COLLECTIONS ──────────────────────────────────────────────
+export const recordPaymentAPI = async (
+  payload: RecordPaymentPayload,
+): Promise<{ success: boolean; data: RecordPaymentResponse; message?: string }> => {
+  const response = await api.post<{ success: boolean; data: RecordPaymentResponse; message?: string }>(
+    API_ENDPOINTS.billing.payments,
+    payload,
+  )
+  return response.data
+}
+
+export const getAccountPaymentsAPI = async (accountId: string): Promise<{ success: boolean; data: Payment[] }> => {
+  const response = await api.get(API_ENDPOINTS.billing.accountPayments(accountId))
+  const data = Array.isArray(response.data) ? response.data : response.data?.data || []
+  return { success: true, data }
 }
