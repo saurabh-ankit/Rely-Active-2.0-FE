@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Bell, Building2, ChevronDown, LogOut, Menu, Settings, Shield, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,25 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
 
   const [showLocationDropdown, setShowLocationDropdown] = useState(false)
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
+
+  const locationDropdownRef = useRef<HTMLDivElement>(null)
+  const profileDropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (locationDropdownRef.current && !locationDropdownRef.current.contains(event.target as Node)) {
+        setShowLocationDropdown(false)
+      }
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setShowProfileDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   const fullName = user?.profile?.first_name
     ? `${user.profile.first_name} ${user.profile.last_name || ''}`.trim()
@@ -58,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
         {/* Right side - Location + Notifications + User Avatar */}
         <div className="flex items-center gap-1.5 md:gap-4">
           {/* Location Dropdown */}
-          <div className="relative">
+          <div className="relative" ref={locationDropdownRef}>
             <button
               type="button"
               onClick={() => setShowLocationDropdown(!showLocationDropdown)}
@@ -123,7 +142,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
           </button>
 
           {/* User Avatar */}
-          <div className="relative">
+          <div className="relative" ref={profileDropdownRef}>
             <button
               type="button"
               onClick={() => setShowProfileDropdown(!showProfileDropdown)}
