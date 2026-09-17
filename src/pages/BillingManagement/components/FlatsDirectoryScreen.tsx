@@ -481,9 +481,13 @@ export const FlatsDirectoryScreen: React.FC = () => {
                             </span>
                           </div>
                         ) : isOccupied ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
-                            <CheckCircle2 className="w-3 h-3" /> All Paid
-                          </span>
+                          Number(unit.financialMetrics?.invoicesCount || 0) > 0 ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
+                              <CheckCircle2 className="w-3 h-3" /> All Paid
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-400 font-medium">No Invoices</span>
+                          )
                         ) : (
                           <span className="text-xs text-gray-300">—</span>
                         )}
@@ -635,10 +639,14 @@ export const FlatsDirectoryScreen: React.FC = () => {
                           </span>
                         </div>
                       ) : isOccupied ? (
-                        <div className="flex items-center gap-1 text-emerald-600 text-[11px] font-semibold">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>All Bills Paid</span>
-                        </div>
+                        Number(unit.financialMetrics?.invoicesCount || 0) > 0 ? (
+                          <div className="flex items-center gap-1 text-emerald-600 text-[11px] font-semibold">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>All Bills Paid</span>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 font-medium">No Invoices</span>
+                        )
                       ) : (
                         <span className="text-[11px] text-gray-400 italic">No Balance</span>
                       )}

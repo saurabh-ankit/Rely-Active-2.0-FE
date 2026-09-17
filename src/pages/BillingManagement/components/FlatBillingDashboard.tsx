@@ -26,6 +26,7 @@ import {
   Tag,
   User,
   Utensils,
+  Wrench,
   Zap,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -44,7 +45,8 @@ import { useLocationContext } from '@/hooks/useLocation'
 import { formatDateDDMMYYYY } from '@/lib/utils/dateFormat'
 import { InvoiceDetailDialog } from './InvoiceDetailDialog'
 import { AddMiscellaneousChargeModal } from './AddMiscellaneousChargeModal'
-import type { BillingEvent } from '@/lib/types/billing'
+import { ReceivePaymentModal } from './ReceivePaymentModal'
+import type { BillingEvent, Invoice } from '@/lib/types/billing'
 
 export const FlatBillingDashboard: React.FC = () => {
   const { unitId } = useParams<{ unitId: string }>()
@@ -68,6 +70,10 @@ export const FlatBillingDashboard: React.FC = () => {
   const [isInvoiceDetailOpen, setIsInvoiceDetailOpen] = useState(false)
   const [isAddChargeOpen, setIsAddChargeOpen] = useState(false)
   const [editingBillingEvent, setEditingBillingEvent] = useState<BillingEvent | null>(null)
+
+  // Receive Payment Modal
+  const [isReceivePaymentOpen, setIsReceivePaymentOpen] = useState(false)
+  const [selectedPaymentInvoice, setSelectedPaymentInvoice] = useState<Invoice | null>(null)
 
   // Success Dialog after generating invoice
   const [generatedInvoiceInfo, setGeneratedInvoiceInfo] = useState<{
@@ -120,7 +126,35 @@ export const FlatBillingDashboard: React.FC = () => {
   const [startDate, setStartDate] = useState(defaultPeriodStart)
   const [endDate, setEndDate] = useState(defaultPeriodEnd)
   const [dueDate, setDueDate] = useState(defaultDueDate)
-  const [includePendingEvents, setIncludePendingEvents] = useState(true)
+  const [deselectedEventIds, setDeselectedEventIds] = useState<Set<string>>(new Set())
+
+  const selectedEvents = useMemo(
+    () => pendingEvents.filter((ev) => !deselectedEventIds.has(ev.id)),
+    [pendingEvents, deselectedEventIds],
+  )
+  const selectedEventIds = useMemo(() => new Set(selectedEvents.map((ev) => ev.id)), [selectedEvents])
+  const isAllEventsSelected = pendingEvents.length > 0 && selectedEvents.length === pendingEvents.length
+  const isSomeEventsSelected = selectedEvents.length > 0 && selectedEvents.length < pendingEvents.length
+
+  const handleToggleAllEvents = (checked: boolean) => {
+    if (checked) {
+      setDeselectedEventIds(new Set())
+    } else {
+      setDeselectedEventIds(new Set(pendingEvents.map((ev) => ev.id)))
+    }
+  }
+
+  const handleToggleEvent = (eventId: string) => {
+    setDeselectedEventIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(eventId)) {
+        next.delete(eventId)
+      } else {
+        next.add(eventId)
+      }
+      return next
+    })
+  }
 
   // Discount configuration
   const [discountType, setDiscountType] = useState<'FIXED' | 'PERCENTAGE'>('FIXED')
@@ -221,10 +255,15 @@ export const FlatBillingDashboard: React.FC = () => {
     [billableSubscriptions],
   )
 
-  const pendingEventsSum = useMemo(() => {
-    if (!includePendingEvents) return 0
+  const allPendingEventsSum = useMemo(() => {
     return pendingEvents.reduce((acc, ev) => acc + Number(ev.amount || ev.unitPrice || 0), 0)
-  }, [pendingEvents, includePendingEvents])
+  }, [pendingEvents])
+
+  const pendingEventsSum = useMemo(() => {
+    return pendingEvents
+      .filter((ev) => selectedEventIds.has(ev.id))
+      .reduce((acc, ev) => acc + Number(ev.amount || ev.unitPrice || 0), 0)
+  }, [pendingEvents, selectedEventIds])
 
   const subtotalEstimate = activeSubsSum + pendingEventsSum
 
@@ -251,12 +290,14 @@ export const FlatBillingDashboard: React.FC = () => {
   const handleGenerateInvoice = async () => {
     if (!folio?.id) return
     try {
+      const selectedIds = Array.from(selectedEventIds)
       const res = await generateInvoiceMutation.mutateAsync({
         billingAccountId: folio.id,
         periodStart: startDate,
         periodEnd: endDate,
         dueDate,
-        includePendingEvents,
+        includePendingEvents: selectedIds.length > 0,
+        pendingEventIds: selectedIds,
         billingMode,
         includeSubscriptions: billingMode !== 'SUPPLEMENTARY',
         discountType: discountValue > 0 ? discountType : undefined,
@@ -352,6 +393,17 @@ export const FlatBillingDashboard: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={() => {
+              setSelectedPaymentInvoice(null)
+              setIsReceivePaymentOpen(true)
+            }}
+            className="text-xs h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-medium cursor-pointer shadow-xs"
+          >
+            <ReceiptIndianRupee className="w-3.5 h-3.5 mr-1" />
+            Receive Payment
+          </Button>
           <Button variant="outline" size="sm" onClick={() => refetchUnit()} className="text-xs h-9 cursor-pointer">
             <RefreshCw className="w-3.5 h-3.5 mr-1" />
             Refresh Data
@@ -531,7 +583,7 @@ export const FlatBillingDashboard: React.FC = () => {
           <CardContent>
             <div className="text-2xl font-bold font-mono text-amber-600">{pendingEvents.length} Items</div>
             <p className="text-xs text-gray-500 mt-1">
-              ₹{pendingEventsSum.toLocaleString('en-IN', { minimumFractionDigits: 2 })} unbilled usage
+              ₹{allPendingEventsSum.toLocaleString('en-IN', { minimumFractionDigits: 2 })} unbilled usage
             </p>
           </CardContent>
         </Card>
@@ -875,6 +927,11 @@ export const FlatBillingDashboard: React.FC = () => {
                 <CardTitle className="text-sm font-bold text-gray-900 flex items-center gap-2">
                   <Zap className="w-4 h-4 text-amber-500" />
                   3. Pending Consumption Charges ({pendingEvents.length})
+                  {pendingEvents.length > 0 && (
+                    <span className="text-[11px] font-normal text-gray-500 ml-1">
+                      ({selectedEventIds.size} of {pendingEvents.length} selected)
+                    </span>
+                  )}
                 </CardTitle>
                 <div className="flex items-center gap-3">
                   <Button
@@ -885,15 +942,22 @@ export const FlatBillingDashboard: React.FC = () => {
                   >
                     <Plus className="mr-1 h-3.5 w-3.5" /> Add Miscellaneous Charge
                   </Button>
-                  <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={includePendingEvents}
-                      onChange={(e) => setIncludePendingEvents(e.target.checked)}
-                      className="rounded border-gray-300 text-[#005390]"
-                    />
-                    <span>Include in Invoice</span>
-                  </label>
+                  {pendingEvents.length > 0 && (
+                    <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none bg-slate-50 hover:bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-md transition-colors">
+                      <input
+                        type="checkbox"
+                        ref={(el) => {
+                          if (el) {
+                            el.indeterminate = isSomeEventsSelected
+                          }
+                        }}
+                        checked={isAllEventsSelected}
+                        onChange={(e) => handleToggleAllEvents(e.target.checked)}
+                        className="rounded border-gray-300 text-[#005390] focus:ring-[#005390] w-4 h-4 cursor-pointer"
+                      />
+                      <span>Select All</span>
+                    </label>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="pt-4">
@@ -902,81 +966,113 @@ export const FlatBillingDashboard: React.FC = () => {
                     No unbilled usage events recorded for this flat.
                   </p>
                 ) : (
-                  <div
-                    className={`divide-y divide-gray-100 ${!includePendingEvents ? 'opacity-40 pointer-events-none' : ''}`}
-                  >
-                    {pendingEvents.map((ev) => (
-                      <div key={ev.id} className="py-2.5 flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`p-1.5 rounded-lg ${
-                              ev.sourceModule === 'INVENTORY'
-                                ? 'bg-indigo-50 text-indigo-600'
-                                : ev.sourceModule === 'CARE'
-                                  ? 'bg-rose-50 text-rose-600'
-                                  : ev.sourceModule === 'FNB'
-                                    ? 'bg-amber-50 text-amber-600'
-                                    : 'bg-blue-50 text-blue-600'
-                            }`}
-                          >
-                            {ev.sourceModule === 'INVENTORY' ? (
-                              <Package className="w-3.5 h-3.5" />
-                            ) : ev.sourceModule === 'CARE' ? (
-                              <HeartPulse className="w-3.5 h-3.5" />
-                            ) : ev.sourceModule === 'FNB' ? (
-                              <Utensils className="w-3.5 h-3.5" />
-                            ) : (
-                              <Zap className="w-3.5 h-3.5" />
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-semibold text-gray-900">{ev.description}</div>
-                            <div className="text-[10px] text-gray-400 flex items-center gap-1.5">
-                              <span>{formatDateDDMMYYYY(ev.serviceDate)}</span>
-                              <span>•</span>
-                              <span
-                                className={`font-semibold uppercase ${
-                                  ev.sourceModule === 'INVENTORY'
-                                    ? 'text-indigo-600'
-                                    : ev.sourceModule === 'CARE'
-                                      ? 'text-rose-600'
-                                      : ev.sourceModule === 'FNB'
-                                        ? 'text-amber-600'
-                                        : 'text-gray-500'
-                                }`}
-                              >
-                                {ev.sourceModule}
-                              </span>
+                  <div className="divide-y divide-gray-100">
+                    {pendingEvents.map((ev) => {
+                      const isSelected = selectedEventIds.has(ev.id)
+                      return (
+                        <div
+                          key={ev.id}
+                          className={`py-2.5 flex items-center justify-between text-xs px-2 -mx-2 rounded-md transition-colors ${
+                            isSelected ? 'bg-white hover:bg-slate-50/70' : 'bg-slate-50/40 opacity-60 hover:opacity-80'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleToggleEvent(ev.id)}
+                              className="rounded border-gray-300 text-[#005390] focus:ring-[#005390] w-4 h-4 cursor-pointer shrink-0"
+                            />
+                            <div
+                              className={`p-1.5 rounded-lg shrink-0 ${
+                                ev.sourceModule === 'INVENTORY'
+                                  ? 'bg-indigo-50 text-indigo-600'
+                                  : ev.sourceModule === 'CARE'
+                                    ? 'bg-rose-50 text-rose-600'
+                                    : ev.sourceModule === 'FNB'
+                                      ? 'bg-amber-50 text-amber-600'
+                                      : ev.sourceModule === 'ACTIVITY'
+                                        ? 'bg-emerald-50 text-emerald-600'
+                                        : ev.description?.toLowerCase().includes('maintenance') ||
+                                            ev.description?.toLowerCase().includes('repair')
+                                          ? 'bg-orange-50 text-orange-600'
+                                          : 'bg-blue-50 text-blue-600'
+                              }`}
+                            >
+                              {ev.sourceModule === 'INVENTORY' ? (
+                                <Package className="w-3.5 h-3.5" />
+                              ) : ev.sourceModule === 'CARE' ? (
+                                <HeartPulse className="w-3.5 h-3.5" />
+                              ) : ev.sourceModule === 'FNB' ? (
+                                <Utensils className="w-3.5 h-3.5" />
+                              ) : ev.sourceModule === 'ACTIVITY' ? (
+                                <Calendar className="w-3.5 h-3.5" />
+                              ) : ev.description?.toLowerCase().includes('maintenance') ||
+                                ev.description?.toLowerCase().includes('repair') ? (
+                                <Wrench className="w-3.5 h-3.5" />
+                              ) : (
+                                <Zap className="w-3.5 h-3.5" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-gray-900">{ev.description}</div>
+                              <div className="text-[10px] text-gray-400 flex items-center gap-1.5">
+                                <span>{formatDateDDMMYYYY(ev.serviceDate)}</span>
+                                <span>•</span>
+                                <span
+                                  className={`font-semibold uppercase ${
+                                    ev.sourceModule === 'INVENTORY'
+                                      ? 'text-indigo-600'
+                                      : ev.sourceModule === 'CARE'
+                                        ? 'text-rose-600'
+                                        : ev.sourceModule === 'FNB'
+                                          ? 'text-amber-600'
+                                          : ev.sourceModule === 'ACTIVITY'
+                                            ? 'text-emerald-600'
+                                            : ev.description?.toLowerCase().includes('maintenance') ||
+                                                ev.description?.toLowerCase().includes('repair')
+                                              ? 'text-orange-600'
+                                              : 'text-gray-500'
+                                  }`}
+                                >
+                                  {ev.sourceModule === 'ACTIVITY'
+                                    ? 'EVENT'
+                                    : ev.description?.toLowerCase().includes('maintenance') ||
+                                        ev.description?.toLowerCase().includes('repair')
+                                      ? 'MAINTENANCE'
+                                      : ev.sourceModule}
+                                </span>
+                              </div>
                             </div>
                           </div>
+                          <div className="text-right">
+                            <span className="font-mono font-bold text-gray-900">
+                              ₹
+                              {Number(ev.amount || ev.unitPrice || 0).toLocaleString('en-IN', {
+                                minimumFractionDigits: 2,
+                              })}
+                            </span>
+                            <span className="text-[10px] text-gray-400 block">
+                              Qty: {ev.quantity} × ₹
+                              {Number(ev.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </span>
+                            {ev.sourceModule === 'MANUAL' && ev.status === 'PENDING' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="mt-1 h-6 px-1.5 text-[10px] text-[#005390]"
+                                onClick={() => {
+                                  setEditingBillingEvent(ev)
+                                  setIsAddChargeOpen(true)
+                                }}
+                              >
+                                <Pencil className="mr-1 h-3 w-3" /> Edit
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <span className="font-mono font-bold text-gray-900">
-                            ₹
-                            {Number(ev.amount || ev.unitPrice || 0).toLocaleString('en-IN', {
-                              minimumFractionDigits: 2,
-                            })}
-                          </span>
-                          <span className="text-[10px] text-gray-400 block">
-                            Qty: {ev.quantity} × ₹
-                            {Number(ev.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </span>
-                          {ev.sourceModule === 'MANUAL' && ev.status === 'PENDING' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="mt-1 h-6 px-1.5 text-[10px] text-[#005390]"
-                              onClick={() => {
-                                setEditingBillingEvent(ev)
-                                setIsAddChargeOpen(true)
-                              }}
-                            >
-                              <Pencil className="mr-1 h-3 w-3" /> Edit
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -1266,13 +1362,25 @@ export const FlatBillingDashboard: React.FC = () => {
             <div className="text-xs font-bold text-gray-700 uppercase tracking-wider">
               Flat {unit.unitNumber} Invoice Statement ({invoices.length} Bills)
             </div>
-            <Button
-              size="sm"
-              onClick={() => setActiveTab('generate')}
-              className="text-xs h-8 bg-[#005390] hover:bg-[#004273] text-white"
-            >
-              <Plus className="w-3.5 h-3.5 mr-1" /> New Bill
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                onClick={() => {
+                  setSelectedPaymentInvoice(null)
+                  setIsReceivePaymentOpen(true)
+                }}
+                className="text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+              >
+                <ReceiptIndianRupee className="w-3.5 h-3.5 mr-1" /> Receive Payment
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setActiveTab('generate')}
+                className="text-xs h-8 bg-[#005390] hover:bg-[#004273] text-white"
+              >
+                <Plus className="w-3.5 h-3.5 mr-1" /> New Bill
+              </Button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -1322,17 +1430,35 @@ export const FlatBillingDashboard: React.FC = () => {
                       </td>
                       <td className="px-3 py-3 text-center whitespace-nowrap">{getStatusBadge(inv.status)}</td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedInvoiceId(inv.id)
-                            setIsInvoiceDetailOpen(true)
-                          }}
-                          className="text-[#005390] hover:bg-[#005390]/10 text-xs h-7 px-2"
-                        >
-                          <Eye className="w-3.5 h-3.5 mr-1" /> View Bill
-                        </Button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {Number(inv.amountDue) > 0 ? (
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                setSelectedPaymentInvoice(inv)
+                                setIsReceivePaymentOpen(true)
+                              }}
+                              className="text-xs h-7 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer font-medium"
+                            >
+                              <ReceiptIndianRupee className="w-3.5 h-3.5 mr-1" /> Receive Payment
+                            </Button>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Settled
+                            </span>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedInvoiceId(inv.id)
+                              setIsInvoiceDetailOpen(true)
+                            }}
+                            className="text-[#005390] hover:bg-[#005390]/10 text-xs h-7 px-2"
+                          >
+                            <Eye className="w-3.5 h-3.5 mr-1" /> View Bill
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -1396,10 +1522,20 @@ export const FlatBillingDashboard: React.FC = () => {
                                 ? 'bg-rose-50 text-rose-700 border-rose-200'
                                 : ev.sourceModule === 'FNB'
                                   ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                  : 'bg-slate-50 text-slate-700 border-slate-200'
+                                  : ev.sourceModule === 'ACTIVITY'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : ev.description?.toLowerCase().includes('maintenance') ||
+                                        ev.description?.toLowerCase().includes('repair')
+                                      ? 'bg-orange-50 text-orange-700 border-orange-200'
+                                      : 'bg-slate-50 text-slate-700 border-slate-200'
                           }`}
                         >
-                          {ev.sourceModule}
+                          {ev.sourceModule === 'ACTIVITY'
+                            ? 'EVENT'
+                            : ev.description?.toLowerCase().includes('maintenance') ||
+                                ev.description?.toLowerCase().includes('repair')
+                              ? 'MAINTENANCE'
+                              : ev.sourceModule}
                         </Badge>
                       </td>
                       <td className="px-4 py-3 font-medium text-gray-900">{ev.description}</td>
@@ -1494,7 +1630,7 @@ export const FlatBillingDashboard: React.FC = () => {
       {/* TAB 5: SACRED LEDGER STATEMENT */}
       {activeTab === 'ledger' && (
         <Card className="bg-white border-gray-200 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="text-xs font-bold text-gray-700 uppercase tracking-wider">
                 Chronological Sacred Ledger Statement
@@ -1503,11 +1639,21 @@ export const FlatBillingDashboard: React.FC = () => {
                 Append-only financial audit trail for Folio {folio?.accountNumber || unit.unitNumber}
               </p>
             </div>
-            <div className="text-right">
-              <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Current Balance</span>
-              <span className="font-mono font-bold text-sm text-[#005390]">
-                ₹{Number(folio?.creditBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </span>
+            <div className="flex items-center gap-4 text-right">
+              <div>
+                <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Net Outstanding Due</span>
+                <span
+                  className={`font-mono font-bold text-sm ${totalOutstanding > 0 ? 'text-rose-600' : 'text-emerald-600'}`}
+                >
+                  ₹{totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="border-l border-gray-200 pl-4">
+                <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Advance Credit</span>
+                <span className="font-mono font-bold text-sm text-emerald-600">
+                  ₹{creditBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -1542,8 +1688,55 @@ export const FlatBillingDashboard: React.FC = () => {
                           {entry.entryType}
                         </Badge>
                       </td>
-                      <td className="px-3 py-3 text-[#005390] font-semibold whitespace-nowrap">
-                        {entry.referenceId || 'N/A'}
+                      <td className="px-3 py-3 font-semibold whitespace-nowrap">
+                        {(() => {
+                          const desc = entry.description || ''
+                          const match = desc.match(/#(INV-[\w-]+|REC-[\w-]+)/i)
+                          const refCode = match ? match[1] : null
+
+                          if (refCode?.startsWith('INV-')) {
+                            const matchedInv = invoices.find((i) => i.invoiceNumber === refCode)
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (matchedInv) {
+                                    setSelectedInvoiceId(matchedInv.id)
+                                    setIsInvoiceDetailOpen(true)
+                                  } else if (entry.referenceId) {
+                                    setSelectedInvoiceId(entry.referenceId)
+                                    setIsInvoiceDetailOpen(true)
+                                  }
+                                }}
+                                className="font-mono font-bold text-[#005390] hover:underline cursor-pointer flex items-center gap-1"
+                                title="Click to view invoice"
+                              >
+                                {refCode}
+                              </button>
+                            )
+                          }
+
+                          if (refCode?.startsWith('REC-')) {
+                            return (
+                              <span className="font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-[11px]">
+                                {refCode}
+                              </span>
+                            )
+                          }
+
+                          if (
+                            entry.referenceId &&
+                            !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(entry.referenceId)
+                          ) {
+                            return <span className="font-mono text-[#005390]">{entry.referenceId}</span>
+                          }
+
+                          return (
+                            <span className="font-mono text-gray-400">
+                              {entry.referenceId ? `${entry.referenceId.slice(0, 8)}...` : 'N/A'}
+                            </span>
+                          )
+                        })()}
                       </td>
                       <td className="px-4 py-3 font-sans text-gray-800">{entry.description}</td>
                       <td className="px-3 py-3 text-right text-rose-600 whitespace-nowrap">
@@ -1703,6 +1896,22 @@ export const FlatBillingDashboard: React.FC = () => {
         folio={folio}
         occupants={occupants}
         billingEvent={editingBillingEvent}
+      />
+      <ReceivePaymentModal
+        open={isReceivePaymentOpen}
+        onOpenChange={(open) => {
+          setIsReceivePaymentOpen(open)
+          if (!open) setSelectedPaymentInvoice(null)
+        }}
+        unit={unit}
+        folio={folio}
+        primaryPayer={primaryPayer}
+        primaryResident={primaryResident}
+        invoice={selectedPaymentInvoice}
+        invoices={invoices}
+        onSuccess={() => {
+          refetchUnit()
+        }}
       />
     </div>
   )

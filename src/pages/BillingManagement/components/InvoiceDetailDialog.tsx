@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { FileText, User, Home, ShieldCheck, Printer, Copy, Check, Building, CreditCard } from 'lucide-react'
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
@@ -25,9 +25,55 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handlePrint = () => {
+  const handlePrint = useCallback(() => {
+    const printElement = document.getElementById('printable-invoice-content')
+    if (!printElement) {
+      window.print()
+      return
+    }
+
+    // Remove any previous print clone
+    const existing = document.getElementById('print-invoice-root')
+    if (existing) existing.remove()
+
+    // Clone the invoice content directly to body to bypass modal transforms/positioning
+    const clone = printElement.cloneNode(true) as HTMLElement
+    clone.id = 'print-invoice-root'
+    document.body.appendChild(clone)
+    document.body.classList.add('is-printing-invoice')
+
+    const cleanup = () => {
+      if (document.body.contains(clone)) {
+        clone.remove()
+      }
+      document.body.classList.remove('is-printing-invoice')
+      window.removeEventListener('afterprint', cleanup)
+    }
+
+    window.addEventListener('afterprint', cleanup)
+
+    // Trigger browser print
     window.print()
-  }
+
+    // Fallback cleanup
+    setTimeout(cleanup, 5000)
+  }, [])
+
+  // Intercept Ctrl+P / Cmd+P while invoice dialog is open to trigger isolated iframe print
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+        e.preventDefault()
+        handlePrint()
+      }
+    }
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown)
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen, handlePrint])
 
   const getStatusBadge = (status?: string) => {
     switch (status) {
@@ -64,7 +110,7 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-4xl lg:max-w-5xl w-full max-h-[92vh] p-0 flex flex-col overflow-hidden bg-white border-gray-200 shadow-2xl rounded-2xl gap-0">
         {/* MODAL ACTION BAR */}
-        <div className="px-6 py-4 bg-slate-50 border-b border-gray-200 flex items-center justify-between shrink-0">
+        <div className="no-print invoice-dialog-header px-6 py-4 bg-slate-50 border-b border-gray-200 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-[#005390]/10 text-[#005390]">
               <FileText className="w-5 h-5" />
@@ -107,7 +153,10 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
         </div>
 
         {/* BODY CONTAINER */}
-        <div className="overflow-y-auto flex-1 p-6 sm:p-8 bg-white space-y-6">
+        <div
+          id="printable-invoice-content"
+          className="invoice-scroll-body overflow-y-auto flex-1 p-6 sm:p-8 bg-white space-y-6"
+        >
           {isLoading ? (
             <div className="py-20 text-center space-y-2">
               <div className="w-7 h-7 border-2 border-[#005390] border-t-transparent rounded-full animate-spin mx-auto" />
@@ -130,7 +179,9 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
                         RELY ACTIVE <span className="text-[#005390]">2.0</span>
                       </span>
                     </div>
-                    <p className="text-xs font-semibold text-gray-700">Green Valley Residency</p>
+                    <p className="text-xs font-semibold text-gray-700">
+                      {invoice.property?.name || invoice.billingAccount?.property?.name || 'Green Valley Residency'}
+                    </p>
                     <p className="text-[11px] text-gray-500 max-w-sm leading-relaxed">
                       Integrated Senior Living & Community Management • Residential Billing & Accounting
                     </p>
@@ -174,7 +225,10 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
                     <div className="flex items-center gap-2 text-xs text-gray-600">
                       <Home className="w-3.5 h-3.5 text-gray-400" />
                       <span>
-                        Unit / Flat: <strong className="text-gray-900">{invoice.unit?.unit_number || 'A-14'}</strong>
+                        Unit / Flat:{' '}
+                        <strong className="text-gray-900">
+                          {invoice.unit?.unit_number || invoice.billingAccount?.unit?.unit_number || '—'}
+                        </strong>
                       </span>
                     </div>
                     {invoice.billToPhone && (
@@ -235,25 +289,25 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
                 </div>
 
                 <div className="border border-gray-200 rounded-xl overflow-hidden shadow-xs">
-                  <table className="min-w-full divide-y divide-gray-200 text-xs">
-                    <thead className="bg-slate-50 text-gray-600 font-semibold uppercase tracking-wider">
+                  <table className="w-full divide-y divide-gray-200 text-xs">
+                    <thead className="bg-slate-50 text-gray-600 font-semibold uppercase tracking-wider text-[11px]">
                       <tr>
-                        <th className="px-3 py-3 text-center w-10">#</th>
-                        <th className="px-4 py-3 text-left">Description & Category</th>
-                        <th className="px-3 py-3 text-left">Consumer</th>
-                        <th className="px-3 py-3 text-right">Qty</th>
-                        <th className="px-3 py-3 text-right">Rate (₹)</th>
-                        {hasTax && <th className="px-3 py-3 text-right">Taxable (₹)</th>}
-                        {hasTax && <th className="px-3 py-3 text-right">GST Rate</th>}
-                        <th className="px-4 py-3 text-right">Total (₹)</th>
+                        <th className="px-2 py-2.5 text-center w-8">#</th>
+                        <th className="px-3 py-2.5 text-left">Description</th>
+                        <th className="px-2.5 py-2.5 text-left whitespace-nowrap">Consumer</th>
+                        <th className="px-2.5 py-2.5 text-right whitespace-nowrap">Qty</th>
+                        <th className="px-2.5 py-2.5 text-right whitespace-nowrap">Rate (₹)</th>
+                        {hasTax && <th className="px-2.5 py-2.5 text-right whitespace-nowrap">Taxable</th>}
+                        {hasTax && <th className="px-2.5 py-2.5 text-right whitespace-nowrap">GST %</th>}
+                        <th className="px-3 py-2.5 text-right whitespace-nowrap">Total (₹)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 bg-white">
                       {invoice.lines && invoice.lines.length > 0 ? (
                         invoice.lines.map((line, idx) => (
                           <tr key={line.id || idx} className="hover:bg-slate-50/80 transition-colors">
-                            <td className="px-3 py-3 text-center text-gray-400 font-mono">{idx + 1}</td>
-                            <td className="px-4 py-3 text-gray-900">
+                            <td className="px-2 py-2.5 text-center text-gray-400 font-mono">{idx + 1}</td>
+                            <td className="px-3 py-2.5 text-gray-900">
                               <div className="font-semibold text-gray-900">{line.description}</div>
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 <span className="px-1.5 py-0.2 text-[10px] rounded bg-slate-100 text-gray-600 font-medium">
@@ -264,24 +318,24 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
                                 )}
                               </div>
                             </td>
-                            <td className="px-3 py-3 text-gray-600 whitespace-nowrap">
+                            <td className="px-2.5 py-2.5 text-gray-600 whitespace-nowrap">
                               {line.consumedByResident
                                 ? `${line.consumedByResident.firstName} ${line.consumedByResident.lastName}`
-                                : 'Mahesh Sinha'}
+                                : invoice.billToName || 'Resident'}
                             </td>
-                            <td className="px-3 py-3 text-right text-gray-700 font-mono">
+                            <td className="px-2.5 py-2.5 text-right text-gray-700 font-mono whitespace-nowrap">
                               {Number(line.quantity).toFixed(line.quantity % 1 === 0 ? 0 : 2)}
                             </td>
-                            <td className="px-3 py-3 text-right text-gray-700 font-mono">
+                            <td className="px-2.5 py-2.5 text-right text-gray-700 font-mono whitespace-nowrap">
                               ₹{Number(line.unitPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </td>
                             {hasTax && (
-                              <td className="px-3 py-3 text-right text-gray-800 font-mono">
+                              <td className="px-2.5 py-2.5 text-right text-gray-800 font-mono whitespace-nowrap">
                                 ₹{Number(line.taxableAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </td>
                             )}
                             {hasTax && (
-                              <td className="px-3 py-3 text-right whitespace-nowrap">
+                              <td className="px-2.5 py-2.5 text-right whitespace-nowrap">
                                 {Number(line.taxRate) > 0 ? (
                                   <span className="text-amber-700 font-mono font-semibold">
                                     {Number(line.taxRate)}%{' '}
@@ -294,7 +348,7 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
                                 )}
                               </td>
                             )}
-                            <td className="px-4 py-3 text-right font-mono font-bold text-gray-900 whitespace-nowrap">
+                            <td className="px-3 py-2.5 text-right font-mono font-bold text-gray-900 whitespace-nowrap">
                               ₹{Number(line.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </td>
                           </tr>
@@ -402,12 +456,25 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
                   </div>
                 </div>
               </div>
+
+              {/* LEGAL TAX INVOICE FOOTER NOTE (INCLUDED ON PRINT SHEET) */}
+              <div className="pt-6 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between text-[11px] text-gray-500 gap-2">
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>
+                    Computer generated {hasTax ? 'legal tax invoice' : 'invoice'} • No physical signature required
+                  </span>
+                </div>
+                <div className="font-mono text-[10px] text-gray-400">
+                  #{invoice.invoiceNumber} • Generated: {new Date().toLocaleDateString('en-IN')}
+                </div>
+              </div>
             </>
           )}
         </div>
 
         {/* MODAL FOOTER */}
-        <div className="px-6 py-3 bg-slate-50 border-t border-gray-200 flex items-center justify-between shrink-0">
+        <div className="no-print invoice-dialog-footer px-6 py-3 bg-slate-50 border-t border-gray-200 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
             <span>Computer generated {hasTax ? 'legal tax invoice' : 'invoice'} • No physical signature required</span>
@@ -428,6 +495,82 @@ export const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ invoic
             </Button>
           </div>
         </div>
+
+        {/* PRINT CSS FOR CLEAN FULL-PAGE PRINTING */}
+        <style>{`
+          @media print {
+            @page {
+              size: A4 portrait;
+              margin: 8mm 8mm;
+            }
+            html,
+            body {
+              background: #ffffff !important;
+              color: #111827 !important;
+              overflow: visible !important;
+              height: auto !important;
+              min-height: 0 !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            body.is-printing-invoice > *:not(#print-invoice-root),
+            body:has(#print-invoice-root) > *:not(#print-invoice-root) {
+              display: none !important;
+            }
+            #print-invoice-root {
+              display: block !important;
+              position: static !important;
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: #ffffff !important;
+              overflow: visible !important;
+              height: auto !important;
+              max-height: none !important;
+              box-sizing: border-box !important;
+            }
+            #print-invoice-root * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              box-shadow: none !important;
+              box-sizing: border-box !important;
+            }
+            #print-invoice-root .border {
+              overflow: visible !important;
+            }
+            #print-invoice-root table {
+              page-break-inside: auto;
+              width: 100% !important;
+              max-width: 100% !important;
+              border-collapse: collapse !important;
+              table-layout: auto !important;
+            }
+            #print-invoice-root table th,
+            #print-invoice-root table td {
+              padding-left: 6px !important;
+              padding-right: 6px !important;
+              padding-top: 5px !important;
+              padding-bottom: 5px !important;
+              font-size: 10.5px !important;
+            }
+            #print-invoice-root table th {
+              font-size: 9.5px !important;
+            }
+            #print-invoice-root tr {
+              page-break-inside: avoid;
+              page-break-after: auto;
+            }
+            #print-invoice-root thead {
+              display: table-header-group;
+            }
+            #print-invoice-root tfoot {
+              display: table-footer-group;
+            }
+          }
+        `}</style>
       </DialogContent>
     </Dialog>
   )

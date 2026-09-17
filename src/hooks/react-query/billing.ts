@@ -12,6 +12,7 @@ import {
   uploadBillingEventAttachmentAPI,
   generateInvoiceAPI,
   getAccountLedgerStatementAPI,
+  getAccountPaymentsAPI,
   getAccountPendingEventsAPI,
   getAccountSubscriptionsAPI,
   getBillingAccountByIdAPI,
@@ -23,9 +24,11 @@ import {
   getUnitBilling360API,
   getUnitsBillingSummaryAPI,
   previewInvoiceAPI,
+  recordPaymentAPI,
   triggerBatchRunAPI,
   updateTaxSettingsAPI,
 } from '@/lib/services/billingService'
+import type { RecordPaymentPayload } from '@/lib/types/billing'
 
 type ApiError = { response?: { data?: { message?: string } }; message?: string }
 
@@ -275,5 +278,37 @@ export const useUploadBillingEventAttachment = (unitId?: string) => {
       queryClient.invalidateQueries({ queryKey: unitId ? ['billing-unit-360', unitId] : ['billing-unit-360'] })
     },
     onError: (error: ApiError) => toast.error(error?.response?.data?.message || 'Failed to upload bill'),
+  })
+}
+
+// ── 7. PAYMENTS & COLLECTIONS ──────────────────────────────────────────────
+export const useRecordPayment = (unitId?: string) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: RecordPaymentPayload) => recordPaymentAPI(payload),
+    onSuccess: (data) => {
+      toast.success(data?.message || 'Payment recorded successfully!')
+      if (unitId) {
+        queryClient.invalidateQueries({ queryKey: ['billing-unit-360', unitId] })
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['billing-unit-360'] })
+      }
+      queryClient.invalidateQueries({ queryKey: ['billing-units-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['billing-accounts'] })
+      queryClient.invalidateQueries({ queryKey: ['billing-invoices'] })
+      queryClient.invalidateQueries({ queryKey: ['billing-account-ledger'] })
+      queryClient.invalidateQueries({ queryKey: ['billing-account-payments'] })
+    },
+    onError: (error: ApiError) => {
+      toast.error(error?.response?.data?.message || error?.message || 'Failed to record payment')
+    },
+  })
+}
+
+export const useGetAccountPayments = (accountId: string, enabled = true) => {
+  return useQuery({
+    queryKey: ['billing-account-payments', accountId],
+    queryFn: () => getAccountPaymentsAPI(accountId),
+    enabled: enabled && !!accountId,
   })
 }
