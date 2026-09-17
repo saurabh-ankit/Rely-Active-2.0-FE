@@ -1,69 +1,94 @@
 import type { ReactNode } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Briefcase, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+
 export function InventoryPage({
   title,
   description,
   onBack,
+  backLabel = 'Back to Global Settings',
+  icon: Icon = Briefcase,
+  action,
   children,
 }: {
   title: string
   description?: string
   onBack: () => void
+  backLabel?: string
+  icon?: LucideIcon
+  action?: ReactNode
   children: ReactNode
 }) {
   return (
-    <div className="flex w-full min-w-0 flex-col gap-6 pb-8">
-      <div className="flex flex-wrap items-start gap-3">
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          <ArrowLeft data-icon="inline-start" />
-          Back
-        </Button>
-        <div>
-          <h1 className="break-words text-2xl font-bold text-gray-900 sm:text-3xl">{title}</h1>
-          {description && <p className="mt-1 text-sm text-gray-600 md:text-base">{description}</p>}
+    <div className="w-full min-w-0 space-y-6 pb-10">
+      <button
+        type="button"
+        onClick={onBack}
+        className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+      >
+        <ArrowLeft className="w-4 h-4" /> {backLabel}
+      </button>
+
+      {/* Top Header Banner matching other Global Settings pages */}
+      <div className="bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <div className="p-2.5 rounded-2xl bg-[#005390]/10 text-[#005390]">
+                <Icon className="w-5 h-5" />
+              </div>
+              <h1 className="text-xl font-bold text-gray-900">{title}</h1>
+            </div>
+            {description && <p className="text-xs text-gray-500 mt-1.5 ml-1">{description}</p>}
+          </div>
+          {action && <div className="shrink-0">{action}</div>}
         </div>
       </div>
+
       {children}
     </div>
   )
 }
+
 export function FormSection({
   title,
   description,
   children,
   action,
 }: {
-  title: string
+  title?: string
   description?: string
   children: ReactNode
   action?: ReactNode
 }) {
   return (
-    <Card className="min-w-0 [--card-spacing:--spacing(6)]">
-      <CardHeader>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle className="text-lg font-semibold">{title}</CardTitle>
-          {action}
+    <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+      {(title || action || description) && (
+        <div className="mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {title && <h2 className="text-lg font-bold text-gray-900">{title}</h2>}
+            {action}
+          </div>
+          {description && <p className="text-xs text-gray-500 mt-1">{description}</p>}
         </div>
-        {description && <CardDescription>{description}</CardDescription>}
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
+      )}
+      {children}
+    </div>
   )
 }
+
 export function InventoryLoading() {
-  return <Skeleton className="h-64 w-full" />
+  return <Skeleton className="h-64 w-full rounded-3xl" />
 }
+
 export function InventoryLoadError({ retry }: { retry: () => void }) {
   return (
-    <Alert variant="destructive">
-      <AlertDescription>
-        Unable to load inventory.{' '}
-        <Button variant="outline" onClick={retry}>
+    <Alert variant="destructive" className="rounded-2xl">
+      <AlertDescription className="flex items-center justify-between">
+        <span>Unable to load inventory.</span>
+        <Button variant="outline" size="sm" onClick={retry}>
           Retry
         </Button>
       </AlertDescription>

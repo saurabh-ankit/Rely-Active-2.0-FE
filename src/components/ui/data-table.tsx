@@ -106,9 +106,9 @@ export function DataTable<TData, TValue>({
     },
     manualPagination,
     manualSorting,
-    rowCount,
-    getRowId,
+    rowCount: rowCount ?? (totalCount !== undefined ? totalCount : undefined),
     pageCount: manualPagination && customPageCount !== undefined ? customPageCount : undefined,
+    getRowId,
     ...(onPaginationChange ? { onPaginationChange } : {}),
     initialState: {
       pagination: {

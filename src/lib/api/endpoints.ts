@@ -49,6 +49,13 @@ export const API_ENDPOINTS = {
       `${BASE_URL}/residents/${residentId}/care-team/${memberId}`,
   },
 
+  dashboard: {
+    getStats: (locationId?: string | null) =>
+      locationId && locationId !== 'ALL'
+        ? `${BASE_URL}/location/${encodeURIComponent(locationId)}/dashboard/stats`
+        : `${BASE_URL}/dashboard/stats`,
+  },
+
   globalRbac: {
     getRoles: `${BASE_URL}/roles`,
     createRole: `${BASE_URL}/roles`,
@@ -374,6 +381,27 @@ export const API_ENDPOINTS = {
     createArea: `${BASE_URL}/location/:locationId/shift-roster/area`,
     updateArea: `${BASE_URL}/location/:locationId/shift-roster/area/update/:areaId`,
     deleteArea: `${BASE_URL}/location/:locationId/shift-roster/area/delete/:areaId`,
+  },
+
+  // Billing & Revenue Management
+  billing: {
+    unitsSummary: `${BASE_URL}/billing/units-summary`,
+    unit360: (unitId: string) => `${BASE_URL}/billing/units/${unitId}/360`,
+    accounts: `${BASE_URL}/billing/accounts`,
+    accountById: (id: string) => `${BASE_URL}/billing/accounts/${id}`,
+    accountLedger: (id: string) => `${BASE_URL}/billing/accounts/${id}/ledger`,
+    accountSubscriptions: (id: string) => `${BASE_URL}/billing/accounts/${id}/subscriptions`,
+    accountPendingEvents: (id: string) => `${BASE_URL}/billing/accounts/${id}/events/pending`,
+    invoices: `${BASE_URL}/billing/invoices`,
+    invoiceById: (id: string) => `${BASE_URL}/billing/invoices/${id}`,
+    previewInvoice: `${BASE_URL}/billing/invoices/preview`,
+    generateInvoice: `${BASE_URL}/billing/invoices/generate`,
+    events: `${BASE_URL}/billing/events`,
+    cancelEvent: (id: string) => `${BASE_URL}/billing/events/${id}/cancel`,
+    updateEvent: (id: string) => `${BASE_URL}/billing/events/${id}`,
+    eventAttachments: (id: string) => `${BASE_URL}/billing/events/${id}/attachments`,
+    runs: `${BASE_URL}/billing/runs`,
+    taxSettings: `${BASE_URL}/billing/settings/tax`,
   },
 
   // Medical Management Endpoints (Care Tasks & Care Packages)

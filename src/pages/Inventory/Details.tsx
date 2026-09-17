@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { AlertTriangle, SlidersHorizontal, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -38,7 +39,7 @@ export function PODetail({
 }: {
   locationId: string
   id: string
-  categoryId: string
+  categoryId?: string
   access: CenterAccess
   onBack: () => void
   onTransaction: (id: string) => void
@@ -98,7 +99,7 @@ export function PODetail({
       <Section title="Purchase Order Information">
         <dl className="grid gap-4 sm:grid-cols-3">
           {[
-            ['Supplier', po.supplier?.name ?? '—'],
+            ['Vendor', po.supplier?.name ?? '—'],
             ['Order Date', new Date(po.createdAt).toLocaleDateString()],
             ['Total Amount', money(po.totalAmount)],
             ['Notes', po.notes || '—'],
@@ -180,24 +181,37 @@ export function PODetail({
             if (!open && !mutation.isPending) setModal(null)
           }}
         >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {modal === 'delete' ? 'Delete' : 'Reject'} {po.poNumber}?
-              </DialogTitle>
-              <DialogDescription>
-                {modal === 'delete'
-                  ? 'This removes the unreceived purchase order.'
-                  : 'This cancels the purchase order without receiving any stock.'}
-              </DialogDescription>
+          <DialogContent className="rounded-3xl p-6 shadow-2xl border border-gray-100 sm:max-w-md">
+            <DialogHeader className="pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-red-50 text-red-600 border border-red-100">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <DialogTitle className="text-lg font-bold text-gray-900">
+                    {modal === 'delete' ? 'Delete' : 'Reject'} {po.poNumber}?
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-gray-500 mt-0.5">
+                    {modal === 'delete'
+                      ? 'This removes the unreceived purchase order.'
+                      : 'This cancels the purchase order without receiving any stock.'}
+                  </DialogDescription>
+                </div>
+              </div>
             </DialogHeader>
             {mutation.error && <ErrorNotice error={mutation.error} />}
-            <DialogFooter>
-              <Button variant="outline" disabled={mutation.isPending} onClick={() => setModal(null)}>
+            <DialogFooter className="border-t border-gray-100 pt-4 flex items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                className="rounded-xl border-gray-200 cursor-pointer"
+                disabled={mutation.isPending}
+                onClick={() => setModal(null)}
+              >
                 Keep Order
               </Button>
               <Button
                 variant="destructive"
+                className="bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md cursor-pointer"
                 disabled={mutation.isPending}
                 onClick={async () => {
                   if (modal === 'reject') {
@@ -251,7 +265,7 @@ export function TransactionDetail({
             ['Type', record.transactionType === 'issue' ? 'Stock Out' : 'Stock In'],
             ['Date', record.date],
             [
-              record.transactionType === 'issue' ? 'Recipient' : 'Supplier',
+              record.transactionType === 'issue' ? 'Recipient' : 'Vendor',
               record.transactionType === 'issue' ? (record.recipientName ?? '—') : (record.supplier?.name ?? '—'),
             ],
             ...(record.transactionType === 'issue'
@@ -317,16 +331,24 @@ export function ItemDetail({
 }: {
   locationId: string
   id: string
-  category: CenterCategory
+  category?: CenterCategory
   access: CenterAccess
   onBack: () => void
   onTransaction: (id: string) => void
 }) {
   const query = useCenterData<CenterItem>(locationId, `items/${id}`)
   const [modal, setModal] = useState<'suppliers' | 'thresholds' | 'edit' | null>(null)
+  const item = query.data
+  const itemCategory = useCenterData<CenterCategory>(
+    locationId,
+    item?.categoryId ? `categories/${item.categoryId}` : '',
+    {},
+    !category && !!item?.categoryId,
+  )
+  const activeCategory = category || itemCategory.data
   if (query.isPending) return <Skeleton className="h-64" />
   if (query.isError) return <ErrorNotice error={query.error} retry={() => void query.refetch()} />
-  const item = query.data
+  if (!item) return null
   if (modal === 'edit') return <CenterItemEditor locationId={locationId} id={id} onClose={() => setModal(null)} />
   return (
     <div className="flex min-w-0 flex-col gap-6">
@@ -344,7 +366,7 @@ export function ItemDetail({
                 Edit Item
               </Button>
               <Button variant="outline" onClick={() => setModal('suppliers')}>
-                Manage Suppliers
+                Manage Vendors
               </Button>
               <Button variant="outline" onClick={() => setModal('thresholds')}>
                 Manage Thresholds
@@ -356,14 +378,14 @@ export function ItemDetail({
       <Section title="Item Information">
         <dl className="grid gap-4 sm:grid-cols-3">
           {[
-            ['Category', category.name],
+            ['Category', activeCategory?.name ?? '—'],
             ['Status', item.isActive ? 'Active' : 'Inactive'],
             ['Package', `${item.packQuantity} ${item.packUnit} per ${item.packType}`],
             ['Current Stock', item.stockDisplay],
             ['Minimum', quantityDisplay(item.minQuantity, item)],
             ['Threshold', quantityDisplay(item.threshold, item)],
             ['Maximum', item.maxQuantity ? quantityDisplay(item.maxQuantity, item) : 'No maximum'],
-            ...(category.fieldDefinitions ?? []).map((f) => [
+            ...(activeCategory?.fieldDefinitions ?? []).map((f) => [
               f.fieldLabel,
               String(item.customFields.find((v) => v.fieldDefinitionId === f.id)?.value ?? '—'),
             ]),
@@ -375,12 +397,12 @@ export function ItemDetail({
           ))}
         </dl>
       </Section>
-      <Section title="Assigned Suppliers">
+      <Section title="Assigned Vendors">
         <DataTable
           data={item.suppliers}
           getRowId={(r) => r.id}
           columns={[
-            { accessorKey: 'name', header: 'Supplier' },
+            { accessorKey: 'name', header: 'Vendor' },
             { accessorKey: 'contactPerson', header: 'Contact Person' },
             { accessorKey: 'phone', header: 'Phone' },
             { accessorKey: 'email', header: 'Email' },
@@ -438,12 +460,21 @@ function ItemSettings({
         if (!open && !mutation.isPending) onClose()
       }}
     >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            Manage {mode === 'suppliers' ? 'Suppliers' : 'Thresholds'} — {item.name}
-          </DialogTitle>
-          <DialogDescription>Changes apply to the selected property.</DialogDescription>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg rounded-3xl p-6 shadow-2xl border border-gray-100">
+        <DialogHeader className="pb-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-blue-50 text-blue-700 border border-blue-100">
+              {mode === 'suppliers' ? <Truck className="w-5 h-5" /> : <SlidersHorizontal className="w-5 h-5" />}
+            </div>
+            <div>
+              <DialogTitle className="text-lg font-bold text-gray-900">
+                Manage {mode === 'suppliers' ? 'Vendors' : 'Thresholds'} — {item.name}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-gray-500 mt-0.5">
+                Changes apply to the selected property.
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
         <form
           className="flex min-w-0 flex-col gap-6"
@@ -462,12 +493,15 @@ function ItemSettings({
             }
           }}
         >
-          <FieldGroup>
+          <FieldGroup className="space-y-3">
             {mode === 'suppliers'
               ? suppliers.data
                   ?.filter((s) => s.isActive || supplierIds.includes(s.id))
                   .map((s) => (
-                    <label className="flex min-w-0 flex-wrap items-center gap-3" key={s.id}>
+                    <label
+                      key={s.id}
+                      className="flex min-w-0 items-center gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50/50 hover:bg-gray-100/50 cursor-pointer transition"
+                    >
                       <Checkbox
                         checked={supplierIds.includes(s.id)}
                         onCheckedChange={(checked) =>
@@ -476,7 +510,7 @@ function ItemSettings({
                           )
                         }
                       />
-                      {s.name}
+                      <span className="text-sm font-medium text-gray-800">{s.name}</span>
                     </label>
                   ))
               : (['minQuantity', 'maxQuantity', 'threshold'] as const).map((key, index) => (
@@ -498,11 +532,21 @@ function ItemSettings({
                 ))}
           </FieldGroup>
           {(mutation.error || suppliers.error) && <ErrorNotice error={mutation.error || suppliers.error} />}
-          <DialogFooter>
-            <Button type="button" variant="outline" disabled={mutation.isPending} onClick={onClose}>
+          <DialogFooter className="border-t border-gray-100 pt-4 flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl border-gray-200 cursor-pointer"
+              disabled={mutation.isPending}
+              onClick={onClose}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={mutation.isPending || (mode === 'suppliers' && suppliers.isPending)}>
+            <Button
+              type="submit"
+              className="bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer"
+              disabled={mutation.isPending || (mode === 'suppliers' && suppliers.isPending)}
+            >
               {mutation.isPending ? 'Saving…' : 'Save Changes'}
             </Button>
           </DialogFooter>
