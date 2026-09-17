@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { X, FileText, Upload, Check } from 'lucide-react'
+import { FileText, Upload, Check } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import apiClient from '@/lib/api/axios'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import type { Ticket } from '@/lib/types'
@@ -51,30 +52,23 @@ export function AddInvoiceModal({ isOpen, onClose, ticket, locationId, onSuccess
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-gray-100">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-lg max-h-[90vh] p-0 rounded-2xl bg-white border border-gray-100 shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+        <DialogHeader className="p-5 border-b border-gray-100 bg-gray-50/50 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-amber-50 text-[#f28e53]">
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-gray-900">Add Invoice Details</h2>
+              <DialogTitle className="text-base font-bold text-gray-900">Add Invoice Details</DialogTitle>
               <p className="text-xs text-gray-500 font-mono">Ticket #{ticket.ticketNumber}</p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 cursor-pointer transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        </DialogHeader>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 pr-5">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label htmlFor="inv-number" className="block text-xs font-bold text-gray-700 mb-1">
@@ -191,7 +185,7 @@ export function AddInvoiceModal({ isOpen, onClose, ticket, locationId, onSuccess
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

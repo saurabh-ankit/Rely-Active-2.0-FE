@@ -26,6 +26,7 @@ import { useAuth } from '@/hooks/useAuth'
 import apiClient from '@/lib/api/axios'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import type { Ticket, TicketCategoryMaster, TicketPriority, TicketStatus } from '@/lib/types'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { CreateTicketModal } from './components/CreateTicketModal'
 import { SelectPersonDrawer } from './components/SelectPersonDrawer'
 import { AddInvoiceModal } from './components/AddInvoiceModal'
@@ -1573,20 +1574,13 @@ export default function TicketsPage() {
       />
 
       {/* Change TAT Modal */}
-      {isTatModalOpen && selectedTicket && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-5 space-y-4 border border-gray-100 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h3 className="text-sm font-bold text-gray-900">Change TAT SLA</h3>
-              <button
-                type="button"
-                onClick={() => setIsTatModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
+      {selectedTicket && (
+        <Dialog open={isTatModalOpen} onOpenChange={setIsTatModalOpen}>
+          <DialogContent className="max-w-sm p-5 rounded-2xl bg-white border border-gray-100 shadow-2xl space-y-4">
+            <DialogHeader className="border-b border-gray-100 pb-3">
+              <DialogTitle className="text-sm font-bold text-gray-900">Change TAT SLA</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-2 pt-1">
               {['30 mins', '1-2 hour', '2-5 hours', 'Custom'].map((option) => (
                 <button
                   key={option}
@@ -1605,8 +1599,8 @@ export default function TicketsPage() {
                 </button>
               ))}
             </div>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Lightbox Image Preview Modal */}
