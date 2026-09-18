@@ -505,7 +505,7 @@ export default function TicketsPage() {
       {/* Main Workspace Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Tickets Queue List (4 cols) */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col min-h-[680px]">
+        <div className="lg:col-span-4 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-13rem)] min-h-[520px]">
           {/* Tab Filter Header with Primary Brand Blue */}
           <div className="grid grid-cols-4 border-b border-gray-200 text-center font-bold text-[11px]">
             <button
@@ -669,7 +669,7 @@ export default function TicketsPage() {
         </div>
 
         {/* Right Column: Ticket Workspace Detail (8 cols) */}
-        <div className="lg:col-span-8 bg-white rounded-2xl border border-gray-200 shadow-sm p-6 min-h-[680px] relative flex flex-col">
+        <div className="lg:col-span-8 bg-white rounded-2xl border border-gray-200 shadow-sm p-6 h-[calc(100vh-13rem)] min-h-[520px] relative flex flex-col overflow-y-auto">
           {selectedTicket ? (
             isClosedView ? (
               /* CLOSED TICKET VIEW MATCHING SCREENSHOT */
@@ -1135,7 +1135,7 @@ export default function TicketsPage() {
                 })()}
 
                 {/* Bottom Floating Comment Chat Thread Trigger */}
-                <div className="absolute bottom-6 right-6">
+                <div className="sticky bottom-0 flex justify-end pt-2">
                   <div className="bg-[#005390] text-white px-4 py-2.5 rounded-2xl shadow-lg flex items-center gap-2 text-xs font-bold cursor-pointer hover:bg-[#004273] transition-all">
                     <MessageSquare className="w-4 h-4" />
                     <span>{selectedTicket.ticketNumber}</span>
@@ -1819,7 +1819,7 @@ export default function TicketsPage() {
                 )}
 
                 {/* Bottom Floating Comment Chat Thread Trigger */}
-                <div className="absolute bottom-6 right-6">
+                <div className="sticky bottom-0 flex justify-end pt-2">
                   <div className="bg-[#005390] hover:bg-[#004273] text-white px-4 py-2.5 rounded-2xl shadow-lg flex items-center gap-2 text-xs font-bold cursor-pointer transition-all">
                     <MessageSquare className="w-4 h-4" />
                     <span>{selectedTicket.ticketNumber}</span>

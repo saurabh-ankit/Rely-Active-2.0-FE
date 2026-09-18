@@ -29,6 +29,21 @@ export interface TicketCategoryMaster {
   subCategories?: TicketSubCategoryMaster[]
 }
 
+/** Today's roster entry for a staff member, shown when assigning a ticket. */
+export interface EmployeeShiftInfo {
+  /** Scheduled today and the current time falls inside the shift hours. */
+  isOnShift: boolean
+  isScheduledToday: boolean
+  shiftName: string | null
+  startTime: string | null
+  endTime: string | null
+  workingDays: string[]
+  areaName: string | null
+  slotTimeRange: string | null
+  startDate: string | null
+  endDate: string | null
+}
+
 export interface AssignableEmployee {
   id: string
   name: string
@@ -37,6 +52,8 @@ export interface AssignableEmployee {
   totalAssigned: number
   openCount: number
   closedCount: number
+  /** Null when the staff member has no roster entry covering today. */
+  shift?: EmployeeShiftInfo | null
 }
 
 export interface TicketPropertyRef {
