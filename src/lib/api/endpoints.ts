@@ -218,6 +218,7 @@ export const API_ENDPOINTS = {
     updateStatus: (id: string, locationId?: string | null) =>
       buildLocationEndpoint(`/tickets/${id}/status`, locationId),
     assign: (id: string, locationId?: string | null) => buildLocationEndpoint(`/tickets/${id}/assign`, locationId),
+    verify: (id: string, locationId?: string | null) => buildLocationEndpoint(`/tickets/${id}/verify`, locationId),
     addComment: (id: string, locationId?: string | null) =>
       buildLocationEndpoint(`/tickets/${id}/comments`, locationId),
     delete: (id: string, locationId?: string | null) => buildLocationEndpoint(`/tickets/${id}`, locationId),

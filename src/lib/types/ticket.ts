@@ -64,6 +64,8 @@ export interface TicketUserRef {
   id: string
   email: string
   name?: string
+  username?: string
+  profile?: { firstName?: string | null; lastName?: string | null } | null
 }
 
 export interface TicketDepartmentRef {
@@ -141,6 +143,20 @@ export interface Ticket {
   dueDate?: string | null
   resolvedAt?: string | null
   closedAt?: string | null
+  workStartedAt?: string | null
+  workStartedByUserId?: string | null
+  completedAt?: string | null
+  completedByUserId?: string | null
+  invoiceAmount?: number | string | null
+  /** Set when the resident escalates the ticket. */
+  escalatedAt?: string | null
+  escalatedByUserId?: string | null
+  escalatedByName?: string | null
+  escalationReason?: string | null
+  /** Set when an admin verifies the completed work; the ticket is then CLOSED. */
+  verifiedAt?: string | null
+  verifiedByUserId?: string | null
+  verificationNotes?: string | null
   resolutionNotes?: string | null
   attachments?: string[] | Record<string, unknown> | null
   createdAt: string
@@ -154,6 +170,9 @@ export interface Ticket {
   subCategoryObj?: TicketSubCategoryMaster | null
   assignedToUser?: TicketUserRef | null
   raisedByUser?: TicketUserRef | null
+  workStartedByUser?: TicketUserRef | null
+  completedByUser?: TicketUserRef | null
+  verifiedByUser?: TicketUserRef | null
   vendor?: TicketVendorRef | null
   asset?: TicketAssetRef | null
   activityLogs?: TicketActivityLog[]

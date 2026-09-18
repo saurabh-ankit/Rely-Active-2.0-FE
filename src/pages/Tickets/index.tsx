@@ -20,11 +20,14 @@ import {
   Image as ImageIcon,
   Eye,
   Building2,
+  ShieldCheck,
+  ArrowUpCircle,
 } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
 import { useAuth } from '@/hooks/useAuth'
 import apiClient from '@/lib/api/axios'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
+import { notifyError, notifySuccess } from '@/utils/toast'
 import type { Ticket, TicketCategoryMaster, TicketPriority, TicketStatus } from '@/lib/types'
 import { CreateTicketModal } from './components/CreateTicketModal'
 import { SelectPersonDrawer } from './components/SelectPersonDrawer'
@@ -36,12 +39,36 @@ interface ParsedCompletion {
   invoiceUrl: string | null
   invoiceNumber: string | null
   audioUrl: string | null
+  /** Staff voice notes: the legacy single recording plus L3 app voice notes. */
+  audioUrls: string[]
   photos: string[]
   completedByName: string | null
   completedAt: string | null
 }
 
-function parseTicketCompletion(ticket: Ticket | null): ParsedCompletion | null {
+function isTicketEscalated(ticket: Ticket | null | undefined): boolean {
+  if (!ticket) return false
+  return Boolean(
+    ticket.escalatedAt ||
+    ticket.escalatedByName ||
+    ticket.escalatedBy ||
+    String(ticket.resolutionNotes || '').includes('[ESCALATED'),
+  )
+}
+
+function escalatedByLabel(ticket: Ticket | null | undefined): string | null {
+  if (!ticket) return null
+  return ticket.escalatedByName || ticket.escalatedBy || null
+}
+
+/** Photos and voice notes the resident attached when raising the ticket. */
+interface ParsedRequestMedia {
+  photos: string[]
+  audioUrls: string[]
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseAttachments(ticket: Ticket | null): any {
   if (!ticket) return null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let atts: any = ticket.attachments
@@ -52,31 +79,80 @@ function parseTicketCompletion(ticket: Ticket | null): ParsedCompletion | null {
       atts = null
     }
   }
+  return atts
+}
 
-  const comp =
-    atts?.completion ||
-    (atts && (atts.photos || atts.audioUrl || atts.invoiceUrl || atts.amount !== undefined) ? atts : null)
+/** Accepts plain URLs and L3 upload objects (`{ url }`). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toUrlList(value: any): string[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((item) => (typeof item === 'string' ? item : item?.url || item?.location || ''))
+    .filter((url: string) => typeof url === 'string' && url.trim().length > 0)
+}
+
+function userDisplayName(
+  user?: {
+    profile?: { firstName?: string | null; lastName?: string | null } | null
+    username?: string
+    email?: string
+  } | null,
+) {
+  if (!user) return null
+  const full = `${user.profile?.firstName || ''} ${user.profile?.lastName || ''}`.trim()
+  return full || user.username || user.email?.split('@')[0] || null
+}
+
+function parseTicketRequestMedia(ticket: Ticket | null): ParsedRequestMedia | null {
+  const atts = parseAttachments(ticket)
+  if (!atts) return null
+
+  // Web tickets store a plain array of files; L1 resident tickets store { photos, audioUrl }.
+  const photos = Array.isArray(atts) ? toUrlList(atts) : [...toUrlList(atts.photos), ...toUrlList(atts.files)]
+  const audioUrls = Array.isArray(atts)
+    ? []
+    : [atts.audioUrl, atts.voiceNote].filter((url: unknown): url is string => typeof url === 'string' && url.length > 0)
+
+  if (photos.length === 0 && audioUrls.length === 0) return null
+  return { photos, audioUrls }
+}
+
+function parseTicketCompletion(ticket: Ticket | null): ParsedCompletion | null {
+  if (!ticket) return null
+  const atts = parseAttachments(ticket)
+
+  // `completion` is written by the older L3 flow; `workDetails` by the current staff app.
+  const comp = atts?.completion || null
+  const workDetails = atts?.workDetails || null
 
   const notes = comp?.resolutionNotes || ticket.resolutionNotes || null
-  const amount = comp?.amount ?? null
+  const amount = comp?.amount ?? ticket.invoiceAmount ?? null
   const invoiceUrl = comp?.invoiceUrl || null
   const invoiceNumber = comp?.invoiceNumber || null
-  const audioUrl = comp?.audioUrl || null
-  const photos: string[] = Array.isArray(comp?.photos) ? comp.photos : Array.isArray(atts?.photos) ? atts.photos : []
 
-  const completedByName = comp?.completedByName || ticket.completedBy || null
-  const completedAt = comp?.completedAt || ticket.resolvedAt || ticket.closedAt || null
+  const audioUrls = [...(comp?.audioUrl ? [comp.audioUrl] : []), ...toUrlList(workDetails?.voiceNotes)]
+  const photos = [...toUrlList(comp?.photos), ...toUrlList(workDetails?.photos)]
 
-  if (!notes && amount === null && !invoiceUrl && !audioUrl && photos.length === 0) {
+  const completedByName = comp?.completedByName || userDisplayName(ticket.completedByUser) || ticket.completedBy || null
+  const completedAt = comp?.completedAt || ticket.completedAt || ticket.resolvedAt || ticket.closedAt || null
+
+  if (
+    !notes &&
+    (amount === null || amount === undefined) &&
+    !invoiceUrl &&
+    audioUrls.length === 0 &&
+    photos.length === 0
+  ) {
     return null
   }
 
   return {
     notes,
-    amount,
+    amount: amount === null || amount === undefined ? null : amount,
     invoiceUrl,
     invoiceNumber,
-    audioUrl,
+    audioUrl: audioUrls[0] || null,
+    audioUrls,
     photos,
     completedByName,
     completedAt,
@@ -165,7 +241,7 @@ export default function TicketsPage() {
   const { user } = useAuth()
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [categories, setCategories] = useState<TicketCategoryMaster[]>([])
-  const [activeTab, setActiveTab] = useState<'OPEN' | 'IN_PROGRESS' | 'CLOSED'>('OPEN')
+  const [activeTab, setActiveTab] = useState<'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED'>('OPEN')
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [automateTickets, setAutomateTickets] = useState(false)
@@ -176,6 +252,7 @@ export default function TicketsPage() {
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
   const [isTatModalOpen, setIsTatModalOpen] = useState(false)
   const [previewMediaUrl, setPreviewMediaUrl] = useState<string | null>(null)
+  const [verifying, setVerifying] = useState(false)
 
   // Fetch Master Categories & Sub-Categories
   useEffect(() => {
@@ -245,6 +322,27 @@ export default function TicketsPage() {
       fetchTickets()
     } catch (err) {
       console.error('Failed to update ticket option:', err)
+    }
+  }
+
+  // Verify a completed ticket: admin sign-off that closes it.
+  const handleVerifyTicket = async () => {
+    if (!selectedTicket || verifying) return
+    setVerifying(true)
+    try {
+      const url = API_ENDPOINTS.tickets.verify(selectedTicket.id, selectedLocationId)
+      const response = await apiClient.patch(url, {})
+      const updated = response.data?.data
+      setSelectedTicket((prev) => (prev ? { ...prev, ...(updated || {}) } : prev))
+      notifySuccess('Ticket verified and closed')
+      fetchTickets()
+    } catch (err) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Could not verify this ticket'
+      notifyError(message)
+    } finally {
+      setVerifying(false)
     }
   }
 
@@ -333,9 +431,19 @@ export default function TicketsPage() {
 
   const assignedName = getAssigneeName(selectedTicket)
 
+  // Completion report, resident attachments and verification state for the detail pane.
+  const completion = parseTicketCompletion(selectedTicket)
+  const requestMedia = parseTicketRequestMedia(selectedTicket)
+  const isTicketVerified = Boolean(selectedTicket?.verifiedAt) || selectedTicket?.status === 'CLOSED'
+  const isSelectedEscalated = isTicketEscalated(selectedTicket)
+  const verifiedByName = userDisplayName(selectedTicket?.verifiedByUser)
+
   // Check view status mode
   const isClosedView =
-    selectedTicket?.status === 'CLOSED' || selectedTicket?.status === 'RESOLVED' || activeTab === 'CLOSED'
+    selectedTicket?.status === 'CLOSED' ||
+    selectedTicket?.status === 'RESOLVED' ||
+    activeTab === 'CLOSED' ||
+    activeTab === 'COMPLETED'
   const selectedTicketAny = selectedTicket as unknown as { assignedTo?: unknown }
   const isTicketAssigned = Boolean(
     selectedTicket &&
@@ -399,7 +507,7 @@ export default function TicketsPage() {
         {/* Left Column: Tickets Queue List (4 cols) */}
         <div className="lg:col-span-4 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col min-h-[680px]">
           {/* Tab Filter Header with Primary Brand Blue */}
-          <div className="grid grid-cols-3 border-b border-gray-200 text-center font-bold text-xs">
+          <div className="grid grid-cols-4 border-b border-gray-200 text-center font-bold text-[11px]">
             <button
               type="button"
               onClick={() => setActiveTab('OPEN')}
@@ -421,6 +529,17 @@ export default function TicketsPage() {
               }`}
             >
               In Progress
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('COMPLETED')}
+              className={`py-3.5 transition-colors cursor-pointer border-b-2 font-bold ${
+                activeTab === 'COMPLETED'
+                  ? 'bg-[#005390] text-white border-[#005390]'
+                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-transparent'
+              }`}
+            >
+              Completed
             </button>
             <button
               type="button"
@@ -477,6 +596,18 @@ export default function TicketsPage() {
                             Common Area
                           </span>
                         )}
+                        {isTicketEscalated(t) && (
+                          <span
+                            className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider flex items-center gap-0.5 ${
+                              isSelected
+                                ? 'bg-red-200 text-red-950 shadow-2xs'
+                                : 'bg-red-100 text-red-700 border border-red-200'
+                            }`}
+                          >
+                            <ArrowUpCircle className="w-2.5 h-2.5" />
+                            Escalated
+                          </span>
+                        )}
                       </div>
                       <span
                         className={`text-[11px] flex items-center gap-1 shrink-0 ${isSelected ? 'text-gray-200' : 'text-gray-400'}`}
@@ -506,7 +637,10 @@ export default function TicketsPage() {
                         </span>
                       </div>
 
-                      {activeTab === 'CLOSED' || t.status === 'CLOSED' || t.status === 'RESOLVED' ? (
+                      {activeTab === 'CLOSED' ||
+                      activeTab === 'COMPLETED' ||
+                      t.status === 'CLOSED' ||
+                      t.status === 'RESOLVED' ? (
                         <span
                           className={`text-[10px] font-bold ${isSelected ? 'text-emerald-200' : 'text-emerald-600'}`}
                         >
@@ -556,19 +690,33 @@ export default function TicketsPage() {
                           Common Area
                         </span>
                       )}
+                      {isSelectedEscalated && (
+                        <span className="px-2.5 py-0.5 bg-red-100 text-red-700 border border-red-200 rounded-lg text-xs font-black flex items-center gap-1 shadow-2xs">
+                          <ArrowUpCircle className="w-3.5 h-3.5 text-red-600" />
+                          Escalated
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-extrabold">
-                    Closed
+                  <span
+                    className={`px-3 py-1 rounded-lg text-xs font-extrabold ${
+                      isTicketVerified ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+                    }`}
+                  >
+                    {isTicketVerified ? 'Verified & Closed' : 'Completed'}
                   </span>
                 </div>
 
                 {/* Progress Stepper Box matching screenshot */}
                 <div className="border border-dashed border-gray-300 rounded-2xl p-6 bg-white shadow-2xs space-y-4">
-                  <div className="grid grid-cols-4 relative">
-                    {/* Progress Bar Line */}
-                    <div className="absolute top-4 -translate-y-1/2 left-[12.5%] right-[12.5%] h-0.5 bg-emerald-500 z-0" />
+                  <div className="grid grid-cols-5 relative">
+                    {/* Progress Bar Line - green up to Completed, then to Verified once verified */}
+                    <div className="absolute top-4 -translate-y-1/2 left-[10%] right-[10%] h-0.5 bg-gray-200 z-0" />
+                    <div
+                      className="absolute top-4 -translate-y-1/2 left-[10%] h-0.5 bg-emerald-500 z-0 transition-all duration-300"
+                      style={{ width: isTicketVerified ? '80%' : '60%' }}
+                    />
 
                     {/* Step 1: Request Raised */}
                     <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
@@ -607,9 +755,62 @@ export default function TicketsPage() {
                         <Check className="w-4.5 h-4.5" />
                       </div>
                       <span className="text-xs font-bold text-gray-900">Completed</span>
-                      <span className="text-[10px] font-medium text-gray-500 leading-tight">Completed & verified</span>
+                      <span className="text-[10px] font-medium text-gray-500 leading-tight">
+                        {completion?.completedAt
+                          ? `Work completed ${formatStepperDate(completion.completedAt)}`
+                          : 'Work completed by staff'}
+                      </span>
+                    </div>
+
+                    {/* Step 5: Verified */}
+                    <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
+                      <div
+                        className={`w-8 h-8 rounded-full font-bold flex items-center justify-center text-xs shadow-2xs ${
+                          isTicketVerified
+                            ? 'bg-emerald-500 text-white'
+                            : 'border-2 border-gray-300 bg-white text-gray-400'
+                        }`}
+                      >
+                        {isTicketVerified ? <Check className="w-4.5 h-4.5" /> : <ShieldCheck className="w-4 h-4" />}
+                      </div>
+                      <span className={`text-xs font-bold ${isTicketVerified ? 'text-gray-900' : 'text-gray-400'}`}>
+                        Verified
+                      </span>
+                      <span className="text-[10px] font-medium text-gray-500 leading-tight">
+                        {isTicketVerified
+                          ? `Verified${verifiedByName ? ` by ${verifiedByName}` : ''}${
+                              selectedTicket.verifiedAt ? ` at ${formatStepperDate(selectedTicket.verifiedAt)}` : ''
+                            }`
+                          : 'Awaiting admin verification'}
+                      </span>
                     </div>
                   </div>
+
+                  {/* Verify action / verified confirmation */}
+                  {isTicketVerified ? (
+                    <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-3.5 py-2.5">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                      <span className="text-xs font-bold text-emerald-800">
+                        Work verified{verifiedByName ? ` by ${verifiedByName}` : ''}
+                        {selectedTicket.verifiedAt ? ` on ${new Date(selectedTicket.verifiedAt).toLocaleString()}` : ''}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl bg-amber-50 border border-amber-200 px-3.5 py-2.5">
+                      <span className="text-xs font-semibold text-amber-900">
+                        Review the resident request and the staff completion report below, then verify.
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleVerifyTicket}
+                        disabled={verifying}
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-bold rounded-xl shadow-2xs transition-colors cursor-pointer flex-shrink-0"
+                      >
+                        <ShieldCheck className="w-4 h-4" />
+                        {verifying ? 'Verifying…' : 'Verify & Close Ticket'}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Metadata Section */}
@@ -674,11 +875,25 @@ export default function TicketsPage() {
                     </div>
                   )}
 
-                  {selectedTicket.escalatedBy && (
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-red-600" />
-                      <span className="text-gray-500 font-semibold">Escalated By :</span>
-                      <span className="font-bold text-red-700">{selectedTicket.escalatedBy}</span>
+                  {isSelectedEscalated && (
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                      <div className="space-y-0.5">
+                        <div className="flex flex-wrap items-center gap-x-2">
+                          <span className="text-gray-500 font-semibold">Escalated By :</span>
+                          <span className="font-bold text-red-700">
+                            {escalatedByLabel(selectedTicket) || 'Resident'}
+                          </span>
+                          {selectedTicket.escalatedAt && (
+                            <span className="text-[11px] text-gray-500 font-medium">
+                              on {new Date(selectedTicket.escalatedAt).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                        {selectedTicket.escalationReason && (
+                          <p className="text-xs font-medium text-gray-700">Reason: {selectedTicket.escalationReason}</p>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -693,9 +908,82 @@ export default function TicketsPage() {
                   />
                 </div>
 
+                {/* Resident's request: photos and voice notes attached when raising the ticket */}
+                {requestMedia && (
+                  <div className="rounded-2xl border border-blue-200/80 bg-gradient-to-b from-blue-50/40 via-white to-blue-50/20 p-5 space-y-4 shadow-2xs">
+                    <div className="flex items-center gap-2.5 border-b border-blue-100 pb-3">
+                      <div className="p-2 rounded-xl bg-blue-100 text-[#005390]">
+                        <User className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-extrabold text-gray-900 tracking-wide uppercase">
+                          Resident Request Attachments
+                        </h3>
+                        <p className="text-[10px] text-gray-500 font-medium">
+                          Shared by the resident when raising this ticket
+                        </p>
+                      </div>
+                    </div>
+
+                    {requestMedia.audioUrls.length > 0 && (
+                      <div className="space-y-1.5">
+                        <span className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                          <Mic className="w-3.5 h-3.5 text-[#005390]" />
+                          Resident Voice Note{requestMedia.audioUrls.length > 1 ? 's' : ''} (
+                          {requestMedia.audioUrls.length})
+                        </span>
+                        <div className="space-y-2">
+                          {requestMedia.audioUrls.map((audioUrl, idx) => (
+                            <div
+                              key={`${audioUrl}-${idx}`}
+                              className="p-3 bg-white rounded-xl border border-gray-200 shadow-2xs flex items-center gap-3"
+                            >
+                              <div className="p-2 rounded-xl bg-blue-50 text-[#005390]">
+                                <Volume2 className="w-4 h-4" />
+                              </div>
+                              <audio controls src={audioUrl} className="w-full h-8" preload="metadata">
+                                <track kind="captions" />
+                                Your browser does not support the audio element.
+                              </audio>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {requestMedia.photos.length > 0 && (
+                      <div className="space-y-1.5">
+                        <span className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                          <ImageIcon className="w-3.5 h-3.5 text-purple-600" />
+                          Resident Photos ({requestMedia.photos.length})
+                        </span>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 pt-1">
+                          {requestMedia.photos.map((photoUrl, idx) => (
+                            <button
+                              type="button"
+                              key={`${photoUrl}-${idx}`}
+                              className="relative group rounded-xl overflow-hidden border border-gray-200 shadow-2xs aspect-video cursor-pointer bg-gray-100 p-0 text-left w-full block"
+                              onClick={() => setPreviewMediaUrl(photoUrl)}
+                            >
+                              <img
+                                src={photoUrl}
+                                alt={`Resident attachment ${idx + 1}`}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                              />
+                              <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                <Eye className="w-5 h-5" />
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Work Resolution & Completion Section (Invoice, Voice Note, Photos, Notes) */}
                 {(() => {
-                  const completionData = parseTicketCompletion(selectedTicket)
+                  const completionData = completion
                   if (!completionData) return null
 
                   return (
@@ -745,23 +1033,31 @@ export default function TicketsPage() {
                         </div>
                       )}
 
-                      {/* 2. Voice Recording Audio Player */}
-                      {completionData.audioUrl && (
+                      {/* 2. Voice Recording Audio Players */}
+                      {completionData.audioUrls.length > 0 && (
                         <div className="space-y-1.5">
                           <span className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
                             <Mic className="w-3.5 h-3.5 text-[#005390]" />
-                            Voice Recording
+                            Staff Voice Note{completionData.audioUrls.length > 1 ? 's' : ''} (
+                            {completionData.audioUrls.length})
                           </span>
-                          <div className="p-3 bg-white rounded-xl border border-gray-200 shadow-2xs flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-blue-50 text-[#005390]">
-                              <Volume2 className="w-4 h-4" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <audio controls src={completionData.audioUrl} className="w-full h-8" preload="metadata">
-                                <track kind="captions" />
-                                Your browser does not support the audio element.
-                              </audio>
-                            </div>
+                          <div className="space-y-2">
+                            {completionData.audioUrls.map((audioUrl, idx) => (
+                              <div
+                                key={`${audioUrl}-${idx}`}
+                                className="p-3 bg-white rounded-xl border border-gray-200 shadow-2xs flex items-center gap-3"
+                              >
+                                <div className="p-2 rounded-xl bg-blue-50 text-[#005390]">
+                                  <Volume2 className="w-4 h-4" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <audio controls src={audioUrl} className="w-full h-8" preload="metadata">
+                                    <track kind="captions" />
+                                    Your browser does not support the audio element.
+                                  </audio>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}
@@ -838,44 +1134,6 @@ export default function TicketsPage() {
                   )
                 })()}
 
-                {/* Attachments Section (Initial Ticket Attachments) */}
-                {(() => {
-                  let atts: unknown = selectedTicket.attachments
-                  if (typeof atts === 'string') {
-                    try {
-                      atts = JSON.parse(atts)
-                    } catch {
-                      atts = null
-                    }
-                  }
-                  const attsObj = atts as { files?: unknown } | null
-                  const creationFiles: string[] = Array.isArray(atts)
-                    ? (atts as string[])
-                    : Array.isArray(attsObj?.files)
-                      ? (attsObj.files as string[])
-                      : []
-
-                  if (creationFiles.length === 0) return null
-
-                  return (
-                    <div className="space-y-3 pt-3 border-t border-gray-100">
-                      <h3 className="text-sm font-bold text-gray-900">Initial Attachments :</h3>
-                      <div className="flex flex-wrap gap-3">
-                        {creationFiles.map((att: string, idx: number) => (
-                          <button
-                            type="button"
-                            key={idx}
-                            onClick={() => setPreviewMediaUrl(att)}
-                            className="w-44 h-28 rounded-2xl overflow-hidden border border-gray-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity p-0 bg-transparent text-left block flex-shrink-0"
-                          >
-                            <img src={att} alt={`Attachment ${idx + 1}`} className="w-full h-full object-cover" />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })()}
-
                 {/* Bottom Floating Comment Chat Thread Trigger */}
                 <div className="absolute bottom-6 right-6">
                   <div className="bg-[#005390] text-white px-4 py-2.5 rounded-2xl shadow-lg flex items-center gap-2 text-xs font-bold cursor-pointer hover:bg-[#004273] transition-all">
@@ -901,6 +1159,12 @@ export default function TicketsPage() {
                         <span className="px-2.5 py-0.5 bg-purple-100 text-purple-800 border border-purple-200 rounded-lg text-xs font-black flex items-center gap-1 shadow-2xs">
                           <Building2 className="w-3.5 h-3.5 text-purple-600" />
                           Common Area
+                        </span>
+                      )}
+                      {isSelectedEscalated && (
+                        <span className="px-2.5 py-0.5 bg-red-100 text-red-700 border border-red-200 rounded-lg text-xs font-black flex items-center gap-1 shadow-2xs">
+                          <ArrowUpCircle className="w-3.5 h-3.5 text-red-600" />
+                          Escalated
                         </span>
                       )}
                     </div>
@@ -947,17 +1211,18 @@ export default function TicketsPage() {
                       selectedTicket.status === 'RESOLVED' ||
                       selectedTicket.status === 'CLOSED'
                     const isStep4Done = selectedTicket.status === 'RESOLVED' || selectedTicket.status === 'CLOSED'
+                    const isStep5Done = isTicketVerified
 
-                    const stepIndex = isStep4Done ? 3 : isStep3Done ? 2 : isStep2Done ? 1 : 0
-                    const activeWidthPercent = (stepIndex / 3) * 75
+                    const stepIndex = isStep5Done ? 4 : isStep4Done ? 3 : isStep3Done ? 2 : isStep2Done ? 1 : 0
+                    const activeWidthPercent = (stepIndex / 4) * 80
 
                     return (
-                      <div className="grid grid-cols-4 relative">
+                      <div className="grid grid-cols-5 relative">
                         {/* Background Progress Line */}
-                        <div className="absolute top-4 -translate-y-1/2 left-[12.5%] right-[12.5%] h-0.5 bg-gray-200 z-0" />
+                        <div className="absolute top-4 -translate-y-1/2 left-[10%] right-[10%] h-0.5 bg-gray-200 z-0" />
                         {/* Active Progress Line */}
                         <div
-                          className="absolute top-4 -translate-y-1/2 left-[12.5%] h-0.5 bg-[#005390] transition-all duration-300 z-0"
+                          className="absolute top-4 -translate-y-1/2 left-[10%] h-0.5 bg-[#005390] transition-all duration-300 z-0"
                           style={{ width: `${activeWidthPercent}%` }}
                         />
 
@@ -1026,6 +1291,26 @@ export default function TicketsPage() {
                           </div>
                           <span className={`text-xs font-bold ${isStep4Done ? 'text-gray-900' : 'text-gray-400'}`}>
                             Completed
+                          </span>
+                        </div>
+
+                        {/* Step 5: Verified */}
+                        <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
+                          <div
+                            className={`w-8 h-8 rounded-full border-2 ${
+                              isStep5Done
+                                ? 'border-[#005390] bg-[#005390] text-white'
+                                : 'border-gray-300 bg-white text-gray-400'
+                            } font-bold flex items-center justify-center text-xs shadow-2xs`}
+                          >
+                            {isStep5Done ? (
+                              <Check className="w-4.5 h-4.5" />
+                            ) : (
+                              <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
+                            )}
+                          </div>
+                          <span className={`text-xs font-bold ${isStep5Done ? 'text-gray-900' : 'text-gray-400'}`}>
+                            Verified
                           </span>
                         </div>
                       </div>
@@ -1216,6 +1501,12 @@ export default function TicketsPage() {
                         <span className="px-2.5 py-0.5 bg-purple-100 text-purple-800 border border-purple-200 rounded-lg text-xs font-black flex items-center gap-1 shadow-2xs">
                           <Building2 className="w-3.5 h-3.5 text-purple-600" />
                           Common Area
+                        </span>
+                      )}
+                      {isSelectedEscalated && (
+                        <span className="px-2.5 py-0.5 bg-red-100 text-red-700 border border-red-200 rounded-lg text-xs font-black flex items-center gap-1 shadow-2xs">
+                          <ArrowUpCircle className="w-3.5 h-3.5 text-red-600" />
+                          Escalated
                         </span>
                       )}
                       <select
