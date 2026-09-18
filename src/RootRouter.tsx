@@ -9,7 +9,7 @@ import GlobalSettingsPage from '@/pages/GlobalSettings'
 import LoginPage from '@/pages/Login'
 import PropertyPage from '@/pages/Property'
 import CreatePropertyPage from '@/pages/Property/CreatePropertyPage'
-import ResidentPage from '@/pages/Resident'
+import ResidentPage, { ResidentBillingPage } from '@/pages/Resident'
 import SectionPage from '@/pages/SectionPage'
 import SetupPage from '@/pages/Setup'
 import AssetManagementPage from '@/pages/AssetManagement'
@@ -21,6 +21,9 @@ import EventsPage from '@/pages/Events'
 import EventForm from '@/pages/Events/components/EventForm'
 import EventRegistrationsPage from '@/pages/Events/components/EventRegistrations'
 import ShiftRosterPage from '@/pages/ShiftRoster'
+import BillingManagementPage from '@/pages/BillingManagement'
+import SettingsPage from '@/pages/Settings'
+import MedicalPage from '@/pages/Medical'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
 const InventoryPage = lazy(() => import('@/pages/Inventory'))
@@ -121,6 +124,30 @@ export default function RootRouter() {
           }
         />
         <Route
+          path="global-settings/tasks"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="tasks" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="global-settings/packages"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="packages" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="global-settings/tax"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="gst-tax" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="global-settings/residents/edit/:id"
           element={
             <ProtectedRoute requireSuperAdmin>
@@ -137,6 +164,22 @@ export default function RootRouter() {
           }
         />
         <Route
+          path="global-settings/residents/billing"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <ResidentBillingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="global-settings/residents/billing/:id"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <ResidentBillingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="global-settings/create-user"
           element={
             <ProtectedRoute requireSuperAdmin>
@@ -149,6 +192,14 @@ export default function RootRouter() {
           element={
             <ProtectedRoute requireSuperAdmin>
               <GlobalSettingsPage initialView="edit-user" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="global-settings/users/details/:id"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="view-user" />
             </ProtectedRoute>
           }
         />
@@ -204,6 +255,22 @@ export default function RootRouter() {
           }
         />
         <Route
+          path="admin/residents/billing"
+          element={
+            <ProtectedRoute resourceKey="RESIDENT" action="view">
+              <ResidentBillingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/residents/billing/:id"
+          element={
+            <ProtectedRoute resourceKey="RESIDENT" action="view">
+              <ResidentBillingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="admin/employees"
           element={
             <ProtectedRoute resourceKey="EMPLOYEE" action="view">
@@ -228,10 +295,26 @@ export default function RootRouter() {
           }
         />
         <Route
+          path="admin/employees/details/:id"
+          element={
+            <ProtectedRoute resourceKey="EMPLOYEE" action="view">
+              <EmployeeDirectoryPage initialView="view" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="admin/medical/*"
           element={
             <ProtectedRoute resourceKey="MEDICAL" action="view">
-              <SectionPage title="Medical Management" />
+              <MedicalPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/medical"
+          element={
+            <ProtectedRoute resourceKey="MEDICAL" action="view">
+              <MedicalPage />
             </ProtectedRoute>
           }
         />
@@ -239,10 +322,11 @@ export default function RootRouter() {
           path="admin/billing-management/*"
           element={
             <ProtectedRoute resourceKey="BILLING" action="view">
-              <SectionPage title="Billing Management" />
+              <BillingManagementPage />
             </ProtectedRoute>
           }
         />
+
         <Route
           path="admin/shift-roster-management"
           element={
@@ -366,6 +450,20 @@ export default function RootRouter() {
           }
         />
         <Route path="admin/feedback-and-training" element={<SectionPage title="Feedback And Training" />} />
+
+        {/* Facility & Operations Settings Routes */}
+        <Route path="admin/settings" element={<SettingsPage initialView="main" />} />
+        <Route path="admin/settings/tasks" element={<Navigate to="/admin/medical?tab=tasks" replace />} />
+        <Route path="admin/settings/packages" element={<Navigate to="/admin/medical?tab=packages" replace />} />
+        <Route
+          path="admin/settings/subscriptions"
+          element={<Navigate to="/admin/medical?tab=subscriptions" replace />}
+        />
+        <Route path="settings" element={<Navigate to="/admin/settings" replace />} />
+        <Route path="settings/tasks" element={<Navigate to="/admin/medical?tab=tasks" replace />} />
+        <Route path="settings/packages" element={<Navigate to="/admin/medical?tab=packages" replace />} />
+        <Route path="settings/care" element={<Navigate to="/admin/medical?tab=subscriptions" replace />} />
+        <Route path="settings/subscriptions" element={<Navigate to="/admin/medical?tab=subscriptions" replace />} />
 
         {/* Setting fallbacks */}
         <Route path="personal-care-tasks" element={<SectionPage title="Personal Care Tasks (ADL)" />} />

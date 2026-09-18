@@ -23,6 +23,14 @@ export const getUsersAPI = async (locationId?: string | null, search?: string): 
   return response.data?.data || response.data
 }
 
+/** Fetch users filtered by one or more role codes (e.g. ['DOCTOR', 'NURSE']) */
+export const getUsersByRoleAPI = async (roleCodes: string[], locationId?: string | null): Promise<UserItem[]> => {
+  const params: Record<string, string> = { roleCodes: roleCodes.join(',') }
+  if (locationId) params.locationId = locationId
+  const response = await api.get(API_ENDPOINTS.user.getUsers, { params })
+  return response.data?.data || response.data
+}
+
 export const getUserByIdAPI = async (id: string): Promise<UserItem> => {
   const response = await api.get(API_ENDPOINTS.user.getUserById(id))
   return response.data?.data || response.data

@@ -1,15 +1,31 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Briefcase, Building2, Home, ShieldCheck, Stethoscope, UserCheck, Utensils } from 'lucide-react'
+import {
+  ArrowLeft,
+  Boxes,
+  Briefcase,
+  Building2,
+  HeartHandshake,
+  Home,
+  Receipt,
+  ShieldCheck,
+  Stethoscope,
+  UserCheck,
+  Utensils,
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { AdminUserManagement } from './components/AdminUserManagement'
 import { ResidentListScreen } from '../Resident/components/ResidentListScreen'
 import { OnboardResidentScreen } from '../Resident/components/OnboardResidentScreen'
 import { ResidentDetailsScreen } from '../Resident/components/ResidentDetailsScreen'
+import { EmployeeDetailsScreen } from '../Employees/components/EmployeeDetailsScreen'
 import { FnbGlobalPackagesTab } from './components/FnbGlobalPackagesTab'
 import { FnbDishesMasterTab } from './components/FnbDishesMasterTab'
 import FnbGlobalMealSlotsTab from './components/FnbGlobalMealSlotsTab'
 import { GlobalServicesTab } from './components/GlobalServicesTab'
 import { SpecializationsTab } from './components/SpecializationsTab'
+import { TasksTab } from './components/TasksTab'
+import { PackagesTab } from './components/PackagesTab'
+import { GstTaxSettingsTab } from './components/GstTaxSettingsTab'
 
 interface SettingItem {
   id: string
@@ -20,6 +36,13 @@ interface SettingItem {
 }
 
 const systemSettings: SettingItem[] = [
+  {
+    id: 'gst-tax',
+    name: 'GST & Tax Settings',
+    description: 'Configure Goods & Services Tax (GST) slabs, CGST/SGST ratios, and corporate GSTIN.',
+    link: '/global-settings/tax',
+    icon: Receipt,
+  },
   {
     id: 'inventory',
     name: 'Inventory',
@@ -75,6 +98,20 @@ const servicesSettings: SettingItem[] = [
     icon: Briefcase,
     link: '/global-settings/global-services',
   },
+  {
+    id: 'tasks',
+    name: 'Care Tasks',
+    description: 'Configure and manage Care Tasks with pricing options and specifications.',
+    icon: HeartHandshake,
+    link: '/global-settings/tasks',
+  },
+  {
+    id: 'packages',
+    name: 'Packages',
+    description: 'Configure and manage Care Packages with bundled complimentary tasks, pricing, and duration.',
+    icon: Boxes,
+    link: '/global-settings/packages',
+  },
 ]
 
 const fnbSettings: SettingItem[] = [
@@ -112,11 +149,15 @@ interface GlobalSettingsPageProps {
     | 'residents'
     | 'edit-resident'
     | 'view-resident'
+    | 'view-user'
     | 'fnb-meal-slots'
     | 'fnb-packages'
     | 'fnb-dishes'
     | 'global-services'
     | 'specializations'
+    | 'tasks'
+    | 'packages'
+    | 'gst-tax'
 }
 
 export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSettingsPageProps) {
@@ -147,6 +188,10 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
 
   if (activeView === 'view-resident') {
     return <ResidentDetailsScreen isGlobalMode={true} />
+  }
+
+  if (activeView === 'view-user') {
+    return <EmployeeDetailsScreen isGlobalMode={true} />
   }
 
   if (activeView === 'fnb-meal-slots') {
@@ -220,6 +265,51 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
         </button>
         <GlobalServicesTab />
+      </div>
+    )
+  }
+
+  if (activeView === 'tasks') {
+    return (
+      <div className="space-y-6 pb-10">
+        <button
+          type="button"
+          onClick={() => navigate('/global-settings')}
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+        </button>
+        <TasksTab />
+      </div>
+    )
+  }
+
+  if (activeView === 'packages') {
+    return (
+      <div className="space-y-6 pb-10">
+        <button
+          type="button"
+          onClick={() => navigate('/global-settings')}
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+        </button>
+        <PackagesTab />
+      </div>
+    )
+  }
+
+  if (activeView === 'gst-tax') {
+    return (
+      <div className="space-y-6 pb-10">
+        <button
+          type="button"
+          onClick={() => navigate('/global-settings')}
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+        </button>
+        <GstTaxSettingsTab />
       </div>
     )
   }

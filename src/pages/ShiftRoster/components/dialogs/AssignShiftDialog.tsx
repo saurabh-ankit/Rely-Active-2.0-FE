@@ -29,18 +29,26 @@ import { getPropertyByIdAPI } from '@/lib/services/propertyService'
 import type { EmployeeShiftAssignment, ShiftV2, WeekDay } from '@/lib/services/rosterService'
 import type { UserItem } from '@/lib/types'
 import { useLocationStore } from '@/lib/stores/locationStore'
-import { assignShiftFormDefaultValues, assignShiftFormSchema, type AssignShiftFormValues } from '@/utils/roster.utils'
+import {
+  assignShiftFormDefaultValues,
+  assignShiftFormSchema,
+  MEDICAL_ROSTER_ROLE_OPTIONS,
+  type AssignShiftFormValues,
+} from '@/utils/roster.utils'
 import {
   doTimeWindowsOverlap,
   generateShiftSlots,
   generateSlotsByCount,
   getUserDisplayName,
   getUserRoleLabel,
+  getUserSpecializationLabel,
   hasWindowStartPassedOnDate,
+  isMedicalDepartment,
   isSlotWithinShift,
   parseLocalYmd,
   resolveAssignmentWindow,
   todayYmdLocal,
+  userHasRoleCode,
   WEEK_DAYS,
   weekdaysInDateRange,
 } from '../../utils'
@@ -58,8 +66,32 @@ interface AssignShiftDialogProps {
 }
 
 const FULL_SHIFT_VALUE = '__full__'
-const ENTIRE_BLOCK = '__entire_block__'
-const ENTIRE_FLOOR = '__entire_floor__'
+
+type AreaOption = { id: string; areaName: string }
+type BlockOption = {
+  id: string
+  block_name: string
+  floors?: Array<{
+    id: string
+    floor_name?: string | null
+    floor_number: number
+    units?: Array<{ id: string; unit_number: string }>
+  }>
+}
+type FloorOption = {
+  id: string
+  floor_name?: string | null
+  floor_number: number
+  blockId: string
+  blockName: string
+  units?: Array<{ id: string; unit_number: string }>
+}
+type FlatOption = {
+  id: string
+  unit_number: string
+  floorId: string
+  floorLabel: string
+}
 
 const WEEKDAY_BY_INDEX: WeekDay[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
 
@@ -100,6 +132,10 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
   const { data: assignmentsData } = useListEmployeeShifts(undefined, open)
   const createBulk = useBulkCreateEmployeeShifts()
   const employeeChipsAnchor = useComboboxAnchor()
+  const areaChipsAnchor = useComboboxAnchor()
+  const blockChipsAnchor = useComboboxAnchor()
+  const floorChipsAnchor = useComboboxAnchor()
+  const flatChipsAnchor = useComboboxAnchor()
 
   const shifts = useMemo(() => shiftsData?.data?.shifts || [], [shiftsData])
   const existingAssignments = useMemo(
@@ -128,6 +164,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
     reset,
     watch,
     setValue,
+    setError,
     formState: { errors },
   } = useForm<AssignShiftFormValues>({
     resolver: zodResolver(assignShiftFormSchema),
@@ -136,37 +173,75 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
   })
 
   const departmentId = watch('departmentId')
+  const roleCode = watch('roleCode')
   const employeeIds = watch('employeeIds')
   const shiftId = watch('shiftId')
   const slotValue = watch('slotValue')
   const startDate = watch('startDate')
   const endDate = watch('endDate')
   const targetType = watch('targetType')
-  const areaId = watch('areaId')
-  const blockId = watch('blockId')
-  const floorSelection = watch('floorSelection')
-  const flatSelection = watch('flatSelection')
+  const areaIds = watch('areaIds')
+  const blockIds = watch('blockIds')
+  const floorIds = watch('floorIds')
+  const unitIds = watch('unitIds')
   const workingDays = watch('workingDays')
 
-  const blocks = useMemo(
-    () =>
-      (property?.blocks || []) as Array<{
-        id: string
-        block_name: string
-        floors?: Array<{
-          id: string
-          floor_name?: string | null
-          floor_number: number
-          units?: Array<{ id: string; unit_number: string }>
-        }>
-      }>,
-    [property],
+  const selectedDepartment = useMemo(
+    () => activeDepartments.find((d) => d.id === departmentId) || null,
+    [activeDepartments, departmentId],
   )
-  const selectedBlock = blocks.find((b) => b.id === blockId)
-  const floors = selectedBlock?.floors || []
-  const selectedFloor =
-    floorSelection && floorSelection !== ENTIRE_BLOCK ? floors.find((f) => f.id === floorSelection) : undefined
-  const flats = selectedFloor?.units || []
+  const isMedicalDept = isMedicalDepartment(selectedDepartment)
+  const canSelectEmployees = !!departmentId && (!isMedicalDept || !!roleCode)
+
+  const blocks = useMemo(() => (property?.blocks || []) as BlockOption[], [property])
+
+  const availableFloors = useMemo(() => {
+    const selectedBlocks = blocks.filter((b) => blockIds.includes(b.id))
+    const floors: FloorOption[] = []
+    for (const block of selectedBlocks) {
+      for (const floor of block.floors || []) {
+        floors.push({
+          ...floor,
+          blockId: block.id,
+          blockName: block.block_name,
+        })
+      }
+    }
+    return floors
+  }, [blocks, blockIds])
+
+  const availableFlats = useMemo(() => {
+    const selectedFloors = availableFloors.filter((f) => floorIds.includes(f.id))
+    const flats: FlatOption[] = []
+    for (const floor of selectedFloors) {
+      const floorLabel = floor.floor_name || `Floor ${floor.floor_number}`
+      for (const unit of floor.units || []) {
+        flats.push({
+          id: unit.id,
+          unit_number: unit.unit_number,
+          floorId: floor.id,
+          floorLabel: `${floor.blockName} · ${floorLabel}`,
+        })
+      }
+    }
+    return flats
+  }, [availableFloors, floorIds])
+
+  useEffect(() => {
+    const validFloorIds = new Set(availableFloors.map((f) => f.id))
+    const nextFloorIds = floorIds.filter((id) => validFloorIds.has(id))
+    if (nextFloorIds.length !== floorIds.length) {
+      setValue('floorIds', nextFloorIds, { shouldValidate: true })
+    }
+  }, [availableFloors, floorIds, setValue])
+
+  useEffect(() => {
+    const validUnitIds = new Set(availableFlats.map((u) => u.id))
+    const nextUnitIds = unitIds.filter((id) => validUnitIds.has(id))
+    if (nextUnitIds.length !== unitIds.length) {
+      setValue('unitIds', nextUnitIds, { shouldValidate: true })
+    }
+  }, [availableFlats, unitIds, setValue])
 
   const selectedShiftId = shift?.id || shiftId
   const selectedShift = useMemo(
@@ -188,14 +263,20 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
   const employeesInDepartment = useMemo(() => {
     const list = Array.isArray(users) ? users : []
     if (!departmentId) return []
+    if (isMedicalDept && !roleCode) return []
     return list.filter((user) => {
       if (user.isActive === false || user.status === 'INACTIVE') return false
-      return (user.userLocations || []).some((ul) => {
+      const inDepartment = (user.userLocations || []).some((ul) => {
         const deptId = ul.departmentId || (ul as { department_id?: string }).department_id
         return deptId === departmentId
       })
+      if (!inDepartment) return false
+      if (isMedicalDept && roleCode) {
+        return userHasRoleCode(user, roleCode)
+      }
+      return true
     })
-  }, [users, departmentId])
+  }, [users, departmentId, isMedicalDept, roleCode])
 
   useEffect(() => {
     if (open) {
@@ -211,8 +292,13 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
   }, [open, shift, today, reset])
 
   useEffect(() => {
+    setValue('roleCode', '', { shouldValidate: true })
     setValue('employeeIds', [], { shouldValidate: true })
   }, [departmentId, setValue])
+
+  useEffect(() => {
+    setValue('employeeIds', [], { shouldValidate: true })
+  }, [roleCode, setValue])
 
   useEffect(() => {
     setValue('slotValue', FULL_SHIFT_VALUE, { shouldValidate: true })
@@ -233,14 +319,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
     setValue('workingDays', next, { shouldValidate: true })
   }
 
-  const resolvedUnitId = flatSelection && flatSelection !== ENTIRE_FLOOR ? flatSelection : null
-
-  const locationTargetValid =
-    targetType === 'area'
-      ? !!areaId
-      : !!blockId &&
-        !!floorSelection &&
-        (floorSelection === ENTIRE_BLOCK || (!!flatSelection && (flatSelection === ENTIRE_FLOOR || !!resolvedUnitId)))
+  const locationTargetValid = targetType === 'area' ? areaIds.length > 0 : blockIds.length > 0
 
   const selectedSlotRange = slotValue === FULL_SHIFT_VALUE ? null : slotValue
 
@@ -304,6 +383,12 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
   }, [employeeIds, effectiveWindow, startDate, endDate, workingDays, existingAssignments, employeesInDepartment])
 
   const onSubmit = async (values: AssignShiftFormValues) => {
+    const selectedDept = activeDepartments.find((d) => d.id === values.departmentId) || null
+    if (isMedicalDepartment(selectedDept) && !values.roleCode) {
+      setError('roleCode', { type: 'manual', message: 'Role is required for Medical department' })
+      return
+    }
+
     const effectiveShiftId = shift?.id || values.shiftId
     if (!effectiveShiftId || values.employeeIds.length === 0 || !locationTargetValid) return
     if (timeValidationError) {
@@ -316,8 +401,6 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
     }
 
     const slotRange = values.slotValue === FULL_SHIFT_VALUE ? null : values.slotValue
-    const floorId = values.floorSelection && values.floorSelection !== ENTIRE_BLOCK ? values.floorSelection : null
-    const unitId = values.flatSelection && values.flatSelection !== ENTIRE_FLOOR ? values.flatSelection : null
 
     try {
       await createBulk.mutateAsync({
@@ -327,10 +410,10 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
         endDate: values.endDate,
         notes: values.notes?.trim() || null,
         workingDays: values.workingDays,
-        areaId: values.targetType === 'area' ? values.areaId || null : null,
-        blockId: values.targetType === 'unit' ? values.blockId || null : null,
-        floorId: values.targetType === 'unit' ? floorId : null,
-        unitId: values.targetType === 'unit' ? unitId : null,
+        areaIds: values.targetType === 'area' ? values.areaIds : undefined,
+        blockIds: values.targetType === 'unit' ? values.blockIds : undefined,
+        floorIds: values.targetType === 'unit' && values.floorIds.length > 0 ? values.floorIds : undefined,
+        unitIds: values.targetType === 'unit' && values.unitIds.length > 0 ? values.unitIds : undefined,
         slotTimeRange: slotRange,
       })
       onOpenChange(false)
@@ -372,6 +455,32 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
             {errors.departmentId && <p className="text-sm text-red-600">{errors.departmentId.message}</p>}
           </div>
 
+          {isMedicalDept && (
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Controller
+                name="roleCode"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value || undefined} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MEDICAL_ROSTER_ROLE_OPTIONS.map((role) => (
+                        <SelectItem key={role.code} value={role.code}>
+                          {role.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.roleCode && <p className="text-sm text-red-600">{errors.roleCode.message}</p>}
+              <p className="text-xs text-gray-500">Select Doctor or Nurse before choosing employees.</p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label>Employees</Label>
             <Controller
@@ -379,6 +488,16 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
               control={control}
               render={({ field }) => {
                 const selected = employeesInDepartment.filter((emp) => field.value.includes(emp.id))
+                const employeePlaceholder = !departmentId
+                  ? 'Select a department first'
+                  : isMedicalDept && !roleCode
+                    ? 'Select a role first'
+                    : 'Select employees...'
+                const searchPlaceholder = !departmentId
+                  ? 'Select a department first'
+                  : isMedicalDept && !roleCode
+                    ? 'Select a role first'
+                    : 'Search employees...'
                 return (
                   <div className="space-y-1.5">
                     <Combobox
@@ -388,18 +507,16 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                       onValueChange={(vals: UserItem[]) => field.onChange(vals.map((emp) => emp.id))}
                       itemToStringLabel={(item) => getUserDisplayName(item)}
                       isItemEqualToValue={(a, b) => a.id === b.id}
-                      disabled={!departmentId}
+                      disabled={!canSelectEmployees}
                     >
                       <ComboboxChips ref={employeeChipsAnchor} className="w-full min-h-9 rounded-md">
                         {selected.length === 0 && (
-                          <span className="flex-1 text-sm text-muted-foreground">
-                            {departmentId ? 'Select employees...' : 'Select a department first'}
-                          </span>
+                          <span className="flex-1 text-sm text-muted-foreground">{employeePlaceholder}</span>
                         )}
                         {selected.map((emp) => (
                           <ComboboxChip key={emp.id}>{getUserDisplayName(emp)}</ComboboxChip>
                         ))}
-                        <ComboboxTrigger className="ml-auto shrink-0 self-center" disabled={!departmentId} />
+                        <ComboboxTrigger className="ml-auto shrink-0 self-center" disabled={!canSelectEmployees} />
                       </ComboboxChips>
                       <ComboboxContent
                         anchor={employeeChipsAnchor}
@@ -408,19 +525,20 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                         className="w-[var(--anchor-width)]"
                       >
                         <ComboboxInput
-                          placeholder={departmentId ? 'Search employees...' : 'Select a department first'}
-                          disabled={!departmentId}
+                          placeholder={searchPlaceholder}
+                          disabled={!canSelectEmployees}
                           showTrigger={false}
                           className="w-full"
                         />
                         <ComboboxList className="max-h-60">
                           {(emp: UserItem) => {
-                            const roleLabel = getUserRoleLabel(emp)
+                            const subLabel =
+                              roleCode === 'DOCTOR' ? getUserSpecializationLabel(emp) : getUserRoleLabel(emp)
                             return (
                               <ComboboxItem key={emp.id} value={emp} className="py-2">
                                 <div className="flex flex-col gap-0.5 min-w-0 pr-6">
                                   <span className="font-semibold text-sm text-gray-900">{getUserDisplayName(emp)}</span>
-                                  {roleLabel ? <span className="text-xs text-[#5b8ab8]">{roleLabel}</span> : null}
+                                  {subLabel ? <span className="text-xs text-[#5b8ab8]">{subLabel}</span> : null}
                                 </div>
                               </ComboboxItem>
                             )
@@ -439,8 +557,12 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
               }}
             />
             {errors.employeeIds && <p className="text-sm text-red-600">{errors.employeeIds.message}</p>}
-            {departmentId && employeesInDepartment.length === 0 && (
-              <p className="text-xs text-gray-500">No employees found in this department.</p>
+            {canSelectEmployees && employeesInDepartment.length === 0 && (
+              <p className="text-xs text-gray-500">
+                {isMedicalDept
+                  ? `No ${roleCode === 'DOCTOR' ? 'doctors' : 'nurses'} found in this department.`
+                  : 'No employees found in this department.'}
+              </p>
             )}
           </div>
 
@@ -538,10 +660,10 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                   value={field.value}
                   onValueChange={(v) => {
                     field.onChange(v as 'area' | 'unit')
-                    setValue('areaId', '', { shouldValidate: true })
-                    setValue('blockId', '', { shouldValidate: true })
-                    setValue('floorSelection', '', { shouldValidate: true })
-                    setValue('flatSelection', '', { shouldValidate: true })
+                    setValue('areaIds', [], { shouldValidate: true })
+                    setValue('blockIds', [], { shouldValidate: true })
+                    setValue('floorIds', [], { shouldValidate: true })
+                    setValue('unitIds', [], { shouldValidate: true })
                   }}
                 >
                   <SelectTrigger>
@@ -560,118 +682,244 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
             <div className="space-y-2">
               <Label>Area</Label>
               <Controller
-                name="areaId"
+                name="areaIds"
                 control={control}
-                render={({ field }) => (
-                  <Select value={field.value || ''} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select area" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {areas.map((a) => (
-                        <SelectItem key={a.id} value={a.id}>
-                          {a.areaName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+                render={({ field }) => {
+                  const selected = areas.filter((a) => field.value.includes(a.id))
+                  return (
+                    <div className="space-y-1.5">
+                      <Combobox
+                        multiple
+                        items={areas}
+                        value={selected}
+                        onValueChange={(vals: AreaOption[]) => field.onChange(vals.map((a) => a.id))}
+                        itemToStringLabel={(item) => item.areaName}
+                        isItemEqualToValue={(a, b) => a.id === b.id}
+                      >
+                        <ComboboxChips ref={areaChipsAnchor} className="w-full min-h-9 rounded-md">
+                          {selected.length === 0 && (
+                            <span className="flex-1 text-sm text-muted-foreground">Select areas...</span>
+                          )}
+                          {selected.map((a) => (
+                            <ComboboxChip key={a.id}>{a.areaName}</ComboboxChip>
+                          ))}
+                          <ComboboxTrigger className="ml-auto shrink-0 self-center" />
+                        </ComboboxChips>
+                        <ComboboxContent
+                          anchor={areaChipsAnchor}
+                          side="bottom"
+                          align="start"
+                          className="w-[var(--anchor-width)]"
+                        >
+                          <ComboboxInput placeholder="Search areas..." showTrigger={false} className="w-full" />
+                          <ComboboxList className="max-h-60">
+                            {(a: AreaOption) => (
+                              <ComboboxItem key={a.id} value={a}>
+                                {a.areaName}
+                              </ComboboxItem>
+                            )}
+                          </ComboboxList>
+                          <ComboboxEmpty className="text-xs text-gray-500 py-2">No areas found</ComboboxEmpty>
+                        </ComboboxContent>
+                      </Combobox>
+                      {selected.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {selected.length} area{selected.length === 1 ? '' : 's'} selected
+                        </p>
+                      )}
+                    </div>
+                  )
+                }}
               />
-              {errors.areaId && <p className="text-sm text-red-600">{errors.areaId.message}</p>}
+              {errors.areaIds && <p className="text-sm text-red-600">{errors.areaIds.message}</p>}
             </div>
           ) : (
             <div className="space-y-3">
               <div className="space-y-2">
                 <Label>Block</Label>
                 <Controller
-                  name="blockId"
+                  name="blockIds"
                   control={control}
-                  render={({ field }) => (
-                    <Select
-                      value={field.value || ''}
-                      onValueChange={(v) => {
-                        field.onChange(v)
-                        setValue('floorSelection', '', { shouldValidate: true })
-                        setValue('flatSelection', '', { shouldValidate: true })
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select block" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {blocks.map((b) => (
-                          <SelectItem key={b.id} value={b.id}>
-                            {b.block_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
+                  render={({ field }) => {
+                    const selected = blocks.filter((b) => field.value.includes(b.id))
+                    return (
+                      <div className="space-y-1.5">
+                        <Combobox
+                          multiple
+                          items={blocks}
+                          value={selected}
+                          onValueChange={(vals: BlockOption[]) => {
+                            field.onChange(vals.map((b) => b.id))
+                          }}
+                          itemToStringLabel={(item) => item.block_name}
+                          isItemEqualToValue={(a, b) => a.id === b.id}
+                        >
+                          <ComboboxChips ref={blockChipsAnchor} className="w-full min-h-9 rounded-md">
+                            {selected.length === 0 && (
+                              <span className="flex-1 text-sm text-muted-foreground">Select blocks...</span>
+                            )}
+                            {selected.map((b) => (
+                              <ComboboxChip key={b.id}>{b.block_name}</ComboboxChip>
+                            ))}
+                            <ComboboxTrigger className="ml-auto shrink-0 self-center" />
+                          </ComboboxChips>
+                          <ComboboxContent
+                            anchor={blockChipsAnchor}
+                            side="bottom"
+                            align="start"
+                            className="w-[var(--anchor-width)]"
+                          >
+                            <ComboboxInput placeholder="Search blocks..." showTrigger={false} className="w-full" />
+                            <ComboboxList className="max-h-60">
+                              {(b: BlockOption) => (
+                                <ComboboxItem key={b.id} value={b}>
+                                  {b.block_name}
+                                </ComboboxItem>
+                              )}
+                            </ComboboxList>
+                            <ComboboxEmpty className="text-xs text-gray-500 py-2">No blocks found</ComboboxEmpty>
+                          </ComboboxContent>
+                        </Combobox>
+                        {selected.length > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            {selected.length} block{selected.length === 1 ? '' : 's'} selected
+                          </p>
+                        )}
+                      </div>
+                    )
+                  }}
                 />
-                {errors.blockId && <p className="text-sm text-red-600">{errors.blockId.message}</p>}
+                {errors.blockIds && <p className="text-sm text-red-600">{errors.blockIds.message}</p>}
               </div>
 
-              {blockId && (
+              {blockIds.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Floor</Label>
+                  <Label>Floor (optional)</Label>
                   <Controller
-                    name="floorSelection"
+                    name="floorIds"
                     control={control}
-                    render={({ field }) => (
-                      <Select
-                        value={field.value || ''}
-                        onValueChange={(v) => {
-                          field.onChange(v)
-                          setValue('flatSelection', '', { shouldValidate: true })
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select floor or entire block" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={ENTIRE_BLOCK}>Entire block</SelectItem>
-                          {floors.map((f) => (
-                            <SelectItem key={f.id} value={f.id}>
-                              {f.floor_name || `Floor ${f.floor_number}`}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
+                    render={({ field }) => {
+                      const selected = availableFloors.filter((f) => field.value.includes(f.id))
+                      return (
+                        <div className="space-y-1.5">
+                          <Combobox
+                            multiple
+                            items={availableFloors}
+                            value={selected}
+                            onValueChange={(vals: FloorOption[]) => field.onChange(vals.map((f) => f.id))}
+                            itemToStringLabel={(item) =>
+                              `${item.blockName} · ${item.floor_name || `Floor ${item.floor_number}`}`
+                            }
+                            isItemEqualToValue={(a, b) => a.id === b.id}
+                          >
+                            <ComboboxChips ref={floorChipsAnchor} className="w-full min-h-9 rounded-md">
+                              {selected.length === 0 && (
+                                <span className="flex-1 text-sm text-muted-foreground">
+                                  Entire selected block(s)...
+                                </span>
+                              )}
+                              {selected.map((f) => (
+                                <ComboboxChip key={f.id}>
+                                  {f.blockName} · {f.floor_name || `Floor ${f.floor_number}`}
+                                </ComboboxChip>
+                              ))}
+                              <ComboboxTrigger className="ml-auto shrink-0 self-center" />
+                            </ComboboxChips>
+                            <ComboboxContent
+                              anchor={floorChipsAnchor}
+                              side="bottom"
+                              align="start"
+                              className="w-[var(--anchor-width)]"
+                            >
+                              <ComboboxInput placeholder="Search floors..." showTrigger={false} className="w-full" />
+                              <ComboboxList className="max-h-60">
+                                {(f: FloorOption) => (
+                                  <ComboboxItem key={f.id} value={f}>
+                                    {f.blockName} · {f.floor_name || `Floor ${f.floor_number}`}
+                                  </ComboboxItem>
+                                )}
+                              </ComboboxList>
+                              <ComboboxEmpty className="text-xs text-gray-500 py-2">No floors found</ComboboxEmpty>
+                            </ComboboxContent>
+                          </Combobox>
+                          {selected.length > 0 ? (
+                            <p className="text-xs text-muted-foreground">
+                              {selected.length} floor{selected.length === 1 ? '' : 's'} selected
+                            </p>
+                          ) : (
+                            <p className="text-xs text-gray-500">
+                              Leave empty to cover the complete selected block(s).
+                            </p>
+                          )}
+                        </div>
+                      )
+                    }}
                   />
                 </div>
               )}
 
-              {blockId && floorSelection && floorSelection !== ENTIRE_BLOCK && (
+              {blockIds.length > 0 && floorIds.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Flat</Label>
+                  <Label>Flat (optional)</Label>
                   <Controller
-                    name="flatSelection"
+                    name="unitIds"
                     control={control}
-                    render={({ field }) => (
-                      <Select value={field.value || ''} onValueChange={field.onChange}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select flat or entire floor" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={ENTIRE_FLOOR}>Entire floor</SelectItem>
-                          {flats.map((u) => (
-                            <SelectItem key={u.id} value={u.id}>
-                              {u.unit_number}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
+                    render={({ field }) => {
+                      const selected = availableFlats.filter((u) => field.value.includes(u.id))
+                      return (
+                        <div className="space-y-1.5">
+                          <Combobox
+                            multiple
+                            items={availableFlats}
+                            value={selected}
+                            onValueChange={(vals: FlatOption[]) => field.onChange(vals.map((u) => u.id))}
+                            itemToStringLabel={(item) => `${item.floorLabel} · ${item.unit_number}`}
+                            isItemEqualToValue={(a, b) => a.id === b.id}
+                          >
+                            <ComboboxChips ref={flatChipsAnchor} className="w-full min-h-9 rounded-md">
+                              {selected.length === 0 && (
+                                <span className="flex-1 text-sm text-muted-foreground">
+                                  Entire selected floor(s)...
+                                </span>
+                              )}
+                              {selected.map((u) => (
+                                <ComboboxChip key={u.id}>
+                                  {u.floorLabel} · {u.unit_number}
+                                </ComboboxChip>
+                              ))}
+                              <ComboboxTrigger className="ml-auto shrink-0 self-center" />
+                            </ComboboxChips>
+                            <ComboboxContent
+                              anchor={flatChipsAnchor}
+                              side="bottom"
+                              align="start"
+                              className="w-[var(--anchor-width)]"
+                            >
+                              <ComboboxInput placeholder="Search flats..." showTrigger={false} className="w-full" />
+                              <ComboboxList className="max-h-60">
+                                {(u: FlatOption) => (
+                                  <ComboboxItem key={u.id} value={u}>
+                                    {u.floorLabel} · {u.unit_number}
+                                  </ComboboxItem>
+                                )}
+                              </ComboboxList>
+                              <ComboboxEmpty className="text-xs text-gray-500 py-2">No flats found</ComboboxEmpty>
+                            </ComboboxContent>
+                          </Combobox>
+                          {selected.length > 0 ? (
+                            <p className="text-xs text-muted-foreground">
+                              {selected.length} flat{selected.length === 1 ? '' : 's'} selected
+                            </p>
+                          ) : (
+                            <p className="text-xs text-gray-500">
+                              Leave empty to cover the complete selected floor(s).
+                            </p>
+                          )}
+                        </div>
+                      )
+                    }}
                   />
                 </div>
-              )}
-
-              {floorSelection === ENTIRE_BLOCK && (
-                <p className="text-xs text-gray-500">Roster will cover the complete selected block.</p>
-              )}
-              {flatSelection === ENTIRE_FLOOR && (
-                <p className="text-xs text-gray-500">Roster will cover the complete selected floor.</p>
               )}
             </div>
           )}
@@ -724,6 +972,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                 pending ||
                 !selectedShiftId ||
                 !departmentId ||
+                (isMedicalDept && !roleCode) ||
                 employeeIds.length === 0 ||
                 !locationTargetValid ||
                 !!timeValidationError ||

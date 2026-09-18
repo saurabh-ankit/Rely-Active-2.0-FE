@@ -43,7 +43,11 @@ export interface UserItem {
     address?: string | null
     qualification?: string | null
     experience?: string | null
+    photoUrl?: string | null
+    photo_url?: string | null
   } | null
+  lastLogin?: string | null
+  last_login?: string | null
   userRoles?: UserRoleItem[]
   userLocations?: Array<{
     id: string
@@ -86,6 +90,14 @@ export interface UserItem {
     }
   }>
   assignedProperties?: Array<{ id: string; property_name: string }>
+  /** Doctors only — returned by user list/detail APIs. */
+  specializations?: Array<{
+    id: string
+    name: string
+    code: string
+    description?: string | null
+    isPrimary?: boolean
+  }>
   createdAt: string
 }
 

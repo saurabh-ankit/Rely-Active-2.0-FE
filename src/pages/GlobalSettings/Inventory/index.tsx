@@ -4,7 +4,18 @@ import { ItemThresholdsPage } from './ItemThresholdsPage'
 import { ItemImportPage } from './ItemImportPage'
 import { Routes, Route, Link, useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom'
 import type { ColumnDef, PaginationState, SortingState, Updater } from '@tanstack/react-table'
-import { FolderOpen, Building2, Plus, MoreHorizontal, Pencil, MapPin, Users, Package, ArrowUpDown } from 'lucide-react'
+import {
+  FolderOpen,
+  Building2,
+  Plus,
+  MoreHorizontal,
+  Pencil,
+  MapPin,
+  Users,
+  ArrowUpDown,
+  Briefcase,
+  Package,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
@@ -162,6 +173,8 @@ function GlobalInventory() {
       title="Global Inventory Management"
       description="Manage categories, vendors and availability across your locations."
       onBack={() => navigate('/global-settings')}
+      backLabel="Back to Global Settings"
+      icon={Briefcase}
     >
       <InventoryTabs
         value={tab}
@@ -328,8 +341,11 @@ function MasterList({ kind, returnTo }: { returnTo?: string; kind: 'categories' 
               Retry
             </Button>
           )}
-          <Button onClick={() => navigate(target(`${inventoryBase}/${kind}/new`))}>
-            <Plus data-icon="inline-start" />
+          <Button
+            className="bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer"
+            onClick={() => navigate(target(`${inventoryBase}/${kind}/new`))}
+          >
+            <Plus className="w-4 h-4 mr-1" />
             Add {kind === 'categories' ? 'Category' : 'Vendor'}
           </Button>
         </>
@@ -472,15 +488,27 @@ function CategoryItems() {
       title={category.data.name}
       description={category.data.description ?? 'Manage inventory items in this category.'}
       onBack={() => navigate(`${inventoryBase}${params.get('origin') || ''}`)}
+      backLabel="Back to Categories"
+      icon={FolderOpen}
+      action={
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            className="rounded-xl border-gray-200"
+            onClick={() => navigate(`${categoryPath(categoryId)}/edit?${editParams}`)}
+          >
+            Edit Category
+          </Button>
+          <Button
+            variant="outline"
+            className="rounded-xl border-gray-200"
+            onClick={() => navigate(`${categoryPath(categoryId)}/locations?${editParams}`)}
+          >
+            Manage Locations
+          </Button>
+        </div>
+      }
     >
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onClick={() => navigate(`${categoryPath(categoryId)}/edit?${editParams}`)}>
-          Edit Category
-        </Button>
-        <Button variant="outline" onClick={() => navigate(`${categoryPath(categoryId)}/locations?${editParams}`)}>
-          Manage Locations
-        </Button>
-      </div>
       <InventoryTabs
         value={categorySearch.get('categoryTab') === 'suppliers' ? 'suppliers' : 'items'}
         onValueChange={(value) =>
@@ -526,6 +554,7 @@ function CategoryItems() {
                             return next
                           })
                         }
+                        className="w-auto h-9 text-xs"
                       >
                         <NativeSelectOption value="">All suppliers</NativeSelectOption>
                         {vendors.data?.map((v) => (
@@ -536,16 +565,18 @@ function CategoryItems() {
                       </NativeSelect>
                       <Button
                         variant="outline"
+                        className="rounded-xl border-gray-200"
                         disabled={!category.data.isActive}
                         onClick={() => navigate(`${categoryPath(categoryId)}/import${search}`)}
                       >
                         Import Items
                       </Button>
                       <Button
+                        className="bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer"
                         disabled={!category.data.isActive}
                         onClick={() => navigate(`${categoryPath(categoryId)}/items/new${search}`)}
                       >
-                        <Plus data-icon="inline-start" />
+                        <Plus className="w-4 h-4 mr-1" />
                         Add Item
                       </Button>
                     </>

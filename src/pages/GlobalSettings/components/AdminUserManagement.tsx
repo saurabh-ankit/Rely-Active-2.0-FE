@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useForm, useWatch } from 'react-hook-form'
+import { useForm, useWatch, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -22,6 +22,7 @@ import {
   User,
   UserCheck,
   UserPlus,
+  Eye,
 } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { usePropertiesQuery } from '@/hooks/react-query/property'
@@ -64,22 +65,92 @@ const sortRolesByHierarchy = (roleList: RoleItem[]) => {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_REGEX = /^[6-9][0-9]{9}$/
+const NAME_REGEX = /^[a-zA-Z\s]+$/
+const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,30}$/
+const EXPERIENCE_REGEX = /^\d{1,2}$/
+const BLOOD_GROUP_VALUES = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'] as const
+const GENDER_VALUES = ['MALE', 'FEMALE', 'OTHER'] as const
+
+const todayYmdLocal = (): string => {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+/** Reject incomplete/invalid/future date values from native date inputs. */
+const sanitizePastDateOrEmpty = (
+  el: HTMLInputElement,
+  mode: 'change' | 'blur',
+): { value: string; rejected: boolean } => {
+  const today = todayYmdLocal()
+  const value = el.value
+
+  // While typing, browsers often report badInput for partial segments — don't interrupt.
+  if (mode === 'change' && !value) {
+    return { value: '', rejected: false }
+  }
+
+  const year = value ? Number(value.slice(0, 4)) : NaN
+  const isFutureComplete =
+    !!value && /^\d{4}-\d{2}-\d{2}$/.test(value) && (year > new Date().getFullYear() || value > today)
+
+  const shouldReject =
+    isFutureComplete || (mode === 'blur' && (el.validity.badInput || el.validity.rangeOverflow || isFutureComplete))
+
+  if (shouldReject) {
+    el.value = ''
+    return { value: '', rejected: true }
+  }
+
+  return { value: value || '', rejected: false }
+}
+
+const lettersOnly = (value: string) => value.replace(/[^a-zA-Z\s]/g, '')
+const digitsOnly = (value: string, maxLength?: number) => {
+  const digits = value.replace(/\D/g, '')
+  return typeof maxLength === 'number' ? digits.slice(0, maxLength) : digits
+}
+const phoneDigitsOnly = (value: string) => {
+  let filtered = digitsOnly(value, 10)
+  if (filtered.length > 0 && !/^[6-9]/.test(filtered)) {
+    filtered = filtered.replace(/^[^6-9]+/, '')
+  }
+  return filtered
+}
 
 const userFormSchema = z
   .object({
-    username: z.string().min(1, 'Username is required'),
-    firstName: z.string().min(1, 'First name is required'),
-    lastName: z.string().min(1, 'Last name is required'),
+    username: z
+      .string()
+      .trim()
+      .min(1, 'Username is required')
+      .regex(USERNAME_REGEX, 'Username must be 3–30 characters and contain only letters, numbers, or underscore'),
+    firstName: z
+      .string()
+      .trim()
+      .min(1, 'First name is required')
+      .max(50, 'First name cannot exceed 50 characters')
+      .regex(NAME_REGEX, 'First name can only contain letters and spaces'),
+    lastName: z
+      .string()
+      .trim()
+      .min(1, 'Last name is required')
+      .max(50, 'Last name cannot exceed 50 characters')
+      .regex(NAME_REGEX, 'Last name can only contain letters and spaces'),
     email: z
       .string()
+      .trim()
       .min(1, 'Email address is required')
-      .refine((val) => EMAIL_REGEX.test(val.trim()), {
+      .refine((val) => EMAIL_REGEX.test(val), {
         message: 'Invalid email address format',
       }),
     phone: z
       .string()
+      .trim()
       .min(1, 'Phone number is required')
-      .refine((val) => PHONE_REGEX.test(val.trim()) && val.trim().length === 10, {
+      .refine((val) => PHONE_REGEX.test(val) && val.length === 10, {
         message: 'Phone number must be 10 digits starting with 6, 7, 8, or 9',
       }),
     password: z
@@ -88,20 +159,61 @@ const userFormSchema = z
       .refine((val) => !val || val.length >= 6, {
         message: 'Password must be at least 6 characters long',
       }),
-    dateOfJoining: z.string().min(1, 'Date of joining is required'),
+    dateOfJoining: z
+      .string()
+      .min(1, 'Date of joining is required')
+      .refine((val) => /^\d{4}-\d{2}-\d{2}$/.test(val), {
+        message: 'Please enter a valid date of joining',
+      })
+      .refine((val) => val <= todayYmdLocal(), {
+        message: 'Date of joining cannot be a future date',
+      }),
     employeeCode: z.string().optional(),
-    gender: z.string().optional(),
-    dateOfBirth: z.string().optional(),
+    gender: z
+      .string()
+      .optional()
+      .refine((val) => !val || GENDER_VALUES.includes(val as (typeof GENDER_VALUES)[number]), {
+        message: 'Please select a valid gender',
+      }),
+    dateOfBirth: z
+      .string()
+      .optional()
+      .refine((val) => !val || /^\d{4}-\d{2}-\d{2}$/.test(val), {
+        message: 'Please enter a valid date of birth',
+      })
+      .refine((val) => !val || val <= todayYmdLocal(), {
+        message: 'Date of birth cannot be a future date',
+      }),
     emergencyContact: z
       .string()
       .optional()
       .refine((val) => !val || (PHONE_REGEX.test(val.trim()) && val.trim().length === 10), {
         message: 'Contact number must start with a digit between 6-9 and be exactly 10 digits',
       }),
-    bloodGroup: z.string().optional(),
-    qualification: z.string().optional(),
-    experience: z.string().optional(),
-    address: z.string().optional(),
+    bloodGroup: z
+      .string()
+      .optional()
+      .refine((val) => !val || BLOOD_GROUP_VALUES.includes(val as (typeof BLOOD_GROUP_VALUES)[number]), {
+        message: 'Please select a valid blood group',
+      }),
+    qualification: z
+      .string()
+      .optional()
+      .refine((val) => !val || val.trim().length <= 150, {
+        message: 'Qualification cannot exceed 150 characters',
+      }),
+    experience: z
+      .string()
+      .optional()
+      .refine((val) => !val || EXPERIENCE_REGEX.test(val.trim()), {
+        message: 'Experience must be a number between 0 and 99',
+      }),
+    address: z
+      .string()
+      .optional()
+      .refine((val) => !val || val.trim().length <= 500, {
+        message: 'Address cannot exceed 500 characters',
+      }),
     selectedRoleCode: z.string().min(1, 'Role is required'),
     selectedDepartmentId: z.string().optional(),
     selectedJobCategoryId: z.string().optional(),
@@ -173,6 +285,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
   const [selectedDepartmentFilter, setSelectedDepartmentFilter] = useState('ALL')
   const [selectedJobCategoryFilter, setSelectedJobCategoryFilter] = useState('ALL')
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('ALL')
+  const [dateOfBirthInputKey, setDateOfBirthInputKey] = useState(0)
 
   // React Hook Form + Zod
   const {
@@ -193,7 +306,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
       email: '',
       phone: '',
       password: '',
-      dateOfJoining: new Date().toISOString().split('T')[0] as string,
+      dateOfJoining: todayYmdLocal(),
       employeeCode: '',
       gender: '',
       dateOfBirth: '',
@@ -208,6 +321,17 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
       selectedManagerId: '',
     },
   })
+
+  const registerFiltered = (name: keyof UserFormValues, filter: (value: string) => string) => {
+    const registration = register(name)
+    return {
+      ...registration,
+      onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        e.target.value = filter(e.target.value)
+        return registration.onChange(e)
+      },
+    }
+  }
 
   const selectedRoleCode = useWatch({ control, name: 'selectedRoleCode' })
   const roleUpper = (selectedRoleCode || '').toUpperCase()
@@ -328,23 +452,35 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
 
   const populateFormForUser = (u: UserItem) => {
     setEditingUserId(u.id)
-    setValue('username', u.username || '')
-    setValue('firstName', u.profile?.firstName || u.profile?.first_name || '')
-    setValue('lastName', u.profile?.lastName || u.profile?.last_name || '')
+    setValue('username', (u.username || '').replace(/[^a-zA-Z0-9_]/g, '').slice(0, 30))
+    setValue('firstName', lettersOnly(u.profile?.firstName || u.profile?.first_name || ''))
+    setValue('lastName', lettersOnly(u.profile?.lastName || u.profile?.last_name || ''))
     setValue('email', u.email || '')
-    setValue('phone', u.phone || u.profile?.phone || '')
+    setValue('phone', phoneDigitsOnly(u.phone || u.profile?.phone || ''))
     setValue('password', '')
     setValue(
       'dateOfJoining',
-      u.profile?.dateOfJoining || u.profile?.date_of_joining || (new Date().toISOString().split('T')[0] as string),
+      (() => {
+        const raw = String(u.profile?.dateOfJoining || u.profile?.date_of_joining || '').slice(0, 10)
+        if (/^\d{4}-\d{2}-\d{2}$/.test(raw) && raw <= todayYmdLocal()) return raw
+        return todayYmdLocal()
+      })(),
     )
     setValue('employeeCode', u.profile?.employeeCode || u.profile?.employee_code || '')
     setValue('gender', u.profile?.gender || '')
-    setValue('dateOfBirth', u.profile?.dateOfBirth || u.profile?.date_of_birth || '')
-    setValue('emergencyContact', u.profile?.emergencyContact || u.profile?.emergency_contact || '')
+    const rawDob = u.profile?.dateOfBirth || u.profile?.date_of_birth || ''
+    setValue(
+      'dateOfBirth',
+      (() => {
+        const dob = rawDob ? String(rawDob).slice(0, 10) : ''
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dob) && dob <= todayYmdLocal()) return dob
+        return ''
+      })(),
+    )
+    setValue('emergencyContact', phoneDigitsOnly(u.profile?.emergencyContact || u.profile?.emergency_contact || ''))
     setValue('bloodGroup', u.profile?.bloodGroup || u.profile?.blood_group || '')
     setValue('qualification', u.profile?.qualification || '')
-    setValue('experience', u.profile?.experience || '')
+    setValue('experience', digitsOnly(u.profile?.experience || '', 2))
     setValue('address', u.profile?.address || '')
     const userLoc = (u.userLocations?.[0] || u.userRoles?.[0]) as Record<string, unknown> | undefined
     const userLocRole = userLoc?.role as { code?: string } | undefined
@@ -401,14 +537,21 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
 
   useEffect(() => {
     if ((initialMode === 'edit' || paramId) && paramId) {
+      // Prefer the dedicated by-id fetch so full profile fields are used (not a partial list row).
       const target = fetchedUser || users.find((u) => u.id === paramId)
-      if (target && loadedUserId !== paramId) {
-        const timer = setTimeout(() => {
-          populateFormForUser(target)
-          setLoadedUserId(paramId)
-        }, 0)
-        return () => clearTimeout(timer)
+      if (!target) return
+
+      const hydratedFromDetail = Boolean(fetchedUser)
+      const hydrateKey = hydratedFromDetail ? `${paramId}:detail` : `${paramId}:list`
+      if (loadedUserId === hydrateKey || (loadedUserId === `${paramId}:detail` && !hydratedFromDetail)) {
+        return
       }
+
+      const timer = setTimeout(() => {
+        populateFormForUser(target)
+        setLoadedUserId(hydrateKey)
+      }, 0)
+      return () => clearTimeout(timer)
     } else if (!paramId && loadedUserId !== null) {
       const timer = setTimeout(() => setLoadedUserId(null), 0)
       return () => clearTimeout(timer)
@@ -645,16 +788,20 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
               <Input
                 label="First Name"
                 required
-                {...register('firstName')}
+                {...registerFiltered('firstName', lettersOnly)}
                 error={errors.firstName?.message}
                 placeholder="e.g. Ravi"
+                maxLength={50}
+                autoComplete="given-name"
               />
               <Input
                 label="Last Name *"
                 required
-                {...register('lastName')}
+                {...registerFiltered('lastName', lettersOnly)}
                 error={errors.lastName?.message}
                 placeholder="e.g. Kumar"
+                maxLength={50}
+                autoComplete="family-name"
               />
             </div>
 
@@ -667,14 +814,18 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                 error={errors.email?.message}
                 placeholder="admin.hyd@rely.com"
                 icon={<Mail className="h-4 w-4 text-gray-400" />}
+                autoComplete="email"
               />
               <Input
                 label="Phone Number"
                 required
-                {...register('phone')}
+                {...registerFiltered('phone', phoneDigitsOnly)}
                 error={errors.phone?.message}
-                placeholder="98765 43210"
+                placeholder="9876543210"
                 icon={<Phone className="h-4 w-4 text-gray-400" />}
+                inputMode="numeric"
+                maxLength={10}
+                autoComplete="tel"
               />
             </div>
 
@@ -683,7 +834,17 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                 label="Date of Joining"
                 required
                 type="date"
-                {...register('dateOfJoining')}
+                max={todayYmdLocal()}
+                {...register('dateOfJoining', {
+                  onChange: (e) => {
+                    const el = e.target as HTMLInputElement
+                    const today = todayYmdLocal()
+                    if (el.validity.rangeOverflow || el.validity.badInput || (el.value && el.value > today)) {
+                      el.value = today
+                      setValue('dateOfJoining', today, { shouldValidate: true })
+                    }
+                  },
+                })}
                 error={errors.dateOfJoining?.message}
               />
               <div>
@@ -707,18 +868,56 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Input
-                label="Date of Birth"
-                type="date"
-                {...register('dateOfBirth')}
-                error={errors.dateOfBirth?.message}
+              <Controller
+                name="dateOfBirth"
+                control={control}
+                render={({ field }) => {
+                  const applyDobValue = (el: HTMLInputElement, mode: 'change' | 'blur') => {
+                    // While the user is mid-edit, native date inputs can briefly report an empty
+                    // value — keep the last committed form value instead of wiping it.
+                    if (mode === 'change' && !el.value && !el.validity.rangeOverflow) {
+                      return
+                    }
+
+                    const { value: next, rejected } = sanitizePastDateOrEmpty(el, mode)
+                    field.onChange(next)
+                    // Native date inputs keep a typed future year in the UI while focused;
+                    // remount to force a clean empty display when rejected.
+                    if (rejected) {
+                      setDateOfBirthInputKey((k) => k + 1)
+                    }
+                  }
+
+                  return (
+                    <Input
+                      key={dateOfBirthInputKey}
+                      label="Date of Birth"
+                      type="date"
+                      name={field.name}
+                      ref={field.ref}
+                      value={field.value || ''}
+                      min="1900-01-01"
+                      max={todayYmdLocal()}
+                      onChange={(e) => {
+                        applyDobValue(e.currentTarget as HTMLInputElement, 'change')
+                      }}
+                      onBlur={(e) => {
+                        applyDobValue(e.currentTarget as HTMLInputElement, 'blur')
+                        field.onBlur()
+                      }}
+                      error={errors.dateOfBirth?.message}
+                    />
+                  )
+                }}
               />
               <Input
                 label="Emergency Contact"
-                {...register('emergencyContact')}
+                {...registerFiltered('emergencyContact', phoneDigitsOnly)}
                 error={errors.emergencyContact?.message}
-                placeholder="98765 00000"
+                placeholder="9876500000"
                 icon={<Phone className="h-4 w-4 text-gray-400" />}
+                inputMode="numeric"
+                maxLength={10}
               />
             </div>
 
@@ -751,15 +950,18 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                 {...register('qualification')}
                 error={errors.qualification?.message}
                 placeholder="e.g. B.Sc Nursing, MBBS, MBA"
+                maxLength={150}
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Input
                 label="Experience (Years)"
-                {...register('experience')}
+                {...registerFiltered('experience', (value) => digitsOnly(value, 2))}
                 error={errors.experience?.message}
                 placeholder="e.g. 5"
+                inputMode="numeric"
+                maxLength={2}
               />
             </div>
 
@@ -771,6 +973,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                 {...register('address')}
                 error={errors.address?.message}
                 placeholder="Enter full residential address..."
+                maxLength={500}
               />
             </div>
           </div>
@@ -939,21 +1142,25 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
               <Input
                 label="Username (Login Handle)"
                 required
-                {...register('username')}
+                {...registerFiltered('username', (value) => value.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 30))}
                 error={errors.username?.message}
                 placeholder="e.g. ravi_kumar"
                 icon={<User className="h-4 w-4 text-gray-400" />}
+                maxLength={30}
+                autoComplete="username"
               />
               <Input
                 label={isEditMode ? 'New Password (Optional)' : 'Login Password'}
                 type="password"
                 {...register('password')}
+                error={errors.password?.message}
                 placeholder={
                   isEditMode
                     ? 'Leave blank to keep existing password'
                     : 'Set custom password (defaults to Password@123)'
                 }
                 icon={<Lock className="h-4 w-4 text-gray-400" />}
+                autoComplete="new-password"
               />
             </div>
           </div>
@@ -1383,6 +1590,17 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
               >
                 <DropdownMenuItem
                   onClick={() =>
+                    navigate(
+                      isLocationScoped ? `/admin/employees/details/${u.id}` : `/global-settings/users/details/${u.id}`,
+                    )
+                  }
+                  className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-[#005390]/10 hover:text-[#005390] rounded-xl cursor-pointer"
+                >
+                  <Eye className="h-3.5 w-3.5 text-[#005390]" />
+                  View Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
                     navigate(isLocationScoped ? `/admin/employees/edit/${u.id}` : `/global-settings/edit-user/${u.id}`)
                   }
                   className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-[#005390]/10 hover:text-[#005390] rounded-xl cursor-pointer"
@@ -1443,6 +1661,9 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Search employees by name, code, phone, or email..."
+        onRowClick={(u) =>
+          navigate(isLocationScoped ? `/admin/employees/details/${u.id}` : `/global-settings/users/details/${u.id}`)
+        }
         filterActions={
           <div className="flex items-center gap-2 flex-wrap">
             <select

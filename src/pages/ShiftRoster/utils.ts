@@ -3,6 +3,21 @@ import type { UserItem } from '@/lib/types'
 
 const MEDICAL_ROLE_CODES = ['DOCTOR', 'NURSE', 'CARETAKER']
 
+/** True when department is Medical (by code MED or name). */
+export const isMedicalDepartment = (department?: { code?: string; name?: string } | null): boolean => {
+  if (!department) return false
+  const code = (department.code || '').toUpperCase()
+  const name = (department.name || '').toLowerCase()
+  return code === 'MED' || name === 'medical'
+}
+
+/** True when user has the given role code (e.g. DOCTOR, NURSE). */
+export const userHasRoleCode = (user: UserItem, roleCode: string): boolean => {
+  const target = roleCode.toUpperCase()
+  if (!target) return false
+  return getUserRoleCodes(user).some((code) => code === target || code.includes(target))
+}
+
 export const getUserDisplayName = (user: UserItem): string => {
   const first = user.profile?.firstName || user.profile?.first_name || ''
   const last = user.profile?.lastName || user.profile?.last_name || ''
@@ -23,6 +38,17 @@ export const getUserRoleLabel = (user: UserItem): string => {
   const label =
     fromLocation?.role?.name || fromLocation?.role?.code || fromRole?.role?.name || fromRole?.role?.code || ''
   return label ? String(label).toLowerCase() : ''
+}
+
+/** Doctor specialization label — primary first, then remaining names joined. */
+export const getUserSpecializationLabel = (user: UserItem): string => {
+  const specs = user.specializations || []
+  if (specs.length === 0) return ''
+  const ordered = [...specs].sort((a, b) => Number(!!b.isPrimary) - Number(!!a.isPrimary))
+  return ordered
+    .map((s) => s.name)
+    .filter(Boolean)
+    .join(', ')
 }
 
 export const getUserDepartmentIds = (user: UserItem, locationId?: string | null): string[] => {

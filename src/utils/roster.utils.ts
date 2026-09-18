@@ -57,19 +57,29 @@ export const manageSlotTimeFormDefaultValues: ManageSlotTimeFormValues = {
   slotDurationInput: '60',
 }
 
+/** Roles available when assigning roster under the Medical department. */
+export const MEDICAL_ROSTER_ROLE_OPTIONS = [
+  { code: 'DOCTOR', label: 'Doctor' },
+  { code: 'NURSE', label: 'Nurse' },
+] as const
+
+export type MedicalRosterRoleCode = (typeof MEDICAL_ROSTER_ROLE_OPTIONS)[number]['code']
+
 export const assignShiftFormSchema = z
   .object({
     departmentId: z.string().min(1, 'Department is required'),
+    /** Required when department is Medical — Doctor or Nurse. */
+    roleCode: z.string().optional().or(z.literal('')),
     employeeIds: z.array(z.string().uuid()).min(1, 'Select at least one employee'),
     shiftId: z.string().min(1, 'Shift is required'),
     slotValue: z.string().min(1),
     startDate: dateYmd,
     endDate: dateYmd,
     targetType: z.enum(['area', 'unit']),
-    areaId: z.string().optional().or(z.literal('')),
-    blockId: z.string().optional().or(z.literal('')),
-    floorSelection: z.string().optional().or(z.literal('')),
-    flatSelection: z.string().optional().or(z.literal('')),
+    areaIds: z.array(z.string().uuid()),
+    blockIds: z.array(z.string().uuid()),
+    floorIds: z.array(z.string().uuid()),
+    unitIds: z.array(z.string().uuid()),
     notes: z.string().max(500).optional().or(z.literal('')),
     workingDays: z.array(z.enum(WEEK_DAYS as unknown as [WeekDay, ...WeekDay[]])),
   })
@@ -88,18 +98,18 @@ export const assignShiftFormSchema = z
         path: ['workingDays'],
       })
     }
-    if (data.targetType === 'area' && !data.areaId) {
+    if (data.targetType === 'area' && data.areaIds.length === 0) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Area is required',
-        path: ['areaId'],
+        message: 'Select at least one area',
+        path: ['areaIds'],
       })
     }
-    if (data.targetType === 'unit' && !data.blockId) {
+    if (data.targetType === 'unit' && data.blockIds.length === 0) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Block is required',
-        path: ['blockId'],
+        message: 'Select at least one block',
+        path: ['blockIds'],
       })
     }
   })
@@ -108,16 +118,17 @@ export type AssignShiftFormValues = z.infer<typeof assignShiftFormSchema>
 
 export const assignShiftFormDefaultValues: AssignShiftFormValues = {
   departmentId: '',
+  roleCode: '',
   employeeIds: [],
   shiftId: '',
   slotValue: '__full__',
   startDate: '',
   endDate: '',
   targetType: 'area',
-  areaId: '',
-  blockId: '',
-  floorSelection: '',
-  flatSelection: '',
+  areaIds: [],
+  blockIds: [],
+  floorIds: [],
+  unitIds: [],
   notes: '',
   workingDays: [],
 }
