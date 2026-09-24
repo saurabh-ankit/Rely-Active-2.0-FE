@@ -42,6 +42,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { getSpecializationsAPI, type Specialization } from '@/lib/services/specializationService'
 import { RoleModuleManagement } from './RoleModuleManagement'
+import { Checkbox } from '@/components/ui/checkbox'
+import { WEEK_DAYS } from '@/pages/ShiftRoster/utils'
+import type { WeekDay } from '@/lib/types/roster'
 
 const ROLE_HIERARCHY_ORDER: Record<string, number> = {
   SUPER_ADMIN: 1,
@@ -218,6 +221,8 @@ const userFormSchema = z
     selectedDepartmentId: z.string().optional(),
     selectedJobCategoryId: z.string().optional(),
     selectedManagerId: z.string().optional(),
+    consultantFee: z.string().optional(),
+    weekOffDays: z.array(z.enum(WEEK_DAYS as unknown as [WeekDay, ...WeekDay[]])).optional(),
   })
   .superRefine((data, ctx) => {
     const isSpecialRole = ['SUPER_ADMIN', 'ADMIN'].includes((data.selectedRoleCode || '').toUpperCase())
@@ -292,6 +297,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
     register,
     handleSubmit,
     setValue,
+    setError,
     control,
     reset: resetHookForm,
     formState: { errors },
@@ -319,6 +325,8 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
       selectedDepartmentId: '',
       selectedJobCategoryId: '',
       selectedManagerId: '',
+      consultantFee: '',
+      weekOffDays: [],
     },
   })
 
@@ -343,6 +351,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
   const isMultiPropertyRole = isAdminRole
   const selectedDepartmentId = useWatch({ control, name: 'selectedDepartmentId' })
   const selectedJobCategoryId = useWatch({ control, name: 'selectedJobCategoryId' })
+  const weekOffDays = useWatch({ control, name: 'weekOffDays' }) || []
   const selectedDepartment = departments.find((d) => d.id === selectedDepartmentId)
 
   const medDepartment = departments.find(
@@ -367,6 +376,13 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
       (jc) => (jc.code || '').toUpperCase() === 'MED_INHOUSE' || jc.name.toLowerCase().includes('inhouse'),
     )
   }
+
+  const selectedJobCategory = availableJobCategories.find((jc) => jc.id === selectedJobCategoryId)
+  const isVisitingJobCategory =
+    isDoctorRole &&
+    !!selectedJobCategory &&
+    ((selectedJobCategory.code || '').toUpperCase() === 'MED_VISITING' ||
+      selectedJobCategory.name.toLowerCase().includes('visiting'))
 
   useEffect(() => {
     const currentRoleUpper = (selectedRoleCode || '').toUpperCase()
@@ -482,6 +498,15 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
     setValue('qualification', u.profile?.qualification || '')
     setValue('experience', digitsOnly(u.profile?.experience || '', 2))
     setValue('address', u.profile?.address || '')
+    const profileFee = u.profile?.consultantFee ?? u.profile?.consultant_fee
+    setValue('consultantFee', profileFee != null && profileFee !== '' ? String(profileFee) : '')
+    const rawWeekOffs = u.profile?.weekOffDays || u.profile?.week_off_days || []
+    setValue(
+      'weekOffDays',
+      Array.isArray(rawWeekOffs)
+        ? (rawWeekOffs.filter((d): d is WeekDay => WEEK_DAYS.includes(d as WeekDay)) as WeekDay[])
+        : [],
+    )
     const userLoc = (u.userLocations?.[0] || u.userRoles?.[0]) as Record<string, unknown> | undefined
     const userLocRole = userLoc?.role as { code?: string } | undefined
     const firstRole = userLocRole?.code || 'EMPLOYEE'
@@ -645,6 +670,22 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
     }
     setSpecializationError(null)
 
+    const submitJobCat = availableJobCategories.find((jc) => jc.id === values.selectedJobCategoryId)
+    const isVisitingSubmission =
+      isDoctorSubmission &&
+      !!submitJobCat &&
+      ((submitJobCat.code || '').toUpperCase() === 'MED_VISITING' ||
+        submitJobCat.name.toLowerCase().includes('visiting'))
+    const parsedConsultantFee =
+      values.consultantFee != null && values.consultantFee !== '' ? Number(values.consultantFee) : NaN
+    if (isVisitingSubmission && (!Number.isFinite(parsedConsultantFee) || parsedConsultantFee <= 0)) {
+      const msg = 'Consultant fee is required for Visiting doctors'
+      setError('consultantFee', { type: 'manual', message: msg })
+      setErrorMsg(msg)
+      notifyError('Validation Error', msg)
+      return
+    }
+
     try {
       const payload = {
         username: values.username?.trim() || undefined,
@@ -662,6 +703,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
         qualification: values.qualification || undefined,
         experience: values.experience || undefined,
         address: values.address || undefined,
+        weekOffDays: values.weekOffDays?.length ? values.weekOffDays : null,
         roleCode: values.selectedRoleCode,
         departmentId: !['SUPER_ADMIN', 'ADMIN'].includes((values.selectedRoleCode || '').toUpperCase())
           ? values.selectedDepartmentId || undefined
@@ -671,6 +713,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
           : undefined,
         managerId: values.selectedManagerId || undefined,
         propertyIds: propertyIdsToSave,
+        consultantFee: isVisitingSubmission ? parsedConsultantFee : null,
         // Doctors carry their specializations in the same request.
         ...(isDoctorSubmission
           ? {
@@ -976,6 +1019,33 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                 maxLength={500}
               />
             </div>
+
+            <div className="space-y-2">
+              <span className="block text-xs font-semibold text-gray-700">Weekoff days</span>
+              <div className="flex flex-wrap gap-2">
+                {WEEK_DAYS.map((day) => (
+                  <label
+                    key={day}
+                    className="flex items-center gap-1.5 text-xs capitalize border rounded px-2 py-1 cursor-pointer"
+                  >
+                    <Checkbox
+                      checked={weekOffDays.includes(day)}
+                      onCheckedChange={() => {
+                        const next = weekOffDays.includes(day)
+                          ? weekOffDays.filter((d) => d !== day)
+                          : [...weekOffDays, day]
+                        setValue('weekOffDays', next, { shouldValidate: true })
+                      }}
+                    />
+                    {day.slice(0, 3)}
+                  </label>
+                ))}
+              </div>
+              {errors.weekOffDays && <p className="text-xs font-semibold text-red-500">{errors.weekOffDays.message}</p>}
+              <p className="text-xs text-gray-500">
+                Select fixed weekly offs for this employee. Roster cannot be created on these days.
+              </p>
+            </div>
           </div>
 
           {/* Section 2: Role & Department Assignment */}
@@ -1061,6 +1131,22 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                       )}
                     </div>
                   </div>
+
+                  {isDoctorRole && isVisitingJobCategory && (
+                    <div className="max-w-xs">
+                      <Input
+                        id="consultant-fee-input"
+                        label="Consultant Fee *"
+                        required
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="Enter consultant fee"
+                        {...register('consultantFee')}
+                        error={errors.consultantFee?.message}
+                      />
+                    </div>
+                  )}
 
                   {isDoctorRole && (
                     <div className="mt-5">

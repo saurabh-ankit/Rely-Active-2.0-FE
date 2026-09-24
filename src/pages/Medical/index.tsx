@@ -1,14 +1,26 @@
 import React, { useMemo } from 'react'
 import { useSearchParams, useLocation } from 'react-router-dom'
-import { Activity, Boxes, Building2, HeartHandshake, Package, Shield, Stethoscope } from 'lucide-react'
+import {
+  Activity,
+  Boxes,
+  Building2,
+  CalendarDays,
+  HeartHandshake,
+  HeartPulse,
+  Package,
+  Shield,
+  Stethoscope,
+} from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
 import { useAuth } from '@/hooks/useAuth'
 import { TasksTab } from '@/pages/GlobalSettings/components/TasksTab'
 import { PackagesTab } from '@/pages/GlobalSettings/components/PackagesTab'
 import { SubscriptionsTab } from '@/pages/GlobalSettings/components/SubscriptionsTab'
 import { AssignedTasksTab } from '@/pages/Medical/components/AssignedTasksTab'
+import { AppointmentsCalendar } from '@/pages/Medical/components/appointments/AppointmentsCalendar'
 import { cn } from '@/lib/utils'
 
+export type MedicalSection = 'care' | 'appointments'
 export type MedicalTab = 'tasks' | 'packages' | 'subscriptions' | 'assigned'
 
 interface MedicalPageProps {
@@ -21,7 +33,12 @@ export const MedicalPage: React.FC<MedicalPageProps> = ({ initialTab }) => {
   const { selectedLocationName, selectedLocationId } = useLocationContext()
   const { isSuperAdmin } = useAuth()
 
-  // Determine active tab from URL path or search query param
+  const activeSection = useMemo((): MedicalSection => {
+    const sectionParam = searchParams.get('section')?.toLowerCase()
+    if (sectionParam === 'appointments' || sectionParam === 'appointment') return 'appointments'
+    return 'care'
+  }, [searchParams])
+
   const activeTab = useMemo((): MedicalTab => {
     if (initialTab) return initialTab
 
@@ -38,8 +55,16 @@ export const MedicalPage: React.FC<MedicalPageProps> = ({ initialTab }) => {
     return 'tasks'
   }, [initialTab, location.pathname, searchParams])
 
+  const handleSectionChange = (section: MedicalSection) => {
+    if (section === 'appointments') {
+      setSearchParams({ section: 'appointments' })
+      return
+    }
+    setSearchParams({ section: 'care', tab: activeTab })
+  }
+
   const handleTabChange = (tab: MedicalTab) => {
-    setSearchParams({ tab })
+    setSearchParams({ section: 'care', tab })
   }
 
   return (
@@ -62,8 +87,17 @@ export const MedicalPage: React.FC<MedicalPageProps> = ({ initialTab }) => {
                 )}
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Configure and manage Care Tasks, Care Packages, and Resident Subscriptions for{' '}
-                <strong className="text-gray-700">{selectedLocationName || 'your active property'}</strong>.
+                {activeSection === 'appointments' ? (
+                  <>
+                    View visiting doctor shifts and manage resident appointment bookings for{' '}
+                    <strong className="text-gray-700">{selectedLocationName || 'your active property'}</strong>.
+                  </>
+                ) : (
+                  <>
+                    Configure and manage Care Tasks, Care Packages, and Resident Subscriptions for{' '}
+                    <strong className="text-gray-700">{selectedLocationName || 'your active property'}</strong>.
+                  </>
+                )}
               </p>
             </div>
           </div>
@@ -77,77 +111,117 @@ export const MedicalPage: React.FC<MedicalPageProps> = ({ initialTab }) => {
         </div>
       </div>
 
-      {/* Tabs Navigation */}
+      {/* Top-level: Care | Appointments */}
       <div className="flex items-center gap-2 border-b border-gray-200/80 pb-3 overflow-x-auto">
         <button
           type="button"
-          onClick={() => handleTabChange('tasks')}
+          onClick={() => handleSectionChange('care')}
           className={cn(
             'inline-flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-2xl transition-all cursor-pointer shadow-xs shrink-0',
-            activeTab === 'tasks'
+            activeSection === 'care'
               ? 'bg-[#005390] text-white shadow-md shadow-[#005390]/20'
               : 'bg-white/80 text-gray-600 hover:bg-white hover:text-gray-900 border border-gray-200',
           )}
         >
-          <HeartHandshake className="w-4 h-4" />
-          Care Tasks
+          <HeartPulse className="w-4 h-4" />
+          Care
         </button>
 
         <button
           type="button"
-          onClick={() => handleTabChange('packages')}
+          onClick={() => handleSectionChange('appointments')}
           className={cn(
             'inline-flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-2xl transition-all cursor-pointer shadow-xs shrink-0',
-            activeTab === 'packages'
+            activeSection === 'appointments'
               ? 'bg-[#005390] text-white shadow-md shadow-[#005390]/20'
               : 'bg-white/80 text-gray-600 hover:bg-white hover:text-gray-900 border border-gray-200',
           )}
         >
-          <Boxes className="w-4 h-4" />
-          Care Packages
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange('subscriptions')}
-          className={cn(
-            'inline-flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-2xl transition-all cursor-pointer shadow-xs shrink-0',
-            activeTab === 'subscriptions'
-              ? 'bg-[#005390] text-white shadow-md shadow-[#005390]/20'
-              : 'bg-white/80 text-gray-600 hover:bg-white hover:text-gray-900 border border-gray-200',
-          )}
-        >
-          <Package className="w-4 h-4" />
-          Package Subscriptions
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange('assigned')}
-          className={cn(
-            'inline-flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-2xl transition-all cursor-pointer shadow-xs shrink-0',
-            activeTab === 'assigned'
-              ? 'bg-[#005390] text-white shadow-md shadow-[#005390]/20'
-              : 'bg-white/80 text-gray-600 hover:bg-white hover:text-gray-900 border border-gray-200',
-          )}
-        >
-          <Activity className="w-4 h-4" />
-          Clinical Care Tasks
+          <CalendarDays className="w-4 h-4" />
+          Appointments
         </button>
       </div>
 
-      {/* Tab Content */}
-      <div className="pt-2">
-        {activeTab === 'tasks' && <TasksTab isPropertyMode={true} forcedPropertyId={selectedLocationId} />}
+      {activeSection === 'care' && (
+        <>
+          {/* Care subtabs */}
+          <div className="flex items-center gap-2 overflow-x-auto">
+            <button
+              type="button"
+              onClick={() => handleTabChange('tasks')}
+              className={cn(
+                'inline-flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-2xl transition-all cursor-pointer shadow-xs shrink-0',
+                activeTab === 'tasks'
+                  ? 'bg-[#005390] text-white shadow-md shadow-[#005390]/20'
+                  : 'bg-white/80 text-gray-600 hover:bg-white hover:text-gray-900 border border-gray-200',
+              )}
+            >
+              <HeartHandshake className="w-4 h-4" />
+              Care Tasks
+            </button>
 
-        {activeTab === 'packages' && <PackagesTab isPropertyMode={true} forcedPropertyId={selectedLocationId} />}
+            <button
+              type="button"
+              onClick={() => handleTabChange('packages')}
+              className={cn(
+                'inline-flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-2xl transition-all cursor-pointer shadow-xs shrink-0',
+                activeTab === 'packages'
+                  ? 'bg-[#005390] text-white shadow-md shadow-[#005390]/20'
+                  : 'bg-white/80 text-gray-600 hover:bg-white hover:text-gray-900 border border-gray-200',
+              )}
+            >
+              <Boxes className="w-4 h-4" />
+              Care Packages
+            </button>
 
-        {activeTab === 'subscriptions' && (
-          <SubscriptionsTab isPropertyMode={true} forcedPropertyId={selectedLocationId} />
-        )}
+            <button
+              type="button"
+              onClick={() => handleTabChange('subscriptions')}
+              className={cn(
+                'inline-flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-2xl transition-all cursor-pointer shadow-xs shrink-0',
+                activeTab === 'subscriptions'
+                  ? 'bg-[#005390] text-white shadow-md shadow-[#005390]/20'
+                  : 'bg-white/80 text-gray-600 hover:bg-white hover:text-gray-900 border border-gray-200',
+              )}
+            >
+              <Package className="w-4 h-4" />
+              Package Subscriptions
+            </button>
 
-        {activeTab === 'assigned' && <AssignedTasksTab forcedPropertyId={selectedLocationId} />}
-      </div>
+            <button
+              type="button"
+              onClick={() => handleTabChange('assigned')}
+              className={cn(
+                'inline-flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-2xl transition-all cursor-pointer shadow-xs shrink-0',
+                activeTab === 'assigned'
+                  ? 'bg-[#005390] text-white shadow-md shadow-[#005390]/20'
+                  : 'bg-white/80 text-gray-600 hover:bg-white hover:text-gray-900 border border-gray-200',
+              )}
+            >
+              <Activity className="w-4 h-4" />
+              Clinical Care Tasks
+            </button>
+          </div>
+
+          <div className="pt-2">
+            {activeTab === 'tasks' && <TasksTab isPropertyMode={true} forcedPropertyId={selectedLocationId} />}
+
+            {activeTab === 'packages' && <PackagesTab isPropertyMode={true} forcedPropertyId={selectedLocationId} />}
+
+            {activeTab === 'subscriptions' && (
+              <SubscriptionsTab isPropertyMode={true} forcedPropertyId={selectedLocationId} />
+            )}
+
+            {activeTab === 'assigned' && <AssignedTasksTab forcedPropertyId={selectedLocationId} />}
+          </div>
+        </>
+      )}
+
+      {activeSection === 'appointments' && (
+        <div className="pt-2">
+          <AppointmentsCalendar />
+        </div>
+      )}
     </div>
   )
 }

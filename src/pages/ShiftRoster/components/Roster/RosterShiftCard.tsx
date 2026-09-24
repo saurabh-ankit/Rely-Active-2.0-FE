@@ -1,5 +1,6 @@
 import { ArrowLeftRight, CalendarDays, ChevronRight, Clock3, Coffee, MapPin, Users, UserCheck, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { RosterPermission } from '../RosterPermission'
 import type { RosterCalendarEvent } from '../dialogs/RosterDetailDialog'
@@ -48,6 +49,9 @@ interface RosterShiftCardProps {
   removeLabel?: string
   removePending?: boolean
   showAssignedResidents?: boolean
+  selectable?: boolean
+  selected?: boolean
+  onSelectChange?: (selected: boolean) => void
 }
 
 const RosterShiftCard = ({
@@ -56,6 +60,9 @@ const RosterShiftCard = ({
   removeLabel = 'Remove',
   removePending = false,
   showAssignedResidents = true,
+  selectable = false,
+  selected = false,
+  onSelectChange,
 }: RosterShiftCardProps) => {
   const location = event.locationLabel || event.areaName
   const timeLabel = event.slotTimeRange || event.shiftTime
@@ -63,6 +70,7 @@ const RosterShiftCard = ({
   const hideActions = event.status === 'covered' && !event.isCoverDuty
   const statusKey = event.isCoverDuty ? 'covered' : event.status
   const statusLabel = event.isCoverDuty ? 'Cover' : formatStatus(event.status)
+  const canSelect = selectable && !event.isCoverDuty && !!event.shiftEmployeeDateId
 
   return (
     <article
@@ -71,12 +79,24 @@ const RosterShiftCard = ({
         'shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(42,81,124,0.06)]',
         'transition-all duration-200 hover:-translate-y-0.5 hover:border-[#2a517c]/25',
         'hover:shadow-[0_4px_12px_rgba(15,23,42,0.06),0_16px_32px_rgba(42,81,124,0.10)]',
+        selected && 'border-[#2a517c]/40 ring-2 ring-[#2a517c]/15',
       )}
     >
+      {canSelect && (
+        <div className="absolute left-3 top-3 z-10">
+          <Checkbox
+            checked={selected}
+            onCheckedChange={(checked) => onSelectChange?.(checked === true)}
+            aria-label={`Select roster on ${event.date}`}
+            className="h-4 w-4 border-white bg-white/90 shadow-sm data-[state=checked]:border-[#2a517c] data-[state=checked]:bg-[#2a517c]"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
       <button type="button" onClick={() => onAction('details')} className="w-full text-left">
         <div className="relative bg-gradient-to-br from-[#1e3a5a] via-[#2a517c] to-[#3a6a9a] px-4 py-3.5">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_55%)]" />
-          <div className="relative flex items-start justify-between gap-3">
+          <div className={cn('relative flex items-start justify-between gap-3', canSelect && 'pl-6')}>
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">Shift</p>
               <h4 className="mt-0.5 truncate text-base font-semibold tracking-tight text-white">{event.shiftName}</h4>

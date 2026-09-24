@@ -1,7 +1,16 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ListFilter } from 'lucide-react'
+import { ArrowLeft, ListFilter, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Pagination,
   PaginationContent,
@@ -25,8 +34,9 @@ import {
 } from '../../utils'
 import RosterDetailDialog, { type RosterCalendarEvent } from '../dialogs/RosterDetailDialog'
 import RosterShiftCard, { type RosterCardAction } from '../Roster/RosterShiftCard'
+import { RosterPermission } from '../RosterPermission'
 import {
-  useDeleteEmployeeShift,
+  useBulkDeleteShiftEmployeeDates,
   useListEmployeeShifts,
   useListShiftEmployeeDates,
   useUnmarkDayOff,
@@ -77,7 +87,7 @@ const EmployeeDetail = () => {
   const locationId = useLocationStore((s) => s.selectedLocationId)
   const { data, isLoading: assignmentsLoading } = useListEmployeeShifts(employeeId)
   const { data: datesData, isLoading: datesLoading } = useListShiftEmployeeDates(undefined, !!employeeId)
-  const deleteAssignment = useDeleteEmployeeShift()
+  const bulkDeleteDates = useBulkDeleteShiftEmployeeDates()
   const unmarkDayOff = useUnmarkDayOff()
 
   const employee = useMemo(() => (users || []).find((u) => u.id === employeeId), [users, employeeId])
@@ -164,6 +174,8 @@ const EmployeeDetail = () => {
   }, [datesData, employeeId, employee, assignmentById, departments, locationId])
 
   const [confirmId, setConfirmId] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false)
   const [detailEvent, setDetailEvent] = useState<RosterCalendarEvent | null>(null)
   const [initialAction, setInitialAction] = useState<'swap' | 'cover' | 'day_off' | null>(null)
   const [pageIndex, setPageIndex] = useState(0)
@@ -174,6 +186,8 @@ const EmployeeDetail = () => {
     setRosterEmployeeId(employeeId)
     setPageIndex(0)
     setStatusFilter('today')
+    setSelectedIds([])
+    setConfirmId(null)
   }
 
   const isLoading = assignmentsLoading || datesLoading
@@ -190,12 +204,35 @@ const EmployeeDetail = () => {
   const handleStatusFilterChange = (value: RosterStatusFilter) => {
     setStatusFilter(value)
     setPageIndex(0)
+    setSelectedIds([])
+    setConfirmId(null)
   }
 
   const pagedEvents = useMemo(() => {
     const start = safePageIndex * ROSTER_PAGE_SIZE
     return filteredEvents.slice(start, start + ROSTER_PAGE_SIZE)
   }, [filteredEvents, safePageIndex])
+
+  const selectablePagedIds = useMemo(
+    () =>
+      pagedEvents.filter((e) => !e.isCoverDuty && e.shiftEmployeeDateId).map((e) => e.shiftEmployeeDateId as string),
+    [pagedEvents],
+  )
+
+  const allPageSelected = selectablePagedIds.length > 0 && selectablePagedIds.every((id) => selectedIds.includes(id))
+
+  const toggleSelectAllPage = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...selectablePagedIds])))
+    } else {
+      const pageSet = new Set(selectablePagedIds)
+      setSelectedIds((prev) => prev.filter((id) => !pageSet.has(id)))
+    }
+  }
+
+  const toggleSelectOne = (dateId: string, checked: boolean) => {
+    setSelectedIds((prev) => (checked ? [...prev, dateId] : prev.filter((id) => id !== dateId)))
+  }
 
   const rangeStart = filteredEvents.length === 0 ? 0 : safePageIndex * ROSTER_PAGE_SIZE + 1
   const rangeEnd = Math.min((safePageIndex + 1) * ROSTER_PAGE_SIZE, filteredEvents.length)
@@ -207,11 +244,14 @@ const EmployeeDetail = () => {
     }
 
     if (action === 'remove') {
-      if (confirmId === event.assignmentId) {
-        await deleteAssignment.mutateAsync(event.assignmentId)
+      const dateId = event.shiftEmployeeDateId
+      if (!dateId) return
+      if (confirmId === dateId) {
+        await bulkDeleteDates.mutateAsync([dateId])
         setConfirmId(null)
+        setSelectedIds((prev) => prev.filter((id) => id !== dateId))
       } else {
-        setConfirmId(event.assignmentId)
+        setConfirmId(dateId)
       }
       return
     }
@@ -229,6 +269,17 @@ const EmployeeDetail = () => {
 
     setInitialAction(null)
     setDetailEvent(event)
+  }
+
+  const handleBulkDelete = () => {
+    if (selectedIds.length === 0) return
+    bulkDeleteDates.mutate(selectedIds, {
+      onSuccess: () => {
+        setSelectedIds([])
+        setIsBulkDeleteOpen(false)
+        setConfirmId(null)
+      },
+    })
   }
 
   return (
@@ -284,21 +335,48 @@ const EmployeeDetail = () => {
             <h3 className="text-base font-semibold text-slate-900">Assigned rosters</h3>
             <p className="text-sm text-slate-500">Shift coverage for this employee</p>
           </div>
-          <Select value={statusFilter} onValueChange={(v) => handleStatusFilterChange(v as RosterStatusFilter)}>
-            <SelectTrigger className="h-9 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-xs sm:w-[200px] hover:border-gray-400 hover:bg-gray-50 focus-visible:border-[#2a517c] focus-visible:ring-2 focus-visible:ring-[#2a517c]/20">
-              <span className="flex min-w-0 flex-1 items-center gap-2">
-                <ListFilter className="h-4 w-4 shrink-0 text-gray-400" />
-                <SelectValue placeholder="Filter by status" />
-              </span>
-            </SelectTrigger>
-            <SelectContent className="min-w-[200px] rounded-lg border border-gray-200 bg-white shadow-lg">
-              {ROSTER_STATUS_FILTERS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value} className="cursor-pointer">
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <RosterPermission action="delete">
+              <div className="flex items-center gap-2">
+                {selectablePagedIds.length > 0 && (
+                  <div className="flex items-center gap-2 text-xs text-slate-600 select-none">
+                    <Checkbox
+                      checked={allPageSelected}
+                      onCheckedChange={(checked) => toggleSelectAllPage(checked === true)}
+                      aria-label="Select all on page"
+                    />
+                    <span>Select page</span>
+                  </div>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 rounded-lg border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                  disabled={selectedIds.length === 0 || bulkDeleteDates.isPending}
+                  onClick={() => setIsBulkDeleteOpen(true)}
+                >
+                  <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                  Delete selected{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}
+                </Button>
+              </div>
+            </RosterPermission>
+            <Select value={statusFilter} onValueChange={(v) => handleStatusFilterChange(v as RosterStatusFilter)}>
+              <SelectTrigger className="h-9 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-xs sm:w-[200px] hover:border-gray-400 hover:bg-gray-50 focus-visible:border-[#2a517c] focus-visible:ring-2 focus-visible:ring-[#2a517c]/20">
+                <span className="flex min-w-0 flex-1 items-center gap-2">
+                  <ListFilter className="h-4 w-4 shrink-0 text-gray-400" />
+                  <SelectValue placeholder="Filter by status" />
+                </span>
+              </SelectTrigger>
+              <SelectContent className="min-w-[200px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                {ROSTER_STATUS_FILTERS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value} className="cursor-pointer">
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         {isLoading ? (
           <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-12 text-center text-sm text-slate-500">
@@ -320,8 +398,13 @@ const EmployeeDetail = () => {
                   key={event.id}
                   event={event}
                   showAssignedResidents={false}
-                  removePending={deleteAssignment.isPending && confirmId === event.assignmentId}
-                  removeLabel={confirmId === event.assignmentId ? 'Confirm remove' : 'Remove'}
+                  selectable
+                  selected={!!event.shiftEmployeeDateId && selectedIds.includes(event.shiftEmployeeDateId)}
+                  onSelectChange={(checked) => {
+                    if (event.shiftEmployeeDateId) toggleSelectOne(event.shiftEmployeeDateId, checked)
+                  }}
+                  removePending={bulkDeleteDates.isPending && confirmId === event.shiftEmployeeDateId}
+                  removeLabel={confirmId === event.shiftEmployeeDateId ? 'Confirm remove' : 'Remove'}
                   onAction={(action) => handleCardAction(event, action)}
                 />
               ))}
@@ -407,6 +490,28 @@ const EmployeeDetail = () => {
           <p className="mt-3 text-xs text-red-600">Click the × again on the same card to confirm removal.</p>
         )}
       </div>
+
+      <Dialog open={isBulkDeleteOpen} onOpenChange={(open) => !open && setIsBulkDeleteOpen(false)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete selected shifts</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {selectedIds.length} selected shift
+              {selectedIds.length === 1 ? '' : 's'}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsBulkDeleteOpen(false)} disabled={bulkDeleteDates.isPending}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleBulkDelete} disabled={bulkDeleteDates.isPending}>
+              {bulkDeleteDates.isPending
+                ? 'Deleting…'
+                : `Delete ${selectedIds.length} shift${selectedIds.length === 1 ? '' : 's'}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <RosterDetailDialog
         key={`${detailEvent?.id || 'none'}-${initialAction || 'details'}`}
