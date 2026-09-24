@@ -329,6 +329,22 @@ export const API_ENDPOINTS = {
     doctorSpecializations: (userId: string) => `${BASE_URL}/specializations/doctors/${userId}`,
   },
 
+  vitalSettings: {
+    list: `${BASE_URL}/vital-settings`,
+    create: `${BASE_URL}/vital-settings`,
+    getById: (id: string) => `${BASE_URL}/vital-settings/${id}`,
+    update: (id: string) => `${BASE_URL}/vital-settings/${id}`,
+    delete: (id: string) => `${BASE_URL}/vital-settings/${id}`,
+  },
+
+  labTestSettings: {
+    list: `${BASE_URL}/lab-test-settings`,
+    create: `${BASE_URL}/lab-test-settings`,
+    getById: (id: string) => `${BASE_URL}/lab-test-settings/${id}`,
+    update: (id: string) => `${BASE_URL}/lab-test-settings/${id}`,
+    delete: (id: string) => `${BASE_URL}/lab-test-settings/${id}`,
+  },
+
   eventManagement: {
     createVenue: `${BASE_URL}/location/:locationId/venues`,
     listVenues: `${BASE_URL}/location/:locationId/venues`,
@@ -369,6 +385,7 @@ export const API_ENDPOINTS = {
     listShiftEmployeeDates: `${BASE_URL}/location/:locationId/shift-employee-dates`,
     createShiftEmployeeDate: `${BASE_URL}/location/:locationId/shift-employee-dates`,
     generateShiftEmployeeDates: `${BASE_URL}/location/:locationId/shift-employee-dates/generate`,
+    bulkDeleteShiftEmployeeDates: `${BASE_URL}/location/:locationId/shift-employee-dates/bulk`,
     markDayOff: `${BASE_URL}/location/:locationId/shift-employee-dates/:dateId/day-off`,
     unmarkDayOff: `${BASE_URL}/location/:locationId/shift-employee-dates/:dateId/day-off`,
     coverShiftDate: `${BASE_URL}/location/:locationId/shift-employee-dates/:dateId/cover`,
@@ -440,6 +457,14 @@ export const API_ENDPOINTS = {
       stop: (id: string) => `${BASE_URL}/medical/assignments/${id}/stop`,
       cancel: (id: string) => `${BASE_URL}/medical/assignments/${id}/cancel`,
       completions: `${BASE_URL}/medical/completions`,
+    },
+    appointments: {
+      ensureShiftDate: `${BASE_URL}/location/:locationId/medical/appointments/shift-dates/ensure`,
+      shiftDate: `${BASE_URL}/location/:locationId/medical/appointments/shift-dates/:shiftEmployeeDateId`,
+      capacity: `${BASE_URL}/location/:locationId/medical/appointments/shift-dates/:shiftEmployeeDateId/capacity`,
+      bookings: `${BASE_URL}/location/:locationId/medical/appointments/shift-dates/:shiftEmployeeDateId/bookings`,
+      book: `${BASE_URL}/location/:locationId/medical/appointments/shift-dates/:shiftEmployeeDateId/bookings`,
+      updateStatus: `${BASE_URL}/location/:locationId/medical/appointments/bookings/:appointmentId/status`,
     },
   },
 }

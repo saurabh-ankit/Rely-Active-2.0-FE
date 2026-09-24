@@ -298,6 +298,16 @@ export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ is
               <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Address</span>
               <span className="font-bold text-gray-900 dark:text-white text-xs">{profile?.address || 'N/A'}</span>
             </div>
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700 sm:col-span-2">
+              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Weekoff Days</span>
+              <span className="font-bold text-gray-900 dark:text-white text-xs capitalize">
+                {(() => {
+                  const days = profile?.weekOffDays || profile?.week_off_days || []
+                  if (!Array.isArray(days) || days.length === 0) return 'None'
+                  return days.map((d) => String(d).slice(0, 3)).join(', ')
+                })()}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -349,6 +359,15 @@ export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ is
               <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Job Category</span>
               <span className="font-bold text-gray-900 dark:text-white text-xs">{catName || 'N/A'}</span>
             </div>
+            {(profile?.consultantFee != null && profile.consultantFee !== '') ||
+            (profile?.consultant_fee != null && profile.consultant_fee !== '') ? (
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
+                <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Consultant Fee</span>
+                <span className="font-bold text-gray-900 dark:text-white text-xs">
+                  {String(profile?.consultantFee ?? profile?.consultant_fee)}
+                </span>
+              </div>
+            ) : null}
             <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
               <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Qualification</span>
               <span className="font-bold text-gray-900 dark:text-white text-xs">{profile?.qualification || 'N/A'}</span>
