@@ -45,7 +45,9 @@ import {
   getUserSpecializationLabel,
   hasWindowStartPassedOnDate,
   isMedicalDepartment,
+  isMedicalNoAssignRosterRole,
   isMedicalRosterDoctorRole,
+  isMedicalUnitOnlyRosterRole,
   isSlotWithinShift,
   medicalRosterRoleEmptyLabel,
   parseLocalYmd,
@@ -196,6 +198,11 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
   )
   const isMedicalDept = isMedicalDepartment(selectedDepartment)
   const canSelectEmployees = !!departmentId && (!isMedicalDept || !!roleCode)
+  /** Medical Nurse / In-house Doctor: Assign to Unit only (no Area). */
+  const isMedicalUnitOnly = isMedicalDept && isMedicalUnitOnlyRosterRole(roleCode || '')
+  /** Medical Visiting Doctor: no Area/Unit assignment at all. */
+  const isMedicalNoAssign = isMedicalDept && isMedicalNoAssignRosterRole(roleCode || '')
+  const showAssignTo = !isMedicalNoAssign
 
   const medicalJobCategoryCatalog = useMemo(() => {
     const fromSelected = selectedDepartment?.jobCategories || []
@@ -342,6 +349,24 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
     setValue('employeeIds', [], { shouldValidate: true })
   }, [roleCode, setValue])
 
+  // Medical role → location assignment rules (Medical only)
+  useEffect(() => {
+    if (!isMedicalDept) return
+
+    if (isMedicalNoAssignRosterRole(roleCode || '')) {
+      setValue('areaIds', [], { shouldValidate: true })
+      setValue('blockIds', [], { shouldValidate: true })
+      setValue('floorIds', [], { shouldValidate: true })
+      setValue('unitIds', [], { shouldValidate: true })
+      return
+    }
+
+    if (isMedicalUnitOnlyRosterRole(roleCode || '')) {
+      setValue('targetType', 'unit', { shouldValidate: true })
+      setValue('areaIds', [], { shouldValidate: true })
+    }
+  }, [isMedicalDept, roleCode, setValue])
+
   useEffect(() => {
     setValue('slotValue', FULL_SHIFT_VALUE, { shouldValidate: true })
   }, [selectedShiftId, setValue])
@@ -370,7 +395,11 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
     setValue('workingDays', next, { shouldValidate: true })
   }
 
-  const locationTargetValid = targetType === 'area' ? areaIds.length > 0 : blockIds.length > 0
+  const locationTargetValid = isMedicalNoAssign
+    ? true
+    : targetType === 'area'
+      ? areaIds.length > 0
+      : blockIds.length > 0
 
   const selectedSlotRange = slotValue === FULL_SHIFT_VALUE ? null : slotValue
 
@@ -456,6 +485,9 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
     }
 
     const slotRange = values.slotValue === FULL_SHIFT_VALUE ? null : values.slotValue
+    const skipLocation = isMedicalDepartment(selectedDept) && isMedicalNoAssignRosterRole(values.roleCode || '')
+    const forceUnit = isMedicalDepartment(selectedDept) && isMedicalUnitOnlyRosterRole(values.roleCode || '')
+    const effectiveTargetType = skipLocation ? null : forceUnit ? 'unit' : values.targetType
 
     try {
       await createBulk.mutateAsync({
@@ -465,10 +497,10 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
         endDate: values.endDate,
         notes: values.notes?.trim() || null,
         workingDays: values.workingDays,
-        areaIds: values.targetType === 'area' ? values.areaIds : undefined,
-        blockIds: values.targetType === 'unit' ? values.blockIds : undefined,
-        floorIds: values.targetType === 'unit' && values.floorIds.length > 0 ? values.floorIds : undefined,
-        unitIds: values.targetType === 'unit' && values.unitIds.length > 0 ? values.unitIds : undefined,
+        areaIds: effectiveTargetType === 'area' ? values.areaIds : undefined,
+        blockIds: effectiveTargetType === 'unit' ? values.blockIds : undefined,
+        floorIds: effectiveTargetType === 'unit' && values.floorIds.length > 0 ? values.floorIds : undefined,
+        unitIds: effectiveTargetType === 'unit' && values.unitIds.length > 0 ? values.unitIds : undefined,
         slotTimeRange: slotRange,
       })
       onOpenChange(false)
@@ -716,35 +748,42 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Assign to</Label>
-              <Controller
-                name="targetType"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value}
-                    onValueChange={(v) => {
-                      field.onChange(v as 'area' | 'unit')
-                      setValue('areaIds', [], { shouldValidate: true })
-                      setValue('blockIds', [], { shouldValidate: true })
-                      setValue('floorIds', [], { shouldValidate: true })
-                      setValue('unitIds', [], { shouldValidate: true })
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="area">Area</SelectItem>
-                      <SelectItem value="unit">Unit</SelectItem>
-                    </SelectContent>
-                  </Select>
+            {showAssignTo && (
+              <div className="space-y-2">
+                <Label>Assign to{isMedicalUnitOnly ? ' *' : ''}</Label>
+                <Controller
+                  name="targetType"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={isMedicalUnitOnly ? 'unit' : field.value}
+                      onValueChange={(v) => {
+                        field.onChange(v as 'area' | 'unit')
+                        setValue('areaIds', [], { shouldValidate: true })
+                        setValue('blockIds', [], { shouldValidate: true })
+                        setValue('floorIds', [], { shouldValidate: true })
+                        setValue('unitIds', [], { shouldValidate: true })
+                      }}
+                      disabled={isMedicalUnitOnly}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {!isMedicalUnitOnly && <SelectItem value="area">Area</SelectItem>}
+                        <SelectItem value="unit">Unit</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.targetType && <p className="text-sm text-red-600">{errors.targetType.message}</p>}
+                {isMedicalUnitOnly && (
+                  <p className="text-xs text-gray-500">For Nurse and In-house Doctor, assignment must be to a Unit.</p>
                 )}
-              />
-            </div>
+              </div>
+            )}
 
-            {targetType === 'area' ? (
+            {showAssignTo && targetType === 'area' && !isMedicalUnitOnly ? (
               <div className="space-y-2">
                 <Label>Area</Label>
                 <Controller
@@ -799,10 +838,10 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                 />
                 {errors.areaIds && <p className="text-sm text-red-600">{errors.areaIds.message}</p>}
               </div>
-            ) : (
+            ) : showAssignTo && (targetType === 'unit' || isMedicalUnitOnly) ? (
               <div className="space-y-3">
                 <div className="space-y-2">
-                  <Label>Block</Label>
+                  <Label>Block{isMedicalUnitOnly ? ' *' : ''}</Label>
                   <Controller
                     name="blockIds"
                     control={control}
@@ -988,7 +1027,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                   </div>
                 )}
               </div>
-            )}
+            ) : null}
 
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">

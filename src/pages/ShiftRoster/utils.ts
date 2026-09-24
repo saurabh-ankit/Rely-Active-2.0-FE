@@ -122,6 +122,23 @@ export const isMedicalRosterDoctorRole = (rosterRoleCode: string): boolean => {
   return code === 'DOCTOR' || code === 'DOCTOR_VISITING' || code === 'DOCTOR_INHOUSE'
 }
 
+/**
+ * Medical roster roles that must be assigned to Unit only (no Area).
+ * Nurse and In-house Doctor.
+ */
+export const isMedicalUnitOnlyRosterRole = (rosterRoleCode: string): boolean => {
+  const code = (rosterRoleCode || '').toUpperCase()
+  return code === 'NURSE' || code === 'DOCTOR_INHOUSE'
+}
+
+/**
+ * Medical roster roles with no location assignment (no Area / Unit).
+ * Visiting Doctor.
+ */
+export const isMedicalNoAssignRosterRole = (rosterRoleCode: string): boolean => {
+  return (rosterRoleCode || '').toUpperCase() === 'DOCTOR_VISITING'
+}
+
 export const getUserDisplayName = (user: UserItem): string => {
   const first = user.profile?.firstName || user.profile?.first_name || ''
   const last = user.profile?.lastName || user.profile?.last_name || ''

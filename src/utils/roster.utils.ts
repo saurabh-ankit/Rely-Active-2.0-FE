@@ -99,6 +99,32 @@ export const assignShiftFormSchema = z
         path: ['workingDays'],
       })
     }
+
+    const role = (data.roleCode || '').toUpperCase()
+    // Medical Visiting Doctor: no Area / Unit assignment
+    if (role === 'DOCTOR_VISITING') {
+      return
+    }
+
+    // Medical Nurse / In-house Doctor: Unit only (required)
+    if (role === 'NURSE' || role === 'DOCTOR_INHOUSE') {
+      if (data.targetType !== 'unit') {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Assign to Unit is required for this Medical role',
+          path: ['targetType'],
+        })
+      }
+      if (data.blockIds.length === 0) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Select at least one block',
+          path: ['blockIds'],
+        })
+      }
+      return
+    }
+
     if (data.targetType === 'area' && data.areaIds.length === 0) {
       ctx.addIssue({
         code: 'custom',
