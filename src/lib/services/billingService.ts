@@ -1,18 +1,13 @@
 import api from '@/lib/api/axios'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import type {
-  BillingAccount,
-  BillingEvent,
-  BillingEventSourceModule,
-  BillingLedgerStatement,
-  BillingRun,
-  BillingSubscription,
+  CreateInvoicePayload,
+  CreatePaymentPayload,
   Invoice,
-  Payment,
-  RecordPaymentPayload,
-  RecordPaymentResponse,
-  UnitBillingSummary,
+  UnitMiscellaneousItem,
+  Receipt,
   UnitBilling360,
+  UnitBillingSummary,
 } from '@/lib/types/billing'
 
 export interface BillingPaginationMeta {
@@ -22,121 +17,79 @@ export interface BillingPaginationMeta {
   totalPages: number
 }
 
-export interface BillingAccountsResponse {
-  success: boolean
-  data: BillingAccount[]
-  meta?: BillingPaginationMeta
-}
-
 export interface InvoicesResponse {
   success: boolean
   data: Invoice[]
   meta?: BillingPaginationMeta
 }
 
-export interface BillingRunsResponse {
+// ── 1. FLAT-CENTRIC DIRECTORY & 360° FOLIO ──────────────────────────────────
+export const getUnitsBillingSummaryAPI = async (
+  locationId?: string,
+): Promise<{ success: boolean; data: UnitBillingSummary[] }> => {
+  const response = await api.get<{ success: boolean; data: UnitBillingSummary[] }>(API_ENDPOINTS.billing.unitsSummary, {
+    params: locationId ? { locationId } : undefined,
+  })
+  return response.data
+}
+
+export const getUnitBilling360API = async (unitId: string): Promise<{ success: boolean; data: UnitBilling360 }> => {
+  const response = await api.get<{ success: boolean; data: UnitBilling360 }>(API_ENDPOINTS.billing.unit360(unitId))
+  return response.data
+}
+
+export const getUnitServicesAPI = async (
+  unitId: string,
+  startDate?: string,
+  endDate?: string,
+): Promise<{
   success: boolean
-  data: BillingRun[]
-  meta?: BillingPaginationMeta
-}
-
-export interface TaxSettings {
-  gstEnabled: boolean
-  defaultGstRate: number
-  cgstRate: number
-  sgstRate: number
-  companyGstNumber: string
-}
-
-export interface InvoicePreviewPayload {
-  billingAccountId: string
-  periodStart: string
-  periodEnd: string
-  issueDate?: string
-  dueDate?: string
-  isPreview?: boolean
-  billingMode?: 'MONTHLY' | 'SUPPLEMENTARY' | 'FINAL_DISCHARGE'
-  includeSubscriptions?: boolean
-  includePendingEvents?: boolean
-  pendingEventIds?: string[]
-  discountType?: 'FIXED' | 'PERCENTAGE'
-  discountValue?: number
-  discountNote?: string
-}
-
-export interface GenerateInvoicePayload {
-  billingAccountId: string
-  periodStart: string
-  periodEnd: string
-  issueDate?: string
-  dueDate?: string
-  includePendingEvents?: boolean
-  pendingEventIds?: string[]
-  billingMode?: 'MONTHLY' | 'SUPPLEMENTARY' | 'FINAL_DISCHARGE'
-  includeSubscriptions?: boolean
-  discountType?: 'FIXED' | 'PERCENTAGE'
-  discountValue?: number
-  discountNote?: string
-}
-
-export interface BatchRunPayload {
-  propertyId: string
-  billingPeriodStart: string
-  billingPeriodEnd: string
-  runType?: 'SCHEDULED' | 'MANUAL' | 'PREVIEW'
-}
-
-// ── 1. BILLING ACCOUNTS ──────────────────────────────────────────────────────
-export const getBillingAccountsAPI = async (params?: {
-  propertyId?: string
-  unitId?: string
-  status?: string
-  search?: string
-  page?: number
-  limit?: number
-}): Promise<BillingAccountsResponse> => {
-  const response = await api.get<BillingAccountsResponse>(API_ENDPOINTS.billing.accounts, { params })
-  return response.data
-}
-
-export const getBillingAccountByIdAPI = async (id: string): Promise<{ success: boolean; data: BillingAccount }> => {
-  const response = await api.get<{ success: boolean; data: BillingAccount }>(API_ENDPOINTS.billing.accountById(id))
-  return response.data
-}
-
-export const getAccountLedgerStatementAPI = async (
-  accountId: string,
-  params?: { startDate?: string; endDate?: string },
-): Promise<{ success: boolean; data: BillingLedgerStatement }> => {
-  const response = await api.get<{ success: boolean; data: BillingLedgerStatement }>(
-    API_ENDPOINTS.billing.accountLedger(accountId),
-    { params },
-  )
-  return response.data
-}
-
-export const getAccountSubscriptionsAPI = async (
-  accountId: string,
-): Promise<{ success: boolean; data: BillingSubscription[] }> => {
-  const response = await api.get<{ success: boolean; data: BillingSubscription[] }>(
-    API_ENDPOINTS.billing.accountSubscriptions(accountId),
-  )
-  return response.data
-}
-
-export const getAccountPendingEventsAPI = async (
-  accountId: string,
-): Promise<{ success: boolean; data: BillingEvent[] }> => {
-  const response = await api.get<{ success: boolean; data: BillingEvent[] }>(
-    API_ENDPOINTS.billing.accountPendingEvents(accountId),
-  )
+  data: {
+    unitId: string
+    startDate: string
+    endDate: string
+    recurringSubscriptions: Array<{
+      id: string
+      serviceType: string
+      packageName: string
+      subscriberName: string
+      description: string
+      monthlyRate: number
+      unitPrice: number
+      amount: number
+      startDate: string
+      endDate?: string | null
+      product?: { productName: string; productType: string }
+    }>
+    pendingConsumptionCharges: Array<{
+      id: string
+      sourceModule?: string
+      serviceType: string
+      itemName: string
+      description?: string
+      quantity: number
+      unitPrice: number
+      amount: number
+      date: string
+    }>
+    summary: {
+      recurringSubscriptionsTotal: number
+      pendingConsumptionTotal: number
+      estimatedSubtotal: number
+    }
+  }
+}> => {
+  const response = await api.get(API_ENDPOINTS.billing.unitServices(unitId), {
+    params: { startDate, endDate },
+  })
   return response.data
 }
 
 // ── 2. INVOICES ─────────────────────────────────────────────────────────────
 export const getInvoicesAPI = async (params?: {
-  propertyId?: string
-  billingAccountId?: string
+  locationId?: string
+  residentId?: string
+  unitId?: string
   status?: string
   page?: number
   limit?: number
@@ -150,54 +103,70 @@ export const getInvoiceByIdAPI = async (id: string): Promise<{ success: boolean;
   return response.data
 }
 
-export const previewInvoiceAPI = async (
-  payload: InvoicePreviewPayload,
-): Promise<{ success: boolean; data: Invoice }> => {
-  const response = await api.post<{ success: boolean; data: Invoice }>(API_ENDPOINTS.billing.previewInvoice, {
-    ...payload,
-    isPreview: true,
-  })
-  return response.data
-}
-
 export const generateInvoiceAPI = async (
-  payload: GenerateInvoicePayload,
-): Promise<{ success: boolean; data: Invoice }> => {
-  const response = await api.post<{ success: boolean; data: Invoice }>(API_ENDPOINTS.billing.generateInvoice, payload)
+  payload: CreateInvoicePayload,
+): Promise<{ success: boolean; data: Invoice; message?: string }> => {
+  const response = await api.post<{ success: boolean; data: Invoice; message?: string }>(
+    API_ENDPOINTS.billing.generateInvoice,
+    payload,
+  )
   return response.data
 }
 
-// ── 3. BATCH RUNS ───────────────────────────────────────────────────────────
-export const getBillingRunsAPI = async (params?: {
-  propertyId?: string
-  page?: number
-  limit?: number
-}): Promise<BillingRunsResponse> => {
-  const response = await api.get<BillingRunsResponse>(API_ENDPOINTS.billing.runs, { params })
+// ── 3. PAYMENTS & RECEIPTS ─────────────────────────────────────────────────
+export const recordPaymentAPI = async (
+  payload: CreatePaymentPayload,
+): Promise<{ success: boolean; data: Receipt; invoice?: Invoice; message?: string }> => {
+  const response = await api.post<{ success: boolean; data: Receipt; invoice?: Invoice; message?: string }>(
+    API_ENDPOINTS.billing.payments,
+    payload,
+  )
   return response.data
 }
 
-export const triggerBatchRunAPI = async (payload: BatchRunPayload): Promise<{ success: boolean; data: BillingRun }> => {
-  const response = await api.post<{ success: boolean; data: BillingRun }>(API_ENDPOINTS.billing.runs, payload)
+// ── 4. MISCELLANEOUS SERVICES ──────────────────────────────────────────────
+export const getMiscellaneousServicesAPI = async (params?: {
+  unitId?: string
+  residentId?: string
+  locationId?: string
+}): Promise<{ success: boolean; data: UnitMiscellaneousItem[] }> => {
+  const response = await api.get<{ success: boolean; data: UnitMiscellaneousItem[] }>(
+    API_ENDPOINTS.billing.miscellaneousServices,
+    { params },
+  )
   return response.data
 }
 
-// ── 4. FLAT-CENTRIC DIRECTORY & 360° FOLIO ──────────────────────────────────
-export const getUnitsBillingSummaryAPI = async (
-  propertyId?: string,
-): Promise<{ success: boolean; data: UnitBillingSummary[] }> => {
-  const response = await api.get<{ success: boolean; data: UnitBillingSummary[] }>(API_ENDPOINTS.billing.unitsSummary, {
-    params: propertyId ? { propertyId } : undefined,
-  })
+export const createMiscellaneousServiceAPI = async (payload: {
+  residentId?: string
+  unitId?: string
+  loc_id: string
+  employeeId?: string
+  itemName: string
+  totalQuantity?: number
+  unitPrice: number
+  price?: number
+  unit?: string
+  date?: string
+  time?: string
+  notes?: string
+}): Promise<{ success: boolean; data: UnitMiscellaneousItem; message?: string }> => {
+  const response = await api.post<{ success: boolean; data: UnitMiscellaneousItem; message?: string }>(
+    API_ENDPOINTS.billing.miscellaneousServices,
+    payload,
+  )
   return response.data
 }
 
-export const getUnitBilling360API = async (unitId: string): Promise<{ success: boolean; data: UnitBilling360 }> => {
-  const response = await api.get<{ success: boolean; data: UnitBilling360 }>(API_ENDPOINTS.billing.unit360(unitId))
-  return response.data
+// ── 5. TAX & GST SETTINGS ───────────────────────────────────────────────────
+export interface TaxSettings {
+  gstEnabled: boolean
+  defaultGstRate: number
+  cgstRate: number
+  sgstRate: number
+  companyGstNumber?: string
 }
 
-// ── 5. GLOBAL GST / TAX SETTINGS ───────────────────────────────────────────
 export const getTaxSettingsAPI = async (): Promise<{ success: boolean; data: TaxSettings }> => {
   const response = await api.get<{ success: boolean; data: TaxSettings }>(API_ENDPOINTS.billing.taxSettings)
   return response.data
@@ -211,78 +180,4 @@ export const updateTaxSettingsAPI = async (
     payload,
   )
   return response.data
-}
-
-// ── 6. BILLING USAGE & MISCELLANEOUS EVENTS ───────────────────────────────
-export interface CreateBillingEventPayload {
-  billingAccountId?: string
-  unitId: string
-  residentId?: string
-  propertyId?: string
-  sourceModule?: BillingEventSourceModule
-  sourceType?: string
-  chargeType?: string
-  description: string
-  quantity: number
-  unitPrice: number
-  amount?: number
-  serviceDate: string
-}
-
-export const createBillingEventAPI = async (
-  payload: CreateBillingEventPayload,
-): Promise<{ success: boolean; data: BillingEvent }> => {
-  const response = await api.post<{ success: boolean; data: BillingEvent }>(API_ENDPOINTS.billing.events, payload)
-  return response.data
-}
-
-export const cancelBillingEventAPI = async (
-  id: string,
-  cancellationReason: string,
-): Promise<{ success: boolean; data: BillingEvent }> => {
-  const response = await api.post<{ success: boolean; data: BillingEvent }>(API_ENDPOINTS.billing.cancelEvent(id), {
-    cancellationReason,
-  })
-  return response.data
-}
-
-export const updateBillingEventAPI = async (
-  id: string,
-  payload: Partial<CreateBillingEventPayload>,
-): Promise<{ success: boolean; data: BillingEvent }> => {
-  const response = await api.put<{ success: boolean; data: BillingEvent }>(
-    API_ENDPOINTS.billing.updateEvent(id),
-    payload,
-  )
-  return response.data
-}
-
-export const uploadBillingEventAttachmentAPI = async (
-  id: string,
-  file: File,
-): Promise<{ success: boolean; data: BillingEvent }> => {
-  const formData = new FormData()
-  formData.append('file', file)
-  const response = await api.post<{ success: boolean; data: BillingEvent }>(
-    API_ENDPOINTS.billing.eventAttachments(id),
-    formData,
-  )
-  return response.data
-}
-
-// ── 7. PAYMENTS & COLLECTIONS ──────────────────────────────────────────────
-export const recordPaymentAPI = async (
-  payload: RecordPaymentPayload,
-): Promise<{ success: boolean; data: RecordPaymentResponse; message?: string }> => {
-  const response = await api.post<{ success: boolean; data: RecordPaymentResponse; message?: string }>(
-    API_ENDPOINTS.billing.payments,
-    payload,
-  )
-  return response.data
-}
-
-export const getAccountPaymentsAPI = async (accountId: string): Promise<{ success: boolean; data: Payment[] }> => {
-  const response = await api.get(API_ENDPOINTS.billing.accountPayments(accountId))
-  const data = Array.isArray(response.data) ? response.data : response.data?.data || []
-  return { success: true, data }
 }
