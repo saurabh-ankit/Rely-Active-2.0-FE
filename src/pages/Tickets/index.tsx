@@ -139,6 +139,58 @@ function formatTicketDateTime(dateVal?: string | Date | null) {
   return `${day} ${month}, ${time}`
 }
 
+/** Tickets the signed-in user has already opened, so the NEW tag can disappear. */
+const VIEWED_TICKETS_KEY = 'rely_viewed_tickets'
+
+const viewedTicketsStorageKey = (userId?: string | null) => `${VIEWED_TICKETS_KEY}_${userId || 'anon'}`
+
+const readViewedTickets = (userId?: string | null): string[] => {
+  try {
+    const raw = localStorage.getItem(viewedTicketsStorageKey(userId))
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+const writeViewedTickets = (userId: string | undefined | null, ids: string[]) => {
+  try {
+    // Keep the list bounded; only recent tickets can still be new.
+    localStorage.setItem(viewedTicketsStorageKey(userId), JSON.stringify(ids.slice(-500)))
+  } catch {
+    // Private mode or storage disabled - the tag just keeps showing.
+  }
+}
+
+/** Used only until the real departments and job categories load. */
+const FALLBACK_JOB_CATEGORIES: Record<string, string[]> = {
+  CON: ['Housekeeping', 'Laundry', 'Customer Support', 'Transportation', 'Others'],
+  RNM: ['Electrical', 'Carpentry', 'Plumbing', 'Miscellaneous'],
+}
+
+/** Maps a ticket's department name / category enum onto a department code. */
+function resolveDepartmentCode(ticket: Ticket | null): string {
+  const text = `${ticket?.department?.name || ''} ${ticket?.category || ''}`.toUpperCase()
+  if (text.includes('CONCIERGE') || text.includes('CON')) return 'CON'
+  if (text.includes('HOUSEKEEPING')) return 'HK'
+  if (text.includes('FOOD') || text.includes('BEVERAGE') || text.includes('FNB')) return 'FNB'
+  if (text.includes('SECURITY') || text.includes('GATE')) return 'SEC'
+  if (text.includes('EVENT')) return 'EVT'
+  return 'RNM'
+}
+
+const AUDIO_FILE_PATTERN = /\.(webm|mp3|m4a|wav|ogg|oga|opus|aac|3gp|amr|caf)(\?|$)/i
+
+const isAudioUrl = (url: string) => AUDIO_FILE_PATTERN.test(url) || url.startsWith('data:audio')
+
+/** The web create form writes this placeholder when only a voice note was recorded. */
+const isVoiceNotePlaceholder = (text: string) =>
+  text
+    .replace(/[^a-z ]/gi, '')
+    .trim()
+    .toLowerCase() === 'voice note recorded'
+
 function parseTicketRequestMedia(ticket: Ticket | null): ParsedRequestMedia | null {
   const atts = parseAttachments(ticket)
   if (!atts) return null
@@ -152,7 +204,7 @@ function parseTicketRequestMedia(ticket: Ticket | null): ParsedRequestMedia | nu
       : [atts.audioUrl, atts.voiceNote].filter(
           (url: unknown): url is string => typeof url === 'string' && url.length > 0,
         )),
-    // Older web tickets stored the voice note alongside the photos.
+    // Older web tickets kept the voice note alongside the photos.
     ...listed.filter((url) => isAudioUrl(url)),
   ]
 
@@ -206,36 +258,6 @@ interface ParsedTicketMedia {
   notes: string | null
   audioUrl: string | null
   photos: string[]
-}
-
-/** Used only until the real departments and job categories load. */
-const FALLBACK_JOB_CATEGORIES: Record<string, string[]> = {
-  CON: ['Housekeeping', 'Laundry', 'Customer Support', 'Transportation', 'Others'],
-  RNM: ['Electrical', 'Carpentry', 'Plumbing', 'Miscellaneous'],
-}
-
-/** Maps a ticket's department name / category enum onto a department code. */
-function resolveDepartmentCode(ticket: Ticket | null): string {
-  const text = `${ticket?.department?.name || ''} ${ticket?.category || ''}`.toUpperCase()
-  if (text.includes('CONCIERGE') || text.includes('CON')) return 'CON'
-  if (text.includes('HOUSEKEEPING')) return 'HK'
-  if (text.includes('FOOD') || text.includes('BEVERAGE') || text.includes('FNB')) return 'FNB'
-  if (text.includes('SECURITY') || text.includes('GATE')) return 'SEC'
-  if (text.includes('EVENT')) return 'EVT'
-  return 'RNM'
-}
-
-const AUDIO_FILE_PATTERN = /\.(webm|mp3|m4a|wav|ogg|oga|opus|aac|3gp|amr|caf)(\?|$)/i
-
-const isAudioUrl = (url: string) => AUDIO_FILE_PATTERN.test(url) || url.startsWith('data:audio')
-
-/** The web create form writes this placeholder when only a voice note was recorded. */
-const isVoiceNotePlaceholder = (text: string) => {
-  const cleaned = text
-    .replace(/[^a-z ]/gi, '')
-    .trim()
-    .toLowerCase()
-  return cleaned === 'voice note recorded'
 }
 
 function parseTicketMedia(ticket: Ticket | null): ParsedTicketMedia {
@@ -328,6 +350,7 @@ export default function TicketsPage() {
   const [isTatModalOpen, setIsTatModalOpen] = useState(false)
   const [previewMediaUrl, setPreviewMediaUrl] = useState<string | null>(null)
   const [verifying, setVerifying] = useState(false)
+  const [viewedTicketIds, setViewedTicketIds] = useState<Set<string>>(() => new Set(readViewedTickets(user?.id)))
 
   // Fetch Master Categories & Sub-Categories
   useEffect(() => {
@@ -423,6 +446,20 @@ export default function TicketsPage() {
 
   // Find active category object & sub-categories
   const { data: departments = [] } = useDepartmentsQuery()
+
+  /** Marks a ticket as opened by this user, which clears its NEW tag. */
+  const markTicketViewed = useCallback(
+    (ticketId: string) => {
+      setViewedTicketIds((prev) => {
+        if (prev.has(ticketId)) return prev
+        const next = new Set(prev)
+        next.add(ticketId)
+        writeViewedTickets(user?.id, Array.from(next))
+        return next
+      })
+    },
+    [user?.id],
+  )
 
   // Department + job categories for the open ticket, from real master data.
   const ticketDepartmentCode = resolveDepartmentCode(selectedTicket)
@@ -687,7 +724,10 @@ export default function TicketsPage() {
                   <button
                     key={t.id}
                     type="button"
-                    onClick={() => setSelectedTicket(t)}
+                    onClick={() => {
+                      setSelectedTicket(t)
+                      markTicketViewed(t.id)
+                    }}
                     className={`w-full text-left p-4 transition-all cursor-pointer relative ${
                       isSelected ? 'bg-[#005390] text-white shadow-2xs' : 'bg-white text-gray-900 hover:bg-gray-50'
                     }`}
@@ -695,6 +735,17 @@ export default function TicketsPage() {
                     <div className="flex items-center justify-between text-xs font-mono mb-1">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <span className="font-bold tracking-tight">{t.ticketNumber}</span>
+                        {t.status === 'OPEN' && !viewedTicketIds.has(t.id) && (
+                          <span
+                            className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider ${
+                              isSelected
+                                ? 'bg-amber-200 text-amber-950 shadow-2xs'
+                                : 'bg-amber-100 text-amber-800 border border-amber-200'
+                            }`}
+                          >
+                            New
+                          </span>
+                        )}
                         {isCommon && (
                           <span
                             className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider ${
@@ -820,12 +871,12 @@ export default function TicketsPage() {
 
                 {/* Progress Stepper Box matching screenshot */}
                 <div className="border border-dashed border-gray-300 rounded-2xl p-6 bg-white shadow-2xs space-y-4">
-                  <div className="grid grid-cols-5 relative">
-                    {/* Progress Bar Line - green up to Completed, then to Verified once verified */}
-                    <div className="absolute top-4 -translate-y-1/2 left-[10%] right-[10%] h-0.5 bg-gray-200 z-0" />
+                  <div className="grid grid-cols-4 relative">
+                    {/* Progress Bar Line - green up to Task Completed, then to Verified once verified */}
+                    <div className="absolute top-4 -translate-y-1/2 left-[12.5%] right-[12.5%] h-0.5 bg-gray-200 z-0" />
                     <div
-                      className="absolute top-4 -translate-y-1/2 left-[10%] h-0.5 bg-emerald-500 z-0 transition-all duration-300"
-                      style={{ width: isTicketVerified ? '80%' : '60%' }}
+                      className="absolute top-4 -translate-y-1/2 left-[12.5%] h-0.5 bg-emerald-500 z-0 transition-all duration-300"
+                      style={{ width: isTicketVerified ? '75%' : '50%' }}
                     />
 
                     {/* Step 1: Request Raised */}
@@ -850,21 +901,12 @@ export default function TicketsPage() {
                       </span>
                     </div>
 
-                    {/* Step 3: Request Accepted */}
+                    {/* Step 3: Task Completed */}
                     <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
                       <div className="w-8 h-8 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs shadow-2xs">
                         <Check className="w-4.5 h-4.5" />
                       </div>
-                      <span className="text-xs font-bold text-gray-900">Request Accepted</span>
-                      <span className="text-[10px] font-medium text-gray-500 leading-tight">Work started by staff</span>
-                    </div>
-
-                    {/* Step 4: Completed */}
-                    <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
-                      <div className="w-8 h-8 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs shadow-2xs">
-                        <Check className="w-4.5 h-4.5" />
-                      </div>
-                      <span className="text-xs font-bold text-gray-900">Completed</span>
+                      <span className="text-xs font-bold text-gray-900">Task Completed</span>
                       <span className="text-[10px] font-medium text-gray-500 leading-tight">
                         {completion?.completedAt
                           ? `Work completed ${formatStepperDate(completion.completedAt)}`
@@ -872,7 +914,7 @@ export default function TicketsPage() {
                       </span>
                     </div>
 
-                    {/* Step 5: Verified */}
+                    {/* Step 4: Verified */}
                     <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
                       <div
                         className={`w-8 h-8 rounded-full font-bold flex items-center justify-center text-xs shadow-2xs ${
@@ -1284,11 +1326,10 @@ export default function TicketsPage() {
                     onChange={(e) => handleUpdateOption({ status: e.target.value as TicketStatus })}
                     className="px-3 py-1.5 bg-amber-50/90 text-amber-800 border border-amber-200 rounded-xl text-xs font-extrabold focus:outline-none cursor-pointer shadow-2xs"
                   >
-                    <option value="OPEN">Open ∨</option>
-                    <option value="IN_PROGRESS">In progress ∨</option>
-                    <option value="ON_HOLD">On hold ∨</option>
-                    <option value="RESOLVED">Resolved ∨</option>
-                    <option value="CLOSED">Closed ∨</option>
+                    <option value="OPEN">Open</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="RESOLVED">Completed</option>
+                    <option value="CLOSED">Closed</option>
                   </select>
                 </div>
 
@@ -1313,24 +1354,19 @@ export default function TicketsPage() {
                       selectedTicket.status === 'RESOLVED' ||
                       selectedTicket.status === 'CLOSED',
                     )
-                    const isStep3Done =
-                      selectedTicket.status === 'IN_PROGRESS' ||
-                      selectedTicket.status === 'ON_HOLD' ||
-                      selectedTicket.status === 'RESOLVED' ||
-                      selectedTicket.status === 'CLOSED'
-                    const isStep4Done = selectedTicket.status === 'RESOLVED' || selectedTicket.status === 'CLOSED'
-                    const isStep5Done = isTicketVerified
+                    const isStep3Done = selectedTicket.status === 'RESOLVED' || selectedTicket.status === 'CLOSED'
+                    const isStep4Done = isTicketVerified
 
-                    const stepIndex = isStep5Done ? 4 : isStep4Done ? 3 : isStep3Done ? 2 : isStep2Done ? 1 : 0
-                    const activeWidthPercent = (stepIndex / 4) * 80
+                    const stepIndex = isStep4Done ? 3 : isStep3Done ? 2 : isStep2Done ? 1 : 0
+                    const activeWidthPercent = (stepIndex / 3) * 75
 
                     return (
-                      <div className="grid grid-cols-5 relative">
+                      <div className="grid grid-cols-4 relative">
                         {/* Background Progress Line */}
-                        <div className="absolute top-4 -translate-y-1/2 left-[10%] right-[10%] h-0.5 bg-gray-200 z-0" />
+                        <div className="absolute top-4 -translate-y-1/2 left-[12.5%] right-[12.5%] h-0.5 bg-gray-200 z-0" />
                         {/* Active Progress Line */}
                         <div
-                          className="absolute top-4 -translate-y-1/2 left-[10%] h-0.5 bg-[#005390] transition-all duration-300 z-0"
+                          className="absolute top-4 -translate-y-1/2 left-[12.5%] h-0.5 bg-[#005390] transition-all duration-300 z-0"
                           style={{ width: `${activeWidthPercent}%` }}
                         />
 
@@ -1362,7 +1398,7 @@ export default function TicketsPage() {
                           </span>
                         </div>
 
-                        {/* Step 3: Request Accepted */}
+                        {/* Step 3: Task Completed */}
                         <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
                           <div
                             className={`w-8 h-8 rounded-full border-2 ${
@@ -1378,11 +1414,11 @@ export default function TicketsPage() {
                             )}
                           </div>
                           <span className={`text-xs font-bold ${isStep3Done ? 'text-gray-900' : 'text-gray-400'}`}>
-                            Request Accepted
+                            Task Completed
                           </span>
                         </div>
 
-                        {/* Step 4: Completed */}
+                        {/* Step 4: Verified */}
                         <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
                           <div
                             className={`w-8 h-8 rounded-full border-2 ${
@@ -1398,26 +1434,6 @@ export default function TicketsPage() {
                             )}
                           </div>
                           <span className={`text-xs font-bold ${isStep4Done ? 'text-gray-900' : 'text-gray-400'}`}>
-                            Completed
-                          </span>
-                        </div>
-
-                        {/* Step 5: Verified */}
-                        <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
-                          <div
-                            className={`w-8 h-8 rounded-full border-2 ${
-                              isStep5Done
-                                ? 'border-[#005390] bg-[#005390] text-white'
-                                : 'border-gray-300 bg-white text-gray-400'
-                            } font-bold flex items-center justify-center text-xs shadow-2xs`}
-                          >
-                            {isStep5Done ? (
-                              <Check className="w-4.5 h-4.5" />
-                            ) : (
-                              <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
-                            )}
-                          </div>
-                          <span className={`text-xs font-bold ${isStep5Done ? 'text-gray-900' : 'text-gray-400'}`}>
                             Verified
                           </span>
                         </div>
@@ -1625,10 +1641,9 @@ export default function TicketsPage() {
                           canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'
                         }`}
                       >
-                        <option value="OPEN">Open ∨</option>
+                        <option value="OPEN">Open</option>
                         <option value="IN_PROGRESS">In Progress</option>
-                        <option value="ON_HOLD">On Hold</option>
-                        <option value="RESOLVED">Resolved</option>
+                        <option value="RESOLVED">Completed</option>
                         <option value="CLOSED">Closed</option>
                       </select>
 

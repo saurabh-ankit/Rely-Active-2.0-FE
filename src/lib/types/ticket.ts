@@ -44,6 +44,12 @@ export interface EmployeeShiftInfo {
   endDate: string | null
 }
 
+/**
+ * How closely a staff member's posting matches the ticket being assigned.
+ * Drives the grouping in the assign modal.
+ */
+export type EmployeeMatchLevel = 'JOB_CATEGORY' | 'DEPARTMENT' | 'OTHER'
+
 export interface AssignableEmployee {
   id: string
   name: string
@@ -54,6 +60,10 @@ export interface AssignableEmployee {
   closedCount: number
   /** Null when the staff member has no roster entry covering today. */
   shift?: EmployeeShiftInfo | null
+  /** The department/category the staff member is posted to, not the ticket's. */
+  department?: { id: string; name: string } | null
+  jobCategory?: { id: string; name: string } | null
+  matchLevel?: EmployeeMatchLevel
 }
 
 export interface TicketPropertyRef {
