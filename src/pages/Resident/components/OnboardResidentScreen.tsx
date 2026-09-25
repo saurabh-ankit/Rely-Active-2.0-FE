@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useFieldArray, useForm, useWatch } from 'react-hook-form'
+import { type FieldPath, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   ArrowLeft,
@@ -81,8 +81,19 @@ function formatTimeTo24h(time12: string): string {
 const familyMemberSchema = z.object({
   id: z.string().optional(),
   residentId: z.string().optional(),
-  firstName: z.string().trim().min(1, 'First name is required').max(50, 'First name cannot exceed 50 characters'),
-  lastName: z.string().trim().max(50, 'Last name cannot exceed 50 characters').optional().or(z.literal('')),
+  firstName: z
+    .string()
+    .trim()
+    .min(1, 'First name is required')
+    .max(50, 'First name cannot exceed 50 characters')
+    .refine((val) => !/\d/.test(val), 'First name cannot contain numbers'),
+  lastName: z
+    .string()
+    .trim()
+    .max(50, 'Last name cannot exceed 50 characters')
+    .optional()
+    .or(z.literal(''))
+    .refine((val) => !val || !/\d/.test(val), 'Last name cannot contain numbers'),
   relation: z.string().trim().min(1, 'Relation is required'),
   gender: z.enum(['MALE', 'FEMALE', 'OTHER']),
   dob: z.string().trim().min(1, 'Date of birth is required'),
@@ -121,8 +132,19 @@ const residentFormSchema = z.object({
   residentType: z.enum(['OWNER', 'TENANT']),
   ownershipType: z.enum(['PRIMARY', 'CO_OWNER', 'DEPENDENT']).optional(),
   isResiding: z.boolean(),
-  firstName: z.string().trim().min(1, 'First name is required').max(50, 'First name cannot exceed 50 characters'),
-  lastName: z.string().trim().max(50, 'Last name cannot exceed 50 characters').optional().or(z.literal('')),
+  firstName: z
+    .string()
+    .trim()
+    .min(1, 'First name is required')
+    .max(50, 'First name cannot exceed 50 characters')
+    .refine((val) => !/\d/.test(val), 'First name cannot contain numbers'),
+  lastName: z
+    .string()
+    .trim()
+    .max(50, 'Last name cannot exceed 50 characters')
+    .optional()
+    .or(z.literal(''))
+    .refine((val) => !val || !/\d/.test(val), 'Last name cannot contain numbers'),
   gender: z.enum(['MALE', 'FEMALE', 'OTHER']),
   dob: z.string().trim().min(1, 'Date of birth is required'),
   username: z
@@ -259,6 +281,24 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
       familyMembers: [],
     },
   })
+
+  const lettersOnly = (value: string) => value.replace(/[0-9]/g, '')
+
+  const registerFiltered = (name: FieldPath<ResidentFormValues>, filter: (value: string) => string) => {
+    const registration = register(name)
+    return {
+      ...registration,
+      onKeyDown: (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        if (/\d/.test(e.key)) {
+          e.preventDefault()
+        }
+      },
+      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        e.target.value = filter(e.target.value)
+        return registration.onChange(e)
+      },
+    }
+  }
 
   const {
     fields: familyMemberFields,
@@ -1152,13 +1192,13 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
               <Input
                 label="First Name"
                 required
-                {...register('firstName')}
+                {...registerFiltered('firstName', lettersOnly)}
                 error={errors.firstName?.message}
                 placeholder="e.g. Rahul"
               />
               <Input
                 label="Last Name"
-                {...register('lastName')}
+                {...registerFiltered('lastName', lettersOnly)}
                 error={errors.lastName?.message}
                 placeholder="e.g. Sharma"
               />
@@ -1446,7 +1486,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                   id={`fm-first-name-${idx}`}
                                   type="text"
                                   placeholder="e.g. Ananya"
-                                  {...register(`familyMembers.${idx}.firstName`)}
+                                  {...registerFiltered(`familyMembers.${idx}.firstName`, lettersOnly)}
                                   className={cn(
                                     'h-9 w-full rounded-xl border border-gray-200 bg-white px-3.5 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20',
                                     fmErrors?.firstName && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
@@ -1469,7 +1509,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                   id={`fm-last-name-${idx}`}
                                   type="text"
                                   placeholder="e.g. Sharma"
-                                  {...register(`familyMembers.${idx}.lastName`)}
+                                  {...registerFiltered(`familyMembers.${idx}.lastName`, lettersOnly)}
                                   className="h-9 w-full rounded-xl border border-gray-200 bg-white px-3.5 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20"
                                 />
                               </div>

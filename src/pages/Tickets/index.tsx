@@ -93,14 +93,49 @@ function toUrlList(value: any): string[] {
 
 function userDisplayName(
   user?: {
-    profile?: { firstName?: string | null; lastName?: string | null } | null
+    profile?: {
+      firstName?: string | null
+      lastName?: string | null
+      first_name?: string | null
+      last_name?: string | null
+    } | null
+    firstName?: string | null
+    lastName?: string | null
+    name?: string
     username?: string
     email?: string
   } | null,
+  fallback?: string,
 ) {
-  if (!user) return null
-  const full = `${user.profile?.firstName || ''} ${user.profile?.lastName || ''}`.trim()
-  return full || user.username || user.email?.split('@')[0] || null
+  if (!user) return fallback || null
+  const profileFirst = user.profile?.firstName || user.profile?.first_name || user.firstName
+  const profileLast = user.profile?.lastName || user.profile?.last_name || user.lastName
+  const full = `${profileFirst || ''} ${profileLast || ''}`.trim()
+  if (full) return full
+  if (user.name) return user.name
+  if (user.username && !user.username.includes('@')) return user.username
+  if (user.email) {
+    const prefix = user.email.split('@')[0]
+    return prefix ? prefix.charAt(0).toUpperCase() + prefix.slice(1) : user.email
+  }
+  return fallback || null
+}
+
+function formatTicketDateTime(dateVal?: string | Date | null) {
+  if (!dateVal) return ''
+  const d = new Date(dateVal)
+  if (isNaN(d.getTime())) return ''
+
+  const day = String(d.getDate()).padStart(2, '0')
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const month = monthNames[d.getMonth()]
+  const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+  const currentYear = new Date().getFullYear()
+  if (d.getFullYear() !== currentYear) {
+    return `${day} ${month} ${d.getFullYear()}, ${time}`
+  }
+  return `${day} ${month}, ${time}`
 }
 
 function parseTicketRequestMedia(ticket: Ticket | null): ParsedRequestMedia | null {
@@ -408,8 +443,9 @@ export default function TicketsPage() {
   // Assigned Employee Name helper
   const getAssigneeName = (t: Ticket | null) => {
     if (!t) return 'Unassigned'
-    if (t.assignedToUser?.email) {
-      return t.assignedToUser.email.split('@')[0]
+    if (t.assignedToUser) {
+      const name = userDisplayName(t.assignedToUser)
+      if (name) return name
     }
     if (t.assignedToUserId) {
       if (user?.id && t.assignedToUserId === user.id) return 'Self'
@@ -421,6 +457,10 @@ export default function TicketsPage() {
   // Completed By Employee Name helper
   const getCompletedByName = (t: Ticket | null) => {
     if (!t) return 'Technician'
+    if (t.completedByUser) {
+      const name = userDisplayName(t.completedByUser)
+      if (name) return name
+    }
     if (t.completedBy) return t.completedBy
     const compData = parseTicketCompletion(t)
     if (compData?.completedByName) return compData.completedByName
@@ -572,6 +612,13 @@ export default function TicketsPage() {
                     t.assignedToUser?.id === user?.id ||
                     t.assignedToUser?.email === user?.email ||
                     itemAssignee === 'Self')
+                const ticketTimestamp =
+                  activeTab === 'CLOSED' ||
+                  activeTab === 'COMPLETED' ||
+                  t.status === 'CLOSED' ||
+                  t.status === 'RESOLVED'
+                    ? t.completedAt || t.closedAt || t.resolvedAt || t.verifiedAt || t.createdAt
+                    : t.createdAt
 
                 return (
                   <button
@@ -613,7 +660,7 @@ export default function TicketsPage() {
                         className={`text-[11px] flex items-center gap-1 shrink-0 ${isSelected ? 'text-gray-200' : 'text-gray-400'}`}
                       >
                         <Clock className="w-3 h-3" />
-                        {new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {formatTicketDateTime(ticketTimestamp)}
                       </span>
                     </div>
 
@@ -855,16 +902,14 @@ export default function TicketsPage() {
                     <User className="w-4 h-4 text-gray-700" />
                     <span className="text-gray-500 font-semibold">Raised By :</span>
                     <span className="font-bold text-gray-900">
-                      {selectedTicket.raisedBy || selectedTicket.raisedByUser?.email?.split('@')[0] || 'Resident'}
+                      {selectedTicket.raisedBy || userDisplayName(selectedTicket.raisedByUser) || 'Resident'}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                     <span className="text-gray-500 font-semibold">Completed By :</span>
-                    <span className="font-bold text-emerald-700">
-                      {selectedTicket.completedBy || (isSelfAssigned ? 'Self' : assignedName)}
-                    </span>
+                    <span className="font-bold text-emerald-700">{getCompletedByName(selectedTicket)}</span>
                   </div>
 
                   {selectedTicket.tatUpdatedBy && (
@@ -1439,7 +1484,7 @@ export default function TicketsPage() {
                     <User className="w-4 h-4 text-gray-700" />
                     <span className="text-gray-500 font-semibold">Raised By :</span>
                     <span className="font-bold text-gray-900">
-                      {selectedTicket.raisedBy || selectedTicket.raisedByUser?.email?.split('@')[0] || 'Resident'}
+                      {selectedTicket.raisedBy || userDisplayName(selectedTicket.raisedByUser) || 'Resident'}
                     </span>
                   </div>
 
@@ -1547,10 +1592,7 @@ export default function TicketsPage() {
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5 text-gray-400" />
-                        {new Date(selectedTicket.createdAt).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        {formatTicketDateTime(selectedTicket.createdAt)}
                       </span>
                     </div>
                   </div>
