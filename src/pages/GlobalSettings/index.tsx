@@ -1,9 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
+  Activity,
   Boxes,
   Briefcase,
   Building2,
+  FlaskConical,
   HeartHandshake,
   Home,
   Receipt,
@@ -23,6 +25,8 @@ import { FnbDishesMasterTab } from './components/FnbDishesMasterTab'
 import FnbGlobalMealSlotsTab from './components/FnbGlobalMealSlotsTab'
 import { GlobalServicesTab } from './components/GlobalServicesTab'
 import { SpecializationsTab } from './components/SpecializationsTab'
+import { VitalsTab } from './components/VitalsTab'
+import { LabTestsTab } from './components/LabTestsTab'
 import { TasksTab } from './components/TasksTab'
 import { PackagesTab } from './components/PackagesTab'
 import { GstTaxSettingsTab } from './components/GstTaxSettingsTab'
@@ -92,6 +96,20 @@ const servicesSettings: SettingItem[] = [
     link: '/global-settings/specializations',
   },
   {
+    id: 'vitals',
+    name: 'Vital Settings',
+    description: 'Create and manage vitals with units, icons, and threshold ranges for patient monitoring.',
+    icon: Activity,
+    link: '/global-settings/vitals',
+  },
+  {
+    id: 'lab-tests',
+    name: 'Lab Tests',
+    description: 'Create and manage lab test configurations with icons and special instructions.',
+    icon: FlaskConical,
+    link: '/global-settings/lab-tests',
+  },
+  {
     id: 'global-services',
     name: 'Event Global Services',
     description: 'Create and manage global service templates with base pricing and property assignments.',
@@ -155,6 +173,8 @@ interface GlobalSettingsPageProps {
     | 'fnb-dishes'
     | 'global-services'
     | 'specializations'
+    | 'vitals'
+    | 'lab-tests'
     | 'tasks'
     | 'packages'
     | 'gst-tax'
@@ -250,6 +270,36 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
         </button>
         <SpecializationsTab />
+      </div>
+    )
+  }
+
+  if (activeView === 'vitals') {
+    return (
+      <div className="space-y-6 pb-10">
+        <button
+          type="button"
+          onClick={() => navigate('/global-settings')}
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+        </button>
+        <VitalsTab />
+      </div>
+    )
+  }
+
+  if (activeView === 'lab-tests') {
+    return (
+      <div className="space-y-6 pb-10">
+        <button
+          type="button"
+          onClick={() => navigate('/global-settings')}
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+        </button>
+        <LabTestsTab />
       </div>
     )
   }

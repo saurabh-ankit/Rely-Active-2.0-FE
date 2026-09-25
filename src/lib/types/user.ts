@@ -43,8 +43,12 @@ export interface UserItem {
     address?: string | null
     qualification?: string | null
     experience?: string | null
+    consultantFee?: number | string | null
+    consultant_fee?: number | string | null
     photoUrl?: string | null
     photo_url?: string | null
+    weekOffDays?: Array<'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'> | null
+    week_off_days?: Array<'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'> | null
   } | null
   lastLogin?: string | null
   last_login?: string | null
@@ -122,6 +126,9 @@ export interface CreateUserPayload {
   address?: string
   qualification?: string
   experience?: string
+  /** Visiting doctors (MED_VISITING) only — mandatory when that job category is selected. */
+  consultantFee?: number | null
+  consultant_fee?: number | null
   roleCode?: string
   departmentId?: string
   jobCategoryId?: string
@@ -133,6 +140,8 @@ export interface CreateUserPayload {
   primarySpecializationId?: string
   companyId?: string
   defaultLocationId?: string
+  weekOffDays?: Array<'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'> | null
+  week_off_days?: Array<'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'> | null
 }
 
 export type UpdateUserPayload = Partial<CreateUserPayload>

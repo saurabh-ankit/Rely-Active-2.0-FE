@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useForm, useWatch } from 'react-hook-form'
+import { type FieldPath, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
@@ -26,8 +26,16 @@ const PHONE_REGEX = /^[6-9][0-9]{9}$/
 
 const profileFormSchema = z
   .object({
-    firstName: z.string().trim().min(1, 'First name is required'),
-    lastName: z.string().trim().min(1, 'Last name is required'),
+    firstName: z
+      .string()
+      .trim()
+      .min(1, 'First name is required')
+      .refine((val) => !/\d/.test(val), 'First name cannot contain numbers'),
+    lastName: z
+      .string()
+      .trim()
+      .min(1, 'Last name is required')
+      .refine((val) => !/\d/.test(val), 'Last name cannot contain numbers'),
     email: z
       .string()
       .trim()
@@ -86,6 +94,24 @@ export default function UserProfilePage() {
       confirmPassword: '',
     },
   })
+
+  const lettersOnly = (value: string) => value.replace(/[0-9]/g, '')
+
+  const registerFiltered = (name: FieldPath<ProfileFormValues>, filter: (value: string) => string) => {
+    const registration = register(name)
+    return {
+      ...registration,
+      onKeyDown: (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        if (/\d/.test(e.key)) {
+          e.preventDefault()
+        }
+      },
+      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        e.target.value = filter(e.target.value)
+        return registration.onChange(e)
+      },
+    }
+  }
 
   const watchedFirstName = useWatch({ control, name: 'firstName' })
   const watchedLastName = useWatch({ control, name: 'lastName' })
@@ -332,7 +358,7 @@ export default function UserProfilePage() {
                     <input
                       id="page-profile-first-name"
                       type="text"
-                      {...register('firstName')}
+                      {...registerFiltered('firstName', lettersOnly)}
                       placeholder="First Name"
                       className={cn(
                         'w-full px-4 py-3 text-xs font-semibold border rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#005390] bg-gray-50/50 focus:bg-white transition-all',
@@ -351,7 +377,7 @@ export default function UserProfilePage() {
                     <input
                       id="page-profile-last-name"
                       type="text"
-                      {...register('lastName')}
+                      {...registerFiltered('lastName', lettersOnly)}
                       placeholder="Last Name"
                       className={cn(
                         'w-full px-4 py-3 text-xs font-semibold border rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#005390] bg-gray-50/50 focus:bg-white transition-all',

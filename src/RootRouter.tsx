@@ -24,6 +24,7 @@ import ShiftRosterPage from '@/pages/ShiftRoster'
 import BillingManagementPage from '@/pages/BillingManagement'
 import SettingsPage from '@/pages/Settings'
 import MedicalPage from '@/pages/Medical'
+import AppointmentBookingsPage from '@/pages/Medical/components/appointments/AppointmentBookings'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
 const InventoryPage = lazy(() => import('@/pages/Inventory'))
@@ -112,6 +113,22 @@ export default function RootRouter() {
           element={
             <ProtectedRoute requireSuperAdmin>
               <GlobalSettingsPage initialView="specializations" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="global-settings/vitals"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="vitals" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="global-settings/lab-tests"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="lab-tests" />
             </ProtectedRoute>
           }
         />
@@ -303,6 +320,14 @@ export default function RootRouter() {
           }
         />
         <Route
+          path="admin/medical/appointments/:shiftEmployeeDateId"
+          element={
+            <ProtectedRoute resourceKey="MEDICAL" action="view">
+              <AppointmentBookingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="admin/medical/*"
           element={
             <ProtectedRoute resourceKey="MEDICAL" action="view">
@@ -453,21 +478,42 @@ export default function RootRouter() {
 
         {/* Facility & Operations Settings Routes */}
         <Route path="admin/settings" element={<SettingsPage initialView="main" />} />
-        <Route path="admin/settings/tasks" element={<Navigate to="/admin/medical?tab=tasks" replace />} />
-        <Route path="admin/settings/packages" element={<Navigate to="/admin/medical?tab=packages" replace />} />
+        <Route path="admin/settings/tasks" element={<Navigate to="/admin/medical?section=care&tab=tasks" replace />} />
+        <Route
+          path="admin/settings/packages"
+          element={<Navigate to="/admin/medical?section=care&tab=packages" replace />}
+        />
         <Route
           path="admin/settings/subscriptions"
-          element={<Navigate to="/admin/medical?tab=subscriptions" replace />}
+          element={<Navigate to="/admin/medical?section=care&tab=subscriptions" replace />}
         />
         <Route path="settings" element={<Navigate to="/admin/settings" replace />} />
-        <Route path="settings/tasks" element={<Navigate to="/admin/medical?tab=tasks" replace />} />
-        <Route path="settings/packages" element={<Navigate to="/admin/medical?tab=packages" replace />} />
-        <Route path="settings/care" element={<Navigate to="/admin/medical?tab=subscriptions" replace />} />
-        <Route path="settings/subscriptions" element={<Navigate to="/admin/medical?tab=subscriptions" replace />} />
+        <Route path="settings/tasks" element={<Navigate to="/admin/medical?section=care&tab=tasks" replace />} />
+        <Route path="settings/packages" element={<Navigate to="/admin/medical?section=care&tab=packages" replace />} />
+        <Route path="settings/care" element={<Navigate to="/admin/medical?section=care&tab=subscriptions" replace />} />
+        <Route
+          path="settings/subscriptions"
+          element={<Navigate to="/admin/medical?section=care&tab=subscriptions" replace />}
+        />
 
         {/* Setting fallbacks */}
         <Route path="personal-care-tasks" element={<SectionPage title="Personal Care Tasks (ADL)" />} />
-        <Route path="vitals" element={<SectionPage title="Vital Settings" />} />
+        <Route
+          path="vitals"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="vitals" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="lab-tests"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="lab-tests" />
+            </ProtectedRoute>
+          }
+        />
         <Route path="lab-report" element={<SectionPage title="Lab Report Settings" />} />
         <Route path="care-features" element={<SectionPage title="Care Tasks & Features" />} />
         <Route path="room-features" element={<SectionPage title="Room Features" />} />

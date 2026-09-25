@@ -24,6 +24,7 @@ import {
   ArrowUpCircle,
 } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
+import { useDepartmentsQuery } from '@/hooks/react-query/rbac'
 import { useAuth } from '@/hooks/useAuth'
 import apiClient from '@/lib/api/axios'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
@@ -93,14 +94,49 @@ function toUrlList(value: any): string[] {
 
 function userDisplayName(
   user?: {
-    profile?: { firstName?: string | null; lastName?: string | null } | null
+    profile?: {
+      firstName?: string | null
+      lastName?: string | null
+      first_name?: string | null
+      last_name?: string | null
+    } | null
+    firstName?: string | null
+    lastName?: string | null
+    name?: string
     username?: string
     email?: string
   } | null,
+  fallback?: string,
 ) {
-  if (!user) return null
-  const full = `${user.profile?.firstName || ''} ${user.profile?.lastName || ''}`.trim()
-  return full || user.username || user.email?.split('@')[0] || null
+  if (!user) return fallback || null
+  const profileFirst = user.profile?.firstName || user.profile?.first_name || user.firstName
+  const profileLast = user.profile?.lastName || user.profile?.last_name || user.lastName
+  const full = `${profileFirst || ''} ${profileLast || ''}`.trim()
+  if (full) return full
+  if (user.name) return user.name
+  if (user.username && !user.username.includes('@')) return user.username
+  if (user.email) {
+    const prefix = user.email.split('@')[0]
+    return prefix ? prefix.charAt(0).toUpperCase() + prefix.slice(1) : user.email
+  }
+  return fallback || null
+}
+
+function formatTicketDateTime(dateVal?: string | Date | null) {
+  if (!dateVal) return ''
+  const d = new Date(dateVal)
+  if (isNaN(d.getTime())) return ''
+
+  const day = String(d.getDate()).padStart(2, '0')
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const month = monthNames[d.getMonth()]
+  const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+  const currentYear = new Date().getFullYear()
+  if (d.getFullYear() !== currentYear) {
+    return `${day} ${month} ${d.getFullYear()}, ${time}`
+  }
+  return `${day} ${month}, ${time}`
 }
 
 function parseTicketRequestMedia(ticket: Ticket | null): ParsedRequestMedia | null {
@@ -108,10 +144,17 @@ function parseTicketRequestMedia(ticket: Ticket | null): ParsedRequestMedia | nu
   if (!atts) return null
 
   // Web tickets store a plain array of files; L1 resident tickets store { photos, audioUrl }.
-  const photos = Array.isArray(atts) ? toUrlList(atts) : [...toUrlList(atts.photos), ...toUrlList(atts.files)]
-  const audioUrls = Array.isArray(atts)
-    ? []
-    : [atts.audioUrl, atts.voiceNote].filter((url: unknown): url is string => typeof url === 'string' && url.length > 0)
+  const listed = Array.isArray(atts) ? toUrlList(atts) : [...toUrlList(atts.photos), ...toUrlList(atts.files)]
+  const photos = listed.filter((url) => !isAudioUrl(url))
+  const audioUrls = [
+    ...(Array.isArray(atts)
+      ? []
+      : [atts.audioUrl, atts.voiceNote].filter(
+          (url: unknown): url is string => typeof url === 'string' && url.length > 0,
+        )),
+    // Older web tickets stored the voice note alongside the photos.
+    ...listed.filter((url) => isAudioUrl(url)),
+  ]
 
   if (photos.length === 0 && audioUrls.length === 0) return null
   return { photos, audioUrls }
@@ -163,6 +206,36 @@ interface ParsedTicketMedia {
   notes: string | null
   audioUrl: string | null
   photos: string[]
+}
+
+/** Used only until the real departments and job categories load. */
+const FALLBACK_JOB_CATEGORIES: Record<string, string[]> = {
+  CON: ['Housekeeping', 'Laundry', 'Customer Support', 'Transportation', 'Others'],
+  RNM: ['Electrical', 'Carpentry', 'Plumbing', 'Miscellaneous'],
+}
+
+/** Maps a ticket's department name / category enum onto a department code. */
+function resolveDepartmentCode(ticket: Ticket | null): string {
+  const text = `${ticket?.department?.name || ''} ${ticket?.category || ''}`.toUpperCase()
+  if (text.includes('CONCIERGE') || text.includes('CON')) return 'CON'
+  if (text.includes('HOUSEKEEPING')) return 'HK'
+  if (text.includes('FOOD') || text.includes('BEVERAGE') || text.includes('FNB')) return 'FNB'
+  if (text.includes('SECURITY') || text.includes('GATE')) return 'SEC'
+  if (text.includes('EVENT')) return 'EVT'
+  return 'RNM'
+}
+
+const AUDIO_FILE_PATTERN = /\.(webm|mp3|m4a|wav|ogg|oga|opus|aac|3gp|amr|caf)(\?|$)/i
+
+const isAudioUrl = (url: string) => AUDIO_FILE_PATTERN.test(url) || url.startsWith('data:audio')
+
+/** The web create form writes this placeholder when only a voice note was recorded. */
+const isVoiceNotePlaceholder = (text: string) => {
+  const cleaned = text
+    .replace(/[^a-z ]/gi, '')
+    .trim()
+    .toLowerCase()
+  return cleaned === 'voice note recorded'
 }
 
 function parseTicketMedia(ticket: Ticket | null): ParsedTicketMedia {
@@ -223,13 +296,15 @@ function parseTicketMedia(ticket: Ticket | null): ParsedTicketMedia {
     []
 
   const photoList = Array.isArray(rawPhotos) ? rawPhotos : typeof rawPhotos === 'string' ? [rawPhotos] : []
-  const photos: string[] = photoList.filter(
-    (p: unknown): p is string => typeof p === 'string' && p.trim() !== '' && !p.startsWith('data:audio'),
-  )
+  const allUrls: string[] = photoList.filter((p: unknown): p is string => typeof p === 'string' && p.trim() !== '')
+
+  // Web-created tickets kept the voice note in the same list as the photos.
+  const photos = allUrls.filter((url) => !isAudioUrl(url))
+  const finalAudioUrl = audioUrl || allUrls.find((url) => isAudioUrl(url)) || null
 
   return {
-    notes,
-    audioUrl,
+    notes: notes && isVoiceNotePlaceholder(notes) ? null : notes,
+    audioUrl: finalAudioUrl,
     photos,
   }
 }
@@ -347,6 +422,29 @@ export default function TicketsPage() {
   }
 
   // Find active category object & sub-categories
+  const { data: departments = [] } = useDepartmentsQuery()
+
+  // Department + job categories for the open ticket, from real master data.
+  const ticketDepartmentCode = resolveDepartmentCode(selectedTicket)
+  const ticketDepartment =
+    departments.find((d) => d.id === selectedTicket?.departmentId) ||
+    departments.find((d) => (d.code || '').toUpperCase() === ticketDepartmentCode)
+
+  const departmentChips =
+    departments.length > 0
+      ? departments.filter(
+          (d) => ['RNM', 'CON'].includes((d.code || '').toUpperCase()) || d.id === ticketDepartment?.id,
+        )
+      : []
+
+  const jobCategoryChips =
+    ticketDepartment?.jobCategories && ticketDepartment.jobCategories.length > 0
+      ? ticketDepartment.jobCategories.map((jc) => ({ id: jc.id, name: jc.name }))
+      : (FALLBACK_JOB_CATEGORIES[ticketDepartmentCode] || FALLBACK_JOB_CATEGORIES.RNM || []).map((name) => ({
+          id: `fallback-${name}`,
+          name,
+        }))
+
   const activeCategoryObj = categories.find(
     (c) => c.id === selectedTicket?.categoryId || c.name === selectedTicket?.category,
   )
@@ -408,8 +506,9 @@ export default function TicketsPage() {
   // Assigned Employee Name helper
   const getAssigneeName = (t: Ticket | null) => {
     if (!t) return 'Unassigned'
-    if (t.assignedToUser?.email) {
-      return t.assignedToUser.email.split('@')[0]
+    if (t.assignedToUser) {
+      const name = userDisplayName(t.assignedToUser)
+      if (name) return name
     }
     if (t.assignedToUserId) {
       if (user?.id && t.assignedToUserId === user.id) return 'Self'
@@ -421,6 +520,10 @@ export default function TicketsPage() {
   // Completed By Employee Name helper
   const getCompletedByName = (t: Ticket | null) => {
     if (!t) return 'Technician'
+    if (t.completedByUser) {
+      const name = userDisplayName(t.completedByUser)
+      if (name) return name
+    }
     if (t.completedBy) return t.completedBy
     const compData = parseTicketCompletion(t)
     if (compData?.completedByName) return compData.completedByName
@@ -572,6 +675,13 @@ export default function TicketsPage() {
                     t.assignedToUser?.id === user?.id ||
                     t.assignedToUser?.email === user?.email ||
                     itemAssignee === 'Self')
+                const ticketTimestamp =
+                  activeTab === 'CLOSED' ||
+                  activeTab === 'COMPLETED' ||
+                  t.status === 'CLOSED' ||
+                  t.status === 'RESOLVED'
+                    ? t.completedAt || t.closedAt || t.resolvedAt || t.verifiedAt || t.createdAt
+                    : t.createdAt
 
                 return (
                   <button
@@ -613,7 +723,7 @@ export default function TicketsPage() {
                         className={`text-[11px] flex items-center gap-1 shrink-0 ${isSelected ? 'text-gray-200' : 'text-gray-400'}`}
                       >
                         <Clock className="w-3 h-3" />
-                        {new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {formatTicketDateTime(ticketTimestamp)}
                       </span>
                     </div>
 
@@ -855,16 +965,14 @@ export default function TicketsPage() {
                     <User className="w-4 h-4 text-gray-700" />
                     <span className="text-gray-500 font-semibold">Raised By :</span>
                     <span className="font-bold text-gray-900">
-                      {selectedTicket.raisedBy || selectedTicket.raisedByUser?.email?.split('@')[0] || 'Resident'}
+                      {selectedTicket.raisedBy || userDisplayName(selectedTicket.raisedByUser) || 'Resident'}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                     <span className="text-gray-500 font-semibold">Completed By :</span>
-                    <span className="font-bold text-emerald-700">
-                      {selectedTicket.completedBy || (isSelfAssigned ? 'Self' : assignedName)}
-                    </span>
+                    <span className="font-bold text-emerald-700">{getCompletedByName(selectedTicket)}</span>
                   </div>
 
                   {selectedTicket.tatUpdatedBy && (
@@ -1439,7 +1547,7 @@ export default function TicketsPage() {
                     <User className="w-4 h-4 text-gray-700" />
                     <span className="text-gray-500 font-semibold">Raised By :</span>
                     <span className="font-bold text-gray-900">
-                      {selectedTicket.raisedBy || selectedTicket.raisedByUser?.email?.split('@')[0] || 'Resident'}
+                      {selectedTicket.raisedBy || userDisplayName(selectedTicket.raisedByUser) || 'Resident'}
                     </span>
                   </div>
 
@@ -1547,10 +1655,7 @@ export default function TicketsPage() {
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5 text-gray-400" />
-                        {new Date(selectedTicket.createdAt).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        {formatTicketDateTime(selectedTicket.createdAt)}
                       </span>
                     </div>
                   </div>
@@ -1651,13 +1756,20 @@ export default function TicketsPage() {
                     Department
                   </span>
                   <div className="flex flex-wrap gap-2">
-                    {['Repair & Maintenance', 'Concierge'].map((deptName) => {
-                      const currentDeptName = selectedTicket.department?.name || selectedTicket.category
-                      const isSelected = currentDeptName.toLowerCase().includes(deptName.split(' ')[0].toLowerCase())
+                    {(departmentChips.length > 0
+                      ? departmentChips.map((d) => ({ id: d.id, name: d.name, code: (d.code || '').toUpperCase() }))
+                      : [
+                          { id: 'RNM', name: 'Repair & Maintenance', code: 'RNM' },
+                          { id: 'CON', name: 'Concierge', code: 'CON' },
+                        ]
+                    ).map((dept) => {
+                      const isSelected =
+                        (selectedTicket.departmentId && selectedTicket.departmentId === dept.id) ||
+                        dept.code === ticketDepartmentCode
 
                       return (
                         <button
-                          key={deptName}
+                          key={dept.id}
                           type="button"
                           disabled
                           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-not-allowed ${
@@ -1666,7 +1778,7 @@ export default function TicketsPage() {
                               : 'bg-gray-100/70 text-gray-400 opacity-60'
                           }`}
                         >
-                          {deptName}
+                          {dept.name}
                         </button>
                       )
                     })}
@@ -1679,21 +1791,7 @@ export default function TicketsPage() {
                     Sub Category / Job Category
                   </span>
                   <div className="flex flex-wrap gap-2">
-                    {(selectedTicket.category?.includes('Concierge')
-                      ? [
-                          { id: 'sub-hk', name: 'Housekeeping' },
-                          { id: 'sub-laundry', name: 'Laundry' },
-                          { id: 'sub-support', name: 'Customer Support' },
-                          { id: 'sub-trans', name: 'Transportation' },
-                          { id: 'sub-others', name: 'Others' },
-                        ]
-                      : [
-                          { id: 'sub-elec', name: 'Electrical' },
-                          { id: 'sub-carp', name: 'Carpentry' },
-                          { id: 'sub-plum', name: 'Plumbing' },
-                          { id: 'sub-misc', name: 'Miscellaneous' },
-                        ]
-                    ).map((sub) => {
+                    {jobCategoryChips.map((sub) => {
                       const tRecord = selectedTicket as unknown as Record<string, unknown>
                       const jobCatName =
                         selectedTicket.jobCategory?.name ||
@@ -1703,14 +1801,15 @@ export default function TicketsPage() {
                         activeSubCategoryName ||
                         ''
 
+                      // Prefer the stored id; fall back to the name for older tickets.
                       const isSelected =
                         selectedTicket.jobCategoryId === sub.id ||
                         selectedTicket.subCategoryId === sub.id ||
-                        (jobCatName && jobCatName.toLowerCase() === sub.name.toLowerCase()) ||
-                        (jobCatName && jobCatName.toLowerCase().includes(sub.name.toLowerCase())) ||
-                        (selectedTicket.category &&
-                          selectedTicket.category.toLowerCase().includes(sub.name.toLowerCase())) ||
-                        (selectedTicket.title && selectedTicket.title.toLowerCase().includes(sub.name.toLowerCase()))
+                        (Boolean(jobCatName) && jobCatName.toLowerCase() === sub.name.toLowerCase()) ||
+                        (Boolean(jobCatName) && jobCatName.toLowerCase().includes(sub.name.toLowerCase())) ||
+                        Boolean(
+                          selectedTicket.title && selectedTicket.title.toLowerCase().includes(sub.name.toLowerCase()),
+                        )
 
                       return (
                         <button
@@ -1724,36 +1823,6 @@ export default function TicketsPage() {
                           }`}
                         >
                           {sub.name}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* TAT SLA Options */}
-                <div className="space-y-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-gray-500 bg-gray-100 px-3 py-1 rounded-md inline-block">
-                    TAT SLA
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {['30 mins', '1-2 hour', '2-5 hours', 'Custom'].map((tat) => {
-                      const isSelected = selectedTicket.tatOption === tat
-
-                      return (
-                        <button
-                          key={tat}
-                          type="button"
-                          disabled={!canUpdateTicket}
-                          onClick={() => canUpdateTicket && handleUpdateOption({ tatOption: tat })}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                            canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed'
-                          } ${
-                            isSelected
-                              ? 'bg-[#005390] text-white shadow-2xs'
-                              : 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100'
-                          }`}
-                        >
-                          {tat}
                         </button>
                       )
                     })}
@@ -1789,6 +1858,36 @@ export default function TicketsPage() {
                           }`}
                         >
                           {p.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* TAT SLA Options */}
+                <div className="space-y-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-gray-500 bg-gray-100 px-3 py-1 rounded-md inline-block">
+                    TAT SLA
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {['30 mins', '1-2 hour', '2-5 hours', 'Custom'].map((tat) => {
+                      const isSelected = selectedTicket.tatOption === tat
+
+                      return (
+                        <button
+                          key={tat}
+                          type="button"
+                          disabled={!canUpdateTicket}
+                          onClick={() => canUpdateTicket && handleUpdateOption({ tatOption: tat })}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                            canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed'
+                          } ${
+                            isSelected
+                              ? 'bg-[#005390] text-white shadow-2xs'
+                              : 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100'
+                          }`}
+                        >
+                          {tat}
                         </button>
                       )
                     })}

@@ -18,6 +18,110 @@ export const userHasRoleCode = (user: UserItem, roleCode: string): boolean => {
   return getUserRoleCodes(user).some((code) => code === target || code.includes(target))
 }
 
+/** Job category codes/names for a user at the given department (optional). */
+export const getUserJobCategoryCodes = (
+  user: UserItem,
+  departmentId?: string | null,
+  jobCategoryCatalog?: Array<{ id: string; code?: string; name?: string }> | null,
+): string[] => {
+  const catalogById = new Map((jobCategoryCatalog || []).map((jc) => [jc.id, jc] as const))
+
+  return (user.userLocations || [])
+    .filter((ul) => {
+      if (!departmentId) return true
+      const deptId = ul.departmentId || (ul as { department_id?: string }).department_id || ul.department?.id
+      return deptId === departmentId
+    })
+    .flatMap((ul) => {
+      const tags: string[] = []
+      const nested = ul.jobCategory as { code?: string; name?: string; id?: string } | undefined
+      const nestedSnake = (ul as { job_category?: { code?: string; name?: string } }).job_category
+      const fromId = catalogById.get(
+        ul.jobCategoryId || (ul as { job_category_id?: string }).job_category_id || nested?.id || '',
+      )
+
+      const code = (nested?.code || nestedSnake?.code || fromId?.code || '').toUpperCase()
+      const name = (
+        nested?.name ||
+        nestedSnake?.name ||
+        ul.jobCategoryName ||
+        (ul as { job_category_name?: string }).job_category_name ||
+        fromId?.name ||
+        ''
+      ).toLowerCase()
+
+      if (code) tags.push(code)
+      if (name.includes('visiting')) tags.push('MED_VISITING')
+      if (name.includes('inhouse') || name.includes('in-house') || name.includes('in house')) {
+        tags.push('MED_INHOUSE')
+      }
+      return tags
+    })
+}
+
+/**
+ * Match Medical roster role selector values:
+ * NURSE | DOCTOR_VISITING | DOCTOR_INHOUSE
+ */
+export const userMatchesMedicalRosterRole = (
+  user: UserItem,
+  rosterRoleCode: string,
+  departmentId?: string | null,
+  jobCategoryCatalog?: Array<{ id: string; code?: string; name?: string }> | null,
+): boolean => {
+  const code = (rosterRoleCode || '').toUpperCase()
+  if (!code) return false
+
+  if (code === 'NURSE') {
+    return userHasRoleCode(user, 'NURSE')
+  }
+
+  if (code === 'DOCTOR_VISITING') {
+    if (!userHasRoleCode(user, 'DOCTOR')) return false
+    return getUserJobCategoryCodes(user, departmentId, jobCategoryCatalog).includes('MED_VISITING')
+  }
+
+  if (code === 'DOCTOR_INHOUSE') {
+    if (!userHasRoleCode(user, 'DOCTOR')) return false
+    return getUserJobCategoryCodes(user, departmentId, jobCategoryCatalog).includes('MED_INHOUSE')
+  }
+
+  // Legacy fallback (plain DOCTOR)
+  if (code === 'DOCTOR') {
+    return userHasRoleCode(user, 'DOCTOR')
+  }
+
+  return userHasRoleCode(user, code)
+}
+
+/** Human-readable job category for Medical roster employee rows. */
+export const getUserJobCategoryLabel = (
+  user: UserItem,
+  departmentId?: string | null,
+  jobCategoryCatalog?: Array<{ id: string; code?: string; name?: string }> | null,
+): string => {
+  const codes = getUserJobCategoryCodes(user, departmentId, jobCategoryCatalog)
+  if (codes.includes('MED_VISITING')) return 'Visiting'
+  if (codes.includes('MED_INHOUSE')) return 'In-house'
+  return ''
+}
+
+/** Empty-state label for Medical roster role filter. */
+export const medicalRosterRoleEmptyLabel = (rosterRoleCode: string): string => {
+  const code = (rosterRoleCode || '').toUpperCase()
+  if (code === 'NURSE') return 'nurses'
+  if (code === 'DOCTOR_VISITING') return 'visiting doctors'
+  if (code === 'DOCTOR_INHOUSE') return 'in-house doctors'
+  if (code === 'DOCTOR') return 'doctors'
+  return 'employees'
+}
+
+/** True when the Medical roster role selection is a doctor variant. */
+export const isMedicalRosterDoctorRole = (rosterRoleCode: string): boolean => {
+  const code = (rosterRoleCode || '').toUpperCase()
+  return code === 'DOCTOR' || code === 'DOCTOR_VISITING' || code === 'DOCTOR_INHOUSE'
+}
+
 export const getUserDisplayName = (user: UserItem): string => {
   const first = user.profile?.firstName || user.profile?.first_name || ''
   const last = user.profile?.lastName || user.profile?.last_name || ''

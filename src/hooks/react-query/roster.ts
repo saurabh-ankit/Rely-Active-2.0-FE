@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   bulkCreateEmployeeShiftsAPI,
+  bulkDeleteShiftEmployeeDatesAPI,
   coverShiftDateAPI,
   createAreaAPI,
   createEmployeeShiftAPI,
@@ -172,6 +173,23 @@ export const useDeleteEmployeeShift = () => {
     },
     onError: (error: ApiError) => {
       toast.error(error?.response?.data?.message || error.message || 'Failed to remove assignment')
+    },
+  })
+}
+
+export const useBulkDeleteShiftEmployeeDates = () => {
+  const queryClient = useQueryClient()
+  const locationId = useLocationId()
+  return useMutation({
+    mutationFn: (dateIds: string[]) => bulkDeleteShiftEmployeeDatesAPI(locationId!, dateIds),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['employee-shifts'] })
+      queryClient.invalidateQueries({ queryKey: ['shifts'] })
+      queryClient.invalidateQueries({ queryKey: ['shift-employee-dates'] })
+      toast.success(data.message || 'Shifts removed')
+    },
+    onError: (error: ApiError) => {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to remove shifts')
     },
   })
 }

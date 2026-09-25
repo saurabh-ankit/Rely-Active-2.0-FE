@@ -118,6 +118,12 @@ export const deleteEmployeeShiftAPI = async (locationId: string, employeeShiftId
   return response.data as ApiResponse
 }
 
+export const bulkDeleteShiftEmployeeDatesAPI = async (locationId: string, dateIds: string[]) => {
+  const url = formatUrl(API_ENDPOINTS.shiftRoster.bulkDeleteShiftEmployeeDates, locationId)
+  const response = await api.delete(url, { data: { ids: dateIds } })
+  return response.data as ApiResponse<{ deletedCount: number; deletedIds: string[] }>
+}
+
 // ── Shift employee dates ──────────────────────────────────────────────────────
 
 export const listShiftEmployeeDatesAPI = async (
