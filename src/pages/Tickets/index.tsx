@@ -29,7 +29,7 @@ import { useAuth } from '@/hooks/useAuth'
 import apiClient from '@/lib/api/axios'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import { notifyError, notifySuccess } from '@/utils/toast'
-import type { Ticket, TicketCategoryMaster, TicketPriority, TicketStatus } from '@/lib/types'
+import type { Ticket, TicketCategoryMaster, TicketFeedback, TicketPriority, TicketStatus } from '@/lib/types'
 import { CreateTicketModal } from './components/CreateTicketModal'
 import { SelectPersonDrawer } from './components/SelectPersonDrawer'
 import { AddInvoiceModal } from './components/AddInvoiceModal'
@@ -164,6 +164,31 @@ const writeViewedTickets = (userId: string | undefined | null, ids: string[]) =>
 }
 
 /** Used only until the real departments and job categories load. */
+const FEEDBACK_RATING_STYLES: Record<string, string> = {
+  GOOD: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  AVERAGE: 'bg-amber-50 text-amber-700 border-amber-200',
+  POOR: 'bg-rose-50 text-rose-700 border-rose-200',
+}
+
+const FEEDBACK_RATING_LABELS: Record<string, string> = {
+  GOOD: 'Good',
+  AVERAGE: 'Average',
+  POOR: 'Poor',
+}
+
+/** "Gopi (Son)" when a family member left it, otherwise the resident's name. */
+const describeFeedbackAuthor = (feedback: TicketFeedback): string => {
+  const member = feedback.familyMember
+  if (member) {
+    const name = `${member.firstName || ''} ${member.lastName || ''}`.trim()
+    return member.relation ? `${name} (${member.relation})` : name
+  }
+
+  const resident = feedback.resident
+  if (resident) return `${resident.firstName || ''} ${resident.lastName || ''}`.trim()
+  return 'Resident'
+}
+
 const FALLBACK_JOB_CATEGORIES: Record<string, string[]> = {
   CON: ['Housekeeping', 'Laundry', 'Customer Support', 'Transportation', 'Others'],
   RNM: ['Electrical', 'Carpentry', 'Plumbing', 'Miscellaneous'],
@@ -1284,6 +1309,38 @@ export default function TicketsPage() {
                   )
                 })()}
 
+                {/* Resident Feedback on the completed work */}
+                {selectedTicket.feedback && (
+                  <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-2xs space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-xs font-extrabold text-gray-900 tracking-wide uppercase flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-[#005390]" />
+                        Resident Feedback
+                      </h3>
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                          FEEDBACK_RATING_STYLES[selectedTicket.feedback.rating] || FEEDBACK_RATING_STYLES.AVERAGE
+                        }`}
+                      >
+                        {FEEDBACK_RATING_LABELS[selectedTicket.feedback.rating] || selectedTicket.feedback.rating}
+                      </span>
+                    </div>
+
+                    {selectedTicket.feedback.comment && (
+                      <p className="text-xs font-medium text-gray-700 leading-relaxed whitespace-pre-line">
+                        {selectedTicket.feedback.comment}
+                      </p>
+                    )}
+
+                    <div className="text-[10px] font-semibold text-gray-400">
+                      {describeFeedbackAuthor(selectedTicket.feedback)}
+                      {selectedTicket.feedback.createdAt
+                        ? ` · ${new Date(selectedTicket.feedback.createdAt).toLocaleString()}`
+                        : ''}
+                    </div>
+                  </div>
+                )}
+
                 {/* Bottom Floating Comment Chat Thread Trigger */}
                 <div className="sticky bottom-0 flex justify-end pt-2">
                   <div className="bg-[#005390] text-white px-4 py-2.5 rounded-2xl shadow-lg flex items-center gap-2 text-xs font-bold cursor-pointer hover:bg-[#004273] transition-all">
@@ -1929,6 +1986,38 @@ export default function TicketsPage() {
                         <CheckCircle2 className="w-4 h-4" /> Close Ticket
                       </button>
                     )}
+                  </div>
+                )}
+
+                {/* Resident Feedback on the completed work */}
+                {selectedTicket.feedback && (
+                  <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-2xs space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-xs font-extrabold text-gray-900 tracking-wide uppercase flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-[#005390]" />
+                        Resident Feedback
+                      </h3>
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                          FEEDBACK_RATING_STYLES[selectedTicket.feedback.rating] || FEEDBACK_RATING_STYLES.AVERAGE
+                        }`}
+                      >
+                        {FEEDBACK_RATING_LABELS[selectedTicket.feedback.rating] || selectedTicket.feedback.rating}
+                      </span>
+                    </div>
+
+                    {selectedTicket.feedback.comment && (
+                      <p className="text-xs font-medium text-gray-700 leading-relaxed whitespace-pre-line">
+                        {selectedTicket.feedback.comment}
+                      </p>
+                    )}
+
+                    <div className="text-[10px] font-semibold text-gray-400">
+                      {describeFeedbackAuthor(selectedTicket.feedback)}
+                      {selectedTicket.feedback.createdAt
+                        ? ` · ${new Date(selectedTicket.feedback.createdAt).toLocaleString()}`
+                        : ''}
+                    </div>
                   </div>
                 )}
 

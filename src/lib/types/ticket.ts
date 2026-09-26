@@ -66,6 +66,18 @@ export interface AssignableEmployee {
   matchLevel?: EmployeeMatchLevel
 }
 
+export type TicketFeedbackRating = 'GOOD' | 'AVERAGE' | 'POOR'
+
+/** One per ticket; re-submitting from the app replaces it. */
+export interface TicketFeedback {
+  id: string
+  rating: TicketFeedbackRating
+  comment?: string | null
+  createdAt: string
+  resident?: { id: string; firstName: string; lastName?: string | null } | null
+  familyMember?: { id: string; firstName: string; lastName?: string | null; relation?: string | null } | null
+}
+
 export interface TicketPropertyRef {
   id: string
   name: string
@@ -184,6 +196,8 @@ export interface Ticket {
   verifiedAt?: string | null
   verifiedByUserId?: string | null
   verificationNotes?: string | null
+  /** Resident's rating of the finished work, left from the resident app. */
+  feedback?: TicketFeedback | null
   resolutionNotes?: string | null
   attachments?: string[] | Record<string, unknown> | null
   createdAt: string
