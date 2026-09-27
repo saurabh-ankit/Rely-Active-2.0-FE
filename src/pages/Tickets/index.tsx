@@ -579,6 +579,12 @@ export default function TicketsPage() {
     return 'Unassigned'
   }
 
+  // Staff member who tapped "Start Work" in the L3 app.
+  const getWorkStartedByName = (t: Ticket | null) => {
+    if (!t) return null
+    return userDisplayName(t.workStartedByUser) || null
+  }
+
   // Completed By Employee Name helper
   const getCompletedByName = (t: Ticket | null) => {
     if (!t) return 'Technician'
@@ -600,6 +606,7 @@ export default function TicketsPage() {
   const completion = parseTicketCompletion(selectedTicket)
   const requestMedia = parseTicketRequestMedia(selectedTicket)
   const isTicketVerified = Boolean(selectedTicket?.verifiedAt) || selectedTicket?.status === 'CLOSED'
+  const isTicketFeedbackDone = Boolean(selectedTicket?.feedback)
   const isSelectedEscalated = isTicketEscalated(selectedTicket)
   const verifiedByName = userDisplayName(selectedTicket?.verifiedByUser)
 
@@ -843,9 +850,32 @@ export default function TicketsPage() {
                       )}
                     </div>
 
-                    <div className={`text-xs truncate font-medium ${isSelected ? 'text-gray-100' : 'text-gray-500'}`}>
-                      <MessageSquare className="w-3 h-3 inline mr-1 opacity-70" />
-                      {t.title || t.description || 'Service Ticket'}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className={`text-xs truncate font-medium ${isSelected ? 'text-gray-100' : 'text-gray-500'}`}>
+                        <MessageSquare className="w-3 h-3 inline mr-1 opacity-70" />
+                        {t.title || t.description || 'Service Ticket'}
+                      </div>
+
+                      {/* Work start state from the L3 staff app, shown while the ticket is being worked on */}
+                      {(t.assignedToUserId || t.assignedToUser) &&
+                        !['RESOLVED', 'CLOSED', 'CANCELLED'].includes(t.status) &&
+                        (t.workStartedAt ? (
+                          <span
+                            className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                              isSelected ? 'bg-emerald-400/20 text-emerald-100' : 'bg-emerald-50 text-emerald-700'
+                            }`}
+                          >
+                            Work Started
+                          </span>
+                        ) : (
+                          <span
+                            className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                              isSelected ? 'bg-amber-400/20 text-amber-100' : 'bg-amber-50 text-amber-700'
+                            }`}
+                          >
+                            Not Started
+                          </span>
+                        ))}
                     </div>
                   </button>
                 )
@@ -896,12 +926,14 @@ export default function TicketsPage() {
 
                 {/* Progress Stepper Box matching screenshot */}
                 <div className="border border-dashed border-gray-300 rounded-2xl p-6 bg-white shadow-2xs space-y-4">
-                  <div className="grid grid-cols-4 relative">
-                    {/* Progress Bar Line - green up to Task Completed, then to Verified once verified */}
-                    <div className="absolute top-4 -translate-y-1/2 left-[12.5%] right-[12.5%] h-0.5 bg-gray-200 z-0" />
+                  <div className="grid grid-cols-6 relative">
+                    {/* Progress Bar Line — six steps, so the line runs between the 1st and 6th centres */}
+                    <div className="absolute top-4 -translate-y-1/2 left-[8.333%] right-[8.333%] h-0.5 bg-gray-200 z-0" />
                     <div
-                      className="absolute top-4 -translate-y-1/2 left-[12.5%] h-0.5 bg-emerald-500 z-0 transition-all duration-300"
-                      style={{ width: isTicketVerified ? '75%' : '50%' }}
+                      className="absolute top-4 -translate-y-1/2 left-[8.333%] h-0.5 bg-emerald-500 z-0 transition-all duration-300"
+                      style={{
+                        width: `${((isTicketFeedbackDone ? 5 : isTicketVerified ? 4 : 3) / 5) * 83.333}%`,
+                      }}
                     />
 
                     {/* Step 1: Request Raised */}
@@ -923,6 +955,19 @@ export default function TicketsPage() {
                       <span className="text-xs font-bold text-gray-900">Assigned Task</span>
                       <span className="text-[10px] font-medium text-gray-500 leading-tight">
                         Task assigned to staff
+                      </span>
+                    </div>
+
+                    {/* Step 3: Work Started (L3 staff tapped "Start Work") */}
+                    <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
+                      <div className="w-8 h-8 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs shadow-2xs">
+                        <Check className="w-4.5 h-4.5" />
+                      </div>
+                      <span className="text-xs font-bold text-gray-900">Work Started</span>
+                      <span className="text-[10px] font-medium text-gray-500 leading-tight">
+                        {selectedTicket.workStartedAt
+                          ? `Started${getWorkStartedByName(selectedTicket) ? ` by ${getWorkStartedByName(selectedTicket)}` : ''} at ${formatStepperDate(selectedTicket.workStartedAt)}`
+                          : 'Work started by staff'}
                       </span>
                     </div>
 
@@ -959,6 +1004,35 @@ export default function TicketsPage() {
                               selectedTicket.verifiedAt ? ` at ${formatStepperDate(selectedTicket.verifiedAt)}` : ''
                             }`
                           : 'Awaiting admin verification'}
+                      </span>
+                    </div>
+
+                    {/* Step 5: Feedback */}
+                    <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
+                      <div
+                        className={`w-8 h-8 rounded-full font-bold flex items-center justify-center text-xs shadow-2xs ${
+                          isTicketFeedbackDone
+                            ? 'bg-emerald-500 text-white'
+                            : 'border-2 border-gray-300 bg-white text-gray-400'
+                        }`}
+                      >
+                        {isTicketFeedbackDone ? (
+                          <Check className="w-4.5 h-4.5" />
+                        ) : (
+                          <MessageSquare className="w-4 h-4" />
+                        )}
+                      </div>
+                      <span className={`text-xs font-bold ${isTicketFeedbackDone ? 'text-gray-900' : 'text-gray-400'}`}>
+                        Feedback
+                      </span>
+                      <span className="text-[10px] font-medium text-gray-500 leading-tight">
+                        {isTicketFeedbackDone && selectedTicket.feedback
+                          ? `${FEEDBACK_RATING_LABELS[selectedTicket.feedback.rating] || selectedTicket.feedback.rating} rating${
+                              selectedTicket.feedback.createdAt
+                                ? ` at ${formatStepperDate(selectedTicket.feedback.createdAt)}`
+                                : ''
+                            }`
+                          : 'Awaiting resident feedback'}
                       </span>
                     </div>
                   </div>
@@ -1412,18 +1486,33 @@ export default function TicketsPage() {
                       selectedTicket.status === 'CLOSED',
                     )
                     const isStep3Done = selectedTicket.status === 'RESOLVED' || selectedTicket.status === 'CLOSED'
+                    // Set only when the assigned staff member taps "Start Work" in the L3 app.
+                    const isWorkStarted = Boolean(selectedTicket.workStartedAt) || isStep3Done
                     const isStep4Done = isTicketVerified
+                    const isStep5Done = isTicketFeedbackDone
+                    const workStartedBy = getWorkStartedByName(selectedTicket)
 
-                    const stepIndex = isStep4Done ? 3 : isStep3Done ? 2 : isStep2Done ? 1 : 0
-                    const activeWidthPercent = (stepIndex / 3) * 75
+                    const stepIndex =
+                      isStep5Done && isStep4Done
+                        ? 5
+                        : isStep4Done
+                          ? 4
+                          : isStep3Done
+                            ? 3
+                            : isWorkStarted
+                              ? 2
+                              : isStep2Done
+                                ? 1
+                                : 0
+                    const activeWidthPercent = (stepIndex / 5) * 83.333
 
                     return (
-                      <div className="grid grid-cols-4 relative">
+                      <div className="grid grid-cols-6 relative">
                         {/* Background Progress Line */}
-                        <div className="absolute top-4 -translate-y-1/2 left-[12.5%] right-[12.5%] h-0.5 bg-gray-200 z-0" />
+                        <div className="absolute top-4 -translate-y-1/2 left-[8.333%] right-[8.333%] h-0.5 bg-gray-200 z-0" />
                         {/* Active Progress Line */}
                         <div
-                          className="absolute top-4 -translate-y-1/2 left-[12.5%] h-0.5 bg-[#005390] transition-all duration-300 z-0"
+                          className="absolute top-4 -translate-y-1/2 left-[8.333%] h-0.5 bg-[#005390] transition-all duration-300 z-0"
                           style={{ width: `${activeWidthPercent}%` }}
                         />
 
@@ -1453,6 +1542,36 @@ export default function TicketsPage() {
                           <span className={`text-xs font-bold ${isStep2Done ? 'text-gray-900' : 'text-gray-400'}`}>
                             Assigned Task
                           </span>
+                        </div>
+
+                        {/* Step 3: Work Started */}
+                        <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
+                          <div
+                            className={`w-8 h-8 rounded-full border-2 ${
+                              isWorkStarted
+                                ? 'border-[#005390] bg-[#005390] text-white'
+                                : 'border-gray-300 bg-white text-gray-400'
+                            } font-bold flex items-center justify-center text-xs shadow-2xs`}
+                          >
+                            {isWorkStarted ? (
+                              <Check className="w-4.5 h-4.5" />
+                            ) : (
+                              <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
+                            )}
+                          </div>
+                          <span className={`text-xs font-bold ${isWorkStarted ? 'text-gray-900' : 'text-gray-400'}`}>
+                            Work Started
+                          </span>
+                          {selectedTicket.workStartedAt ? (
+                            <span className="text-[10px] font-medium text-gray-500 leading-tight">
+                              {workStartedBy ? `By ${workStartedBy}, ` : ''}
+                              {formatStepperDate(selectedTicket.workStartedAt)}
+                            </span>
+                          ) : isStep2Done && !isStep3Done ? (
+                            <span className="text-[10px] font-medium text-amber-600 leading-tight">
+                              Waiting for staff to start
+                            </span>
+                          ) : null}
                         </div>
 
                         {/* Step 3: Task Completed */}
@@ -1492,6 +1611,26 @@ export default function TicketsPage() {
                           </div>
                           <span className={`text-xs font-bold ${isStep4Done ? 'text-gray-900' : 'text-gray-400'}`}>
                             Verified
+                          </span>
+                        </div>
+
+                        {/* Step 5: Feedback */}
+                        <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
+                          <div
+                            className={`w-8 h-8 rounded-full border-2 ${
+                              isStep5Done
+                                ? 'border-[#005390] bg-[#005390] text-white'
+                                : 'border-gray-300 bg-white text-gray-400'
+                            } font-bold flex items-center justify-center text-xs shadow-2xs`}
+                          >
+                            {isStep5Done ? (
+                              <Check className="w-4.5 h-4.5" />
+                            ) : (
+                              <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
+                            )}
+                          </div>
+                          <span className={`text-xs font-bold ${isStep5Done ? 'text-gray-900' : 'text-gray-400'}`}>
+                            Feedback
                           </span>
                         </div>
                       </div>
