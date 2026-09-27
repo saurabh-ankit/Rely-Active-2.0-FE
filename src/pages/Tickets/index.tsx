@@ -24,12 +24,11 @@ import {
   ArrowUpCircle,
 } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
-import { useDepartmentsQuery } from '@/hooks/react-query/rbac'
 import { useAuth } from '@/hooks/useAuth'
 import apiClient from '@/lib/api/axios'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import { notifyError, notifySuccess } from '@/utils/toast'
-import type { Ticket, TicketCategoryMaster, TicketFeedback, TicketPriority, TicketStatus } from '@/lib/types'
+import type { Ticket, TicketCategoryMaster, TicketPriority, TicketStatus } from '@/lib/types'
 import { CreateTicketModal } from './components/CreateTicketModal'
 import { SelectPersonDrawer } from './components/SelectPersonDrawer'
 import { AddInvoiceModal } from './components/AddInvoiceModal'
@@ -139,99 +138,15 @@ function formatTicketDateTime(dateVal?: string | Date | null) {
   return `${day} ${month}, ${time}`
 }
 
-/** Tickets the signed-in user has already opened, so the NEW tag can disappear. */
-const VIEWED_TICKETS_KEY = 'rely_viewed_tickets'
-
-const viewedTicketsStorageKey = (userId?: string | null) => `${VIEWED_TICKETS_KEY}_${userId || 'anon'}`
-
-const readViewedTickets = (userId?: string | null): string[] => {
-  try {
-    const raw = localStorage.getItem(viewedTicketsStorageKey(userId))
-    const parsed = raw ? JSON.parse(raw) : []
-    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : []
-  } catch {
-    return []
-  }
-}
-
-const writeViewedTickets = (userId: string | undefined | null, ids: string[]) => {
-  try {
-    // Keep the list bounded; only recent tickets can still be new.
-    localStorage.setItem(viewedTicketsStorageKey(userId), JSON.stringify(ids.slice(-500)))
-  } catch {
-    // Private mode or storage disabled - the tag just keeps showing.
-  }
-}
-
-/** Used only until the real departments and job categories load. */
-const FEEDBACK_RATING_STYLES: Record<string, string> = {
-  GOOD: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  AVERAGE: 'bg-amber-50 text-amber-700 border-amber-200',
-  POOR: 'bg-rose-50 text-rose-700 border-rose-200',
-}
-
-const FEEDBACK_RATING_LABELS: Record<string, string> = {
-  GOOD: 'Good',
-  AVERAGE: 'Average',
-  POOR: 'Poor',
-}
-
-/** "Gopi (Son)" when a family member left it, otherwise the resident's name. */
-const describeFeedbackAuthor = (feedback: TicketFeedback): string => {
-  const member = feedback.familyMember
-  if (member) {
-    const name = `${member.firstName || ''} ${member.lastName || ''}`.trim()
-    return member.relation ? `${name} (${member.relation})` : name
-  }
-
-  const resident = feedback.resident
-  if (resident) return `${resident.firstName || ''} ${resident.lastName || ''}`.trim()
-  return 'Resident'
-}
-
-const FALLBACK_JOB_CATEGORIES: Record<string, string[]> = {
-  CON: ['Housekeeping', 'Laundry', 'Customer Support', 'Transportation', 'Others'],
-  RNM: ['Electrical', 'Carpentry', 'Plumbing', 'Miscellaneous'],
-}
-
-/** Maps a ticket's department name / category enum onto a department code. */
-function resolveDepartmentCode(ticket: Ticket | null): string {
-  const text = `${ticket?.department?.name || ''} ${ticket?.category || ''}`.toUpperCase()
-  if (text.includes('CONCIERGE') || text.includes('CON')) return 'CON'
-  if (text.includes('HOUSEKEEPING')) return 'HK'
-  if (text.includes('FOOD') || text.includes('BEVERAGE') || text.includes('FNB')) return 'FNB'
-  if (text.includes('SECURITY') || text.includes('GATE')) return 'SEC'
-  if (text.includes('EVENT')) return 'EVT'
-  return 'RNM'
-}
-
-const AUDIO_FILE_PATTERN = /\.(webm|mp3|m4a|wav|ogg|oga|opus|aac|3gp|amr|caf)(\?|$)/i
-
-const isAudioUrl = (url: string) => AUDIO_FILE_PATTERN.test(url) || url.startsWith('data:audio')
-
-/** The web create form writes this placeholder when only a voice note was recorded. */
-const isVoiceNotePlaceholder = (text: string) =>
-  text
-    .replace(/[^a-z ]/gi, '')
-    .trim()
-    .toLowerCase() === 'voice note recorded'
-
 function parseTicketRequestMedia(ticket: Ticket | null): ParsedRequestMedia | null {
   const atts = parseAttachments(ticket)
   if (!atts) return null
 
   // Web tickets store a plain array of files; L1 resident tickets store { photos, audioUrl }.
-  const listed = Array.isArray(atts) ? toUrlList(atts) : [...toUrlList(atts.photos), ...toUrlList(atts.files)]
-  const photos = listed.filter((url) => !isAudioUrl(url))
-  const audioUrls = [
-    ...(Array.isArray(atts)
-      ? []
-      : [atts.audioUrl, atts.voiceNote].filter(
-          (url: unknown): url is string => typeof url === 'string' && url.length > 0,
-        )),
-    // Older web tickets kept the voice note alongside the photos.
-    ...listed.filter((url) => isAudioUrl(url)),
-  ]
+  const photos = Array.isArray(atts) ? toUrlList(atts) : [...toUrlList(atts.photos), ...toUrlList(atts.files)]
+  const audioUrls = Array.isArray(atts)
+    ? []
+    : [atts.audioUrl, atts.voiceNote].filter((url: unknown): url is string => typeof url === 'string' && url.length > 0)
 
   if (photos.length === 0 && audioUrls.length === 0) return null
   return { photos, audioUrls }
@@ -343,15 +258,13 @@ function parseTicketMedia(ticket: Ticket | null): ParsedTicketMedia {
     []
 
   const photoList = Array.isArray(rawPhotos) ? rawPhotos : typeof rawPhotos === 'string' ? [rawPhotos] : []
-  const allUrls: string[] = photoList.filter((p: unknown): p is string => typeof p === 'string' && p.trim() !== '')
-
-  // Web-created tickets kept the voice note in the same list as the photos.
-  const photos = allUrls.filter((url) => !isAudioUrl(url))
-  const finalAudioUrl = audioUrl || allUrls.find((url) => isAudioUrl(url)) || null
+  const photos: string[] = photoList.filter(
+    (p: unknown): p is string => typeof p === 'string' && p.trim() !== '' && !p.startsWith('data:audio'),
+  )
 
   return {
-    notes: notes && isVoiceNotePlaceholder(notes) ? null : notes,
-    audioUrl: finalAudioUrl,
+    notes,
+    audioUrl,
     photos,
   }
 }
@@ -375,7 +288,6 @@ export default function TicketsPage() {
   const [isTatModalOpen, setIsTatModalOpen] = useState(false)
   const [previewMediaUrl, setPreviewMediaUrl] = useState<string | null>(null)
   const [verifying, setVerifying] = useState(false)
-  const [viewedTicketIds, setViewedTicketIds] = useState<Set<string>>(() => new Set(readViewedTickets(user?.id)))
 
   // Fetch Master Categories & Sub-Categories
   useEffect(() => {
@@ -470,43 +382,6 @@ export default function TicketsPage() {
   }
 
   // Find active category object & sub-categories
-  const { data: departments = [] } = useDepartmentsQuery()
-
-  /** Marks a ticket as opened by this user, which clears its NEW tag. */
-  const markTicketViewed = useCallback(
-    (ticketId: string) => {
-      setViewedTicketIds((prev) => {
-        if (prev.has(ticketId)) return prev
-        const next = new Set(prev)
-        next.add(ticketId)
-        writeViewedTickets(user?.id, Array.from(next))
-        return next
-      })
-    },
-    [user?.id],
-  )
-
-  // Department + job categories for the open ticket, from real master data.
-  const ticketDepartmentCode = resolveDepartmentCode(selectedTicket)
-  const ticketDepartment =
-    departments.find((d) => d.id === selectedTicket?.departmentId) ||
-    departments.find((d) => (d.code || '').toUpperCase() === ticketDepartmentCode)
-
-  const departmentChips =
-    departments.length > 0
-      ? departments.filter(
-          (d) => ['RNM', 'CON'].includes((d.code || '').toUpperCase()) || d.id === ticketDepartment?.id,
-        )
-      : []
-
-  const jobCategoryChips =
-    ticketDepartment?.jobCategories && ticketDepartment.jobCategories.length > 0
-      ? ticketDepartment.jobCategories.map((jc) => ({ id: jc.id, name: jc.name }))
-      : (FALLBACK_JOB_CATEGORIES[ticketDepartmentCode] || FALLBACK_JOB_CATEGORIES.RNM || []).map((name) => ({
-          id: `fallback-${name}`,
-          name,
-        }))
-
   const activeCategoryObj = categories.find(
     (c) => c.id === selectedTicket?.categoryId || c.name === selectedTicket?.category,
   )
@@ -749,10 +624,7 @@ export default function TicketsPage() {
                   <button
                     key={t.id}
                     type="button"
-                    onClick={() => {
-                      setSelectedTicket(t)
-                      markTicketViewed(t.id)
-                    }}
+                    onClick={() => setSelectedTicket(t)}
                     className={`w-full text-left p-4 transition-all cursor-pointer relative ${
                       isSelected ? 'bg-[#005390] text-white shadow-2xs' : 'bg-white text-gray-900 hover:bg-gray-50'
                     }`}
@@ -760,17 +632,6 @@ export default function TicketsPage() {
                     <div className="flex items-center justify-between text-xs font-mono mb-1">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <span className="font-bold tracking-tight">{t.ticketNumber}</span>
-                        {t.status === 'OPEN' && !viewedTicketIds.has(t.id) && (
-                          <span
-                            className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider ${
-                              isSelected
-                                ? 'bg-amber-200 text-amber-950 shadow-2xs'
-                                : 'bg-amber-100 text-amber-800 border border-amber-200'
-                            }`}
-                          >
-                            New
-                          </span>
-                        )}
                         {isCommon && (
                           <span
                             className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider ${
@@ -896,12 +757,12 @@ export default function TicketsPage() {
 
                 {/* Progress Stepper Box matching screenshot */}
                 <div className="border border-dashed border-gray-300 rounded-2xl p-6 bg-white shadow-2xs space-y-4">
-                  <div className="grid grid-cols-4 relative">
-                    {/* Progress Bar Line - green up to Task Completed, then to Verified once verified */}
-                    <div className="absolute top-4 -translate-y-1/2 left-[12.5%] right-[12.5%] h-0.5 bg-gray-200 z-0" />
+                  <div className="grid grid-cols-5 relative">
+                    {/* Progress Bar Line - green up to Completed, then to Verified once verified */}
+                    <div className="absolute top-4 -translate-y-1/2 left-[10%] right-[10%] h-0.5 bg-gray-200 z-0" />
                     <div
-                      className="absolute top-4 -translate-y-1/2 left-[12.5%] h-0.5 bg-emerald-500 z-0 transition-all duration-300"
-                      style={{ width: isTicketVerified ? '75%' : '50%' }}
+                      className="absolute top-4 -translate-y-1/2 left-[10%] h-0.5 bg-emerald-500 z-0 transition-all duration-300"
+                      style={{ width: isTicketVerified ? '80%' : '60%' }}
                     />
 
                     {/* Step 1: Request Raised */}
@@ -926,12 +787,21 @@ export default function TicketsPage() {
                       </span>
                     </div>
 
-                    {/* Step 3: Task Completed */}
+                    {/* Step 3: Request Accepted */}
                     <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
                       <div className="w-8 h-8 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs shadow-2xs">
                         <Check className="w-4.5 h-4.5" />
                       </div>
-                      <span className="text-xs font-bold text-gray-900">Task Completed</span>
+                      <span className="text-xs font-bold text-gray-900">Request Accepted</span>
+                      <span className="text-[10px] font-medium text-gray-500 leading-tight">Work started by staff</span>
+                    </div>
+
+                    {/* Step 4: Completed */}
+                    <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
+                      <div className="w-8 h-8 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs shadow-2xs">
+                        <Check className="w-4.5 h-4.5" />
+                      </div>
+                      <span className="text-xs font-bold text-gray-900">Completed</span>
                       <span className="text-[10px] font-medium text-gray-500 leading-tight">
                         {completion?.completedAt
                           ? `Work completed ${formatStepperDate(completion.completedAt)}`
@@ -939,7 +809,7 @@ export default function TicketsPage() {
                       </span>
                     </div>
 
-                    {/* Step 4: Verified */}
+                    {/* Step 5: Verified */}
                     <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
                       <div
                         className={`w-8 h-8 rounded-full font-bold flex items-center justify-center text-xs shadow-2xs ${
@@ -1309,38 +1179,6 @@ export default function TicketsPage() {
                   )
                 })()}
 
-                {/* Resident Feedback on the completed work */}
-                {selectedTicket.feedback && (
-                  <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-2xs space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-xs font-extrabold text-gray-900 tracking-wide uppercase flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4 text-[#005390]" />
-                        Resident Feedback
-                      </h3>
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                          FEEDBACK_RATING_STYLES[selectedTicket.feedback.rating] || FEEDBACK_RATING_STYLES.AVERAGE
-                        }`}
-                      >
-                        {FEEDBACK_RATING_LABELS[selectedTicket.feedback.rating] || selectedTicket.feedback.rating}
-                      </span>
-                    </div>
-
-                    {selectedTicket.feedback.comment && (
-                      <p className="text-xs font-medium text-gray-700 leading-relaxed whitespace-pre-line">
-                        {selectedTicket.feedback.comment}
-                      </p>
-                    )}
-
-                    <div className="text-[10px] font-semibold text-gray-400">
-                      {describeFeedbackAuthor(selectedTicket.feedback)}
-                      {selectedTicket.feedback.createdAt
-                        ? ` · ${new Date(selectedTicket.feedback.createdAt).toLocaleString()}`
-                        : ''}
-                    </div>
-                  </div>
-                )}
-
                 {/* Bottom Floating Comment Chat Thread Trigger */}
                 <div className="sticky bottom-0 flex justify-end pt-2">
                   <div className="bg-[#005390] text-white px-4 py-2.5 rounded-2xl shadow-lg flex items-center gap-2 text-xs font-bold cursor-pointer hover:bg-[#004273] transition-all">
@@ -1383,10 +1221,11 @@ export default function TicketsPage() {
                     onChange={(e) => handleUpdateOption({ status: e.target.value as TicketStatus })}
                     className="px-3 py-1.5 bg-amber-50/90 text-amber-800 border border-amber-200 rounded-xl text-xs font-extrabold focus:outline-none cursor-pointer shadow-2xs"
                   >
-                    <option value="OPEN">Open</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="RESOLVED">Completed</option>
-                    <option value="CLOSED">Closed</option>
+                    <option value="OPEN">Open ∨</option>
+                    <option value="IN_PROGRESS">In progress ∨</option>
+                    <option value="ON_HOLD">On hold ∨</option>
+                    <option value="RESOLVED">Resolved ∨</option>
+                    <option value="CLOSED">Closed ∨</option>
                   </select>
                 </div>
 
@@ -1411,19 +1250,24 @@ export default function TicketsPage() {
                       selectedTicket.status === 'RESOLVED' ||
                       selectedTicket.status === 'CLOSED',
                     )
-                    const isStep3Done = selectedTicket.status === 'RESOLVED' || selectedTicket.status === 'CLOSED'
-                    const isStep4Done = isTicketVerified
+                    const isStep3Done =
+                      selectedTicket.status === 'IN_PROGRESS' ||
+                      selectedTicket.status === 'ON_HOLD' ||
+                      selectedTicket.status === 'RESOLVED' ||
+                      selectedTicket.status === 'CLOSED'
+                    const isStep4Done = selectedTicket.status === 'RESOLVED' || selectedTicket.status === 'CLOSED'
+                    const isStep5Done = isTicketVerified
 
-                    const stepIndex = isStep4Done ? 3 : isStep3Done ? 2 : isStep2Done ? 1 : 0
-                    const activeWidthPercent = (stepIndex / 3) * 75
+                    const stepIndex = isStep5Done ? 4 : isStep4Done ? 3 : isStep3Done ? 2 : isStep2Done ? 1 : 0
+                    const activeWidthPercent = (stepIndex / 4) * 80
 
                     return (
-                      <div className="grid grid-cols-4 relative">
+                      <div className="grid grid-cols-5 relative">
                         {/* Background Progress Line */}
-                        <div className="absolute top-4 -translate-y-1/2 left-[12.5%] right-[12.5%] h-0.5 bg-gray-200 z-0" />
+                        <div className="absolute top-4 -translate-y-1/2 left-[10%] right-[10%] h-0.5 bg-gray-200 z-0" />
                         {/* Active Progress Line */}
                         <div
-                          className="absolute top-4 -translate-y-1/2 left-[12.5%] h-0.5 bg-[#005390] transition-all duration-300 z-0"
+                          className="absolute top-4 -translate-y-1/2 left-[10%] h-0.5 bg-[#005390] transition-all duration-300 z-0"
                           style={{ width: `${activeWidthPercent}%` }}
                         />
 
@@ -1455,7 +1299,7 @@ export default function TicketsPage() {
                           </span>
                         </div>
 
-                        {/* Step 3: Task Completed */}
+                        {/* Step 3: Request Accepted */}
                         <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
                           <div
                             className={`w-8 h-8 rounded-full border-2 ${
@@ -1471,11 +1315,11 @@ export default function TicketsPage() {
                             )}
                           </div>
                           <span className={`text-xs font-bold ${isStep3Done ? 'text-gray-900' : 'text-gray-400'}`}>
-                            Task Completed
+                            Request Accepted
                           </span>
                         </div>
 
-                        {/* Step 4: Verified */}
+                        {/* Step 4: Completed */}
                         <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
                           <div
                             className={`w-8 h-8 rounded-full border-2 ${
@@ -1491,6 +1335,26 @@ export default function TicketsPage() {
                             )}
                           </div>
                           <span className={`text-xs font-bold ${isStep4Done ? 'text-gray-900' : 'text-gray-400'}`}>
+                            Completed
+                          </span>
+                        </div>
+
+                        {/* Step 5: Verified */}
+                        <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
+                          <div
+                            className={`w-8 h-8 rounded-full border-2 ${
+                              isStep5Done
+                                ? 'border-[#005390] bg-[#005390] text-white'
+                                : 'border-gray-300 bg-white text-gray-400'
+                            } font-bold flex items-center justify-center text-xs shadow-2xs`}
+                          >
+                            {isStep5Done ? (
+                              <Check className="w-4.5 h-4.5" />
+                            ) : (
+                              <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
+                            )}
+                          </div>
+                          <span className={`text-xs font-bold ${isStep5Done ? 'text-gray-900' : 'text-gray-400'}`}>
                             Verified
                           </span>
                         </div>
@@ -1698,9 +1562,10 @@ export default function TicketsPage() {
                           canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'
                         }`}
                       >
-                        <option value="OPEN">Open</option>
+                        <option value="OPEN">Open ∨</option>
                         <option value="IN_PROGRESS">In Progress</option>
-                        <option value="RESOLVED">Completed</option>
+                        <option value="ON_HOLD">On Hold</option>
+                        <option value="RESOLVED">Resolved</option>
                         <option value="CLOSED">Closed</option>
                       </select>
 
@@ -1828,20 +1693,13 @@ export default function TicketsPage() {
                     Department
                   </span>
                   <div className="flex flex-wrap gap-2">
-                    {(departmentChips.length > 0
-                      ? departmentChips.map((d) => ({ id: d.id, name: d.name, code: (d.code || '').toUpperCase() }))
-                      : [
-                          { id: 'RNM', name: 'Repair & Maintenance', code: 'RNM' },
-                          { id: 'CON', name: 'Concierge', code: 'CON' },
-                        ]
-                    ).map((dept) => {
-                      const isSelected =
-                        (selectedTicket.departmentId && selectedTicket.departmentId === dept.id) ||
-                        dept.code === ticketDepartmentCode
+                    {['Repair & Maintenance', 'Concierge'].map((deptName) => {
+                      const currentDeptName = selectedTicket.department?.name || selectedTicket.category
+                      const isSelected = currentDeptName.toLowerCase().includes(deptName.split(' ')[0].toLowerCase())
 
                       return (
                         <button
-                          key={dept.id}
+                          key={deptName}
                           type="button"
                           disabled
                           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-not-allowed ${
@@ -1850,7 +1708,7 @@ export default function TicketsPage() {
                               : 'bg-gray-100/70 text-gray-400 opacity-60'
                           }`}
                         >
-                          {dept.name}
+                          {deptName}
                         </button>
                       )
                     })}
@@ -1863,7 +1721,21 @@ export default function TicketsPage() {
                     Sub Category / Job Category
                   </span>
                   <div className="flex flex-wrap gap-2">
-                    {jobCategoryChips.map((sub) => {
+                    {(selectedTicket.category?.includes('Concierge')
+                      ? [
+                          { id: 'sub-hk', name: 'Housekeeping' },
+                          { id: 'sub-laundry', name: 'Laundry' },
+                          { id: 'sub-support', name: 'Customer Support' },
+                          { id: 'sub-trans', name: 'Transportation' },
+                          { id: 'sub-others', name: 'Others' },
+                        ]
+                      : [
+                          { id: 'sub-elec', name: 'Electrical' },
+                          { id: 'sub-carp', name: 'Carpentry' },
+                          { id: 'sub-plum', name: 'Plumbing' },
+                          { id: 'sub-misc', name: 'Miscellaneous' },
+                        ]
+                    ).map((sub) => {
                       const tRecord = selectedTicket as unknown as Record<string, unknown>
                       const jobCatName =
                         selectedTicket.jobCategory?.name ||
@@ -1873,15 +1745,14 @@ export default function TicketsPage() {
                         activeSubCategoryName ||
                         ''
 
-                      // Prefer the stored id; fall back to the name for older tickets.
                       const isSelected =
                         selectedTicket.jobCategoryId === sub.id ||
                         selectedTicket.subCategoryId === sub.id ||
-                        (Boolean(jobCatName) && jobCatName.toLowerCase() === sub.name.toLowerCase()) ||
-                        (Boolean(jobCatName) && jobCatName.toLowerCase().includes(sub.name.toLowerCase())) ||
-                        Boolean(
-                          selectedTicket.title && selectedTicket.title.toLowerCase().includes(sub.name.toLowerCase()),
-                        )
+                        (jobCatName && jobCatName.toLowerCase() === sub.name.toLowerCase()) ||
+                        (jobCatName && jobCatName.toLowerCase().includes(sub.name.toLowerCase())) ||
+                        (selectedTicket.category &&
+                          selectedTicket.category.toLowerCase().includes(sub.name.toLowerCase())) ||
+                        (selectedTicket.title && selectedTicket.title.toLowerCase().includes(sub.name.toLowerCase()))
 
                       return (
                         <button
@@ -1895,6 +1766,36 @@ export default function TicketsPage() {
                           }`}
                         >
                           {sub.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* TAT SLA Options */}
+                <div className="space-y-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-gray-500 bg-gray-100 px-3 py-1 rounded-md inline-block">
+                    TAT SLA
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {['30 mins', '1-2 hour', '2-5 hours', 'Custom'].map((tat) => {
+                      const isSelected = selectedTicket.tatOption === tat
+
+                      return (
+                        <button
+                          key={tat}
+                          type="button"
+                          disabled={!canUpdateTicket}
+                          onClick={() => canUpdateTicket && handleUpdateOption({ tatOption: tat })}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                            canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed'
+                          } ${
+                            isSelected
+                              ? 'bg-[#005390] text-white shadow-2xs'
+                              : 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100'
+                          }`}
+                        >
+                          {tat}
                         </button>
                       )
                     })}
@@ -1936,36 +1837,6 @@ export default function TicketsPage() {
                   </div>
                 </div>
 
-                {/* TAT SLA Options */}
-                <div className="space-y-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-gray-500 bg-gray-100 px-3 py-1 rounded-md inline-block">
-                    TAT SLA
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {['30 mins', '1-2 hour', '2-5 hours', 'Custom'].map((tat) => {
-                      const isSelected = selectedTicket.tatOption === tat
-
-                      return (
-                        <button
-                          key={tat}
-                          type="button"
-                          disabled={!canUpdateTicket}
-                          onClick={() => canUpdateTicket && handleUpdateOption({ tatOption: tat })}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                            canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed'
-                          } ${
-                            isSelected
-                              ? 'bg-[#005390] text-white shadow-2xs'
-                              : 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100'
-                          }`}
-                        >
-                          {tat}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
                 {/* Action Buttons */}
                 {canUpdateTicket && (
                   <div className="pt-4 flex flex-wrap items-center gap-3">
@@ -1986,38 +1857,6 @@ export default function TicketsPage() {
                         <CheckCircle2 className="w-4 h-4" /> Close Ticket
                       </button>
                     )}
-                  </div>
-                )}
-
-                {/* Resident Feedback on the completed work */}
-                {selectedTicket.feedback && (
-                  <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-2xs space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-xs font-extrabold text-gray-900 tracking-wide uppercase flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4 text-[#005390]" />
-                        Resident Feedback
-                      </h3>
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                          FEEDBACK_RATING_STYLES[selectedTicket.feedback.rating] || FEEDBACK_RATING_STYLES.AVERAGE
-                        }`}
-                      >
-                        {FEEDBACK_RATING_LABELS[selectedTicket.feedback.rating] || selectedTicket.feedback.rating}
-                      </span>
-                    </div>
-
-                    {selectedTicket.feedback.comment && (
-                      <p className="text-xs font-medium text-gray-700 leading-relaxed whitespace-pre-line">
-                        {selectedTicket.feedback.comment}
-                      </p>
-                    )}
-
-                    <div className="text-[10px] font-semibold text-gray-400">
-                      {describeFeedbackAuthor(selectedTicket.feedback)}
-                      {selectedTicket.feedback.createdAt
-                        ? ` · ${new Date(selectedTicket.feedback.createdAt).toLocaleString()}`
-                        : ''}
-                    </div>
                   </div>
                 )}
 
