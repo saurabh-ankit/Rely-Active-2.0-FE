@@ -1414,14 +1414,6 @@ export default function TicketsPage() {
                     </div>
                   </div>
                 )}
-
-                {/* Bottom Floating Comment Chat Thread Trigger */}
-                <div className="sticky bottom-0 flex justify-end pt-2">
-                  <div className="bg-[#005390] text-white px-4 py-2.5 rounded-2xl shadow-lg flex items-center gap-2 text-xs font-bold cursor-pointer hover:bg-[#004273] transition-all">
-                    <MessageSquare className="w-4 h-4" />
-                    <span>{selectedTicket.ticketNumber}</span>
-                  </div>
-                </div>
               </div>
             ) : isInProgressView ? (
               /* IN PROGRESS EXECUTION VIEW MATCHING DESIGN SYSTEM */
@@ -2159,14 +2151,6 @@ export default function TicketsPage() {
                     </div>
                   </div>
                 )}
-
-                {/* Bottom Floating Comment Chat Thread Trigger */}
-                <div className="sticky bottom-0 flex justify-end pt-2">
-                  <div className="bg-[#005390] hover:bg-[#004273] text-white px-4 py-2.5 rounded-2xl shadow-lg flex items-center gap-2 text-xs font-bold cursor-pointer transition-all">
-                    <MessageSquare className="w-4 h-4" />
-                    <span>{selectedTicket.ticketNumber}</span>
-                  </div>
-                </div>
               </div>
             )
           ) : (
