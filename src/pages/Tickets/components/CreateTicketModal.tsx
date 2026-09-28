@@ -5,6 +5,30 @@ import apiClient from '@/lib/api/axios'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import type { TicketPriority } from '@/lib/types'
 
+const MAX_PHOTOS = 10
+
+/**
+ * Shrinks a photo to at most 1280px (JPEG, 70%) before upload. The API server
+ * rejects large request bodies (HTTP 413), and phone/desktop photos are often
+ * several MB. Falls back to the original file if the browser can't decode it.
+ */
+async function compressPhoto(file: File): Promise<File> {
+  try {
+    const bitmap = await createImageBitmap(file)
+    const scale = Math.min(1, 1280 / Math.max(bitmap.width, bitmap.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(bitmap.width * scale)
+    canvas.height = Math.round(bitmap.height * scale)
+    canvas.getContext('2d')?.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    bitmap.close()
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.7))
+    if (!blob || blob.size >= file.size) return file
+    return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' })
+  } catch {
+    return file
+  }
+}
+
 interface DepartmentItem {
   id: string
   name: string
@@ -64,7 +88,10 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
   const [categoryName, setCategoryName] = useState('R&M (Repair)')
   const [priority, setPriority] = useState<TicketPriority>('MEDIUM')
   const [jobCategoryId, setJobCategoryId] = useState('')
-  const [file, setFile] = useState<File | null>(null)
+  const [photos, setPhotos] = useState<File[]>([])
+  // Object URLs for the photo thumbnails, revoked when the list changes.
+  const photoPreviews = useMemo(() => photos.map((p) => URL.createObjectURL(p)), [photos])
+  useEffect(() => () => photoPreviews.forEach((url) => URL.revokeObjectURL(url)), [photoPreviews])
 
   // Voice Recording State
   const [isRecording, setIsRecording] = useState(false)
@@ -378,13 +405,13 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
         formData.append('jobCategoryId', jobCategoryId.trim())
       }
 
-      // Voice Audio File Attachment
+      // Voice note and photos are sent together (the API keeps both).
       if (audioBlob) {
         const audioFile = new File([audioBlob], `voicenote_${Date.now()}.webm`, { type: 'audio/webm' })
-        formData.append('attachment', audioFile)
-      } else if (file) {
-        formData.append('attachment', file)
+        formData.append('audio', audioFile)
       }
+      const compressedPhotos = await Promise.all(photos.map(compressPhoto))
+      compressedPhotos.forEach((photo) => formData.append('photos', photo))
 
       const url = API_ENDPOINTS.tickets.create(locationId)
       await apiClient.post(url, formData, {
@@ -402,7 +429,7 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
       setPriority('MEDIUM')
       setSelectedFlatId('')
       setJobCategoryId('')
-      setFile(null)
+      setPhotos([])
       deleteVoiceRecording()
     } catch (err: unknown) {
       console.error('Failed to create ticket:', err)
@@ -665,7 +692,13 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  multiple
+                  onChange={(e) => {
+                    const picked = Array.from(e.target.files || [])
+                    setPhotos((prev) => [...prev, ...picked].slice(0, MAX_PHOTOS))
+                    // Allow picking the same file again after removing it.
+                    e.target.value = ''
+                  }}
                   className="hidden"
                 />
 
@@ -673,14 +706,14 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className={`p-1.5 rounded-lg border transition-all cursor-pointer flex items-center gap-1 text-xs font-bold ${
-                    file
+                    photos.length
                       ? 'bg-blue-50 text-[#005390] border-blue-200'
                       : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border-gray-200'
                   }`}
-                  title="Attach Photo or File"
+                  title="Attach photos"
                 >
                   <Paperclip className="w-4 h-4 text-[#005390]" />
-                  {file ? 'File Attached' : ''}
+                  {photos.length ? `${photos.length} Photo${photos.length > 1 ? 's' : ''}` : ''}
                 </button>
 
                 {!isRecording ? (
@@ -735,17 +768,25 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
               </div>
             )}
 
-            {/* Selected File Badge */}
-            {file && (
-              <div className="p-2 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between text-xs font-medium text-[#005390]">
-                <span className="truncate">📎 {file.name}</span>
-                <button
-                  type="button"
-                  onClick={() => setFile(null)}
-                  className="p-1 text-rose-600 hover:bg-rose-100 rounded cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
+            {/* Selected photos */}
+            {photos.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {photos.map((photo, index) => (
+                  <div
+                    key={`${photo.name}-${index}`}
+                    className="relative w-16 h-16 rounded-lg overflow-hidden border border-blue-200 bg-blue-50"
+                  >
+                    <img src={photoPreviews[index]} alt={photo.name} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setPhotos((prev) => prev.filter((_, i) => i !== index))}
+                      className="absolute top-0.5 right-0.5 p-0.5 bg-white/90 text-rose-600 hover:bg-rose-100 rounded cursor-pointer"
+                      title="Remove photo"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
 
