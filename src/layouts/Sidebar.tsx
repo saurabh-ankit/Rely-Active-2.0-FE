@@ -117,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
     },
     {
       icon: <Box className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Asset Mgmt',
+      label: 'Asset Management',
       href: '/admin/asset-management',
       resourceKey: 'ASSET',
     },
@@ -189,7 +189,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
 
       <aside
         className={cn(
-          'fixed left-0 top-16 z-50 md:top-0 md:z-10 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 w-fit',
+          'fixed left-0 top-16 z-50 md:top-0 md:z-10 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 w-[300px] md:w-[120px] shrink-0',
           'h-[calc(100vh-4rem)]',
           isOpen ? 'translate-x-0' : '-translate-x-full',
         )}
