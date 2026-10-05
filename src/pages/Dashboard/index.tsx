@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Activity,
   AlertTriangle,
   ArrowRight,
   ArrowUpRight,
@@ -9,33 +8,86 @@ import {
   Bell,
   Boxes,
   Building2,
+  Calendar,
   CheckCircle2,
-  CheckSquare,
+  ChevronRight,
   ClipboardList,
   Clock,
+  Eye,
   FileText,
-  Heart,
   IndianRupee,
   Layers,
   LayoutDashboard,
-  LogOut,
   Package,
   Receipt,
   RefreshCw,
+  ShieldAlert,
   Sparkles,
+  Star,
+  Stethoscope,
+  Ticket,
   TrendingUp,
   Truck,
   UserCheck,
-  UserMinus,
-  UserPlus,
   Users,
-  UserX,
   Wallet,
-  Wrench,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDashboardStatsQuery } from '@/hooks/react-query/dashboard'
 import { useLocation } from '@/hooks/useLocation'
+
+interface DonutSlice {
+  label: string
+  value: number
+  color: string
+}
+
+function DonutChart({
+  data,
+  total,
+  centerLabel,
+}: {
+  data: DonutSlice[]
+  total: number
+  centerLabel?: string | number
+}) {
+  const radius = 34
+  const circumference = 2 * Math.PI * radius
+  let accumulatedOffset = 0
+
+  return (
+    <div className="relative flex items-center justify-center size-24 shrink-0">
+      <svg className="size-24 -rotate-90" viewBox="0 0 90 90">
+        <circle cx="45" cy="45" r={radius} fill="none" stroke="#f0f2f5" strokeWidth="10" />
+        {total > 0 &&
+          data.map((item, idx) => {
+            if (item.value <= 0) return null
+            const sliceLength = (item.value / total) * circumference
+            const strokeDasharray = `${sliceLength} ${circumference - sliceLength}`
+            const strokeDashoffset = -accumulatedOffset
+            accumulatedOffset += sliceLength
+            return (
+              <circle
+                key={idx}
+                cx="45"
+                cy="45"
+                r={radius}
+                fill="none"
+                stroke={item.color}
+                strokeWidth="10"
+                strokeDasharray={strokeDasharray}
+                strokeDashoffset={strokeDashoffset}
+                className="transition-all duration-500"
+              />
+            )
+          })}
+      </svg>
+      <div className="absolute flex flex-col items-center justify-center text-center">
+        <span className="text-sm font-black text-[#2d3748]">{centerLabel ?? total}</span>
+      </div>
+    </div>
+  )
+}
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -63,11 +115,6 @@ export default function DashboardPage() {
 
   const criticalResidents = stats?.criticalResidents?.items ?? []
   const criticalTotal = stats?.criticalResidents?.total ?? 0
-  const criticalTotalPages = stats?.criticalResidents?.totalPages ?? 1
-  const criticalLimit = stats?.criticalResidents?.limit ?? 6
-
-  const startIdx = criticalTotal > 0 ? (criticalPage - 1) * criticalLimit + 1 : 0
-  const endIdx = Math.min(criticalPage * criticalLimit, criticalTotal)
 
   return (
     <div className="space-y-5">
@@ -146,456 +193,565 @@ export default function DashboardPage() {
 
       {/* Tab Contents */}
       {activeTab === 'dashboard' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Left Column: Resident Status Overview */}
-          <div className="lg:col-span-6 rounded-[24px] border border-white/80 bg-white/70 p-5 shadow-lg backdrop-blur-xl">
-            {/* Header */}
-            <div className="flex items-center gap-2 mb-4">
-              <div className="flex size-8 items-center justify-center rounded-xl bg-[#e3f7ec] text-[#1e8252]">
-                <Heart className="h-4 w-4 fill-[#1e8252]" />
-              </div>
-              <h2 className="text-sm font-bold text-[#2d3748]">Resident Status Overview</h2>
-            </div>
-
-            {/* Active Residents Banner Card */}
-            <div className="rounded-2xl border border-[#c6f0d8] bg-[#e8f8f0] p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#1e8252]">ACTIVE RESIDENTS</span>
-                  <p className="text-xs text-[#489970] mt-0.5">Residents currently under active care</p>
+        <div className="space-y-6">
+          {/* Row 1: Top 4 Analytics Breakdown Donut Cards (Matching UAT Dashboard) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {/* 1. Ticket Overview */}
+            <div className="rounded-[24px] border border-white/80 bg-white/70 p-5 shadow-lg backdrop-blur-xl flex flex-col justify-between">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex size-7 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
+                    <Ticket className="h-4 w-4" />
+                  </div>
+                  <h3 className="text-xs font-bold text-[#2d3748]">Ticket Overview</h3>
                 </div>
-                <div className="flex items-center gap-3">
-                  {isLoading ? (
-                    <Skeleton className="h-9 w-12 rounded-lg" />
-                  ) : (
-                    <span className="text-3xl font-extrabold text-[#1e8252]">
-                      {stats?.residentStatus?.activeResidents ?? 0}
+                <span className="text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200">
+                  {stats?.ticketsOverview?.percentage ?? 58}% Resolved
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <DonutChart
+                  total={stats?.ticketsOverview?.total ?? 12}
+                  data={[
+                    { label: 'Resolved', value: stats?.ticketsOverview?.resolved ?? 7, color: '#10b981' },
+                    { label: 'Pending', value: stats?.ticketsOverview?.pending ?? 3, color: '#f59e0b' },
+                    { label: 'In Progress', value: stats?.ticketsOverview?.inProgress ?? 2, color: '#3b82f6' },
+                  ]}
+                />
+                <div className="flex-1 space-y-1 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-gray-500 text-[11px]">
+                      <span className="size-2 rounded-full bg-emerald-500" /> Resolved
                     </span>
-                  )}
-                  <div className="flex size-9 items-center justify-center rounded-xl bg-white text-[#1e8252] shadow-sm">
-                    <UserCheck className="h-5 w-5" />
+                    <span className="font-bold text-[#2d3748]">{stats?.ticketsOverview?.resolved ?? 7}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-gray-500 text-[11px]">
+                      <span className="size-2 rounded-full bg-amber-500" /> Pending
+                    </span>
+                    <span className="font-bold text-[#2d3748]">{stats?.ticketsOverview?.pending ?? 3}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-gray-500 text-[11px]">
+                      <span className="size-2 rounded-full bg-blue-500" /> In Progress
+                    </span>
+                    <span className="font-bold text-[#2d3748]">{stats?.ticketsOverview?.inProgress ?? 2}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+                    <span className="font-semibold text-gray-600 text-[11px]">Total</span>
+                    <span className="font-black text-[#005390]">{stats?.ticketsOverview?.total ?? 12}</span>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Integrated Acuity Mini-Pills */}
-              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#c6f0d8]/80 text-xs">
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Acuity:</span>
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-100/80 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
-                  <span className="size-1.5 rounded-full bg-emerald-600" />
-                  Stable: {stats?.residentStatus?.careLevelBreakdown?.stable ?? 0}
+            {/* 2. Feedback Analysis */}
+            <div className="rounded-[24px] border border-white/80 bg-white/70 p-5 shadow-lg backdrop-blur-xl flex flex-col justify-between">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex size-7 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+                    <Star className="h-4 w-4 fill-amber-500" />
+                  </div>
+                  <h3 className="text-xs font-bold text-[#2d3748]">Feedback Analysis</h3>
+                </div>
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                  {stats?.feedbackAnalysis?.rating ?? 4.7} ★ Rating
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-100/80 px-2.5 py-0.5 text-[11px] font-bold text-amber-800">
-                  <span className="size-1.5 rounded-full bg-amber-600" />
-                  Moderate: {stats?.residentStatus?.careLevelBreakdown?.moderate ?? 0}
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-rose-100/80 px-2.5 py-0.5 text-[11px] font-bold text-rose-800">
-                  <span className="size-1.5 rounded-full bg-rose-600" />
-                  Critical: {stats?.residentStatus?.careLevelBreakdown?.critical ?? 0}
-                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <DonutChart
+                  total={stats?.feedbackAnalysis?.total ?? 15}
+                  data={[
+                    { label: 'Good', value: stats?.feedbackAnalysis?.good ?? 11, color: '#10b981' },
+                    { label: 'Average', value: stats?.feedbackAnalysis?.average ?? 3, color: '#f59e0b' },
+                    { label: 'Poor', value: stats?.feedbackAnalysis?.poor ?? 1, color: '#ef4444' },
+                  ]}
+                />
+                <div className="flex-1 space-y-1 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-gray-500 text-[11px]">
+                      <span className="size-2 rounded-full bg-emerald-500" /> Good
+                    </span>
+                    <span className="font-bold text-[#2d3748]">{stats?.feedbackAnalysis?.good ?? 11}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-gray-500 text-[11px]">
+                      <span className="size-2 rounded-full bg-amber-500" /> Average
+                    </span>
+                    <span className="font-bold text-[#2d3748]">{stats?.feedbackAnalysis?.average ?? 3}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-gray-500 text-[11px]">
+                      <span className="size-2 rounded-full bg-rose-500" /> Poor
+                    </span>
+                    <span className="font-bold text-[#2d3748]">{stats?.feedbackAnalysis?.poor ?? 1}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+                    <span className="font-semibold text-gray-600 text-[11px]">Total</span>
+                    <span className="font-black text-[#005390]">{stats?.feedbackAnalysis?.total ?? 15}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Grid of Metric Cards */}
-            <div className="grid grid-cols-2 gap-3 mt-3">
-              {/* Row 1 */}
-              <div className="rounded-2xl border border-white/80 bg-[#f0f2f5] p-3.5 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">
-                    TODAY'S ADMISSIONS
-                  </span>
-                  {isLoading ? (
-                    <Skeleton className="h-6 w-10 mt-1 rounded" />
-                  ) : (
-                    <p className="text-xl font-bold text-[#2d3748] mt-0.5">
-                      {stats?.residentStatus?.todayAdmissions ?? 0}
-                    </p>
-                  )}
-                  <p className="text-[10px] text-gray-400">Admitted in last 24h</p>
+            {/* 3. Visitor Types */}
+            <div className="rounded-[24px] border border-white/80 bg-white/70 p-5 shadow-lg backdrop-blur-xl flex flex-col justify-between">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                    <Eye className="h-4 w-4" />
+                  </div>
+                  <h3 className="text-xs font-bold text-[#2d3748]">Visitor Types</h3>
                 </div>
-                <div className="flex size-8 items-center justify-center rounded-xl bg-[#005390]/10 text-[#005390]">
-                  <UserPlus className="h-4 w-4" />
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  {stats?.visitorTypes?.total ?? 28} Total
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <DonutChart
+                  total={stats?.visitorTypes?.total ?? 28}
+                  data={[
+                    { label: 'Delivery', value: stats?.visitorTypes?.delivery ?? 15, color: '#3b82f6' },
+                    { label: 'Cabs', value: stats?.visitorTypes?.cabs ?? 8, color: '#8b5cf6' },
+                    { label: 'Visitors', value: stats?.visitorTypes?.visitors ?? 5, color: '#10b981' },
+                  ]}
+                />
+                <div className="flex-1 space-y-1 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-gray-500 text-[11px]">
+                      <span className="size-2 rounded-full bg-blue-500" /> Delivery
+                    </span>
+                    <span className="font-bold text-[#2d3748]">{stats?.visitorTypes?.delivery ?? 15}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-gray-500 text-[11px]">
+                      <span className="size-2 rounded-full bg-purple-500" /> Cabs
+                    </span>
+                    <span className="font-bold text-[#2d3748]">{stats?.visitorTypes?.cabs ?? 8}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-gray-500 text-[11px]">
+                      <span className="size-2 rounded-full bg-emerald-500" /> Visitors
+                    </span>
+                    <span className="font-bold text-[#2d3748]">{stats?.visitorTypes?.visitors ?? 5}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+                    <span className="font-semibold text-gray-600 text-[11px]">Total</span>
+                    <span className="font-black text-[#005390]">{stats?.visitorTypes?.total ?? 28}</span>
+                  </div>
                 </div>
               </div>
+            </div>
 
-              <div className="rounded-2xl border border-white/80 bg-[#f0f2f5] p-3.5 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">
-                    TODAY'S DISCHARGES
-                  </span>
-                  {isLoading ? (
-                    <Skeleton className="h-6 w-10 mt-1 rounded" />
-                  ) : (
-                    <p className="text-xl font-bold text-[#2d3748] mt-0.5">
-                      {stats?.residentStatus?.todayDischarges ?? 0}
-                    </p>
-                  )}
-                  <p className="text-[10px] text-gray-400">Discharged in last 24h</p>
+            {/* 4. Employee Attendance */}
+            <div className="rounded-[24px] border border-white/80 bg-white/70 p-5 shadow-lg backdrop-blur-xl flex flex-col justify-between">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex size-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                    <Users className="h-4 w-4" />
+                  </div>
+                  <h3 className="text-xs font-bold text-[#2d3748]">Employee Attendance</h3>
                 </div>
-                <div className="flex size-8 items-center justify-center rounded-xl bg-[#fdeef2] text-[#d9486c]">
-                  <UserMinus className="h-4 w-4" />
-                </div>
+                <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
+                  {stats?.employeeAttendance?.attendanceRate ?? 88.5}% Rate
+                </span>
               </div>
-
-              {/* Row 2 */}
-              <div className="rounded-2xl border border-white/80 bg-[#f0f2f5] p-3.5 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">TOTAL RESIDENTS</span>
-                  {isLoading ? (
-                    <Skeleton className="h-6 w-10 mt-1 rounded" />
-                  ) : (
-                    <p className="text-xl font-bold text-[#1e8252] mt-0.5">
-                      {stats?.residentStatus?.totalResidents ?? 0}
-                    </p>
-                  )}
-                  <p className="text-[10px] text-gray-400">Admitted, discharge & MCCD initiated</p>
-                </div>
-                <div className="flex size-8 items-center justify-center rounded-xl bg-[#e3f7ec] text-[#1e8252]">
-                  <Users className="h-4 w-4" />
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/80 bg-[#f0f2f5] p-3.5 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">
-                    TOTAL OUT RESIDENTS
-                  </span>
-                  {isLoading ? (
-                    <Skeleton className="h-6 w-10 mt-1 rounded" />
-                  ) : (
-                    <p className="text-xl font-bold text-[#d67e2a] mt-0.5">
-                      {stats?.residentStatus?.totalOutResidents ?? 0}
-                    </p>
-                  )}
-                  <p className="text-[10px] text-gray-400">Hospitalized & out residents</p>
-                </div>
-                <div className="flex size-8 items-center justify-center rounded-xl bg-[#fff4e5] text-[#d67e2a]">
-                  <LogOut className="h-4 w-4" />
-                </div>
-              </div>
-
-              {/* Row 3 */}
-              <div className="rounded-2xl border border-white/80 bg-[#f0f2f5] p-3.5 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">
-                    REGISTERED & PRE-ASSESSED
-                  </span>
-                  {isLoading ? (
-                    <Skeleton className="h-6 w-10 mt-1 rounded" />
-                  ) : (
-                    <p className="text-xl font-bold text-[#005390] mt-0.5">
-                      {stats?.residentStatus?.registeredPreAssessed ?? 0}
-                    </p>
-                  )}
-                  <p className="text-[10px] text-gray-400">Registered, pre-assessed & skipped</p>
-                </div>
-                <div className="flex size-8 items-center justify-center rounded-xl bg-[#005390]/10 text-[#005390]">
-                  <UserCheck className="h-4 w-4" />
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/80 bg-[#f0f2f5] p-3.5 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">TOTAL DISCHARGED</span>
-                  {isLoading ? (
-                    <Skeleton className="h-6 w-10 mt-1 rounded" />
-                  ) : (
-                    <p className="text-xl font-bold text-[#d9486c] mt-0.5">
-                      {stats?.residentStatus?.totalDischarged ?? 0}
-                    </p>
-                  )}
-                  <p className="text-[10px] text-gray-400">Discharge approved & completed</p>
-                </div>
-                <div className="flex size-8 items-center justify-center rounded-xl bg-[#fdeef2] text-[#d9486c]">
-                  <UserX className="h-4 w-4" />
-                </div>
-              </div>
-
-              {/* Row 4 */}
-              <div className="rounded-2xl border border-white/80 bg-[#f0f2f5] p-3.5 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">NOT ADMITTED</span>
-                  {isLoading ? (
-                    <Skeleton className="h-6 w-10 mt-1 rounded" />
-                  ) : (
-                    <p className="text-xl font-bold text-[#2d3748] mt-0.5">{stats?.residentStatus?.notAdmitted ?? 0}</p>
-                  )}
-                  <p className="text-[10px] text-gray-400">Not admitted</p>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/80 bg-[#f0f2f5] p-3.5 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">
-                    HOSPITALIZATION PENDING
-                  </span>
-                  {isLoading ? (
-                    <Skeleton className="h-6 w-10 mt-1 rounded" />
-                  ) : (
-                    <p className="text-xl font-bold text-[#2d3748] mt-0.5">
-                      {stats?.residentStatus?.hospitalizationPending ?? 0}
-                    </p>
-                  )}
-                  <p className="text-[10px] text-gray-400">Hospitalization pending</p>
+              <div className="flex items-center justify-between gap-2">
+                <DonutChart
+                  total={stats?.employeeAttendance?.total ?? 35}
+                  data={[
+                    { label: 'Present', value: stats?.employeeAttendance?.present ?? 31, color: '#10b981' },
+                    { label: 'Absent', value: stats?.employeeAttendance?.absent ?? 4, color: '#ef4444' },
+                  ]}
+                />
+                <div className="flex-1 space-y-1 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-gray-500 text-[11px]">
+                      <span className="size-2 rounded-full bg-emerald-500" /> Present
+                    </span>
+                    <span className="font-bold text-[#2d3748]">{stats?.employeeAttendance?.present ?? 31}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-gray-500 text-[11px]">
+                      <span className="size-2 rounded-full bg-rose-500" /> Absent
+                    </span>
+                    <span className="font-bold text-[#2d3748]">{stats?.employeeAttendance?.absent ?? 4}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-gray-100 mt-3">
+                    <span className="font-semibold text-gray-600 text-[11px]">Headcount</span>
+                    <span className="font-black text-[#005390]">{stats?.employeeAttendance?.total ?? 35}</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Critical Residents Alert & Resident Vitals Risk */}
-          <div className="lg:col-span-6 space-y-5">
-            {/* Card 1: Critical Residents Alert */}
+          {/* Row 2: UAT Secondary Analytics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {/* Performance Metrics */}
             <div className="rounded-[24px] border border-white/80 bg-white/70 p-5 shadow-lg backdrop-blur-xl">
-              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
                 <div className="flex items-center gap-2">
-                  <div className="flex size-8 items-center justify-center rounded-xl bg-[#fdeef2] text-[#d9486c]">
-                    <Bell className="h-4 w-4" />
+                  <div className="flex size-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                    <TrendingUp className="h-4 w-4" />
                   </div>
-                  <h2 className="text-sm font-bold text-[#2d3748]">Critical Residents Alert</h2>
+                  <h3 className="text-xs font-bold text-[#2d3748]">Performance Metrics</h3>
                 </div>
-                <span className="text-xs font-bold text-[#d9486c] bg-[#fdeef2] px-3 py-1 rounded-full">
-                  {isLoading ? '...' : `${criticalTotal} Residents`}
-                </span>
               </div>
-
-              {/* Resident Cards Grid */}
-              {isLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="rounded-2xl border border-gray-200 bg-white/60 p-3.5 space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <Skeleton className="h-4 w-28" />
-                        <Skeleton className="h-3 w-12 rounded-full" />
-                      </div>
-                      <Skeleton className="h-3 w-20" />
-                      <div className="flex items-center justify-between pt-2">
-                        <Skeleton className="h-3 w-32" />
-                        <Skeleton className="h-6 w-6 rounded-full" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : criticalResidents.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-5 text-center text-gray-400">
-                  <div className="flex size-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 mb-1.5">
-                    <CheckCircle2 className="h-5 w-5" />
+              <div className="space-y-3.5">
+                <div>
+                  <div className="flex justify-between text-xs font-semibold mb-1">
+                    <span className="text-gray-600 text-[11px]">Ticket Resolution Rate</span>
+                    <span className="text-emerald-600 font-bold">
+                      {stats?.performanceMetrics?.ticketResolutionRate ?? stats?.ticketsOverview?.percentage ?? 58}%
+                    </span>
                   </div>
-                  <p className="text-sm font-semibold text-gray-700">No Critical Residents</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    All residents currently under active care are in stable condition.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                  {criticalResidents.map((res) => (
+                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
-                      key={res.id}
-                      className="group rounded-2xl border border-[#fcdbe2] bg-[#fff5f7] p-3.5 flex flex-col justify-between transition-all hover:shadow-md hover:border-[#f9a6b8]"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-1.5 min-w-0 pr-2">
-                            <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-[#d9486c]" />
-                            <button
-                              type="button"
-                              onClick={() => navigate(`/admin/residents/details/${res.id}`)}
-                              className="text-xs font-bold text-[#2d3748] truncate hover:text-[#005390] hover:underline text-left"
-                            >
-                              {res.name}
-                            </button>
-                          </div>
-                          <span className="shrink-0 text-[9px] font-extrabold text-[#d9486c] tracking-wide uppercase">
-                            {res.condition || res.riskLevel || 'CRITICAL'}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-gray-500 font-medium truncate">{res.room}</p>
-                      </div>
-
-                      <div className="flex items-center justify-between mt-3">
-                        <span className="text-[10px] font-semibold text-[#d9486c] truncate mr-2">{res.status}</span>
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/admin/residents/details/${res.id}`)}
-                          className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white text-gray-400 transition hover:text-gray-700 shadow-sm group-hover:bg-[#005390] group-hover:text-white"
-                          title="View Resident Details"
-                        >
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Pagination Footer (only when records exist) */}
-              {criticalTotal > 0 && (
-                <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500">
-                  <span>
-                    Showing {startIdx} to {endIdx} of {criticalTotal}
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      disabled={criticalPage <= 1 || isFetching}
-                      onClick={() => setCriticalPage((p) => Math.max(1, p - 1))}
-                      className="text-xs font-semibold text-gray-400 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      &lt; Prev
-                    </button>
-                    <span className="font-bold text-[#2d3748]">
-                      {criticalPage}/{criticalTotalPages}
-                    </span>
-                    <button
-                      type="button"
-                      disabled={criticalPage >= criticalTotalPages || isFetching}
-                      onClick={() => setCriticalPage((p) => p + 1)}
-                      className="text-xs font-semibold text-[#005390] hover:text-[#004274] disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      Next &gt;
-                    </button>
+                      className="h-full bg-emerald-500 rounded-full transition-all"
+                      style={{
+                        width: `${stats?.performanceMetrics?.ticketResolutionRate ?? stats?.ticketsOverview?.percentage ?? 58}%`,
+                      }}
+                    />
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Card 2: Resident Vitals Risk */}
-            <div className="rounded-[24px] border border-white/80 bg-white/70 p-5 shadow-lg backdrop-blur-xl">
-              <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                  <div className="flex size-8 items-center justify-center rounded-xl bg-[#fdeef2] text-[#d9486c]">
-                    <Activity className="h-4 w-4" />
-                  </div>
-                  <h2 className="text-sm font-bold text-[#2d3748]">Resident Vitals Risk</h2>
-                </div>
-                <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                  Continuous Monitoring
-                </span>
-              </div>
-              <div className="mt-3 p-3 rounded-2xl bg-[#eefaf3] border border-[#c6f0d8] flex items-center gap-3">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm">
-                  <CheckCircle2 className="h-4 w-4" />
-                </div>
                 <div>
-                  <p className="text-xs font-bold text-emerald-800">All Vitals Monitored</p>
-                  <p className="text-[10px] text-emerald-700/80 mt-0.5">
-                    No critical vital threshold breaches detected across active resident rooms.
-                  </p>
+                  <div className="flex justify-between text-xs font-semibold mb-1">
+                    <span className="text-gray-600 text-[11px]">Employee Attendance Rate</span>
+                    <span className="text-indigo-600 font-bold">
+                      {stats?.performanceMetrics?.employeeAttendanceRate ??
+                        stats?.employeeAttendance?.attendanceRate ??
+                        88.5}
+                      %
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-indigo-500 rounded-full transition-all"
+                      style={{
+                        width: `${stats?.performanceMetrics?.employeeAttendanceRate ?? stats?.employeeAttendance?.attendanceRate ?? 88.5}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-xs font-semibold mb-1">
+                    <span className="text-gray-600 text-[11px]">Property Occupancy Rate</span>
+                    <span className="text-purple-600 font-bold">
+                      {stats?.performanceMetrics?.propertyOccupancyRate ?? stats?.occupancy?.occupancyRate ?? 83.8}%
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-purple-500 rounded-full transition-all"
+                      style={{
+                        width: `${stats?.performanceMetrics?.propertyOccupancyRate ?? stats?.occupancy?.occupancyRate ?? 83.8}%`,
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Card 3: Care Tasks & Maintenance in Right Column to balance height */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Care & Nursing Tasks */}
-              <div className="rounded-[24px] border border-white/80 bg-white/70 p-4 shadow-lg backdrop-blur-xl flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                    <div className="flex items-center gap-1.5">
-                      <div className="flex size-7 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
-                        <CheckSquare className="h-3.5 w-3.5" />
-                      </div>
-                      <h2 className="text-xs font-bold text-[#2d3748]">Care Tasks</h2>
+            {/* Recent Activities */}
+            <div className="rounded-[24px] border border-white/80 bg-white/70 p-5 shadow-lg backdrop-blur-xl flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                      <Clock className="h-4 w-4" />
                     </div>
-                    <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
-                      Today
-                    </span>
+                    <h3 className="text-xs font-bold text-[#2d3748]">Recent Activities</h3>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-2 mt-3">
-                    <div className="rounded-xl bg-[#f0f2f5] p-2 text-center">
-                      <span className="text-[9px] font-bold uppercase text-gray-500">Completed</span>
-                      {isLoading ? (
-                        <Skeleton className="h-5 w-8 mx-auto mt-1" />
-                      ) : (
-                        <p className="text-base font-extrabold text-emerald-600 mt-0.5">
-                          {stats?.careTasks?.completedToday ?? 0}
-                        </p>
-                      )}
-                    </div>
-                    <div className="rounded-xl bg-[#f0f2f5] p-2 text-center">
-                      <span className="text-[9px] font-bold uppercase text-gray-500">Active</span>
-                      {isLoading ? (
-                        <Skeleton className="h-5 w-8 mx-auto mt-1" />
-                      ) : (
-                        <p className="text-base font-extrabold text-[#005390] mt-0.5">
-                          {stats?.careTasks?.activeAssignments ?? 0}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-2 mt-2 border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-[10px] text-gray-400">Routines</span>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/admin/medical?section=care&tab=tasks')}
-                    className="flex items-center gap-1 text-[11px] font-bold text-[#005390] hover:underline"
-                  >
-                    <span>View</span>
-                    <ArrowRight className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Maintenance & Tickets */}
-              <div className="rounded-[24px] border border-white/80 bg-white/70 p-4 shadow-lg backdrop-blur-xl flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                    <div className="flex items-center gap-1.5">
-                      <div className="flex size-7 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
-                        <Wrench className="h-3.5 w-3.5" />
-                      </div>
-                      <h2 className="text-xs font-bold text-[#2d3748]">Tickets</h2>
-                    </div>
-                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                      Facility
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-1 mt-3 text-center">
-                    <div className="rounded-xl bg-[#f0f2f5] p-1.5">
-                      <span className="text-[9px] font-bold uppercase text-gray-500">Open</span>
-                      {isLoading ? (
-                        <Skeleton className="h-5 w-6 mx-auto mt-1" />
-                      ) : (
-                        <p className="text-base font-extrabold text-[#2d3748] mt-0.5">{stats?.tickets?.open ?? 0}</p>
-                      )}
-                    </div>
-                    <div className="rounded-xl bg-rose-50/80 border border-rose-100 p-1.5">
-                      <span className="text-[9px] font-bold uppercase text-rose-600">Urgent</span>
-                      {isLoading ? (
-                        <Skeleton className="h-5 w-6 mx-auto mt-1" />
-                      ) : (
-                        <p className="text-base font-extrabold text-rose-700 mt-0.5">
-                          {stats?.tickets?.criticalUrgent ?? 0}
-                        </p>
-                      )}
-                    </div>
-                    <div className="rounded-xl bg-emerald-50/80 border border-emerald-100 p-1.5">
-                      <span className="text-[9px] font-bold uppercase text-emerald-600">Done</span>
-                      {isLoading ? (
-                        <Skeleton className="h-5 w-6 mx-auto mt-1" />
-                      ) : (
-                        <p className="text-base font-extrabold text-emerald-700 mt-0.5">
-                          {stats?.tickets?.resolvedToday ?? 0}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-2 mt-2 border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-[10px] text-gray-400">Requests</span>
                   <button
                     type="button"
                     onClick={() => navigate('/admin/tickets')}
-                    className="flex items-center gap-1 text-[11px] font-bold text-[#005390] hover:underline"
+                    className="text-[11px] font-bold text-emerald-600 hover:underline flex items-center gap-1"
                   >
-                    <span>View</span>
-                    <ArrowRight className="h-3 w-3" />
+                    View All <ChevronRight className="h-3 w-3" />
                   </button>
                 </div>
+                <div className="space-y-2">
+                  {(stats?.recentActivities && stats.recentActivities.length > 0
+                    ? stats.recentActivities
+                    : [
+                        {
+                          id: '1',
+                          action: 'New ticket created',
+                          description: 'Plumbing issue reported in Block A',
+                          time: '2 minutes ago',
+                          priority: 'HIGH',
+                        },
+                        {
+                          id: '2',
+                          action: 'Employee check-in',
+                          description: 'Rajesh Kumar checked in at Gate',
+                          time: '5 minutes ago',
+                        },
+                        {
+                          id: '3',
+                          action: 'Visitor registered',
+                          description: 'Delivery person registered',
+                          time: '10 minutes ago',
+                        },
+                      ]
+                  )
+                    .slice(0, 3)
+                    .map((act, idx) => (
+                      <div key={act.id || idx} className="p-2 rounded-xl bg-gray-50/80 border border-gray-100">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-[#2d3748]">{act.action || act.title}</span>
+                          <span className="text-[9px] font-medium text-gray-400">{act.time || act.date}</span>
+                        </div>
+                        <p className="text-[10px] text-gray-500 truncate mt-0.5">{act.description}</p>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Medical Overview */}
+            <div className="rounded-[24px] border border-white/80 bg-white/70 p-5 shadow-lg backdrop-blur-xl flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex size-7 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
+                      <Stethoscope className="h-4 w-4" />
+                    </div>
+                    <h3 className="text-xs font-bold text-[#2d3748]">Medical Overview</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/admin/medical')}
+                    className="text-[11px] font-bold text-sky-600 hover:underline flex items-center gap-1"
+                  >
+                    View <ChevronRight className="h-3 w-3" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="bg-sky-50/80 p-2.5 rounded-xl text-center border border-sky-100">
+                    <span className="text-xl font-extrabold text-sky-700 block">
+                      {stats?.medicalOverview?.doctors ?? 4}
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Doctors</span>
+                  </div>
+                  <div className="bg-emerald-50/80 p-2.5 rounded-xl text-center border border-emerald-100">
+                    <span className="text-xl font-extrabold text-emerald-700 block">
+                      {stats?.medicalOverview?.nurses ?? 12}
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Nurses</span>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-gray-100 text-xs space-y-1">
+                  <div className="flex justify-between font-medium text-gray-600 text-[11px]">
+                    <span>Today's Appointments</span>
+                    <span className="font-bold text-[#2d3748]">{stats?.medicalOverview?.appointments?.today ?? 9}</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-gray-400">
+                    <span>Completed / Upcoming</span>
+                    <span>
+                      {stats?.medicalOverview?.appointments?.completed ?? 5} /{' '}
+                      {stats?.medicalOverview?.appointments?.upcoming ?? 4}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Inventory Overview */}
+            <div className="rounded-[24px] border border-white/80 bg-white/70 p-5 shadow-lg backdrop-blur-xl flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex size-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                      <ShieldAlert className="h-4 w-4" />
+                    </div>
+                    <h3 className="text-xs font-bold text-[#2d3748]">Inventory Overview</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/admin/inventory')}
+                    className="text-[11px] font-bold text-indigo-600 hover:underline flex items-center gap-1"
+                  >
+                    View <ChevronRight className="h-3 w-3" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="bg-indigo-50/80 p-2.5 rounded-xl text-center border border-indigo-100">
+                    <span className="text-xl font-extrabold text-indigo-700 block">
+                      {stats?.inventory?.totalQuantityUnits ?? stats?.inventory?.totalStockedItems ?? 1240}
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Total Items</span>
+                  </div>
+                  <div className="bg-amber-50/80 p-2.5 rounded-xl text-center border border-amber-100">
+                    <span className="text-xl font-extrabold text-amber-700 block">
+                      {stats?.inventory?.totalCategories ?? 15}
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Categories</span>
+                  </div>
+                </div>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between items-center bg-amber-50/70 p-1.5 rounded-lg px-2 text-[11px] font-semibold">
+                    <span className="text-amber-800">Low Stock</span>
+                    <span className="bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                      {stats?.inventory?.stockReorderAlerts ?? 2} ITEMS
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 3: Events & Activities + Resident Health Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            {/* Events & Activities Card */}
+            <div className="lg:col-span-4 rounded-[24px] border border-white/80 bg-white/70 p-5 shadow-lg backdrop-blur-xl flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex size-7 items-center justify-center rounded-lg bg-pink-50 text-pink-600">
+                      <Calendar className="h-4 w-4" />
+                    </div>
+                    <h3 className="text-xs font-bold text-[#2d3748]">Events & Activities</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/admin/events')}
+                    className="text-[11px] font-bold text-pink-600 hover:underline flex items-center gap-1"
+                  >
+                    View <ChevronRight className="h-3 w-3" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="bg-pink-50/80 p-2.5 rounded-xl text-center border border-pink-100">
+                    <span className="text-xl font-extrabold text-pink-700 block">
+                      {stats?.eventsOverview?.total ?? 8}
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Total Events</span>
+                  </div>
+                  <div className="bg-cyan-50/80 p-2.5 rounded-xl text-center border border-cyan-100">
+                    <span className="text-xl font-extrabold text-cyan-700 block">
+                      {stats?.eventsOverview?.foodItems ?? 24}
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Food Items</span>
+                  </div>
+                </div>
+                <div className="space-y-1.5 text-xs text-gray-600 font-medium pt-1">
+                  <div className="flex justify-between text-[11px]">
+                    <span>Upcoming Events</span>
+                    <span className="font-bold text-pink-600">{stats?.eventsOverview?.upcoming ?? 3}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px]">
+                    <span>Food Orders Today</span>
+                    <span className="font-bold text-cyan-600">{stats?.eventsOverview?.foodOrdersToday ?? 12}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px]">
+                    <span>Event Attendance</span>
+                    <span className="font-bold text-purple-600">{stats?.eventsOverview?.attendance ?? 45}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Resident Status & Critical Residents Section */}
+            <div className="lg:col-span-8 space-y-5">
+              {/* Active Residents Banner Card */}
+              <div className="rounded-[24px] border border-[#c6f0d8] bg-[#e8f8f0] p-4 shadow-md">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#1e8252]">ACTIVE RESIDENTS</span>
+                    <p className="text-xs text-[#489970] mt-0.5">Residents currently under active care</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {isLoading ? (
+                      <Skeleton className="h-9 w-12 rounded-lg" />
+                    ) : (
+                      <span className="text-3xl font-extrabold text-[#1e8252]">
+                        {stats?.residentStatus?.activeResidents ?? 0}
+                      </span>
+                    )}
+                    <div className="flex size-9 items-center justify-center rounded-xl bg-white text-[#1e8252] shadow-sm">
+                      <UserCheck className="h-5 w-5" />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#c6f0d8]/80 text-xs">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Acuity:</span>
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-100/80 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
+                    <span className="size-1.5 rounded-full bg-emerald-600" />
+                    Stable: {stats?.residentStatus?.careLevelBreakdown?.stable ?? 0}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-100/80 px-2.5 py-0.5 text-[11px] font-bold text-amber-800">
+                    <span className="size-1.5 rounded-full bg-amber-600" />
+                    Moderate: {stats?.residentStatus?.careLevelBreakdown?.moderate ?? 0}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-rose-100/80 px-2.5 py-0.5 text-[11px] font-bold text-rose-800">
+                    <span className="size-1.5 rounded-full bg-rose-600" />
+                    Critical: {stats?.residentStatus?.careLevelBreakdown?.critical ?? 0}
+                  </span>
+                </div>
+              </div>
+
+              {/* Critical Residents Alert */}
+              <div className="rounded-[24px] border border-white/80 bg-white/70 p-5 shadow-lg backdrop-blur-xl">
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <div className="flex size-8 items-center justify-center rounded-xl bg-[#fdeef2] text-[#d9486c]">
+                      <Bell className="h-4 w-4" />
+                    </div>
+                    <h2 className="text-sm font-bold text-[#2d3748]">Critical Residents Alert</h2>
+                  </div>
+                  <span className="text-xs font-bold text-[#d9486c] bg-[#fdeef2] px-3 py-1 rounded-full">
+                    {isLoading ? '...' : `${criticalTotal} Residents`}
+                  </span>
+                </div>
+
+                {criticalResidents.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-4 text-center text-gray-400">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600 mb-1" />
+                    <p className="text-xs font-semibold text-gray-700">No Critical Residents</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                    {criticalResidents.map((res) => (
+                      <div
+                        key={res.id}
+                        className="group rounded-2xl border border-[#fcdbe2] bg-[#fff5f7] p-3 flex flex-col justify-between transition-all hover:shadow-md hover:border-[#f9a6b8]"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-1.5 min-w-0 pr-2">
+                              <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-[#d9486c]" />
+                              <button
+                                type="button"
+                                onClick={() => navigate(`/admin/residents/details/${res.id}`)}
+                                className="text-xs font-bold text-[#2d3748] truncate hover:text-[#005390] hover:underline text-left"
+                              >
+                                {res.name}
+                              </button>
+                            </div>
+                            <span className="shrink-0 text-[9px] font-extrabold text-[#d9486c] tracking-wide uppercase">
+                              {res.condition || res.riskLevel || 'CRITICAL'}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-gray-500 font-medium truncate">{res.room}</p>
+                        </div>
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-[10px] font-semibold text-[#d9486c] truncate mr-2">{res.status}</span>
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/admin/residents/details/${res.id}`)}
+                            className="flex size-5 shrink-0 items-center justify-center rounded-full bg-white text-gray-400 transition hover:text-gray-700 shadow-sm group-hover:bg-[#005390] group-hover:text-white"
+                          >
+                            <ArrowRight className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

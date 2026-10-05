@@ -120,6 +120,71 @@ export interface DashboardClinicalSummary {
   todayPending: number
 }
 
+export interface DashboardTicketsOverview {
+  total: number
+  resolved: number
+  pending: number
+  inProgress: number
+  percentage: number
+}
+
+export interface DashboardFeedbackAnalysis {
+  total: number
+  good: number
+  average: number
+  poor: number
+  rating: number
+}
+
+export interface DashboardVisitorTypes {
+  total: number
+  delivery: number
+  cabs: number
+  visitors: number
+}
+
+export interface DashboardEmployeeAttendance {
+  total: number
+  present: number
+  absent: number
+  attendanceRate: number
+}
+
+export interface DashboardPerformanceMetrics {
+  ticketResolutionRate: number
+  employeeAttendanceRate: number
+  propertyOccupancyRate: number
+}
+
+export interface DashboardRecentActivityItem {
+  id?: string
+  action?: string
+  title?: string
+  description?: string
+  time?: string
+  date?: string
+  priority?: string
+}
+
+export interface DashboardMedicalOverview {
+  doctors: number
+  nurses: number
+  appointments: {
+    today: number
+    completed: number
+    upcoming: number
+  }
+}
+
+export interface DashboardEventsOverview {
+  total: number
+  upcoming: number
+  completed: number
+  foodItems: number
+  foodOrdersToday: number
+  attendance: number
+}
+
 export interface DashboardStats {
   residentStatus: DashboardResidentStatusOverview
   criticalResidents: DashboardCriticalResidents
@@ -129,4 +194,12 @@ export interface DashboardStats {
   careTasks?: DashboardCareTasksSummary
   tickets?: DashboardTicketsSummary
   clinical?: DashboardClinicalSummary
+  ticketsOverview?: DashboardTicketsOverview
+  feedbackAnalysis?: DashboardFeedbackAnalysis
+  visitorTypes?: DashboardVisitorTypes
+  employeeAttendance?: DashboardEmployeeAttendance
+  performanceMetrics?: DashboardPerformanceMetrics
+  recentActivities?: DashboardRecentActivityItem[]
+  medicalOverview?: DashboardMedicalOverview
+  eventsOverview?: DashboardEventsOverview
 }
