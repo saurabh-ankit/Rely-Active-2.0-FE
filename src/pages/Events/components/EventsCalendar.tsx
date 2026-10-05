@@ -7,6 +7,7 @@ import { useGetEventsCalendar, useListEvents } from '@/hooks/react-query/events'
 import type { Event } from '@/lib/services/eventService'
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Clock, IndianRupee, MapPin } from 'lucide-react'
 import CreateEventModal from './CreateEventModal'
 
 interface EventsCalendarProps {
@@ -450,7 +451,11 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                   setCurrentDate(selectedDate)
                 }
               }}
-              className={viewMode === mode ? 'bg-gray-800' : ''}
+              className={
+                viewMode === mode
+                  ? 'bg-[#005390] text-white hover:bg-[#004273] border-[#005390] font-bold shadow-sm'
+                  : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-300 font-medium'
+              }
             >
               {mode.charAt(0).toUpperCase() + mode.slice(1)}
             </Button>
@@ -534,10 +539,10 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
 
       {/* Day View */}
       {viewMode === 'day' && (
-        <Card>
+        <Card className="rounded-[24px] border border-white/80 bg-white/70 shadow-lg backdrop-blur-xl">
           <CardContent className="p-6">
             <div className="space-y-4">
-              <div className="text-lg font-semibold text-gray-800 mb-4">
+              <div className="text-base font-bold text-[#2d3748] pb-3 border-b border-gray-100">
                 {(selectedDate || currentDate).toLocaleDateString('en-US', {
                   weekday: 'long',
                   year: 'numeric',
@@ -548,65 +553,96 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
               {(() => {
                 const dateToUse = selectedDate || currentDate
                 const dayEvents = getEventsForDate(dateToUse)
-
-                // Ensure dayEvents is an array
                 const safeDayEvents = Array.isArray(dayEvents) ? dayEvents : []
 
                 return safeDayEvents.length > 0 ? (
-                  <div className="space-y-3">
-                    {safeDayEvents.map((event: Event) => (
-                      <div
-                        key={event.id}
-                        className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="flex items-start gap-4">
-                          {event.poster && (
-                            <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
-                              <img
-                                src={event.poster}
-                                alt={event.title}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  ;(e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=No+Image'
-                                }}
-                              />
+                  <div className="space-y-4">
+                    {safeDayEvents.map((event: Event) => {
+                      const eventStartDate = new Date(event.startDate)
+                      const numericFee =
+                        event.entryFee !== undefined && event.entryFee !== null
+                          ? typeof event.entryFee === 'string'
+                            ? parseFloat(event.entryFee)
+                            : Number(event.entryFee)
+                          : null
+
+                      return (
+                        <div
+                          key={event.id}
+                          className="group rounded-2xl border border-gray-200/80 bg-white p-4 shadow-xs transition-all hover:border-[#005390]/40 hover:shadow-md"
+                        >
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex items-start sm:items-center gap-4 flex-1 min-w-0">
+                              {event.poster ? (
+                                <div className="size-20 rounded-xl overflow-hidden shrink-0 border border-gray-100 shadow-xs">
+                                  <img
+                                    src={event.poster}
+                                    alt={event.title}
+                                    className="size-full object-cover"
+                                    onError={(e) => {
+                                      ;(e.target as HTMLImageElement).src =
+                                        'https://via.placeholder.com/150?text=No+Image'
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="size-20 rounded-xl bg-gradient-to-br from-[#005390]/10 to-blue-50 border border-[#005390]/20 flex flex-col items-center justify-center text-center shrink-0 p-2">
+                                  <span className="text-[11px] font-bold text-[#005390] uppercase tracking-wider">
+                                    {eventStartDate.toLocaleDateString('en-US', { month: 'short' })}
+                                  </span>
+                                  <span className="text-2xl font-black text-[#005390]">{eventStartDate.getDate()}</span>
+                                  <span className="text-[10px] font-medium text-gray-500">
+                                    {eventStartDate.toLocaleDateString('en-US', { weekday: 'short' })}
+                                  </span>
+                                </div>
+                              )}
+
+                              <div className="space-y-1.5 flex-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500">
+                                    <Clock className="h-3.5 w-3.5 text-[#005390]" />
+                                    {eventStartDate.toLocaleTimeString('en-US', {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })}
+                                  </span>
+                                  <span
+                                    className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                      event.eventType === 'regular'
+                                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                        : 'bg-purple-50 text-purple-700 border border-purple-200'
+                                    }`}
+                                  >
+                                    {event.eventType === 'regular' ? 'Regular' : 'Special'}
+                                  </span>
+                                </div>
+
+                                <h3 className="text-base font-bold text-[#2d3748] truncate group-hover:text-[#005390]">
+                                  {event.title}
+                                </h3>
+
+                                {event.description && (
+                                  <p className="text-xs text-gray-600 line-clamp-2">{event.description}</p>
+                                )}
+
+                                <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-gray-500">
+                                  {event.venue && (
+                                    <span className="flex items-center gap-1 font-medium bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-200">
+                                      <MapPin className="h-3.5 w-3.5 text-rose-500" />
+                                      Venue: <strong className="text-gray-800">{event.venue.name}</strong>
+                                    </span>
+                                  )}
+                                  {numericFee !== null && !isNaN(numericFee) && (
+                                    <span className="flex items-center gap-1 font-medium bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 text-emerald-800">
+                                      <IndianRupee className="h-3.5 w-3.5 text-emerald-600" />
+                                      Fee: <strong className="text-emerald-900">₹{numericFee.toFixed(2)}</strong>
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          )}
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-sm font-medium text-gray-500">
-                                {new Date(event.startDate).toLocaleTimeString('en-US', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}{' '}
-                                -{' '}
-                                {new Date(event.endDate).toLocaleTimeString('en-US', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </span>
-                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium capitalize">
-                                {event.eventType === 'regular' ? 'Regular' : 'Special'}
-                              </span>
-                            </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-1">{event.title}</h3>
-                            {event.description && <p className="text-sm text-gray-600 mb-2">{event.description}</p>}
-                            {event.venue && <div className="text-sm text-gray-500 mb-2">Venue: {event.venue.name}</div>}
-                            {event.entryFee !== undefined &&
-                              event.entryFee !== null &&
-                              (() => {
-                                const numericFee =
-                                  typeof event.entryFee === 'string'
-                                    ? parseFloat(event.entryFee)
-                                    : Number(event.entryFee)
-                                if (isNaN(numericFee)) return null
-                                return (
-                                  <div className="text-sm font-medium text-gray-900 mb-2">
-                                    Entry Fee: ₹{numericFee.toFixed(2)}
-                                  </div>
-                                )
-                              })()}
-                            <div className="flex gap-2 mt-3">
+
+                            <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-2 pt-3 md:pt-0 border-t md:border-t-0 border-gray-100 shrink-0">
                               <EventsPermission action="update">
                                 <Button
                                   size="sm"
@@ -615,18 +651,20 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                                     e.stopPropagation()
                                     openEditEvent(event.id)
                                   }}
+                                  className="h-9 px-4 rounded-xl text-xs font-semibold text-gray-700 border-gray-200 hover:bg-[#005390] hover:text-white hover:border-[#005390] transition-colors"
                                 >
                                   Edit Event
                                 </Button>
                               </EventsPermission>
+
                               {event.allowReservation && (
                                 <Button
                                   size="sm"
-                                  variant="default"
                                   onClick={(e) => {
                                     e.stopPropagation()
                                     navigate(`/admin/events/${event.id}/registrations`)
                                   }}
+                                  className="h-9 px-4 rounded-xl text-xs font-semibold bg-[#005390] text-white hover:bg-[#004273] shadow-xs transition-colors"
                                 >
                                   View Registrations
                                 </Button>
@@ -634,8 +672,8 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-12 text-gray-500">No events scheduled for this day</div>
@@ -648,63 +686,98 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
 
       {/* Agenda View - List all upcoming events */}
       {viewMode === 'agenda' && (
-        <Card>
+        <Card className="rounded-[24px] border border-white/80 bg-white/70 shadow-lg backdrop-blur-xl">
           <CardContent className="p-6">
             <div className="space-y-4">
               {events.length > 0 ? (
                 events
                   .sort((a: Event, b: Event) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
-                  .map((event: Event) => (
-                    <div
-                      key={event.id}
-                      className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex items-start gap-4">
-                        {event.poster && (
-                          <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
-                            <img
-                              src={event.poster}
-                              alt={event.title}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                ;(e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=No+Image'
-                              }}
-                            />
+                  .map((event: Event) => {
+                    const eventStartDate = new Date(event.startDate)
+                    const numericFee =
+                      event.entryFee !== undefined && event.entryFee !== null
+                        ? typeof event.entryFee === 'string'
+                          ? parseFloat(event.entryFee)
+                          : Number(event.entryFee)
+                        : null
+
+                    return (
+                      <div
+                        key={event.id}
+                        className="group rounded-2xl border border-gray-200/80 bg-white p-4 shadow-xs transition-all hover:border-[#005390]/40 hover:shadow-md"
+                      >
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex items-start sm:items-center gap-4 flex-1 min-w-0">
+                            {event.poster ? (
+                              <div className="size-20 rounded-xl overflow-hidden shrink-0 border border-gray-100 shadow-xs">
+                                <img
+                                  src={event.poster}
+                                  alt={event.title}
+                                  className="size-full object-cover"
+                                  onError={(e) => {
+                                    ;(e.target as HTMLImageElement).src =
+                                      'https://via.placeholder.com/150?text=No+Image'
+                                  }}
+                                />
+                              </div>
+                            ) : (
+                              <div className="size-20 rounded-xl bg-gradient-to-br from-[#005390]/10 to-blue-50 border border-[#005390]/20 flex flex-col items-center justify-center text-center shrink-0 p-2">
+                                <span className="text-[11px] font-bold text-[#005390] uppercase tracking-wider">
+                                  {eventStartDate.toLocaleDateString('en-US', { month: 'short' })}
+                                </span>
+                                <span className="text-2xl font-black text-[#005390]">{eventStartDate.getDate()}</span>
+                                <span className="text-[10px] font-medium text-gray-500">
+                                  {eventStartDate.toLocaleDateString('en-US', { weekday: 'short' })}
+                                </span>
+                              </div>
+                            )}
+
+                            <div className="space-y-1.5 flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500">
+                                  <Clock className="h-3.5 w-3.5 text-[#005390]" />
+                                  {eventStartDate.toLocaleTimeString('en-US', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </span>
+                                <span
+                                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                    event.eventType === 'regular'
+                                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                      : 'bg-purple-50 text-purple-700 border border-purple-200'
+                                  }`}
+                                >
+                                  {event.eventType === 'regular' ? 'Regular' : 'Special'}
+                                </span>
+                              </div>
+
+                              <h3 className="text-base font-bold text-[#2d3748] truncate group-hover:text-[#005390]">
+                                {event.title}
+                              </h3>
+
+                              {event.description && (
+                                <p className="text-xs text-gray-600 line-clamp-2">{event.description}</p>
+                              )}
+
+                              <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-gray-500">
+                                {event.venue && (
+                                  <span className="flex items-center gap-1 font-medium bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-200">
+                                    <MapPin className="h-3.5 w-3.5 text-rose-500" />
+                                    Venue: <strong className="text-gray-800">{event.venue.name}</strong>
+                                  </span>
+                                )}
+                                {numericFee !== null && !isNaN(numericFee) && (
+                                  <span className="flex items-center gap-1 font-medium bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 text-emerald-800">
+                                    <IndianRupee className="h-3.5 w-3.5 text-emerald-600" />
+                                    Fee: <strong className="text-emerald-900">₹{numericFee.toFixed(2)}</strong>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        )}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-sm font-medium text-gray-500">
-                              {new Date(event.startDate).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                              })}{' '}
-                              {new Date(event.startDate).toLocaleTimeString('en-US', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </span>
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium capitalize">
-                              {event.eventType === 'regular' ? 'Regular' : 'Special'}
-                            </span>
-                          </div>
-                          <h3 className="text-lg font-semibold text-gray-900 mb-1">{event.title}</h3>
-                          {event.description && <p className="text-sm text-gray-600 mb-2">{event.description}</p>}
-                          {event.venue && <div className="text-sm text-gray-500 mb-2">Venue: {event.venue.name}</div>}
-                          {event.entryFee !== undefined &&
-                            event.entryFee !== null &&
-                            (() => {
-                              const numericFee =
-                                typeof event.entryFee === 'string' ? parseFloat(event.entryFee) : Number(event.entryFee)
-                              if (isNaN(numericFee)) return null
-                              return (
-                                <div className="text-sm font-medium text-gray-900 mb-2">
-                                  Entry Fee: ₹{numericFee.toFixed(2)}
-                                </div>
-                              )
-                            })()}
-                          <div className="flex gap-2 mt-3">
+
+                          <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-2 pt-3 md:pt-0 border-t md:border-t-0 border-gray-100 shrink-0">
                             <EventsPermission action="update">
                               <Button
                                 size="sm"
@@ -713,18 +786,20 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                                   e.stopPropagation()
                                   openEditEvent(event.id)
                                 }}
+                                className="h-9 px-4 rounded-xl text-xs font-semibold text-gray-700 border-gray-200 hover:bg-[#005390] hover:text-white hover:border-[#005390] transition-colors"
                               >
                                 Edit Event
                               </Button>
                             </EventsPermission>
+
                             {event.allowReservation && (
                               <Button
                                 size="sm"
-                                variant="default"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   navigate(`/admin/events/${event.id}/registrations`)
                                 }}
+                                className="h-9 px-4 rounded-xl text-xs font-semibold bg-[#005390] text-white hover:bg-[#004273] shadow-xs transition-colors"
                               >
                                 View Registrations
                               </Button>
@@ -732,8 +807,8 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    )
+                  })
               ) : (
                 <div className="text-center py-12 text-gray-500">No events found</div>
               )}

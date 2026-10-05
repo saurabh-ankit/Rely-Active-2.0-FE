@@ -802,10 +802,10 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
               <p className="text-xs text-gray-500 mt-0.5">
                 {isEditMode
                   ? isLocationScoped
-                    ? `Update staff profile details and role assigned to ${selectedLocationName || 'this location'}.`
+                    ? 'Update staff profile details and role.'
                     : 'Update staff member profile details, authorization role, operational department, and property locations.'
                   : isLocationScoped
-                    ? `Add a new staff member account for ${selectedLocationName || 'this location'}.`
+                    ? 'Add a new staff member account.'
                     : 'Add a new staff member account, assign system authorization role, operational department, credentials, and property locations.'}
               </p>
             </div>

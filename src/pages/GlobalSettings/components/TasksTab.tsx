@@ -12,7 +12,6 @@ import {
   HeartHandshake,
   Upload,
   ImageIcon,
-  Building2,
   CalendarDays,
   Sparkles,
   Lock,
@@ -68,7 +67,7 @@ const fieldInputClass =
   'w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-900 placeholder:text-gray-400 focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20'
 
 export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forcedPropertyId = null }) => {
-  const { selectedLocationId, selectedLocationName } = useLocationContext()
+  const { selectedLocationId } = useLocationContext()
   const effectivePropertyId = forcedPropertyId || selectedLocationId
 
   const [errorMsg, setErrorMsg] = useState('')
@@ -443,17 +442,9 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                 <HeartHandshake className="w-5 h-5" />
               </div>
               <h2 className="text-xl font-bold text-gray-900">Care Tasks</h2>
-              {isPropertyMode && selectedLocationName && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  <Building2 className="w-3 h-3 text-emerald-600" />
-                  {selectedLocationName}
-                </span>
-              )}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              {isPropertyMode
-                ? `Configure and manage Care Tasks for ${selectedLocationName || 'this property'}.`
-                : 'Configure and manage Care Tasks with multi-tier pricing and images.'}
+              Configure and manage Care Tasks with multi-tier pricing and images.
             </p>
           </div>
 

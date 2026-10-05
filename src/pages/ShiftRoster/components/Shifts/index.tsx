@@ -147,31 +147,27 @@ const ShiftsGrid = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm text-gray-600">
-          {shifts.length} shift{shifts.length === 1 ? '' : 's'}
-        </p>
-        <RosterPermission action="create">
-          <Button
-            size="sm"
-            className="bg-[#2a517c] hover:bg-[#476587] text-white"
-            onClick={() => {
-              setEditing(null)
-              setDialogOpen(true)
-            }}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create Shift
-          </Button>
-        </RosterPermission>
-      </div>
-
       <DataTable
         columns={columns}
         data={shifts}
         isLoading={isLoading}
         filterKey="name"
-        searchPlaceholder="Search shifts…"
+        searchPlaceholder="Search shifts by name or description…"
+        filterActions={
+          <RosterPermission action="create">
+            <Button
+              size="sm"
+              className="bg-[#005390] hover:bg-[#004170] text-white rounded-xl h-9 text-xs font-bold px-4"
+              onClick={() => {
+                setEditing(null)
+                setDialogOpen(true)
+              }}
+            >
+              <Plus className="h-4 w-4 mr-1.5" />
+              Create Shift
+            </Button>
+          </RosterPermission>
+        }
       />
 
       <CreateShiftDialog open={dialogOpen} onOpenChange={setDialogOpen} shift={editing} />

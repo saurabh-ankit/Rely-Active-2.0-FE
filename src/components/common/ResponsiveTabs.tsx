@@ -100,21 +100,21 @@ export const ResponsiveTabs = ({ defaultValue, value, onValueChange, tabs, class
 
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className={className}>
-      <div className="rounded-xl bg-card text-card-foreground/70 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+      <div className="rounded-2xl bg-card text-card-foreground/70 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
         <div
           ref={scrollContainerRef}
-          className="patient-tabs-scrollbar w-full overflow-x-auto overflow-y-hidden px-1 pb-1"
+          className="patient-tabs-scrollbar w-full overflow-x-auto overflow-y-hidden px-1 py-1"
           style={{ scrollBehavior: 'auto' }}
         >
-          <TabsList className="inline-flex w-max min-w-full gap-1 justify-start">
+          <TabsList className="inline-flex w-max min-w-full h-auto gap-2 justify-start bg-transparent p-0">
             {tabs.map((tab) => (
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
                 ref={tab.value === activeTab ? activeTriggerRef : null}
-                className="flex items-center gap-2 whitespace-nowrap data-[state=active]:bg-primary data-[state=active]:text-primary-foreground focus-visible:!ring-0 focus-visible:!ring-offset-0"
+                className="flex h-10 items-center justify-center gap-2.5 whitespace-nowrap rounded-xl px-6 text-sm font-bold text-gray-600 hover:text-gray-900 data-active:bg-[#005390] data-active:text-white data-active:shadow-md focus-visible:!ring-0 focus-visible:!ring-offset-0 transition-all"
               >
-                {tab.icon && <tab.icon className="h-4 w-4 shrink-0" />}
+                {tab.icon && <tab.icon className="size-4.5 shrink-0" />}
                 <span className="hidden sm:inline">{tab.label}</span>
                 <span className="sm:hidden">{tab.shortLabel}</span>
               </TabsTrigger>

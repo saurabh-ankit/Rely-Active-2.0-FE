@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Building2, Shield, Stethoscope } from 'lucide-react'
-import { useLocationContext } from '@/hooks/useLocation'
+import { ArrowRight, Shield, Stethoscope } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
 interface SettingsPageProps {
@@ -10,7 +9,6 @@ interface SettingsPageProps {
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ initialView = 'main' }) => {
   const navigate = useNavigate()
-  const { selectedLocationName } = useLocationContext()
   const { isSuperAdmin } = useAuth()
 
   // If accessed with legacy sub-views, redirect directly to the new Medical module
@@ -35,17 +33,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ initialView = 'main'
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">Settings</h1>
-            {selectedLocationName && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                <Building2 className="w-3.5 h-3.5 text-emerald-600" />
-                {selectedLocationName}
-              </span>
-            )}
           </div>
-          <p className="text-sm text-gray-500 mt-1">
-            Configure property-level operations and templates for{' '}
-            <strong className="text-gray-700">{selectedLocationName || 'your active property'}</strong>.
-          </p>
+          <p className="text-sm text-gray-500 mt-1">Configure property-level operations and templates.</p>
         </div>
 
         <div className="flex items-center gap-2">

@@ -71,7 +71,6 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('ALL')
 
   const selectedLocationId = useLocationStore((state) => state.selectedLocationId)
-  const selectedLocationName = useLocationStore((state) => state.selectedLocationName)
 
   const { data: users = [], isLoading } = useUsersQuery(debouncedSearch)
   const { data: departments = [] } = useDepartmentsQuery()
@@ -527,8 +526,7 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
             Employee Directory
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">
-            Manage employee profiles, assigned properties, and module access permissions for{' '}
-            {selectedLocationName || 'NCL'}.
+            Manage employee profiles, assigned properties, and module access permissions.
           </p>
         </div>
         {canCreateEmployee && (
@@ -556,12 +554,12 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
             <select
               value={selectedDepartmentFilter}
               onChange={(e) => setSelectedDepartmentFilter(e.target.value)}
-              className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
+              className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
             >
-              <option value="ALL">All Departments</option>
+              <option value="ALL">Department: All Departments</option>
               {departments.map((dept) => (
                 <option key={dept.id} value={dept.id}>
-                  {dept.name}
+                  Department: {dept.name}
                 </option>
               ))}
             </select>
@@ -569,11 +567,11 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
             <select
               value={selectedStatusFilter}
               onChange={(e) => setSelectedStatusFilter(e.target.value)}
-              className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
+              className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
             >
-              <option value="ALL">All Statuses</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
+              <option value="ALL">Status: All Statuses</option>
+              <option value="ACTIVE">Status: Active Only</option>
+              <option value="INACTIVE">Status: Inactive Only</option>
             </select>
           </div>
         }
@@ -592,8 +590,8 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
                 Assign a department manager for{' '}
                 <strong className="text-gray-800 dark:text-gray-200">
                   {selectedUserForManager.profile?.firstName} {selectedUserForManager.profile?.lastName || ''}
-                </strong>{' '}
-                at location <strong className="text-[#005390]">{selectedLocationName || 'Current Location'}</strong>.
+                </strong>
+                .
               </p>
             </DialogHeader>
 

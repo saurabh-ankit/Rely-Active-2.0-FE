@@ -12,7 +12,9 @@ import {
   Home,
   ChevronLeft,
   ChevronRight,
+  Search,
 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 import { useLocationContext } from '@/hooks/useLocation'
 import {
   getGateStats,
@@ -53,6 +55,7 @@ export default function GateManagementPage() {
   const [activeTab, setActiveTab] = useState<'ENTRIES' | 'INVITES'>('ENTRIES')
   const [isLoading, setIsLoading] = useState(false)
 
+  const [searchTerm, setSearchTerm] = useState('')
   const [entriesPage, setEntriesPage] = useState(1)
   const [entriesTotalPages, setEntriesTotalPages] = useState(1)
   const [preapprovedPage, setPreapprovedPage] = useState(1)
@@ -149,33 +152,55 @@ export default function GateManagementPage() {
     }
   }
 
+  const filteredEntries = entries.filter((entry) => {
+    if (!searchTerm.trim()) return true
+    const term = searchTerm.toLowerCase()
+    return (
+      entry.visitorName?.toLowerCase().includes(term) ||
+      entry.visitorPhone?.toLowerCase().includes(term) ||
+      entry.vehicleNumber?.toLowerCase().includes(term) ||
+      entry.unit?.unit_number?.toLowerCase().includes(term) ||
+      entry.company?.toLowerCase().includes(term) ||
+      entry.personToMeet?.toLowerCase().includes(term)
+    )
+  })
+
+  const filteredPreapproved = preapproved.filter((item) => {
+    if (!searchTerm.trim()) return true
+    const term = searchTerm.toLowerCase()
+    return (
+      item.visitorName?.toLowerCase().includes(term) ||
+      item.visitorPhone?.toLowerCase().includes(term) ||
+      item.vehicleNumber?.toLowerCase().includes(term) ||
+      item.unit?.unit_number?.toLowerCase().includes(term) ||
+      item.company?.toLowerCase().includes(term) ||
+      item.personToMeet?.toLowerCase().includes(term)
+    )
+  })
+
   return (
     <div className="space-y-6 pb-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Visitors & Gate Management</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Track visitors, manage walk-in approvals, and monitor gate operations.
-          </p>
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Visitors & Gate Management</h1>
+        <p className="text-sm text-gray-600 mt-1">
+          Track visitors, manage walk-in approvals, and monitor gate operations.
+        </p>
+      </div>
+
+      {/* Top Search & Filter Container Bar (Matching Image 1) */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 p-3.5 rounded-2xl shadow-2xs">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+          <Input
+            type="text"
+            className="pl-9 pr-4 py-2 h-9 w-full rounded-xl text-xs bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-700 shadow-2xs focus:ring-2 focus:ring-[#005390]/20"
+            placeholder="Search visitors by name, vehicle, unit..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
 
-        <div className="flex items-center gap-3">
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value)
-              setEntriesPage(1)
-              setPreapprovedPage(1)
-            }}
-            className="p-2 border border-gray-200 rounded-lg text-sm text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">All Statuses</option>
-            <option value="Inside">Inside</option>
-            <option value="Completed">Completed</option>
-            <option value="PendingApproval">Walk-ins (Pending)</option>
-            <option value="Rejected">Rejected</option>
-            <option value="Expired">Expired</option>
-          </select>
+        <div className="flex items-center gap-2 flex-wrap">
           <select
             value={visitorTypeFilter}
             onChange={(e) => {
@@ -183,15 +208,33 @@ export default function GateManagementPage() {
               setEntriesPage(1)
               setPreapprovedPage(1)
             }}
-            className="p-2 border border-gray-200 rounded-lg text-sm text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
           >
-            <option value="">All Types</option>
-            <option value="Guest">Guest</option>
-            <option value="Delivery">Delivery</option>
-            <option value="Cab">Cab</option>
-            <option value="Office">Office</option>
-            <option value="Other">Other</option>
+            <option value="">Visitor Type: All Types</option>
+            <option value="Guest">Visitor Type: Guest</option>
+            <option value="Delivery">Visitor Type: Delivery</option>
+            <option value="Cab">Visitor Type: Cab</option>
+            <option value="Office">Visitor Type: Office</option>
+            <option value="Other">Visitor Type: Other</option>
           </select>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value)
+              setEntriesPage(1)
+              setPreapprovedPage(1)
+            }}
+            className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
+          >
+            <option value="">Status: All Statuses</option>
+            <option value="Inside">Status: Inside</option>
+            <option value="Completed">Status: Completed</option>
+            <option value="PendingApproval">Status: Walk-ins (Pending)</option>
+            <option value="Rejected">Status: Rejected</option>
+            <option value="Expired">Status: Expired</option>
+          </select>
+
           <input
             type="date"
             value={dateFilter}
@@ -200,7 +243,7 @@ export default function GateManagementPage() {
               setEntriesPage(1)
               setPreapprovedPage(1)
             }}
-            className="p-2 border border-gray-200 rounded-lg text-sm text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
           />
         </div>
       </div>
@@ -276,14 +319,14 @@ export default function GateManagementPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {entries.length === 0 ? (
+                {filteredEntries.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-sm text-gray-500 font-medium">
                       No entries found
                     </td>
                   </tr>
                 ) : (
-                  entries.map((entry) => (
+                  filteredEntries.map((entry) => (
                     <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
                       <td className="py-4 px-2">
                         <div className="flex items-center gap-3">
@@ -514,14 +557,14 @@ export default function GateManagementPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {preapproved.length === 0 ? (
+                {filteredPreapproved.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="py-8 text-center text-sm text-gray-500 font-medium">
                       No preapproved found
                     </td>
                   </tr>
                 ) : (
-                  preapproved.map((preapproved) => (
+                  filteredPreapproved.map((preapproved) => (
                     <tr key={preapproved.id} className="hover:bg-gray-50 transition-colors">
                       <td className="py-4 px-2">
                         <div className="flex items-center gap-3">

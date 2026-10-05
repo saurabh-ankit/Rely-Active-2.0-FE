@@ -44,14 +44,12 @@ import { StockInForm } from './StockInForm'
 import { SupplierList } from './Suppliers'
 import { PODetail, TransactionDetail, ItemDetail } from './Details'
 export default function InventoryPage() {
-  const { selectedLocationId, selectedLocationName } = useLocation()
+  const { selectedLocationId } = useLocation()
   return (
     <div className="min-w-0 space-y-6 pb-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Inventory</h1>
-        <p className="mt-1 text-sm text-gray-600 md:text-base">
-          {selectedLocationName ? `Manage inventory at ${selectedLocationName}` : 'Manage property inventory'}
-        </p>
+        <p className="mt-1 text-sm text-gray-600 md:text-base">Manage property inventory</p>
       </div>
       {selectedLocationId ? (
         <PropertyInventory key={selectedLocationId} locationId={selectedLocationId} />
