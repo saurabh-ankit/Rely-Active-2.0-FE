@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Bell, Building2, ChevronDown, LogOut, Menu, Settings, Shield, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
@@ -12,11 +12,44 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = true }) => {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, isSuperAdmin, logout } = useAuth()
   const { selectedLocationName, accessibleLocations, selectLocation } = useLocationContext()
 
   const [showLocationDropdown, setShowLocationDropdown] = useState(false)
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
+
+  const locationDropdownRef = useRef<HTMLDivElement>(null)
+  const profileDropdownRef = useRef<HTMLDivElement>(null)
+
+  const [prevPath, setPrevPath] = useState(location.pathname + location.search)
+
+  // Automatically close both dropdowns when navigating to another route/module
+  if (prevPath !== location.pathname + location.search) {
+    setPrevPath(location.pathname + location.search)
+    setShowLocationDropdown(false)
+    setShowProfileDropdown(false)
+  }
+
+  // Automatically close dropdowns when clicking anywhere outside on the screen
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      const targetNode = event.target as Node
+      if (locationDropdownRef.current && !locationDropdownRef.current.contains(targetNode)) {
+        setShowLocationDropdown(false)
+      }
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(targetNode)) {
+        setShowProfileDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('touchstart', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+    }
+  }, [])
 
   const fullName = user?.profile?.first_name
     ? `${user.profile.first_name} ${user.profile.last_name || ''}`.trim()
@@ -58,10 +91,13 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
         {/* Right side - Location + Notifications + User Avatar */}
         <div className="flex items-center gap-1.5 md:gap-4">
           {/* Location Dropdown */}
-          <div className="relative">
+          <div className="relative" ref={locationDropdownRef}>
             <button
               type="button"
-              onClick={() => setShowLocationDropdown(!showLocationDropdown)}
+              onClick={() => {
+                setShowLocationDropdown((prev) => !prev)
+                setShowProfileDropdown(false)
+              }}
               className="flex items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 shadow-lg rounded-full px-4 py-1.5 text-xs font-semibold text-gray-800 transition-all hover:bg-white/30 cursor-pointer"
             >
               <Building2 className="h-3.5 w-3.5 text-[#005390]" />
@@ -123,10 +159,13 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
           </button>
 
           {/* User Avatar */}
-          <div className="relative">
+          <div className="relative" ref={profileDropdownRef}>
             <button
               type="button"
-              onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+              onClick={() => {
+                setShowProfileDropdown((prev) => !prev)
+                setShowLocationDropdown(false)
+              }}
               className="relative h-10 w-10 rounded-full p-0 cursor-pointer overflow-hidden shadow-lg ring-4 ring-white/80 transition-transform hover:scale-105"
             >
               <div className="flex h-full w-full items-center justify-center bg-[#005390] text-white font-bold text-sm shadow-[#005390]/20">
