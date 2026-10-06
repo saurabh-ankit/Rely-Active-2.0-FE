@@ -160,8 +160,8 @@ const Warranties = () => {
 
       if (documentFile) {
         submitData.append('document', documentFile)
-      } else if (formData.documentUrl && formData.documentUrl.trim()) {
-        submitData.append('documentUrl', formData.documentUrl.trim())
+      } else if (editingWarranty) {
+        submitData.append('documentUrl', formData.documentUrl ? formData.documentUrl.trim() : '')
       }
 
       if (editingWarranty) {
@@ -513,15 +513,27 @@ const Warranties = () => {
                           View Document
                         </a>
                       </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowDocumentInput(true)}
-                        className="flex-shrink-0"
-                      >
-                        Change
-                      </Button>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <Button type="button" variant="outline" size="sm" onClick={() => setShowDocumentInput(true)}>
+                          Change
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setFormData((prev) => ({ ...prev, documentUrl: '' }))
+                            setDocumentFile(null)
+                            if (fileInputRef.current) {
+                              fileInputRef.current.value = ''
+                            }
+                            setShowDocumentInput(true)
+                          }}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}

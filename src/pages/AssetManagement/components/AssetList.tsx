@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Edit, Plus, Trash2, Upload } from 'lucide-react'
+import React, { useRef, useState } from 'react'
+import { Edit, FileText, Plus, Trash2, Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { PermissionGuard } from '@/components/common/PermissionGuard'
 import { Badge } from '@/components/ui/badge'
@@ -43,6 +43,7 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false)
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     categoryId: '',
     itemId: '',
@@ -131,6 +132,8 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
       if (formData.notes) payload.append('notes', formData.notes)
       if (formData.warrantyDocument) {
         payload.append('warrantyDocument', formData.warrantyDocument)
+      } else if (editingAsset) {
+        payload.append('warrantyDocumentUrl', formData.warrantyDocumentUrl || '')
       }
 
       if (editingAsset) {
@@ -231,11 +234,6 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
       cell: ({ row }) => (
         <div className="text-xs truncate">{row.original.serialNumber || row.original.assetTag || '-'}</div>
       ),
-    },
-    {
-      accessorKey: 'location',
-      header: 'Location',
-      cell: ({ row }) => row.original.location?.name || '-',
     },
     {
       accessorKey: 'warrantyEndDate',
@@ -537,34 +535,106 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
               </div>
 
               <div>
-                <Label htmlFor="warrantyDocument" className="mb-2">
+                <Label htmlFor="warrantyDocument" className="mb-2 block">
                   Warranty Document
                 </Label>
-                <Input
-                  id="warrantyDocument"
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null
-                    setFormData({
-                      ...formData,
-                      warrantyDocument: file,
-                      warrantyDocumentName: file?.name || '',
-                    })
-                  }}
-                />
-                {formData.warrantyDocumentName && (
-                  <p className="text-xs text-gray-500 mt-1 truncate">Selected: {formData.warrantyDocumentName}</p>
-                )}
-                {!formData.warrantyDocumentName && formData.warrantyDocumentUrl && (
-                  <a
-                    href={formData.warrantyDocumentUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs text-blue-600 hover:underline mt-1 inline-block"
-                  >
-                    View current document
-                  </a>
+                {formData.warrantyDocument ? (
+                  <div className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded-md">
+                    <div className="flex items-center space-x-2 truncate mr-2">
+                      <FileText className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                      <span className="text-xs font-medium text-blue-900 truncate">
+                        Selected: {formData.warrantyDocumentName || formData.warrantyDocument.name}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          warrantyDocument: null,
+                          warrantyDocumentName: '',
+                        }))
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = ''
+                        }
+                      }}
+                      className="h-6 w-6 p-0 text-red-600 hover:bg-red-100 flex-shrink-0"
+                      title="Remove selected file"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : formData.warrantyDocumentUrl ? (
+                  <div className="flex items-center justify-between p-2 bg-gray-50 border border-gray-200 rounded-md">
+                    <div className="flex items-center space-x-2 truncate mr-2">
+                      <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                      <a
+                        href={formData.warrantyDocumentUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-medium text-blue-600 hover:underline truncate"
+                      >
+                        View current document
+                      </a>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          warrantyDocumentUrl: '',
+                          warrantyDocument: null,
+                          warrantyDocumentName: '',
+                        }))
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = ''
+                        }
+                      }}
+                      className="h-7 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 flex items-center gap-1"
+                      title="Delete current document"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Delete File
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <Input
+                      ref={fileInputRef}
+                      id="warrantyDocument"
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null
+                        setFormData((prev) => ({
+                          ...prev,
+                          warrantyDocument: file,
+                          warrantyDocumentName: file?.name || '',
+                        }))
+                      }}
+                    />
+                    {editingAsset && editingAsset.warrantyDocumentUrl && !formData.warrantyDocumentUrl && (
+                      <div className="flex items-center justify-between text-xs text-amber-700 bg-amber-50 p-1.5 rounded border border-amber-200">
+                        <span>Current file marked for deletion (will be removed when updated)</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              warrantyDocumentUrl: editingAsset.warrantyDocumentUrl || '',
+                            }))
+                          }}
+                          className="text-amber-800 underline font-medium hover:text-amber-900 ml-2 flex-shrink-0"
+                        >
+                          Undo
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
