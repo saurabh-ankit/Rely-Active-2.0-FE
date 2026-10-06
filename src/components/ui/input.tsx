@@ -8,12 +8,24 @@ import { Textarea } from '@/components/ui/textarea'
 export interface InputProps extends React.ComponentProps<'input'> {
   label?: string
   error?: string
+  helperText?: React.ReactNode
   required?: boolean
   icon?: React.ReactNode
   rows?: number
 }
 
-function Input({ className, type = 'text', label, error, required, icon, id, rows = 3, ...props }: InputProps) {
+function Input({
+  className,
+  type = 'text',
+  label,
+  error,
+  helperText,
+  required,
+  icon,
+  id,
+  rows = 3,
+  ...props
+}: InputProps) {
   const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '_') : undefined)
 
   const isTextarea = type === 'textarea'
@@ -91,7 +103,11 @@ function Input({ className, type = 'text', label, error, required, icon, id, row
           />
         )}
       </div>
-      {error && <p className="mt-1 text-xs font-semibold text-red-500">{error}</p>}
+      {error ? (
+        <p className="mt-1 text-xs font-semibold text-red-500">{error}</p>
+      ) : helperText ? (
+        <p className="mt-1 text-[11px] font-medium text-gray-500 dark:text-gray-400">{helperText}</p>
+      ) : null}
     </div>
   )
 }

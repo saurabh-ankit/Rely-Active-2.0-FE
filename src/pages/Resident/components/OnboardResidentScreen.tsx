@@ -1736,21 +1736,26 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                           htmlFor={`fm-password-input-${idx}`}
                                           className="block text-[10px] font-semibold text-gray-600 mb-1"
                                         >
-                                          Initial Password
+                                          Password
                                         </label>
                                         <input
                                           id={`fm-password-input-${idx}`}
                                           type="password"
-                                          placeholder="Default: Resident@123"
+                                          placeholder="Leave blank to use default password"
                                           {...register(`familyMembers.${idx}.password`)}
                                           className={cn(
                                             'h-8 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-xs text-gray-900',
                                             fmErrors?.password && 'border-red-500',
                                           )}
                                         />
-                                        {fmErrors?.password && (
+                                        {fmErrors?.password ? (
                                           <p className="mt-1 text-[10px] font-semibold text-red-500">
                                             {fmErrors.password.message}
+                                          </p>
+                                        ) : (
+                                          <p className="mt-1 text-[10px] font-medium text-gray-500">
+                                            Password cannot be viewed for security reasons, but you can enter a new
+                                            password to update it.
                                           </p>
                                         )}
                                       </div>
@@ -1908,11 +1913,12 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                 placeholder="e.g. rahul_101"
               />
               <Input
-                label="Initial Password"
+                label="Password"
                 type="password"
                 {...register('password')}
                 error={errors.password?.message}
-                placeholder="Default: Resident@123"
+                helperText="Password cannot be viewed for security reasons, but you can enter a new password here to update it."
+                placeholder="Default: Leave blank to use default password"
               />
             </div>
           </div>

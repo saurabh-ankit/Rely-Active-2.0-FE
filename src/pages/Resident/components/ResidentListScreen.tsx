@@ -381,9 +381,6 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                       Residing Status
                     </TableHead>
                     <TableHead className="py-3 text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                      Mobile Handle
-                    </TableHead>
-                    <TableHead className="py-3 text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
                       Contact
                     </TableHead>
                     <TableHead className="py-3 text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
@@ -545,17 +542,6 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                                     )}
                                   </TableCell>
 
-                                  {/* Mobile Handle */}
-                                  <TableCell className="py-3">
-                                    {occ.username ? (
-                                      <span className="text-[#005390] font-semibold text-xs font-mono">
-                                        ({occ.username})
-                                      </span>
-                                    ) : (
-                                      <span className="text-gray-400 text-xs">-</span>
-                                    )}
-                                  </TableCell>
-
                                   {/* Contact Phone */}
                                   <TableCell className="py-3">
                                     <span className="text-xs text-gray-800 dark:text-gray-200 font-semibold">
@@ -707,17 +693,6 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300">
                                             <Check className="w-3 h-3" /> Physically Residing
                                           </span>
-                                        )}
-                                      </TableCell>
-
-                                      {/* Mobile handle */}
-                                      <TableCell className="py-2.5">
-                                        {fm.username ? (
-                                          <span className="text-[#005390] font-semibold text-xs font-mono">
-                                            ({fm.username})
-                                          </span>
-                                        ) : (
-                                          <span className="text-gray-400 text-xs">-</span>
                                         )}
                                       </TableCell>
 

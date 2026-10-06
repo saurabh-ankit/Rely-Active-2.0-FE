@@ -1236,10 +1236,11 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                 autoComplete="username"
               />
               <Input
-                label={isEditMode ? 'New Password (Optional)' : 'Login Password'}
+                label="Password"
                 type="password"
                 {...register('password')}
                 error={errors.password?.message}
+                helperText="Password cannot be viewed for security reasons, but you can enter a new password here to update it."
                 placeholder={
                   isEditMode
                     ? 'Leave blank to keep existing password'
