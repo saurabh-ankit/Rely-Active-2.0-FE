@@ -739,8 +739,13 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
       resetForm()
       navigate(isLocationScoped ? '/admin/employees' : '/global-settings/users')
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to save user.'
+      const apiErr = err as { response?: { data?: { message?: string } } }
+      const apiMsg = apiErr?.response?.data?.message
+      const message = apiMsg || (err instanceof Error ? err.message : 'Failed to save user.')
       setErrorMsg(message)
+      if (apiMsg && apiMsg.toLowerCase().includes('username')) {
+        setError('username', { type: 'manual', message: apiMsg })
+      }
       notifyError('Failed to Save User', message)
     }
   }

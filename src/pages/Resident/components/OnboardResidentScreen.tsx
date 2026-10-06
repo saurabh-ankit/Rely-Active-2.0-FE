@@ -78,6 +78,64 @@ function formatTimeTo24h(time12: string): string {
   return `${String(hours).padStart(2, '0')}:${minutes}`
 }
 
+function extractApiErrorMessage(err: unknown, defaultFallback: string): string {
+  if (!err) return defaultFallback
+  const apiErr = err as {
+    response?: {
+      data?:
+        | {
+            message?: string | string[]
+            error?: string | { message?: string }
+            errors?: Record<string, string[]> | string[]
+          }
+        | string
+    }
+    message?: string
+  }
+
+  const responseData = apiErr?.response?.data
+
+  if (typeof responseData === 'string' && responseData.trim()) {
+    return responseData.trim()
+  }
+
+  if (responseData && typeof responseData === 'object') {
+    if (typeof responseData.message === 'string' && responseData.message.trim()) {
+      return responseData.message.trim()
+    }
+    if (Array.isArray(responseData.message) && responseData.message.length > 0) {
+      return String(responseData.message[0]).trim()
+    }
+    if (typeof responseData.error === 'string' && responseData.error.trim()) {
+      return responseData.error.trim()
+    }
+    if (typeof responseData.error === 'object' && responseData.error?.message) {
+      return String(responseData.error.message).trim()
+    }
+    if (Array.isArray(responseData.errors) && responseData.errors.length > 0) {
+      const first = responseData.errors[0]
+      if (typeof first === 'string') return first.trim()
+      if (typeof first === 'object' && first !== null && 'message' in first) {
+        return String((first as { message?: unknown }).message).trim()
+      }
+    }
+    if (responseData.errors && typeof responseData.errors === 'object') {
+      const keys = Object.keys(responseData.errors)
+      if (keys.length > 0) {
+        const val = responseData.errors[keys[0]]
+        if (Array.isArray(val) && val.length > 0) return String(val[0]).trim()
+        if (typeof val === 'string') return val.trim()
+      }
+    }
+  }
+
+  if (err instanceof Error && err.message && !err.message.toLowerCase().includes('status code')) {
+    return err.message.trim()
+  }
+
+  return defaultFallback
+}
+
 const familyMemberSchema = z.object({
   id: z.string().optional(),
   residentId: z.string().optional(),
@@ -250,6 +308,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
     register,
     handleSubmit: handleHookSubmit,
     setValue,
+    setError,
     control,
     reset: resetForm,
     formState: { errors },
@@ -819,9 +878,15 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
         navigate(backUrl)
       }, 1200)
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to save resident record'
+      const msg = extractApiErrorMessage(
+        err,
+        isEditMode ? 'Failed to update resident record' : 'Failed to save resident record',
+      )
       setFormError(msg)
-      notifyError('Onboarding Failed', msg)
+      if (msg && msg.toLowerCase().includes('username')) {
+        setError('username', { type: 'manual', message: msg })
+      }
+      notifyError(isEditMode ? 'Resident Update Failed' : 'Onboarding Failed', msg)
       setIsSubmitting(false)
     }
   }
@@ -1732,32 +1797,15 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                         )}
                                       </div>
                                       <div>
-                                        <label
-                                          htmlFor={`fm-password-input-${idx}`}
-                                          className="block text-[10px] font-semibold text-gray-600 mb-1"
-                                        >
-                                          Password
-                                        </label>
-                                        <input
+                                        <Input
                                           id={`fm-password-input-${idx}`}
+                                          label="Password"
                                           type="password"
                                           placeholder="Leave blank to use default password"
                                           {...register(`familyMembers.${idx}.password`)}
-                                          className={cn(
-                                            'h-8 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-xs text-gray-900',
-                                            fmErrors?.password && 'border-red-500',
-                                          )}
+                                          error={fmErrors?.password?.message}
+                                          helperText="Password cannot be viewed for security reasons, but you can enter a new password to update it."
                                         />
-                                        {fmErrors?.password ? (
-                                          <p className="mt-1 text-[10px] font-semibold text-red-500">
-                                            {fmErrors.password.message}
-                                          </p>
-                                        ) : (
-                                          <p className="mt-1 text-[10px] font-medium text-gray-500">
-                                            Password cannot be viewed for security reasons, but you can enter a new
-                                            password to update it.
-                                          </p>
-                                        )}
                                       </div>
                                     </div>
                                   )}
