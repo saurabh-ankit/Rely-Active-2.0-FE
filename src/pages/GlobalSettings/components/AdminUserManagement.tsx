@@ -1402,6 +1402,27 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
     if (selectedStatusFilter === 'ACTIVE' && (!u.isActive || u.status !== 'ACTIVE')) return false
     if (selectedStatusFilter === 'INACTIVE' && u.isActive && u.status === 'ACTIVE') return false
 
+    if (debouncedSearch.trim()) {
+      const term = debouncedSearch.trim().toLowerCase()
+      const firstName = u.profile?.firstName || u.profile?.first_name || ''
+      const lastName = u.profile?.lastName || u.profile?.last_name || ''
+      const fullName = [firstName, lastName].filter(Boolean).join(' ').toLowerCase()
+      const username = (u.username || '').toLowerCase()
+      const email = (u.email || '').toLowerCase()
+      const phone = (u.phone || u.profile?.phone || '').toLowerCase()
+      const empCode = (u.profile?.employeeCode || u.profile?.employee_code || '').toLowerCase()
+      const dateOfJoining = (u.profile?.dateOfJoining || u.profile?.date_of_joining || '').toLowerCase()
+
+      return (
+        fullName.includes(term) ||
+        username.includes(term) ||
+        email.includes(term) ||
+        phone.includes(term) ||
+        empCode.includes(term) ||
+        dateOfJoining.includes(term)
+      )
+    }
+
     return true
   })
 
