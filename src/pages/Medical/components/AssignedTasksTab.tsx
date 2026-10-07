@@ -7,7 +7,6 @@ import {
   HeartHandshake,
   Loader2,
   Plus,
-  RefreshCw,
   Search,
   StopCircle,
   Trash2,
@@ -371,8 +370,6 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
     }
   }
 
-  const isLoading = activeTab === 'COMPLETED' ? isLoadingCompletions : isLoadingAssignments
-
   return (
     <div className="space-y-6">
       {/* ── Summary Matrix Cards (if not compact) ─────────────────────────── */}
@@ -514,16 +511,6 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
             <option value="CANCELLED">Cancelled</option>
           </select>
         )}
-
-        {/* Refresh Button */}
-        <button
-          type="button"
-          onClick={handleRefresh}
-          className="rounded-xl border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-400 dark:hover:bg-slate-800 cursor-pointer"
-          title="Refresh List"
-        >
-          <RefreshCw className={cn('size-3.5', isLoading && 'animate-spin')} />
-        </button>
       </div>
 
       {/* ── Tables Container ──────────────────────────────────────────────── */}
@@ -985,7 +972,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => setCompletingAssignment(firstSlot.rawAssignment)}
-                                  className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-900/60 cursor-pointer shadow-2xs transition-colors"
+                                  className="inline-flex min-w-[112px] items-center justify-center gap-1.5 rounded-md border border-emerald-700 bg-emerald-600 px-3 py-1.5 text-[11px] font-extrabold text-white shadow-sm transition-colors hover:bg-emerald-700 dark:border-emerald-500 dark:bg-emerald-600 dark:hover:bg-emerald-500 cursor-pointer"
                                 >
                                   <CheckCircle2 className="size-3" />
                                   Complete Task
@@ -1069,7 +1056,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                                     <button
                                       type="button"
                                       onClick={() => setCompletingAssignment(slot.rawAssignment)}
-                                      className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-900/60 cursor-pointer shadow-2xs transition-colors"
+                                      className="inline-flex min-w-[112px] items-center justify-center gap-1.5 rounded-md border border-emerald-700 bg-emerald-600 px-3 py-1.5 text-[11px] font-extrabold text-white shadow-sm transition-colors hover:bg-emerald-700 dark:border-emerald-500 dark:bg-emerald-600 dark:hover:bg-emerald-500 cursor-pointer"
                                     >
                                       <CheckCircle2 className="size-3" />
                                       Complete Task
