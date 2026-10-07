@@ -369,6 +369,23 @@ export const API_ENDPOINTS = {
     cancelEventRequest: `${BASE_URL}/location/:locationId/event-requests/:requestId/cancel`,
   },
 
+  // Feedback & Advertisements
+  advertisements: {
+    list: `${BASE_URL}/location/:locationId/advertisements`,
+    create: `${BASE_URL}/location/:locationId/advertisements`,
+    detail: `${BASE_URL}/location/:locationId/advertisements/:id`,
+    status: `${BASE_URL}/location/:locationId/advertisements/:id/status`,
+  },
+
+  feedbackForms: {
+    list: `${BASE_URL}/location/:locationId/feedback-forms`,
+    create: `${BASE_URL}/location/:locationId/feedback-forms`,
+    recipientCount: `${BASE_URL}/location/:locationId/feedback-forms/recipient-count`,
+    detail: `${BASE_URL}/location/:locationId/feedback-forms/:id`,
+    send: `${BASE_URL}/location/:locationId/feedback-forms/:id/send`,
+    responses: `${BASE_URL}/location/:locationId/feedback-forms/:id/responses`,
+  },
+
   // Shift & Roster Management
   shiftRoster: {
     listShifts: `${BASE_URL}/location/:locationId/shifts`,

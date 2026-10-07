@@ -1,7 +1,34 @@
 import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Shield, Stethoscope } from 'lucide-react'
+import { ArrowRight, ClipboardList, Megaphone, Shield } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { useLocation } from '@/hooks/useLocation'
+
+interface SettingsCard {
+  title: string
+  description: string
+  icon: LucideIcon
+  href: string
+  resourceKey: string
+}
+
+const SETTINGS_CARDS: SettingsCard[] = [
+  {
+    title: 'Feedback',
+    description: 'Create feedback forms and send them to residents, employees or both.',
+    icon: ClipboardList,
+    href: '/admin/settings/feedback',
+    resourceKey: 'SETTINGS',
+  },
+  {
+    title: 'Advertisements',
+    description: 'Upload advertisements shown to residents of this property.',
+    icon: Megaphone,
+    href: '/admin/settings/advertisements',
+    resourceKey: 'SETTINGS',
+  },
+]
 
 interface SettingsPageProps {
   initialView?: 'main' | 'tasks' | 'packages' | 'subscriptions'
@@ -10,6 +37,8 @@ interface SettingsPageProps {
 export const SettingsPage: React.FC<SettingsPageProps> = ({ initialView = 'main' }) => {
   const navigate = useNavigate()
   const { isSuperAdmin } = useAuth()
+  const { hasResourcePermission } = useLocation()
+  const visibleCards = SETTINGS_CARDS.filter((card) => hasResourcePermission(card.resourceKey, 'view'))
 
   // If accessed with legacy sub-views, redirect directly to the new Medical module
   useEffect(() => {
@@ -45,31 +74,27 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ initialView = 'main'
         </div>
       </div>
 
-      {/* Re-directed Modules Notice Card */}
-      <div className="rounded-3xl border border-white/50 bg-white/80 p-6 shadow-md backdrop-blur-xl space-y-4">
-        <div className="flex items-start gap-4">
-          <div className="p-3.5 rounded-2xl bg-blue-50 text-[#005390] shrink-0 shadow-xs">
-            <Stethoscope className="w-7 h-7" />
-          </div>
-          <div className="space-y-1 flex-1">
-            <h2 className="text-lg font-bold text-gray-900">Medical & Clinical Care Management</h2>
-            <p className="text-sm text-gray-500 leading-relaxed max-w-2xl">
-              Care Tasks, Care Packages, and Resident Subscriptions have been moved from Settings to the dedicated{' '}
-              <strong className="text-gray-800 font-semibold">Medical</strong> module in the sidebar.
-            </p>
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => navigate('/admin/medical')}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-[#005390] hover:bg-[#004170] shadow-md shadow-[#005390]/20 transition-all cursor-pointer"
-              >
-                Go to Medical Module
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+      {visibleCards.length > 0 && (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {visibleCards.map(({ title, description, icon: Icon, href }) => (
+            <button
+              key={title}
+              type="button"
+              onClick={() => navigate(href)}
+              className="group flex items-start gap-4 rounded-3xl border border-white/50 bg-white/80 p-6 text-left shadow-md backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:shadow-lg cursor-pointer"
+            >
+              <div className="p-3.5 rounded-2xl bg-blue-50 text-[#005390] shrink-0 shadow-xs">
+                <Icon className="w-7 h-7" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+                <p className="text-sm text-gray-500 leading-relaxed">{description}</p>
+              </div>
+              <ArrowRight className="w-5 h-5 shrink-0 self-center text-gray-400 transition-transform group-hover:translate-x-1 group-hover:text-[#005390]" />
+            </button>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   )
 }

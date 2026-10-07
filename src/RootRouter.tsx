@@ -28,6 +28,10 @@ import AppointmentBookingsPage from '@/pages/Medical/components/appointments/App
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
 const InventoryPage = lazy(() => import('@/pages/Inventory'))
+const FeedbackPage = lazy(() => import('@/pages/Feedback'))
+const AdvertisementsPage = lazy(() => import('@/pages/Feedback/AdvertisementsPage'))
+const FeedbackFormBuilder = lazy(() => import('@/pages/Feedback/FormBuilder'))
+const FeedbackFormResponses = lazy(() => import('@/pages/Feedback/FormResponses'))
 const InventorySettings = lazy(() => import('@/pages/GlobalSettings/Inventory'))
 
 export default function RootRouter() {
@@ -426,6 +430,46 @@ export default function RootRouter() {
         <Route path="admin/events/create" element={<Navigate to="/admin/events" replace />} />
         <Route path="admin/events/edit/:eventId" element={<EventForm />} />
         <Route path="admin/events/:eventId/registrations" element={<EventRegistrationsPage />} />
+        <Route
+          path="admin/settings/feedback"
+          element={
+            <ProtectedRoute resourceKey="SETTINGS" action="view">
+              <FeedbackPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/settings/advertisements"
+          element={
+            <ProtectedRoute resourceKey="SETTINGS" action="view">
+              <AdvertisementsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/settings/feedback/forms/create"
+          element={
+            <ProtectedRoute resourceKey="SETTINGS" action="create">
+              <FeedbackFormBuilder />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/settings/feedback/forms/edit/:id"
+          element={
+            <ProtectedRoute resourceKey="SETTINGS" action="view">
+              <FeedbackFormBuilder />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/settings/feedback/forms/:id/responses"
+          element={
+            <ProtectedRoute resourceKey="SETTINGS" action="view">
+              <FeedbackFormResponses />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="admin/fnb-history"
           element={
