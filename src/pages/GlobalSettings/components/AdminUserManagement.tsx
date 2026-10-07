@@ -289,6 +289,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
   const [propertySelectionError, setPropertySelectionError] = useState<string | null>(null)
   const [selectedDepartmentFilter, setSelectedDepartmentFilter] = useState('ALL')
   const [selectedJobCategoryFilter, setSelectedJobCategoryFilter] = useState('ALL')
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState('ALL')
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('ALL')
   const [dateOfBirthInputKey, setDateOfBirthInputKey] = useState(0)
 
@@ -1399,6 +1400,34 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
       if (!hasCat) return false
     }
 
+    if (selectedRoleFilter !== 'ALL') {
+      const targetRole = selectedRoleFilter.toUpperCase()
+      const roleCodes: string[] = []
+      const roleNames: string[] = []
+      if (uRoleObj?.code) roleCodes.push(uRoleObj.code.toUpperCase())
+
+      const uRoleWithName = uRecord.role as { name?: string } | undefined
+      if (uRoleWithName?.name) roleNames.push(uRoleWithName.name.toUpperCase())
+
+      u.userRoles?.forEach((ur) => {
+        const urObj = ur as unknown as Record<string, unknown>
+        const code = ur.role?.code || (urObj.code as string | undefined)
+        const name = ur.role?.name || (urObj.name as string | undefined)
+        if (code) roleCodes.push(code.toUpperCase())
+        if (name) roleNames.push(name.toUpperCase())
+      })
+
+      u.userLocations?.forEach((ul) => {
+        const ulObj = ul as unknown as Record<string, unknown>
+        const code = ul.role?.code || (ulObj.code as string | undefined)
+        const name = ul.role?.name || (ulObj.name as string | undefined)
+        if (code) roleCodes.push(code.toUpperCase())
+        if (name) roleNames.push(name.toUpperCase())
+      })
+
+      if (!roleCodes.includes(targetRole) && !roleNames.includes(targetRole)) return false
+    }
+
     if (selectedStatusFilter === 'ACTIVE' && (!u.isActive || u.status !== 'ACTIVE')) return false
     if (selectedStatusFilter === 'INACTIVE' && u.isActive && u.status === 'ACTIVE') return false
 
@@ -1804,6 +1833,19 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
               {availableFilterCategories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
                   {cat.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={selectedRoleFilter}
+              onChange={(e) => setSelectedRoleFilter(e.target.value)}
+              className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
+            >
+              <option value="ALL">All Roles</option>
+              {roles.map((role) => (
+                <option key={role.id} value={role.code || role.name}>
+                  {role.name}
                 </option>
               ))}
             </select>

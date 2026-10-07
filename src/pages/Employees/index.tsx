@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { useDepartmentsQuery } from '@/hooks/react-query/rbac'
+import { useDepartmentsQuery, useRolesQuery } from '@/hooks/react-query/rbac'
 import { useUsersQuery, useUpdateUserMutation } from '@/hooks/react-query/user'
 import { useLocationStore } from '@/lib/stores/locationStore'
 import type { UserItem } from '@/lib/types'
@@ -69,11 +69,13 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
   const debouncedSearch = useDebounce(searchTerm, 400)
   const [selectedDepartmentFilter, setSelectedDepartmentFilter] = useState('ALL')
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('ALL')
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState('ALL')
 
   const selectedLocationId = useLocationStore((state) => state.selectedLocationId)
 
   const { data: users = [], isLoading } = useUsersQuery(debouncedSearch)
   const { data: departments = [] } = useDepartmentsQuery()
+  const { data: roles = [] } = useRolesQuery()
   const updateUserMutation = useUpdateUserMutation()
 
   const [selectedUserForManager, setSelectedUserForManager] = useState<UserItem | null>(null)
@@ -184,6 +186,30 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
     const deptId = primaryLoc?.departmentId || primaryLoc?.department_id || ''
     if (selectedDepartmentFilter !== 'ALL' && deptId !== selectedDepartmentFilter) {
       return false
+    }
+
+    if (selectedRoleFilter !== 'ALL') {
+      const targetRole = selectedRoleFilter.toUpperCase()
+      const roleCodes: string[] = []
+      const roleNames: string[] = []
+      const uRecord = u as unknown as Record<string, unknown>
+      const uRoleObj = uRecord.role as { name?: string; code?: string } | undefined
+      if (uRoleObj?.code) roleCodes.push(uRoleObj.code.toUpperCase())
+      if (uRoleObj?.name) roleNames.push(uRoleObj.name.toUpperCase())
+      u.userRoles?.forEach((ur: RoleRec) => {
+        const code = ur.role?.code || ur.code
+        const name = ur.role?.name || ur.name
+        if (code) roleCodes.push(code.toUpperCase())
+        if (name) roleNames.push(name.toUpperCase())
+      })
+      u.userLocations?.forEach((ul: LocationRec) => {
+        const code = ul.role?.code || ul.code
+        const name = ul.role?.name || ul.name
+        if (code) roleCodes.push(code.toUpperCase())
+        if (name) roleNames.push(name.toUpperCase())
+      })
+
+      if (!roleCodes.includes(targetRole) && !roleNames.includes(targetRole)) return false
     }
 
     // 3. Status match
@@ -560,6 +586,19 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
               {departments.map((dept) => (
                 <option key={dept.id} value={dept.id}>
                   Department: {dept.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={selectedRoleFilter}
+              onChange={(e) => setSelectedRoleFilter(e.target.value)}
+              className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
+            >
+              <option value="ALL">Role: All Roles</option>
+              {roles.map((role) => (
+                <option key={role.id} value={role.code || role.name}>
+                  Role: {role.name}
                 </option>
               ))}
             </select>
