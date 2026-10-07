@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import type { UserItem } from '@/lib/types'
+import type { EmployeeShiftAssignment, ShiftEmployeeDate, ShiftV2 } from '@/lib/types/roster'
 
 const MEDICAL_ROLE_CODES = ['DOCTOR', 'NURSE', 'CARETAKER']
 
@@ -223,12 +224,394 @@ export const useMedicalEmployees = (users: UserItem[] | undefined) =>
 export const WEEK_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
 
 /** Weekday names for Date#getDay() (Sunday-first). */
-const WEEKDAY_BY_INDEX = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const
+export const WEEKDAY_BY_INDEX = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const
 
 /** Local YYYY-MM-DD → Date at local midnight. */
 export const parseLocalYmd = (ymd: string): Date => {
   const [y, m, d] = ymd.split('-').map(Number)
   return new Date(y!, (m ?? 1) - 1, d ?? 1)
+}
+
+/** Local date from a YYYY-MM-DD or ISO datetime string (time part ignored). */
+export const parseLocalDate = (dateStr: string): Date => parseLocalYmd(dateStr.split('T')[0]!)
+
+/** Area name, else block · floor · unit label for a roster assignment. */
+export const buildLocationLabel = (assignment: EmployeeShiftAssignment): string | null => {
+  if (assignment.area?.areaName) return assignment.area.areaName
+  const parts: string[] = []
+  if (assignment.block?.block_name) parts.push(assignment.block.block_name)
+  if (assignment.floor) {
+    parts.push(assignment.floor.floor_name || `Floor ${assignment.floor.floor_number}`)
+  }
+  if (assignment.unit?.unit_number) parts.push(assignment.unit.unit_number)
+  else if (assignment.floorId && !assignment.unitId) parts.push('Entire floor')
+  else if (assignment.blockId && !assignment.floorId) parts.push('Entire block')
+  return parts.length ? parts.join(' · ') : null
+}
+
+// ── Roster grid ───────────────────────────────────────────────────────────────
+
+export const ROSTER_GRID_OFF_LABEL = 'OFF'
+
+export interface RosterGridEntry {
+  label: string
+  shiftId: string
+  shiftName: string
+  shiftTime: string
+  isOff: boolean
+}
+
+export interface RosterGridEmployee {
+  id: string
+  name: string
+  location: string
+}
+
+export interface RosterGridShiftMeta {
+  label: string
+  shiftId: string
+  shiftName: string
+  shiftTime: string
+}
+
+/** employeeId → YYYY-MM-DD → entries for that cell. */
+export type RosterGridShiftMap = Record<string, Record<string, RosterGridEntry[]>>
+
+export interface RosterGridData {
+  employees: RosterGridEmployee[]
+  shiftMap: RosterGridShiftMap
+  shiftMetaList: RosterGridShiftMeta[]
+}
+
+export interface RosterGridStats {
+  countsByDate: Record<string, Record<string, number>>
+  totalByDate: Record<string, number>
+  totalByLabel: Record<string, number>
+  empStats: Record<string, { workDays: number; offDays: number }>
+  grandTotalWorkDays: number
+  grandTotalOffDays: number
+}
+
+export const getActiveGridEntries = (entries: RosterGridEntry[]): RosterGridEntry[] => entries.filter((e) => !e.isOff)
+
+export const isGridCellOff = (entries: RosterGridEntry[]): boolean =>
+  entries.length > 0 && entries.every((e) => e.isOff)
+
+export const buildDateRange = (start: Date, days: number): Date[] =>
+  Array.from({ length: days }, (_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i))
+
+/**
+ * Expand assignments into a per-employee, per-day grid of shift codes.
+ * Non-working weekdays and day_off overrides become OFF; deleted overrides drop the day.
+ */
+export const buildRosterGridData = ({
+  assignments,
+  shifts,
+  shiftDates,
+  employeeIds,
+  nameByUserId,
+}: {
+  assignments: EmployeeShiftAssignment[]
+  shifts: ShiftV2[]
+  shiftDates: ShiftEmployeeDate[]
+  employeeIds?: Set<string> | null
+  nameByUserId?: Map<string, string>
+}): RosterGridData => {
+  const shiftsById = new Map(shifts.map((s) => [s.id, s]))
+
+  const overrideMap = new Map<string, ShiftEmployeeDate>()
+  for (const sd of shiftDates) {
+    const key = `${sd.employeeShiftAssignmentId}_${sd.date}`
+    const existing = overrideMap.get(key)
+    if (existing && !existing.isDeleted && sd.isDeleted) continue
+    overrideMap.set(key, sd)
+  }
+
+  const shiftMap: RosterGridShiftMap = {}
+  const metaByLabel = new Map<string, RosterGridShiftMeta>()
+  const employeesById = new Map<string, RosterGridEmployee>()
+
+  for (const assignment of assignments) {
+    const employeeId = assignment.employeeId || assignment.employee?.id
+    if (!employeeId || !assignment.startDate || !assignment.endDate) continue
+    if (employeeIds && !employeeIds.has(employeeId)) continue
+
+    if (!employeesById.has(employeeId)) {
+      const profileName =
+        `${assignment.employee?.profile?.firstName || ''} ${assignment.employee?.profile?.lastName || ''}`.trim()
+      employeesById.set(employeeId, {
+        id: employeeId,
+        name: profileName || nameByUserId?.get(employeeId) || 'Staff',
+        location: buildLocationLabel(assignment) || '—',
+      })
+    }
+
+    const shiftId = String(assignment.shift?.id || assignment.shiftId)
+    const shift = shiftsById.get(shiftId)
+    const shiftName = shift?.name || assignment.shift?.name || 'Shift'
+    const startTime = shift?.startTime || assignment.shift?.startTime
+    const endTime = shift?.endTime || assignment.shift?.endTime
+    const shiftTime = startTime && endTime ? `${startTime} - ${endTime}` : ''
+    const label = shift?.shiftCode?.trim() || assignment.shift?.shiftCode?.trim() || shiftName
+
+    if (!metaByLabel.has(label)) {
+      metaByLabel.set(label, { label, shiftId, shiftName, shiftTime })
+    }
+
+    const workingDays = Array.isArray(assignment.workingDays) ? assignment.workingDays : []
+    const start = parseLocalDate(assignment.startDate)
+    const end = parseLocalDate(assignment.endDate)
+
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dateStr = todayYmdLocal(d)
+      const override = overrideMap.get(`${assignment.id}_${dateStr}`)
+      if (override?.isDeleted) continue
+
+      const dayName = WEEKDAY_BY_INDEX[d.getDay()]
+      const isOff =
+        (workingDays.length > 0 && (!dayName || !workingDays.includes(dayName))) || override?.status === 'day_off'
+
+      const empCells = (shiftMap[employeeId] ??= {})
+      const current = empCells[dateStr] ?? []
+
+      if (isOff) {
+        if (current.length === 0) {
+          current.push({ label: ROSTER_GRID_OFF_LABEL, shiftId, shiftName: 'Day Off', shiftTime: '', isOff: true })
+        }
+        empCells[dateStr] = current
+        continue
+      }
+
+      const active = getActiveGridEntries(current)
+      if (!active.some((e) => e.shiftId === shiftId)) {
+        active.push({ label, shiftId, shiftName, shiftTime, isOff: false })
+      }
+      empCells[dateStr] = active
+    }
+  }
+
+  return {
+    employees: Array.from(employeesById.values()).sort((a, b) => a.name.localeCompare(b.name)),
+    shiftMap,
+    shiftMetaList: Array.from(metaByLabel.values()),
+  }
+}
+
+/** Per-shift and per-day counts plus each employee's working / off days for the given dates. */
+export const computeRosterGridStats = (
+  employeeIds: string[],
+  shiftMap: RosterGridShiftMap,
+  dateStrs: string[],
+): RosterGridStats => {
+  const countsByDate: Record<string, Record<string, number>> = {}
+  const totalByDate: Record<string, number> = {}
+  const totalByLabel: Record<string, number> = {}
+  const empStats: Record<string, { workDays: number; offDays: number }> = {}
+  let grandTotalWorkDays = 0
+  let grandTotalOffDays = 0
+
+  for (const ds of dateStrs) {
+    countsByDate[ds] = {}
+    totalByDate[ds] = 0
+  }
+
+  for (const empId of employeeIds) {
+    let workDays = 0
+    let offDays = 0
+
+    for (const ds of dateStrs) {
+      const entries = shiftMap[empId]?.[ds] || []
+      if (entries.length === 0) continue
+      if (isGridCellOff(entries)) {
+        offDays += 1
+        continue
+      }
+      workDays += 1
+      totalByDate[ds] = (totalByDate[ds] || 0) + 1
+      for (const entry of getActiveGridEntries(entries)) {
+        countsByDate[ds]![entry.label] = (countsByDate[ds]![entry.label] || 0) + 1
+        totalByLabel[entry.label] = (totalByLabel[entry.label] || 0) + 1
+      }
+    }
+
+    empStats[empId] = { workDays, offDays }
+    grandTotalWorkDays += workDays
+    grandTotalOffDays += offDays
+  }
+
+  return { countsByDate, totalByDate, totalByLabel, empStats, grandTotalWorkDays, grandTotalOffDays }
+}
+
+const GRID_EXCEL_COLORS = {
+  navy: 'FF2A517C',
+  subNavy: 'FF1E3A5A',
+  white: 'FFFFFFFF',
+  slate50: 'FFF8FAFC',
+  slate100: 'FFF1F5F9',
+  slate800: 'FF1E293B',
+  muted: 'FFA0AEC0',
+  red: 'FFDC2626',
+  border: 'FFD2D6DC',
+} as const
+
+/** Download the roster grid (employees × dates, count rows, total row) as an .xlsx file. */
+export const exportRosterGridExcel = async ({
+  employees,
+  shiftMap,
+  shiftMetaList,
+  dates,
+  dayNames,
+  fileName,
+}: {
+  employees: RosterGridEmployee[]
+  shiftMap: RosterGridShiftMap
+  shiftMetaList: RosterGridShiftMeta[]
+  dates: Date[]
+  dayNames: readonly string[]
+  fileName: string
+}): Promise<void> => {
+  const { default: ExcelJS } = await import('exceljs')
+  const workbook = new ExcelJS.Workbook()
+  const worksheet = workbook.addWorksheet('Roster Grid')
+
+  const dateStrs = dates.map((d) => todayYmdLocal(d))
+  const stats = computeRosterGridStats(
+    employees.map((e) => e.id),
+    shiftMap,
+    dateStrs,
+  )
+  const firstDateCol = 3
+  const lastDateCol = 2 + dates.length
+  const lastCol = lastDateCol + 1
+  const solid = (argb: string) => ({ type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb } })
+
+  const headerRow1 = worksheet.addRow([
+    'Employee Name',
+    'Location',
+    ...dates.map((d) => dayNames[d.getDay()]),
+    'Days / Off',
+  ])
+  const headerRow2 = worksheet.addRow(['', '', ...dates.map((d) => d.getDate()), ''])
+  worksheet.mergeCells('A1:A2')
+  worksheet.mergeCells('B1:B2')
+  worksheet.mergeCells(1, lastCol, 2, lastCol)
+
+  headerRow1.font = { bold: true, size: 10, color: { argb: GRID_EXCEL_COLORS.white } }
+  headerRow1.alignment = { vertical: 'middle', horizontal: 'center' }
+  headerRow2.font = { bold: true, size: 11, color: { argb: GRID_EXCEL_COLORS.white } }
+  headerRow2.alignment = { vertical: 'middle', horizontal: 'center' }
+
+  for (const cell of [worksheet.getCell('A1'), worksheet.getCell('B1')]) {
+    cell.fill = solid(GRID_EXCEL_COLORS.navy)
+    cell.font = { bold: true, size: 10, color: { argb: GRID_EXCEL_COLORS.white } }
+    cell.alignment = { vertical: 'middle', horizontal: 'left' }
+  }
+  const lastHeaderCell = worksheet.getCell(1, lastCol)
+  lastHeaderCell.fill = solid(GRID_EXCEL_COLORS.navy)
+  lastHeaderCell.font = { bold: true, size: 10, color: { argb: GRID_EXCEL_COLORS.white } }
+  lastHeaderCell.alignment = { vertical: 'middle', horizontal: 'center' }
+
+  for (let col = firstDateCol; col <= lastDateCol; col++) {
+    headerRow1.getCell(col).fill = solid(GRID_EXCEL_COLORS.navy)
+    headerRow2.getCell(col).fill = solid(GRID_EXCEL_COLORS.subNavy)
+  }
+
+  for (const employee of employees) {
+    const empStat = stats.empStats[employee.id] || { workDays: 0, offDays: 0 }
+    const row = worksheet.addRow([
+      employee.name,
+      employee.location,
+      ...dateStrs.map((ds) => {
+        const entries = shiftMap[employee.id]?.[ds] || []
+        if (entries.length === 0) return '—'
+        if (isGridCellOff(entries)) return ROSTER_GRID_OFF_LABEL
+        return getActiveGridEntries(entries)
+          .map((e) => e.label)
+          .join(', ')
+      }),
+      `${empStat.workDays} / ${empStat.offDays}`,
+    ])
+    row.alignment = { vertical: 'middle', horizontal: 'center' }
+
+    const nameCell = row.getCell(1)
+    nameCell.alignment = { vertical: 'middle', horizontal: 'left' }
+    nameCell.fill = solid(GRID_EXCEL_COLORS.slate50)
+    nameCell.font = { bold: true, size: 10, color: { argb: GRID_EXCEL_COLORS.slate800 } }
+
+    const locationCell = row.getCell(2)
+    locationCell.alignment = { vertical: 'middle', horizontal: 'left' }
+    locationCell.font = { size: 10 }
+
+    dateStrs.forEach((ds, idx) => {
+      const entries = shiftMap[employee.id]?.[ds] || []
+      const cell = row.getCell(firstDateCol + idx)
+      if (entries.length === 0) {
+        cell.font = { color: { argb: GRID_EXCEL_COLORS.muted }, size: 9 }
+      } else if (isGridCellOff(entries)) {
+        cell.fill = solid(GRID_EXCEL_COLORS.red)
+        cell.font = { bold: true, size: 9, color: { argb: GRID_EXCEL_COLORS.white } }
+      } else {
+        cell.font = { bold: true, size: 9 }
+      }
+    })
+
+    const daysOffCell = row.getCell(lastCol)
+    daysOffCell.font = { bold: true, size: 9, color: { argb: GRID_EXCEL_COLORS.slate800 } }
+    daysOffCell.fill = solid(GRID_EXCEL_COLORS.slate50)
+  }
+
+  for (const meta of shiftMetaList) {
+    const row = worksheet.addRow([
+      `${meta.label} COUNT`,
+      '',
+      ...dateStrs.map((ds) => stats.countsByDate[ds]?.[meta.label] ?? 0),
+      stats.totalByLabel[meta.label] ?? 0,
+    ])
+    row.alignment = { vertical: 'middle', horizontal: 'center' }
+    row.font = { bold: true, size: 9, color: { argb: GRID_EXCEL_COLORS.slate800 } }
+    row.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' }
+    row.eachCell((c) => {
+      c.fill = solid(GRID_EXCEL_COLORS.slate100)
+    })
+  }
+
+  const totalRow = worksheet.addRow([
+    'TOTAL',
+    '',
+    ...dateStrs.map((ds) => stats.totalByDate[ds] ?? 0),
+    `${stats.grandTotalWorkDays} / ${stats.grandTotalOffDays}`,
+  ])
+  totalRow.alignment = { vertical: 'middle', horizontal: 'center' }
+  totalRow.font = { bold: true, size: 10, color: { argb: GRID_EXCEL_COLORS.white } }
+  totalRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' }
+  totalRow.eachCell((c) => {
+    c.fill = solid(GRID_EXCEL_COLORS.navy)
+  })
+
+  worksheet.getColumn(1).width = 20
+  worksheet.getColumn(2).width = 18
+  for (let col = firstDateCol; col <= lastDateCol; col++) {
+    worksheet.getColumn(col).width = 9
+  }
+  worksheet.getColumn(lastCol).width = 14
+
+  const thin = { style: 'thin' as const, color: { argb: GRID_EXCEL_COLORS.border } }
+  worksheet.eachRow((r) => {
+    r.eachCell((c) => {
+      c.border = { top: thin, left: thin, bottom: thin, right: thin }
+    })
+  })
+
+  const buffer = await workbook.xlsx.writeBuffer()
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  window.URL.revokeObjectURL(url)
 }
 
 /** Weekdays that occur at least once in [startYmd, endYmd], in WEEK_DAYS order. */

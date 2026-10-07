@@ -3,50 +3,31 @@ import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useDepartmentsQuery } from '@/hooks/react-query/rbac'
 import { useUsersQuery } from '@/hooks/react-query/user'
-import type { EmployeeShiftAssignment, ShiftEmployeeDate, WeekDay } from '@/lib/services/rosterService'
+import type { EmployeeShiftAssignment, ShiftEmployeeDate } from '@/lib/services/rosterService'
 import { useLocationStore } from '@/lib/stores/locationStore'
 import {
+  WEEKDAY_BY_INDEX,
+  buildLocationLabel,
   getUserDepartmentIds,
   getUserDepartmentName,
   getUserDisplayName,
   getUserRoleCodes,
+  parseLocalDate,
   resolveLifecycleRosterStatus,
+  todayYmdLocal,
 } from '../../utils'
 import { RosterPermission } from '../RosterPermission'
 import AssignShiftDialog from '../dialogs/AssignShiftDialog'
 import DepartmentFilter, { ALL_DEPARTMENTS } from '../Employees/DepartmentFilter'
 import RosterDayListDialog from '../dialogs/RosterDayListDialog'
 import RosterDetailDialog, { type RosterCalendarEvent } from '../dialogs/RosterDetailDialog'
+import RosterGridView from './RosterGridView'
 import { useListEmployeeShifts, useListShiftEmployeeDates } from '@/hooks/react-query/roster'
 
 const MAX_VISIBLE_ROSTERS = 2
 
-const WEEKDAYS: WeekDay[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-
-const getLocalDateStr = (date: Date) => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-const parseLocalDate = (dateStr: string) => {
-  const parts = dateStr.split('T')[0]!.split('-')
-  return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
-}
-
-const buildLocationLabel = (assignment: EmployeeShiftAssignment): string | null => {
-  if (assignment.area?.areaName) return assignment.area.areaName
-  const parts: string[] = []
-  if (assignment.block?.block_name) parts.push(assignment.block.block_name)
-  if (assignment.floor) {
-    parts.push(assignment.floor.floor_name || `Floor ${assignment.floor.floor_number}`)
-  }
-  if (assignment.unit?.unit_number) parts.push(assignment.unit.unit_number)
-  else if (assignment.floorId && !assignment.unitId) parts.push('Entire floor')
-  else if (assignment.blockId && !assignment.floorId) parts.push('Entire block')
-  return parts.length ? parts.join(' · ') : null
-}
+const VIEW_MODES = ['month', 'grid'] as const
+type RosterViewMode = (typeof VIEW_MODES)[number]
 
 const getStatusClasses = (status: string) => {
   const base = 'text-[10px] px-2 py-1.5 rounded-md border shadow-sm'
@@ -70,6 +51,7 @@ const RosterCalendar = () => {
   const [detailEvent, setDetailEvent] = useState<RosterCalendarEvent | null>(null)
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [departmentFilter, setDepartmentFilter] = useState(ALL_DEPARTMENTS)
+  const [viewMode, setViewMode] = useState<RosterViewMode>('month')
   const [cursor, setCursor] = useState(() => {
     const d = new Date()
     return new Date(d.getFullYear(), d.getMonth(), 1)
@@ -78,7 +60,7 @@ const RosterCalendar = () => {
   const year = cursor.getFullYear()
   const month = cursor.getMonth()
   const lastDay = new Date(year, month + 1, 0).getDate()
-  const todayStr = getLocalDateStr(new Date())
+  const todayStr = todayYmdLocal()
   const locationId = useLocationStore((s) => s.selectedLocationId)
 
   const { data: shiftsData, isLoading: shiftsLoading } = useListEmployeeShifts()
@@ -213,11 +195,11 @@ const RosterCalendar = () => {
 
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         if (assignment.workingDays && Array.isArray(assignment.workingDays) && assignment.workingDays.length > 0) {
-          const dayName = WEEKDAYS[d.getDay()]
+          const dayName = WEEKDAY_BY_INDEX[d.getDay()]
           if (!dayName || !assignment.workingDays.includes(dayName)) continue
         }
 
-        const dateStr = getLocalDateStr(d)
+        const dateStr = todayYmdLocal(d)
         pushEvent(assignment, dateStr, overrideMap.get(`${assignment.id}_${dateStr}`))
       }
     }
@@ -230,7 +212,7 @@ const RosterCalendar = () => {
         const assignment = assignmentById.get(sd.employeeShiftAssignmentId)
         const workingDays = assignment?.workingDays
         if (workingDays && workingDays.length > 0) {
-          const dayName = WEEKDAYS[parseLocalDate(sd.date).getDay()]
+          const dayName = WEEKDAY_BY_INDEX[parseLocalDate(sd.date).getDay()]
           if (!dayName || !workingDays.includes(dayName)) continue
         } else if (sd.leaveType === 'week_off') {
           continue
@@ -272,14 +254,33 @@ const RosterCalendar = () => {
             onChange={setDepartmentFilter}
             departments={activeDepartments}
           />
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={() => setCursor(new Date(year, month - 1, 1))}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-medium w-36 text-center">{monthLabel}</span>
-            <Button size="sm" variant="outline" onClick={() => setCursor(new Date(year, month + 1, 1))}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+          {viewMode === 'month' && (
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => setCursor(new Date(year, month - 1, 1))}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium w-36 text-center">{monthLabel}</span>
+              <Button size="sm" variant="outline" onClick={() => setCursor(new Date(year, month + 1, 1))}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          <div className="flex items-center gap-1 bg-gray-100/80 p-0.5 rounded-lg border border-gray-200/50">
+            {VIEW_MODES.map((mode) => (
+              <Button
+                key={mode}
+                size="sm"
+                variant="ghost"
+                onClick={() => setViewMode(mode)}
+                className={`h-7 px-3 text-xs font-semibold rounded-md capitalize ${
+                  viewMode === mode
+                    ? 'bg-[#2a517c] text-white hover:bg-[#1e3a5a] hover:text-white shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {mode}
+              </Button>
+            ))}
           </div>
           <RosterPermission action="create">
             <Button
@@ -294,7 +295,13 @@ const RosterCalendar = () => {
         </div>
       </div>
 
-      {isLoading ? (
+      {viewMode === 'grid' ? (
+        <RosterGridView
+          employeeIds={employeeIdsInDepartment}
+          nameByUserId={nameByUserId}
+          onSelectDate={setSelectedDay}
+        />
+      ) : isLoading ? (
         <p className="text-sm text-gray-500 py-8 text-center">Loading calendar…</p>
       ) : (
         <div className="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-lg overflow-hidden">

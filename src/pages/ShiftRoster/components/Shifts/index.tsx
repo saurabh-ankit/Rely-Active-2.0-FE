@@ -41,6 +41,13 @@ const ShiftsGrid = () => {
   const columns: ColumnDef<ShiftV2>[] = useMemo(
     () => [
       {
+        accessorKey: 'shiftCode',
+        header: 'Code',
+        cell: ({ row }) => (
+          <span className="whitespace-nowrap font-mono text-sm text-gray-800">{row.original.shiftCode || '—'}</span>
+        ),
+      },
+      {
         accessorKey: 'name',
         header: 'Name',
         cell: ({ row }) => <span className="font-medium text-gray-900">{row.original.name}</span>,

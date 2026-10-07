@@ -8,8 +8,28 @@ const dateYmd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM
 
 const leaveTypes = ['week_off', 'sick', 'casual', 'planned', 'holiday'] as const
 
+export const randomShiftCodeDigits = (): string => String(Math.floor(Math.random() * 10000)).padStart(4, '0')
+
+/** Shift code from name initials (max 3 words) + 4 random digits, e.g. "Morning Shift" -> "MS-4821". */
+export const generateShiftCode = (name: string, digits: string = randomShiftCodeDigits()): string => {
+  const initials =
+    (name || '')
+      .trim()
+      .split(/[^A-Za-z0-9]+/)
+      .filter(Boolean)
+      .slice(0, 3)
+      .map((word) => word.charAt(0).toUpperCase())
+      .join('') || 'SH'
+  return `${initials}-${digits}`
+}
+
 export const createShiftFormSchema = z.object({
   name: z.string().trim().min(1, 'Shift name is required').max(255),
+  shiftCode: z
+    .string()
+    .trim()
+    .min(1, 'Shift code is required')
+    .regex(/^[A-Z0-9-]{2,20}$/, 'Shift code must be 2-20 characters (letters, numbers, hyphen)'),
   description: z.string().trim().max(500).optional().or(z.literal('')),
   startTime: timeHHmm,
   endTime: timeHHmm,
@@ -19,6 +39,7 @@ export type CreateShiftFormValues = z.infer<typeof createShiftFormSchema>
 
 export const createShiftFormDefaultValues: CreateShiftFormValues = {
   name: '',
+  shiftCode: '',
   description: '',
   startTime: '08:00',
   endTime: '16:00',
