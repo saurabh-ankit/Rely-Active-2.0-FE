@@ -20,6 +20,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { useLocationContext } from '@/hooks/useLocation'
 import { cn } from '@/lib/utils'
 
+import { getDepartmentManagerType } from '@/utils/departmentManager'
+
 export interface SidebarItemData {
   icon: React.ReactNode
   label: string
@@ -70,8 +72,10 @@ const SidebarItem: React.FC<{ item: SidebarItemData }> = ({ item }) => {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
   const location = useLocation()
-  const { isSuperAdmin } = useAuth()
+  const { user, isSuperAdmin } = useAuth()
   const { hasResourcePermission, isLoadingLocations } = useLocationContext()
+
+  const managerType = getDepartmentManagerType(user)
 
   const sidebarItems: SidebarItemData[] = [
     {
@@ -153,6 +157,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
   ]
 
   const filteredItems = sidebarItems.filter((item) => {
+    if (managerType) {
+      switch (managerType) {
+        case 'RNM':
+        case 'CON':
+          return item.href === '/admin/tickets'
+        case 'FNB':
+          return item.href.startsWith('/admin/fnb')
+        case 'EVENTS':
+          return item.href === '/admin/events'
+        case 'GNS':
+          return item.href === '/admin/visitor-history'
+        case 'HOUSEKEEPING':
+          return item.href === '/admin/shift-roster-management'
+      }
+    }
     if (item.href === '/global-settings') {
       return isSuperAdmin
     }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   Plus,
   MessageSquare,
@@ -29,6 +29,7 @@ import { useAuth } from '@/hooks/useAuth'
 import apiClient from '@/lib/api/axios'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import { notifyError, notifySuccess } from '@/utils/toast'
+import { getDepartmentManagerType } from '@/utils/departmentManager'
 import type { Ticket, TicketCategoryMaster, TicketFeedback, TicketPriority, TicketStatus } from '@/lib/types'
 import { CreateTicketModal } from './components/CreateTicketModal'
 import { SelectPersonDrawer } from './components/SelectPersonDrawer'
@@ -394,6 +395,18 @@ export default function TicketsPage() {
     fetchCategories()
   }, [selectedLocationId])
 
+  const managerType = getDepartmentManagerType(user)
+
+  const displayTickets = useMemo(() => {
+    if (managerType === 'RNM') {
+      return tickets.filter((t) => resolveDepartmentCode(t) === 'RNM')
+    }
+    if (managerType === 'CON') {
+      return tickets.filter((t) => resolveDepartmentCode(t) === 'CON')
+    }
+    return tickets
+  }, [tickets, managerType])
+
   // Fetch Tickets matching location & active tab
   const fetchTickets = useCallback(async () => {
     setIsLoading(true)
@@ -408,9 +421,16 @@ export default function TicketsPage() {
         const fetchedTickets: Ticket[] = res.data.data
         setTickets(fetchedTickets)
 
-        if (fetchedTickets.length > 0) {
-          const matching = fetchedTickets.find((t) => t.id === selectedTicket?.id)
-          setSelectedTicket(matching || fetchedTickets[0])
+        const filtered =
+          managerType === 'RNM'
+            ? fetchedTickets.filter((t) => resolveDepartmentCode(t) === 'RNM')
+            : managerType === 'CON'
+              ? fetchedTickets.filter((t) => resolveDepartmentCode(t) === 'CON')
+              : fetchedTickets
+
+        if (filtered.length > 0) {
+          const matching = filtered.find((t) => t.id === selectedTicket?.id)
+          setSelectedTicket(matching || filtered[0])
         } else {
           setSelectedTicket(null)
         }
@@ -420,7 +440,7 @@ export default function TicketsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [selectedLocationId, activeTab, selectedTicket?.id])
+  }, [selectedLocationId, activeTab, selectedTicket?.id, managerType])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -494,9 +514,12 @@ export default function TicketsPage() {
 
   const departmentChips =
     departments.length > 0
-      ? departments.filter(
-          (d) => ['RNM', 'CON'].includes((d.code || '').toUpperCase()) || d.id === ticketDepartment?.id,
-        )
+      ? departments.filter((d) => {
+          const code = (d.code || '').toUpperCase()
+          if (managerType === 'RNM') return code === 'RNM'
+          if (managerType === 'CON') return code === 'CON'
+          return ['RNM', 'CON'].includes(code) || d.id === ticketDepartment?.id
+        })
       : []
 
   const jobCategoryChips =
@@ -730,10 +753,10 @@ export default function TicketsPage() {
           <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
             {isLoading ? (
               <div className="p-8 text-center text-xs font-semibold text-gray-400">Loading tickets...</div>
-            ) : tickets.length === 0 ? (
+            ) : displayTickets.length === 0 ? (
               <div className="p-8 text-center text-xs font-semibold text-gray-400">No tickets in this section</div>
             ) : (
-              tickets.map((t) => {
+              displayTickets.map((t) => {
                 const isSelected = selectedTicket?.id === t.id
                 const isCommon = isCommonAreaTicket(t)
                 const unitStr = formatUnitLabel(t)

@@ -4,6 +4,7 @@ import { getUserLocationPermissionsAPI } from '@/lib/services/rbacService'
 import { getUserAccessiblePropertiesAPI } from '@/lib/services/userService'
 import { ACTIVE_PROP_ID_KEY, type PropertyLocationItem, useLocationStore } from '@/lib/stores/locationStore'
 import { notifySuccess } from '@/utils/toast'
+import { getDepartmentManagerType } from '@/utils/departmentManager'
 
 export type { PropertyLocationItem }
 
@@ -137,6 +138,15 @@ export const useLocation = () => {
         user?.username === 'superadmin'
       ) {
         return true
+      }
+
+      const managerType = getDepartmentManagerType(user)
+      if (managerType) {
+        if ((managerType === 'RNM' || managerType === 'CON') && resourceKey === 'TICKETS') return true
+        if (managerType === 'FNB' && resourceKey === 'FNB') return true
+        if (managerType === 'EVENTS' && resourceKey === 'EVENTS') return true
+        if (managerType === 'GNS' && resourceKey === 'GNS') return true
+        if (managerType === 'HOUSEKEEPING' && (resourceKey === 'ROSTER' || resourceKey === 'EMPLOYEE')) return true
       }
 
       return locationPermissions.some((p) => p.resourceKey === resourceKey && p.permission === permission)

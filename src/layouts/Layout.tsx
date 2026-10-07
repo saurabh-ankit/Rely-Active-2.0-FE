@@ -4,6 +4,7 @@ import { ShieldAlert } from 'lucide-react'
 import SetupStatusGuard from '@/components/common/SetupStatusGuard'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocationContext } from '@/hooks/useLocation'
+import { getDepartmentManagerType } from '@/utils/departmentManager'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
 
@@ -22,6 +23,8 @@ export default function Layout() {
   }
 
   const { user } = useAuth()
+  const managerType = getDepartmentManagerType(user)
+  const isDeptManager = Boolean(managerType)
   const isAdminRole =
     isSuperAdmin ||
     user?.roles?.includes('ADMIN') ||
@@ -31,6 +34,7 @@ export default function Layout() {
   // If user is regular employee/staff with a selected location, but permissions array is empty (no modules assigned), show full white screen
   const hasNoModulesAssigned =
     !isAdminRole &&
+    !isDeptManager &&
     selectedLocationId &&
     !isLoadingLocations &&
     !isLoadingPermissions &&

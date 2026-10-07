@@ -5,6 +5,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { getCompaniesAPI } from '@/lib/services/companyService'
 import { notifyError, notifySuccess } from '@/utils/toast'
 
+import { getDepartmentManagerType, getDepartmentManagerDefaultRoute } from '@/utils/departmentManager'
+
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [username, setUsername] = useState('')
@@ -30,7 +32,7 @@ export default function LoginPage() {
     setIsLoading(true)
     setErrorMsg(null)
     try {
-      await authLogin({
+      const user = await authLogin({
         username: trimmedUsername,
         password: trimmedPassword,
       })
@@ -41,7 +43,12 @@ export default function LoginPage() {
       if (companies.length === 0) {
         navigate('/setup')
       } else {
-        navigate('/dashboard')
+        const managerType = getDepartmentManagerType(user)
+        if (managerType) {
+          navigate(getDepartmentManagerDefaultRoute(managerType))
+        } else {
+          navigate('/dashboard')
+        }
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Login failed. Please check your credentials.'
