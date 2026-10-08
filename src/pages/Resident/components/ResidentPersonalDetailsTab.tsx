@@ -1,24 +1,10 @@
 import React from 'react'
-import {
-  Building2,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  CreditCard,
-  Edit,
-  HeartPulse,
-  Home,
-  IndianRupee,
-  KeyRound,
-  Mail,
-  Phone,
-  UserCheck,
-  Users,
-  Utensils,
-} from 'lucide-react'
+import { differenceInYears, format, isValid, parseISO } from 'date-fns'
+import { CreditCard, Home, KeyRound, Mail, Phone, ShieldAlert, User, Users, Utensils } from 'lucide-react'
 import type { ResidentItem } from '@/lib/types'
 import { Button } from '@/components/ui/button'
-import { getFileUrl } from '@/lib/utils'
+import { InfoList, Panel } from '@/components/common/DetailPanel'
+import { cn, getFileUrl } from '@/lib/utils'
 
 export interface FnbSubscriptionItem {
   id: string
@@ -57,7 +43,89 @@ export interface ResidentPersonalDetailsTabProps {
   getSlotDisplayName: (slot: string) => string
   canUpdateResident: boolean
   onAssignFoodPackage: () => void
-  onEditProfile: () => void
+}
+
+const parseDate = (value?: string | null) => {
+  if (!value) return null
+  const date = parseISO(value)
+  return isValid(date) ? date : null
+}
+
+/** "11 Nov 1960 (65 yrs)" */
+const formatDob = (value?: string | null) => {
+  const date = parseDate(value)
+  return date ? `${format(date, 'dd MMM yyyy')} (${differenceInYears(new Date(), date)} yrs)` : null
+}
+
+const formatDate = (value?: string | null) => {
+  const date = parseDate(value)
+  return date ? format(date, 'dd MMM yyyy') : null
+}
+
+/** "OWNER_OCCUPIED" -> "Owner occupied" */
+const humanize = (value?: string | null) =>
+  value ? value.charAt(0).toUpperCase() + value.slice(1).toLowerCase().replace(/_/g, ' ') : null
+
+const DIET_STYLES: Record<string, string> = {
+  veg: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  non_veg: 'border-rose-200 bg-rose-50 text-rose-700',
+  egg: 'border-amber-200 bg-amber-50 text-amber-700',
+}
+
+/** One food plan in a single readable block: name, diet, meals and price. */
+const FoodPlan = ({
+  sub,
+  getSlotDisplayName,
+  compact = false,
+}: {
+  sub: FnbSubscriptionItem
+  getSlotDisplayName: (slot: string) => string
+  compact?: boolean
+}) => {
+  const pkg = sub.propertyPackage
+  const gPkg = pkg?.globalPackage
+  const diet = (gPkg?.dietaryType || 'veg').toLowerCase()
+  const isDelivery = sub.diningType === 'home_delivery'
+  const basePrice = Number(pkg?.price) || 0
+  const deliveryFee = Number(sub.deliveryCharge) || 0
+  const total = sub.totalPrice != null ? Number(sub.totalPrice) : basePrice + (isDelivery ? deliveryFee : 0)
+  const meals = (gPkg?.includedMealSlots || []).map(getSlotDisplayName)
+
+  return (
+    <div className={cn('flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between', !compact && 'gap-3')}>
+      <div className="min-w-0 space-y-1">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className={cn('font-semibold text-gray-900', compact ? 'text-xs' : 'text-sm')}>
+            {gPkg?.name || 'Food package'}
+          </span>
+          <span
+            className={cn(
+              'rounded-full border px-2 py-px text-[10px] font-semibold capitalize',
+              DIET_STYLES[diet] ?? DIET_STYLES.veg,
+            )}
+          >
+            {diet.replace('_', ' ')}
+          </span>
+          <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-px text-[10px] font-semibold text-gray-600">
+            {isDelivery ? 'Home delivery' : 'Dine-in'}
+          </span>
+        </div>
+        <p className="text-xs text-gray-500">
+          {meals.length > 0 ? meals.join(' · ') : 'No meals listed'}
+          {sub.startDate && ` · since ${formatDate(sub.startDate) ?? sub.startDate}`}
+        </p>
+      </div>
+      <div className="shrink-0 text-left sm:text-right">
+        <p className={cn('font-bold text-[#005390]', compact ? 'text-sm' : 'text-base')}>
+          ₹{total.toLocaleString('en-IN')}
+          <span className="text-xs font-medium text-gray-500">/month</span>
+        </p>
+        {isDelivery && deliveryFee > 0 && (
+          <p className="text-[10px] text-gray-400">incl. ₹{deliveryFee.toLocaleString('en-IN')} delivery</p>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export const ResidentPersonalDetailsTab: React.FC<ResidentPersonalDetailsTabProps> = ({
@@ -66,503 +134,190 @@ export const ResidentPersonalDetailsTab: React.FC<ResidentPersonalDetailsTabProp
   getSlotDisplayName,
   canUpdateResident,
   onAssignFoodPackage,
-  onEditProfile,
 }) => {
-  const fullName = `${resident.firstName} ${resident.lastName || ''}`.trim()
   const unit = resident.unit
   const floor = unit?.floor
   const floorNum = floor?.floor_number
   const floorLabel =
     floor?.floor_name || (floorNum ? (floorNum === 1 ? 'Ground Floor' : `Floor ${floorNum}`) : 'Main Level')
-  const unitNumber = unit?.unit_number ? `Unit ${unit.unit_number}` : 'Unassigned Flat'
-  const propertyName = resident.property?.property_name || resident.property?.name || 'Property Location'
+  const propertyName = resident.property?.property_name || resident.property?.name || null
   const familyMembers = resident.familyMembers || []
+  const primarySub = fnbSubscriptions.find((s) => !s.familyMemberId && (!s.familyMember || !s.familyMember.id))
+  const isTenant = resident.residentType === 'TENANT'
 
   return (
-    <div className="space-y-6">
-      {canUpdateResident && (
-        <div className="flex items-center justify-end gap-3 flex-wrap">
-          {resident.isResiding && (
-            <Button
-              variant="secondary"
-              icon={<Utensils className="w-4 h-4" />}
-              onClick={onAssignFoodPackage}
-              className="rounded-xl"
-            >
-              Assign Food Package
-            </Button>
-          )}
-          <Button variant="primary" icon={<Edit className="w-4 h-4" />} onClick={onEditProfile} className="rounded-xl">
-            Edit Resident Profile
-          </Button>
-        </div>
-      )}
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+      <div className="space-y-5 lg:col-span-2">
+        <Panel icon={Home} title="Home">
+          <InfoList
+            rows={[
+              ['Property', propertyName],
+              ['Flat', unit?.unit_number ? `Unit ${unit.unit_number} · ${floorLabel}` : null],
+              ['Layout', unit?.unit_type || null],
+              ['Flat occupancy', humanize(unit?.occupancyStatus)],
+              ['Moved in', formatDate(resident.moveInDate)],
+            ]}
+          />
+        </Panel>
 
-      {/* Primary Resident Active Food Package Summary Bar */}
-      {resident.isResiding &&
-        (() => {
-          const primarySub = fnbSubscriptions.find((s) => !s.familyMemberId && (!s.familyMember || !s.familyMember.id))
-          const pkg = primarySub?.propertyPackage
-          const gPkg = pkg?.globalPackage
-          const isNonVeg = gPkg?.dietaryType === 'non_veg' || gPkg?.dietaryType === 'NON_VEG'
-          const isEgg = gPkg?.dietaryType === 'egg' || gPkg?.dietaryType === 'EGG'
-
-          return (
-            <div className="rounded-3xl border border-[#005390]/20 bg-gradient-to-r from-blue-50/90 via-sky-50/50 to-white p-5 shadow-lg backdrop-blur-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5 min-w-0">
-                <div className="p-3 rounded-2xl bg-[#005390] text-white shadow-xs shrink-0">
-                  <Utensils className="w-5 h-5" />
-                </div>
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-black uppercase text-gray-400 tracking-wider">
-                      Primary Resident Food Package:
-                    </span>
-                    {primarySub && pkg ? (
-                      <span className="text-sm font-extrabold text-gray-900">{gPkg?.name || 'Assigned Package'}</span>
-                    ) : (
-                      <span className="text-xs font-semibold text-gray-400 italic">No package assigned</span>
-                    )}
-
-                    {primarySub && (
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                        {primarySub.status || 'Active'}
-                      </span>
-                    )}
-
-                    {primarySub && (
-                      <span
-                        className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
-                          primarySub.diningType === 'home_delivery'
-                            ? 'bg-amber-50 text-amber-800 border-amber-300'
-                            : 'bg-blue-50 text-[#005390] border-blue-200'
-                        }`}
-                      >
-                        {primarySub.diningType === 'home_delivery' ? '🚚 Home Delivery' : '🍽️ Dine-in'}
-                      </span>
-                    )}
-                  </div>
-
-                  {primarySub && pkg ? (
-                    <div className="flex items-center gap-2 flex-wrap text-xs">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold capitalize border ${
-                          isNonVeg
-                            ? 'bg-rose-100 text-rose-800 border-rose-300'
-                            : isEgg
-                              ? 'bg-amber-100 text-amber-800 border-amber-300'
-                              : 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                        }`}
-                      >
-                        {gPkg?.dietaryType ? gPkg.dietaryType.replace('_', ' ') : 'Vegetarian'}
-                      </span>
-
-                      {gPkg?.includedMealSlots && gPkg.includedMealSlots.length > 0 && (
-                        <>
-                          <span className="text-gray-300">•</span>
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px] text-gray-400 font-semibold">Meals Included:</span>
-                            {gPkg.includedMealSlots.map((slot) => (
-                              <span
-                                key={slot}
-                                className="bg-white text-gray-700 border border-gray-200 px-1.5 py-0.5 rounded text-[10px] font-bold"
-                              >
-                                {getSlotDisplayName(slot)}
-                              </span>
-                            ))}
-                          </div>
-                        </>
-                      )}
-
-                      <span className="text-gray-300">•</span>
-                      <span className="text-[10px] text-gray-400 font-mono">
-                        Started: {primarySub.startDate ? primarySub.startDate.split('T')[0] : 'N/A'}
-                      </span>
-                    </div>
-                  ) : (
-                    <p className="text-[11px] text-gray-400">
-                      Assign a monthly dining plan for {fullName} using the Assign Food Package button above.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
-                {primarySub &&
-                  pkg &&
-                  (() => {
-                    const basePrice = Number(pkg.price) || 0
-                    const deliveryFee = Number(primarySub.deliveryCharge) || 0
-                    const total =
-                      primarySub.totalPrice != null
-                        ? Number(primarySub.totalPrice)
-                        : basePrice + (primarySub.diningType === 'home_delivery' ? deliveryFee : 0)
-                    return (
-                      <div className="text-right">
-                        <span className="text-[10px] font-bold uppercase text-gray-400 block">Monthly Rate</span>
-                        <span className="text-sm font-black text-[#005390] bg-white px-3 py-1 rounded-xl border border-blue-200 shadow-2xs inline-block">
-                          ₹{total.toLocaleString('en-IN')}/mo
-                        </span>
-                        {primarySub.diningType === 'home_delivery' && deliveryFee > 0 && (
-                          <span className="block text-[9px] text-amber-700 font-semibold mt-0.5">
-                            (Base ₹{basePrice.toLocaleString('en-IN')} + ₹{deliveryFee.toLocaleString('en-IN')} Del.)
-                          </span>
-                        )}
-                      </div>
-                    )
-                  })()}
-              </div>
-            </div>
-          )
-        })()}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Property & Flat Mapping */}
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-3">
-            <Home className="w-5 h-5 text-[#005390]" />
-            Property & Flat Unit Mapping
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Property Location</span>
-              <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5 text-xs">
-                <Building2 className="w-3.5 h-3.5 text-[#005390]" />
-                {propertyName}
-              </span>
-            </div>
-
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Floor & Unit #</span>
-              <span className="font-bold text-gray-900 dark:text-white text-xs">
-                {floorLabel} — {unitNumber}
-              </span>
-            </div>
-
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Unit Layout Type</span>
-              <span className="font-bold text-gray-900 dark:text-white text-xs">{unit?.unit_type || 'N/A'}</span>
-            </div>
-
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Occupancy Status</span>
-              <span className="font-bold text-blue-700 dark:text-blue-400 text-xs">
-                {unit?.occupancyStatus || 'N/A'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Personal Profile Details */}
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-3">
-            <UserCheck className="w-5 h-5 text-[#005390]" />
-            Personal Profile Details
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Gender</span>
-              <span className="font-bold text-gray-900 dark:text-white text-xs">{resident.gender || 'N/A'}</span>
-            </div>
-
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Date of Birth</span>
-              <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5 text-xs">
-                <Calendar className="w-3.5 h-3.5 text-[#005390]" />
-                {resident.dob || 'N/A'}
-              </span>
-            </div>
-
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Blood Group</span>
-              <span className="font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5 text-xs">
-                <HeartPulse className="w-3.5 h-3.5" />
-                {resident.bloodGroup || 'N/A'}
-              </span>
-            </div>
-
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Move-In Date</span>
-              <span className="font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 text-xs">
-                <Clock className="w-3.5 h-3.5" />
-                {resident.moveInDate || 'N/A'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Rent & Billing (Tenants) */}
-        {resident.residentType === 'TENANT' && (
-          <div className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-white p-6 shadow-lg backdrop-blur-xl space-y-4 md:col-span-2">
-            <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 border-b border-blue-100 dark:border-gray-800 pb-3">
-              <CreditCard className="w-5 h-5 text-[#005390]" />
-              Rent & Billing Configuration
-            </h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
-              <div className="p-4 bg-white/90 dark:bg-slate-800/80 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-2xs">
-                <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Monthly Rent Amount</span>
-                <span className="font-black text-gray-900 dark:text-white text-sm flex items-center gap-1">
-                  <IndianRupee className="w-4 h-4 text-[#005390]" />
-                  {resident.rentAmount !== undefined && resident.rentAmount !== null
-                    ? `₹${Number(resident.rentAmount).toLocaleString('en-IN')}`
-                    : 'Rent Not Fixed'}
-                </span>
-              </div>
-
-              <div className="p-4 bg-white/90 dark:bg-slate-800/80 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-2xs">
-                <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Rent Payment Routing</span>
-                {resident.payRentToCompany ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
-                    Pay to Company (Company Billing)
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                    Direct to Owner (Landlord)
-                  </span>
-                )}
-              </div>
-
-              <div className="p-4 bg-white/90 dark:bg-slate-800/80 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-2xs">
-                <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Company Invoicing</span>
-                <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-                  {resident.payRentToCompany
-                    ? 'Included in automated monthly company billing'
-                    : 'Excluded from company billing invoices'}
-                </span>
-              </div>
-            </div>
-          </div>
+        {resident.isResiding && (
+          <Panel
+            icon={Utensils}
+            title="Food plan"
+            action={
+              canUpdateResident ? (
+                <Button variant="secondary" className="h-8 rounded-xl text-xs" onClick={onAssignFoodPackage}>
+                  {primarySub ? 'Change plan' : 'Assign plan'}
+                </Button>
+              ) : null
+            }
+          >
+            {primarySub?.propertyPackage ? (
+              <FoodPlan sub={primarySub} getSlotDisplayName={getSlotDisplayName} />
+            ) : (
+              <p className="rounded-xl border border-dashed border-gray-200 p-4 text-center text-xs text-gray-400">
+                No food plan assigned yet.
+              </p>
+            )}
+          </Panel>
         )}
 
-        {/* Contact & Mobile Credentials */}
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4 md:col-span-2">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-3">
-            <KeyRound className="w-5 h-5 text-[#005390]" />
-            Contact & Mobile Credentials
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Mobile Phone</span>
-              <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5 text-xs">
-                <Phone className="w-3.5 h-3.5 text-[#005390]" />
-                {resident.phone || 'N/A'}
-              </span>
-            </div>
-
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Email Address</span>
-              <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5 text-xs truncate">
-                <Mail className="w-3.5 h-3.5 text-[#005390] shrink-0" />
-                <span className="truncate">{resident.email || 'N/A'}</span>
-              </span>
-            </div>
-
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Emergency Contact</span>
-              <span className="font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5 text-xs">
-                <Phone className="w-3.5 h-3.5" />
-                {resident.emergencyContact || 'N/A'}
-              </span>
-            </div>
-
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Mobile Handle</span>
-              <span className="font-mono font-bold text-[#005390] text-xs">
-                {resident.username ? `(${resident.username})` : 'Not Configured'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Family Members */}
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4 md:col-span-2">
-          <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
-            <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Users className="w-5 h-5 text-[#005390]" />
-              Registered Family Members
-            </h2>
-            <span className="text-xs font-bold text-[#005390] bg-blue-50 dark:bg-blue-950 px-3 py-1 rounded-full border border-blue-200 dark:border-blue-800">
-              {familyMembers.length} Family Member(s)
-            </span>
-          </div>
-
+        <Panel icon={Users} title={`Family members${familyMembers.length ? ` (${familyMembers.length})` : ''}`}>
           {familyMembers.length === 0 ? (
-            <div className="p-8 text-center text-xs text-gray-400 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
-              No family members registered for this resident profile.
-            </div>
+            <p className="rounded-xl border border-dashed border-gray-200 p-4 text-center text-xs text-gray-400">
+              No family members added.
+            </p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <ul className="divide-y divide-gray-100 dark:divide-gray-800">
               {familyMembers.map((fm) => {
                 const fmName = `${fm.firstName} ${fm.lastName || ''}`.trim()
+                const livesHere = fm.isResiding !== false && (resident.isResiding || fm.isResiding)
+                const fmSub = fnbSubscriptions.find((s) => s.familyMemberId === fm.id || s.familyMember?.id === fm.id)
+                const details = [fm.gender, formatDob(fm.dob), fm.bloodGroup].filter(Boolean).join(' · ')
                 return (
-                  <div
-                    key={fm.id || fm.firstName}
-                    className="p-4 bg-slate-50/90 dark:bg-slate-800/60 rounded-2xl border border-gray-200/80 dark:border-gray-700 space-y-3 shadow-2xs"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-[#005390]/10 text-[#005390] flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden border border-gray-200">
+                  <li key={fm.id || fm.firstName} className="space-y-2 py-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-violet-100 text-xs font-bold text-violet-700">
                           {fm.photoUrl ? (
-                            <img src={getFileUrl(fm.photoUrl)} alt={fmName} className="w-full h-full object-cover" />
+                            <img src={getFileUrl(fm.photoUrl)} alt={fmName} className="h-full w-full object-cover" />
                           ) : (
                             fm.firstName[0]?.toUpperCase()
                           )}
                         </div>
-                        <div>
-                          <h3 className="text-xs font-bold text-gray-900 dark:text-white">{fmName}</h3>
-                          <span className="text-[10px] font-semibold text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-950 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-800">
-                            {fm.relation || 'Relative'}
-                          </span>
+                        <div className="min-w-0">
+                          <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-gray-900 dark:text-white">
+                            {fmName}
+                            <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-px text-[10px] font-semibold capitalize text-violet-700">
+                              {fm.relation || 'Family'}
+                            </span>
+                          </p>
+                          {details && <p className="truncate text-xs text-gray-500">{details}</p>}
                         </div>
                       </div>
-
-                      {resident.isResiding || fm.isResiding ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3" /> Residing
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          Off-site
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-[11px] pt-1 border-t border-gray-200/60 dark:border-gray-700/60">
-                      <div>
-                        <span className="text-gray-400 font-semibold block text-[9px] uppercase">Gender</span>
-                        <span className="font-bold text-gray-800 dark:text-gray-200">{fm.gender || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-400 font-semibold block text-[9px] uppercase">DOB</span>
-                        <span className="font-bold text-gray-800 dark:text-gray-200">{fm.dob || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-400 font-semibold block text-[9px] uppercase">Phone</span>
-                        <span className="font-bold text-gray-800 dark:text-gray-200">{fm.phone || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-400 font-semibold block text-[9px] uppercase">Email</span>
-                        <span className="font-bold text-gray-800 dark:text-gray-200 truncate block">
-                          {fm.email || 'N/A'}
-                        </span>
-                      </div>
-                      {fm.bloodGroup && (
-                        <div>
-                          <span className="text-gray-400 font-semibold block text-[9px] uppercase">Blood Group</span>
-                          <span className="font-bold text-rose-600 dark:text-rose-400">{fm.bloodGroup}</span>
-                        </div>
-                      )}
-                      {fm.username && (
-                        <div>
-                          <span className="text-gray-400 font-semibold block text-[9px] uppercase">Mobile Handle</span>
-                          <span className="font-mono font-bold text-[#005390]">({fm.username})</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {(() => {
-                      const fmSub = fnbSubscriptions.find(
-                        (s) => s.familyMemberId === fm.id || s.familyMember?.id === fm.id,
-                      )
-                      const pkg = fmSub?.propertyPackage
-                      const gPkg = pkg?.globalPackage
-                      const isNonVeg = gPkg?.dietaryType === 'non_veg' || gPkg?.dietaryType === 'NON_VEG'
-                      const isEgg = gPkg?.dietaryType === 'egg' || gPkg?.dietaryType === 'EGG'
-
-                      return (
-                        <div className="mt-3 pt-2.5 border-t border-purple-100/80 space-y-1.5 bg-purple-50/40 p-2.5 rounded-xl border border-purple-100">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <Utensils className="w-3.5 h-3.5 text-purple-700" />
-                              <span className="text-[10px] font-extrabold uppercase text-purple-900 tracking-wider">
-                                Food Package:
-                              </span>
-                              {fmSub && pkg ? (
-                                <span className="text-xs font-bold text-gray-900">
-                                  {gPkg?.name || 'Assigned Package'}
-                                </span>
-                              ) : (
-                                <span className="text-xs font-semibold text-gray-400 italic">No package assigned</span>
-                              )}
-                              {fmSub && (
-                                <span
-                                  className={`text-[9px] font-bold uppercase px-1.5 py-0.2 rounded border ${
-                                    fmSub.diningType === 'home_delivery'
-                                      ? 'bg-amber-50 text-amber-800 border-amber-300'
-                                      : 'bg-blue-50 text-[#005390] border-blue-200'
-                                  }`}
-                                >
-                                  {fmSub.diningType === 'home_delivery' ? '🚚 Home Delivery' : '🍽️ Dine-in'}
-                                </span>
-                              )}
-                            </div>
-
-                            {fmSub &&
-                              pkg &&
-                              (() => {
-                                const basePrice = Number(pkg.price) || 0
-                                const deliveryFee = Number(fmSub.deliveryCharge) || 0
-                                const total =
-                                  fmSub.totalPrice != null
-                                    ? Number(fmSub.totalPrice)
-                                    : basePrice + (fmSub.diningType === 'home_delivery' ? deliveryFee : 0)
-                                return (
-                                  <div className="text-right">
-                                    <span className="text-xs font-extrabold text-[#005390] bg-white px-2 py-0.5 rounded border border-blue-200 inline-block">
-                                      ₹{total.toLocaleString('en-IN')}/mo
-                                    </span>
-                                    {fmSub.diningType === 'home_delivery' && deliveryFee > 0 && (
-                                      <span className="block text-[8px] text-amber-700 font-semibold">
-                                        (+₹{deliveryFee.toLocaleString('en-IN')} Del.)
-                                      </span>
-                                    )}
-                                  </div>
-                                )
-                              })()}
-                          </div>
-
-                          {fmSub && pkg && (
-                            <div className="flex items-center gap-2 flex-wrap text-[11px]">
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold capitalize border ${
-                                  isNonVeg
-                                    ? 'bg-rose-100 text-rose-800 border-rose-300'
-                                    : isEgg
-                                      ? 'bg-amber-100 text-amber-800 border-amber-300'
-                                      : 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                                }`}
-                              >
-                                {gPkg?.dietaryType ? gPkg.dietaryType.replace('_', ' ') : 'Vegetarian'}
-                              </span>
-
-                              {gPkg?.includedMealSlots && gPkg.includedMealSlots.length > 0 && (
-                                <div className="flex items-center gap-1 flex-wrap">
-                                  <span className="text-[9px] text-gray-400 font-semibold">Included:</span>
-                                  {gPkg.includedMealSlots.map((slot) => (
-                                    <span
-                                      key={slot}
-                                      className="bg-white text-gray-700 border border-gray-200 px-1.5 py-0.2 rounded text-[9px] font-bold"
-                                    >
-                                      {getSlotDisplayName(slot)}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
+                      <div className="flex shrink-0 flex-wrap items-center gap-2 text-xs sm:justify-end">
+                        {fm.phone && (
+                          <a href={`tel:${fm.phone}`} className="text-gray-600 hover:text-[#005390]">
+                            {fm.phone}
+                          </a>
+                        )}
+                        <span
+                          className={cn(
+                            'rounded-full border px-2 py-px text-[10px] font-semibold',
+                            livesHere
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                              : 'border-amber-200 bg-amber-50 text-amber-700',
                           )}
-                        </div>
-                      )
-                    })()}
-                  </div>
+                        >
+                          {livesHere ? 'Residing' : 'Off-site Resident'}
+                        </span>
+                      </div>
+                    </div>
+                    {fmSub?.propertyPackage && (
+                      <div className="ml-12 rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800/50">
+                        <FoodPlan sub={fmSub} getSlotDisplayName={getSlotDisplayName} compact />
+                      </div>
+                    )}
+                  </li>
                 )
               })}
-            </div>
+            </ul>
           )}
-        </div>
+        </Panel>
+      </div>
+
+      <div className="space-y-5">
+        <Panel icon={Phone} title="Contact">
+          <InfoList
+            rows={[
+              [
+                'Phone',
+                resident.phone ? (
+                  <a href={`tel:${resident.phone}`} className="hover:text-[#005390]">
+                    {resident.phone}
+                  </a>
+                ) : null,
+              ],
+              [
+                'Email',
+                resident.email ? (
+                  <a href={`mailto:${resident.email}`} className="flex items-center gap-1.5 hover:text-[#005390]">
+                    <Mail className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                    <span className="truncate">{resident.email}</span>
+                  </a>
+                ) : null,
+              ],
+              [
+                'Emergency',
+                resident.emergencyContact ? (
+                  <span className="flex items-center gap-1.5">
+                    <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                    {resident.emergencyContact}
+                  </span>
+                ) : null,
+              ],
+            ]}
+          />
+        </Panel>
+
+        <Panel icon={User} title="Personal">
+          <InfoList
+            rows={[
+              ['Gender', resident.gender ? <span className="capitalize">{resident.gender.toLowerCase()}</span> : null],
+              ['Date of birth', formatDob(resident.dob)],
+              ['Blood group', resident.bloodGroup || null],
+            ]}
+          />
+        </Panel>
+
+        {isTenant && (
+          <Panel icon={CreditCard} title="Rent">
+            <InfoList
+              rows={[
+                [
+                  'Monthly rent',
+                  resident.rentAmount != null ? `₹${Number(resident.rentAmount).toLocaleString('en-IN')}` : null,
+                ],
+                ['Paid to', resident.payRentToCompany ? 'Company (added to monthly bill)' : 'Owner directly'],
+              ]}
+            />
+          </Panel>
+        )}
+
+        <Panel icon={KeyRound} title="App login">
+          <InfoList
+            rows={[
+              [
+                'Username',
+                resident.username ? (
+                  <span className="font-mono text-xs">{resident.username}</span>
+                ) : (
+                  <span className="font-normal text-gray-400">No app access</span>
+                ),
+              ],
+            ]}
+          />
+        </Panel>
       </div>
     </div>
   )

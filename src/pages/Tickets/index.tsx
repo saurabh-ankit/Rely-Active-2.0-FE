@@ -22,6 +22,7 @@ import {
   Building2,
   ShieldCheck,
   ArrowUpCircle,
+  Wrench,
 } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
 import { useDepartmentsQuery } from '@/hooks/react-query/rbac'
@@ -34,6 +35,7 @@ import type { Ticket, TicketCategoryMaster, TicketFeedback, TicketPriority, Tick
 import { CreateTicketModal } from './components/CreateTicketModal'
 import { SelectPersonDrawer } from './components/SelectPersonDrawer'
 import { AddInvoiceModal } from './components/AddInvoiceModal'
+import { PageHeader } from '@/components/common/PageHeader'
 
 interface ParsedCompletion {
   notes: string | null
@@ -656,46 +658,43 @@ export default function TicketsPage() {
 
   return (
     <div className="space-y-6 pb-8">
-      {/* Standard Header matching other module pages */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Tickets</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Manage service tickets, assign personnel, and update ticket resolution options.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {canCreateTicket && (
-            <button
-              type="button"
-              onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#005390] hover:bg-[#004273] text-white text-sm font-semibold rounded-xl transition-all cursor-pointer shadow-xs"
-            >
-              <Plus className="w-4 h-4" /> Add New Ticket
-            </button>
-          )}
-
-          {canUpdateTicket && (
-            <div className="flex items-center gap-2.5 bg-white px-3.5 py-2 rounded-xl border border-gray-200 shadow-2xs">
-              <span className="text-xs font-semibold text-gray-700">Automate Tickets</span>
+      <PageHeader
+        icon={Wrench}
+        title="Tickets"
+        description="Manage service tickets, assign personnel, and update ticket resolution options."
+        actions={
+          <>
+            {canCreateTicket && (
               <button
                 type="button"
-                onClick={() => setAutomateTickets(!automateTickets)}
-                className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  automateTickets ? 'bg-[#005390]' : 'bg-gray-200'
-                }`}
+                onClick={() => setIsCreateModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#005390] hover:bg-[#004273] text-white text-sm font-semibold rounded-xl transition-all cursor-pointer shadow-xs"
               >
-                <span
-                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                    automateTickets ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-                />
+                <Plus className="w-4 h-4" /> Add New Ticket
               </button>
-            </div>
-          )}
-        </div>
-      </div>
+            )}
+
+            {canUpdateTicket && (
+              <div className="flex items-center gap-2.5 bg-white px-3.5 py-2 rounded-xl border border-gray-200 shadow-2xs">
+                <span className="text-xs font-semibold text-gray-700">Automate Tickets</span>
+                <button
+                  type="button"
+                  onClick={() => setAutomateTickets(!automateTickets)}
+                  className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    automateTickets ? 'bg-[#005390]' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                      automateTickets ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+            )}
+          </>
+        }
+      />
 
       {/* Main Workspace Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

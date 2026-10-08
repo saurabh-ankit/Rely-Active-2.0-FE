@@ -9,6 +9,7 @@ import { SubscriptionsTab } from '@/pages/GlobalSettings/components/Subscription
 import { AssignedTasksTab } from '@/pages/Medical/components/AssignedTasksTab'
 import { AppointmentsCalendar } from '@/pages/Medical/components/appointments/AppointmentsCalendar'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/common/PageHeader'
 
 export type MedicalSection = 'care' | 'appointments'
 export type MedicalTab = 'tasks' | 'packages' | 'subscriptions' | 'assigned'
@@ -59,33 +60,23 @@ export const MedicalPage: React.FC<MedicalPageProps> = ({ initialTab }) => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/80 p-6 rounded-3xl border border-gray-100 shadow-sm backdrop-blur-xl">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-blue-50 text-[#005390] shadow-xs">
-              <Stethoscope className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">Medical & Clinical Care</h1>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                {activeSection === 'appointments'
-                  ? 'View visiting doctor shifts and manage resident appointment bookings.'
-                  : 'Configure and manage Care Tasks, Care Packages, and Resident Subscriptions.'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-600 bg-white/70 border border-gray-200 shadow-2xs backdrop-blur-sm">
-            <Shield className="w-3.5 h-3.5 text-[#005390]" />
-            {isSuperAdmin ? 'Super Admin' : 'Property Admin'}
-          </span>
-        </div>
-      </div>
+      <PageHeader
+        icon={Stethoscope}
+        title="Medical & Clinical Care"
+        description={
+          activeSection === 'appointments'
+            ? 'View visiting doctor shifts and manage resident appointment bookings.'
+            : 'Configure and manage Care Tasks, Care Packages, and Resident Subscriptions.'
+        }
+        actions={
+          <>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-600 bg-white/70 border border-gray-200 shadow-2xs backdrop-blur-sm">
+              <Shield className="w-3.5 h-3.5 text-[#005390]" />
+              {isSuperAdmin ? 'Super Admin' : 'Property Admin'}
+            </span>
+          </>
+        }
+      />
 
       {/* Top-level: Care | Appointments */}
       <div className="grid w-full grid-cols-2 gap-3 border-b border-gray-200/80 pb-4">

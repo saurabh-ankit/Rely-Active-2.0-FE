@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { format } from 'date-fns'
-import { ArrowLeft, Eye, MessageSquareText, Star, Users } from 'lucide-react'
+import { BarChart3, Eye, MessageSquareText, Star, Users } from 'lucide-react'
+import { PageHeader } from '@/components/common/PageHeader'
 import PageLoader from '@/components/shared/PageLoader'
 import { ResponsiveTabs } from '@/components/common/ResponsiveTabs'
 import { Badge } from '@/components/ui/badge'
@@ -141,22 +142,25 @@ const FormResponses = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" aria-label="Back" onClick={() => navigate('/admin/settings/feedback')}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold text-gray-900 truncate">{form.title}</h1>
+      <PageHeader
+        icon={BarChart3}
+        title={form.title}
+        description={`Responses · Expires ${format(new Date(form.expiryDate), 'dd MMM yyyy')}`}
+        onBack={() => navigate('/admin/settings/feedback')}
+        actions={
+          <>
             <FormStatusBadge form={form} />
-          </div>
-          <p className="text-sm text-gray-600">Expires {format(new Date(form.expiryDate), 'dd MMM yyyy')}</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => navigate(`/admin/settings/feedback/forms/edit/${form.id}`)}>
-          <Eye className="h-4 w-4 mr-2" />
-          View Form
-        </Button>
-      </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/admin/settings/feedback/forms/edit/${form.id}`)}
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              View Form
+            </Button>
+          </>
+        }
+      />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>

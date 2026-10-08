@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  ShieldCheck,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { useLocationContext } from '@/hooks/useLocation'
@@ -24,6 +25,7 @@ import {
   addGateEntryItems,
 } from '@/lib/services/gateService'
 import type { GateEntry, GatePreapproved, GateStats } from '@/lib/types'
+import { PageHeader } from '@/components/common/PageHeader'
 
 interface StatCardProps {
   title: string
@@ -180,12 +182,11 @@ export default function GateManagementPage() {
 
   return (
     <div className="space-y-6 pb-8">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Visitors & Gate Management</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Track visitors, manage walk-in approvals, and monitor gate operations.
-        </p>
-      </div>
+      <PageHeader
+        icon={ShieldCheck}
+        title="Visitors & Gate Management"
+        description="Track visitors, manage walk-in approvals, and monitor gate operations."
+      />
 
       {/* Top Search & Filter Container Bar (Matching Image 1) */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 p-3.5 rounded-2xl shadow-2xs">

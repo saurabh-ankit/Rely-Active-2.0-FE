@@ -185,22 +185,14 @@ function GlobalInventory() {
             label: 'Categories',
             shortLabel: 'Categories',
             icon: FolderOpen,
-            content: (
-              <FormSection title="Categories">
-                <MasterList kind="categories" />
-              </FormSection>
-            ),
+            content: <MasterList kind="categories" />,
           },
           {
             value: 'vendors',
             label: 'Vendors',
             shortLabel: 'Vendors',
             icon: Users,
-            content: (
-              <FormSection title="Vendors">
-                <MasterList kind="vendors" />
-              </FormSection>
-            ),
+            content: <MasterList kind="vendors" />,
           },
         ]}
       />
@@ -222,7 +214,7 @@ function MasterList({ kind, returnTo }: { returnTo?: string; kind: 'categories' 
       cell: ({ row }) => {
         const record = row.original
         return (
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-[240px] items-center gap-3">
             {'image' in record && record.image ? (
               <img src={record.image} alt="" className="size-10 rounded-lg object-cover" />
             ) : kind === 'categories' ? (
@@ -277,48 +269,50 @@ function MasterList({ kind, returnTo }: { returnTo?: string; kind: 'categories' 
     { accessorKey: 'isActive', header: 'Status', cell: ({ row }) => <ActiveStatus active={row.original.isActive} /> },
     {
       id: 'actions',
-      header: 'Actions',
+      header: () => <span className="block text-right">Actions</span>,
       cell: ({ row }) => (
-        <RowActions
-          name={row.original.name}
-          actions={[
-            ...(kind === 'categories'
-              ? [
-                  {
-                    label: 'View Inventory',
-                    icon: FolderOpen,
-                    onClick: () =>
-                      navigate(`${categoryPath(row.original.id)}?${new URLSearchParams({ origin: search })}`),
-                  },
-                ]
-              : []),
-            {
-              label: 'Edit',
-              icon: Pencil,
-              onClick: () => navigate(target(`${inventoryBase}/${kind}/${row.original.id}/edit`)),
-            },
-            ...(kind === 'vendors'
-              ? [
-                  {
-                    label: row.original.isActive ? 'Deactivate' : 'Reactivate',
-                    icon: Pencil,
-                    onClick: () => {
-                      if (!statusMutation.isPending)
-                        void statusMutation
-                          .mutateAsync({ id: row.original.id, isActive: !row.original.isActive })
-                          .then(() => toast.success('Supplier status updated'))
-                          .catch(() => toast.error('Unable to update supplier status'))
+        <div className="flex justify-end">
+          <RowActions
+            name={row.original.name}
+            actions={[
+              ...(kind === 'categories'
+                ? [
+                    {
+                      label: 'View Inventory',
+                      icon: FolderOpen,
+                      onClick: () =>
+                        navigate(`${categoryPath(row.original.id)}?${new URLSearchParams({ origin: search })}`),
                     },
-                  },
-                ]
-              : []),
-            {
-              label: 'Manage Locations',
-              icon: MapPin,
-              onClick: () => navigate(target(`${inventoryBase}/${kind}/${row.original.id}/locations`)),
-            },
-          ]}
-        />
+                  ]
+                : []),
+              {
+                label: 'Edit',
+                icon: Pencil,
+                onClick: () => navigate(target(`${inventoryBase}/${kind}/${row.original.id}/edit`)),
+              },
+              ...(kind === 'vendors'
+                ? [
+                    {
+                      label: row.original.isActive ? 'Deactivate' : 'Reactivate',
+                      icon: Pencil,
+                      onClick: () => {
+                        if (!statusMutation.isPending)
+                          void statusMutation
+                            .mutateAsync({ id: row.original.id, isActive: !row.original.isActive })
+                            .then(() => toast.success('Supplier status updated'))
+                            .catch(() => toast.error('Unable to update supplier status'))
+                      },
+                    },
+                  ]
+                : []),
+              {
+                label: 'Manage Locations',
+                icon: MapPin,
+                onClick: () => navigate(target(`${inventoryBase}/${kind}/${row.original.id}/locations`)),
+              },
+            ]}
+          />
+        </div>
       ),
     },
   ]
@@ -458,28 +452,30 @@ function CategoryItems() {
     { accessorKey: 'isActive', header: 'Status', cell: ({ row }) => <ActiveStatus active={row.original.isActive} /> },
     {
       id: 'actions',
-      header: 'Actions',
+      header: () => <span className="block text-right">Actions</span>,
       cell: ({ row }) => (
-        <RowActions
-          name={row.original.name}
-          actions={[
-            {
-              label: 'Edit',
-              icon: Pencil,
-              onClick: () => navigate(`${categoryPath(categoryId)}/items/${row.original.id}/edit${search}`),
-            },
-            {
-              label: 'Manage Thresholds',
-              icon: Pencil,
-              onClick: () => navigate(`${categoryPath(categoryId)}/items/${row.original.id}/thresholds${search}`),
-            },
-            {
-              label: 'Manage Suppliers',
-              icon: Users,
-              onClick: () => navigate(`${categoryPath(categoryId)}/items/${row.original.id}/vendors${search}`),
-            },
-          ]}
-        />
+        <div className="flex justify-end">
+          <RowActions
+            name={row.original.name}
+            actions={[
+              {
+                label: 'Edit',
+                icon: Pencil,
+                onClick: () => navigate(`${categoryPath(categoryId)}/items/${row.original.id}/edit${search}`),
+              },
+              {
+                label: 'Manage Thresholds',
+                icon: Pencil,
+                onClick: () => navigate(`${categoryPath(categoryId)}/items/${row.original.id}/thresholds${search}`),
+              },
+              {
+                label: 'Manage Suppliers',
+                icon: Users,
+                onClick: () => navigate(`${categoryPath(categoryId)}/items/${row.original.id}/vendors${search}`),
+              },
+            ]}
+          />
+        </div>
       ),
     },
   ]

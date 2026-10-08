@@ -1,5 +1,6 @@
 import { useLocation } from 'react-router-dom'
 import { Layers } from 'lucide-react'
+import { PageHeader } from '@/components/common/PageHeader'
 
 export default function SectionPage({ title }: { title?: string }) {
   const location = useLocation()
@@ -14,11 +15,7 @@ export default function SectionPage({ title }: { title?: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">{sectionName}</h1>
-        </div>
-      </div>
+      <PageHeader icon={Layers} title={sectionName} />
 
       <div className="rounded-3xl border border-white/40 bg-white/70 p-8 text-center shadow-xl backdrop-blur-xl dark:border-gray-800 dark:bg-slate-900/80">
         <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">

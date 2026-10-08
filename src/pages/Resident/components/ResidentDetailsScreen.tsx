@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2, HeartPulse, RefreshCw, User } from 'lucide-react'
+import { format, isValid, parseISO } from 'date-fns'
+import { ArrowLeft, CalendarDays, Edit, HeartPulse, Home, Phone, RefreshCw, User, Users, Utensils } from 'lucide-react'
 import type { ResidentItem } from '@/lib/types'
 import { residentService } from '@/lib/services/residentService'
 import { ResidentFnbPackageModal } from './ResidentFnbPackageModal'
 import { useLocationContext } from '@/hooks/useLocation'
 import { AssignCareTaskDialog } from '@/components/common/AssignCareTaskDialog'
 import { AssignCareTeamDialog } from '@/components/common/AssignCareTeamDialog'
-import { getFileUrl } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { HeroFact, NotAdded } from '@/components/common/DetailPanel'
+import { cn, getFileUrl } from '@/lib/utils'
 import { fnbService } from '@/lib/services/fnbService'
 import { ResidentPersonalDetailsTab, type FnbSubscriptionItem } from './ResidentPersonalDetailsTab'
 import { ResidentMedicalTab } from './ResidentMedicalTab'
@@ -165,53 +168,123 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
         {isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}
       </button>
 
-      {/* Shared Hero Profile Card */}
-      <div className="rounded-3xl border border-white/70 bg-white/90 p-6 md:p-8 shadow-xl backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-[#005390] to-sky-600 text-white flex items-center justify-center font-bold text-2xl shadow-md shrink-0 border-2 border-white overflow-hidden">
-            {resident.photoUrl ? (
-              <img src={getFileUrl(resident.photoUrl)} alt={fullName} className="w-full h-full object-cover" />
-            ) : (
-              resident.firstName[0]?.toUpperCase()
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">{fullName}</h1>
-              {resident.username && (
-                <span className="text-xs font-mono font-bold text-[#005390] bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded-lg border border-blue-200 dark:border-blue-800">
-                  ({resident.username})
-                </span>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-bold ${
-                  resident.residentType === 'OWNER'
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950 dark:text-blue-300'
-                    : 'bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950 dark:text-purple-300'
-                }`}
-              >
-                {resident.residentType === 'OWNER' ? 'Property Owner' : 'Tenant Occupant'}
-              </span>
-
-              {resident.isResiding ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Physically Residing
-                </span>
+      {/* Summary: who they are, where they live, and the main actions */}
+      <div className="rounded-2xl border border-gray-100 bg-white shadow-2xs dark:border-gray-800 dark:bg-slate-900">
+        <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between md:p-6">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#005390] to-sky-600 text-xl font-bold text-white shadow-sm">
+              {resident.photoUrl ? (
+                <img src={getFileUrl(resident.photoUrl)} alt={fullName} className="h-full w-full object-cover" />
               ) : (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950 dark:text-amber-300">
-                  Off-site Landlord
-                </span>
+                resident.firstName[0]?.toUpperCase()
               )}
-
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
-                {resident.status}
-              </span>
+            </div>
+            <div className="min-w-0 space-y-1.5">
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white md:text-2xl">{fullName}</h1>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span
+                  className={cn(
+                    'rounded-full border px-2.5 py-0.5 text-[11px] font-semibold',
+                    resident.residentType === 'OWNER'
+                      ? 'border-blue-200 bg-blue-50 text-blue-700'
+                      : 'border-purple-200 bg-purple-50 text-purple-700',
+                  )}
+                >
+                  {resident.residentType === 'OWNER' ? 'Owner' : 'Tenant'}
+                </span>
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold',
+                    resident.isResiding
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                      : 'border-amber-200 bg-amber-50 text-amber-700',
+                  )}
+                >
+                  <span
+                    className={cn('h-1.5 w-1.5 rounded-full', resident.isResiding ? 'bg-emerald-500' : 'bg-amber-500')}
+                  />
+                  {resident.isResiding ? 'Residing' : 'Off-site Resident'}
+                </span>
+                {resident.status && resident.status !== 'ACTIVE' && (
+                  <span className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 text-[11px] font-semibold capitalize text-gray-600">
+                    {resident.status.toLowerCase()}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
+
+          {canUpdateResident && (
+            <div className="flex shrink-0 flex-wrap gap-2">
+              {resident.isResiding && (
+                <Button
+                  variant="secondary"
+                  icon={<Utensils className="h-4 w-4" />}
+                  onClick={() => setIsFnbModalOpen(true)}
+                  className="rounded-xl"
+                >
+                  Food Plan
+                </Button>
+              )}
+              <Button
+                variant="primary"
+                icon={<Edit className="h-4 w-4" />}
+                onClick={() => navigate(editUrl)}
+                className="rounded-xl"
+              >
+                Edit Profile
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 border-t border-gray-100 px-5 py-4 sm:grid-cols-2 lg:grid-cols-4 md:px-6 dark:border-gray-800">
+          <HeroFact
+            icon={Home}
+            label="Flat"
+            value={
+              resident.unit?.unit_number ? (
+                `Unit ${resident.unit.unit_number}${resident.property?.property_name ? ` · ${resident.property.property_name}` : ''}`
+              ) : (
+                <NotAdded />
+              )
+            }
+          />
+          <HeroFact
+            icon={Phone}
+            label="Phone"
+            value={
+              resident.phone ? (
+                <a href={`tel:${resident.phone}`} className="hover:text-[#005390]">
+                  {resident.phone}
+                </a>
+              ) : (
+                <NotAdded />
+              )
+            }
+          />
+          <HeroFact
+            icon={CalendarDays}
+            label="Moved in"
+            value={
+              resident.moveInDate && isValid(parseISO(resident.moveInDate)) ? (
+                format(parseISO(resident.moveInDate), 'dd MMM yyyy')
+              ) : (
+                <NotAdded />
+              )
+            }
+          />
+          <HeroFact
+            icon={Users}
+            label="Family"
+            value={
+              familyMembers.length > 0 ? (
+                `${familyMembers.length} member${familyMembers.length === 1 ? '' : 's'}`
+              ) : (
+                <span className="font-normal text-gray-400">None added</span>
+              )
+            }
+          />
         </div>
       </div>
 
@@ -224,7 +297,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
             activeTab === 'personal' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
           }`}
         >
-          <User className="w-4 h-4" /> Personal Details
+          <User className="w-4 h-4" /> Profile
         </button>
         <button
           type="button"
@@ -244,7 +317,6 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
           getSlotDisplayName={getSlotDisplayName}
           canUpdateResident={canUpdateResident}
           onAssignFoodPackage={() => setIsFnbModalOpen(true)}
-          onEditProfile={() => navigate(editUrl)}
         />
       )}
 

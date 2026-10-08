@@ -2,7 +2,21 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 /* eslint-disable react-hooks/incompatible-library -- react-hook-form watch() */
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowLeftRight, Coffee, UserCheck } from 'lucide-react'
+import { format, isValid, parseISO } from 'date-fns'
+import {
+  ArrowLeftRight,
+  Building2,
+  CalendarDays,
+  CalendarRange,
+  Clock,
+  Coffee,
+  MapPin,
+  Repeat,
+  StickyNote,
+  Timer,
+  UserCheck,
+  type LucideIcon,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -18,6 +32,7 @@ import type {
   WeekDay,
 } from '@/lib/services/rosterService'
 import { useLocationStore } from '@/lib/stores/locationStore'
+import { cn } from '@/lib/utils'
 import type { UserItem } from '@/lib/types'
 import {
   coverFormDefaultValues,
@@ -87,9 +102,41 @@ const statusColor: Record<string, string> = {
   day_off: 'bg-purple-100 text-purple-800',
 }
 
-const formatWorkingDays = (days?: WeekDay[] | null) => {
-  if (!days?.length) return 'All days'
-  return days.map((d) => d.slice(0, 3).toUpperCase()).join(', ')
+const WEEK: WeekDay[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
+/** "2026-10-08" → "Thu, 08 Oct 2026"; falls back to the raw value if it does not parse. */
+const formatDay = (value?: string | null, pattern = 'EEE, dd MMM yyyy') => {
+  if (!value) return ''
+  const parsed = parseISO(value)
+  return isValid(parsed) ? format(parsed, pattern) : value
+}
+
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]!.toUpperCase())
+    .join('') || '?'
+
+/** Mon–Sun chips, highlighting the days this roster works (all days when none are set). */
+const WorkingDayChips = ({ days }: { days?: WeekDay[] | null }) => {
+  const active = new Set(days?.length ? days : WEEK)
+  return (
+    <div className="flex flex-wrap gap-1">
+      {WEEK.map((d) => (
+        <span
+          key={d}
+          className={cn(
+            'flex h-7 w-9 items-center justify-center rounded-md text-[11px] font-bold',
+            active.has(d) ? 'bg-[#005390] text-white' : 'bg-gray-100 text-gray-400',
+          )}
+        >
+          {d.slice(0, 3).replace(/^./, (c) => c.toUpperCase())}
+        </span>
+      ))}
+    </div>
+  )
 }
 
 const formatStatus = (status: string) =>
@@ -108,12 +155,25 @@ interface RosterDetailDialogProps {
 
 type ActionMode = 'swap' | 'cover' | 'day_off' | null
 
-const DetailRow = ({ label, value }: { label: string; value: ReactNode }) => {
+const DetailTile = ({
+  icon: Icon,
+  label,
+  value,
+  className,
+}: {
+  icon: LucideIcon
+  label: string
+  value: ReactNode
+  className?: string
+}) => {
   if (value === null || value === undefined || value === '') return null
   return (
-    <div className="grid grid-cols-[110px_1fr] gap-2 text-sm">
-      <span className="text-gray-500">{label}</span>
-      <span className="text-gray-900 font-medium break-words">{value}</span>
+    <div className={cn('flex items-start gap-2.5 rounded-xl border border-gray-100 bg-gray-50/70 p-3', className)}>
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[#005390]" />
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">{label}</p>
+        <div className="mt-0.5 text-sm font-semibold text-gray-900 break-words">{value}</div>
+      </div>
     </div>
   )
 }
@@ -315,59 +375,86 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
           else onOpenChange(next)
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Roster Details</DialogTitle>
           </DialogHeader>
 
-          <div className="rounded-md overflow-hidden border border-gray-200">
-            <div className="bg-[#2a517c] px-3 py-2 flex items-center justify-between gap-2">
-              <span className="text-xs font-bold text-white truncate uppercase tracking-wide">{event.shiftName}</span>
-              <span className="text-[11px] text-white/90 font-semibold shrink-0">
-                {event.slotTimeRange || event.shiftTime}
-              </span>
-            </div>
-            <div className="bg-gray-50 px-3 py-2.5 flex items-start justify-between gap-2">
-              <div>
-                <div className="font-semibold text-[#1e3a5a]">{event.employeeName}</div>
+          {/* Employee + shift */}
+          <div className="overflow-hidden rounded-2xl border border-gray-200">
+            <div className="flex items-center gap-3 bg-white p-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#005390]/10 text-sm font-bold text-[#005390]">
+                {initials(event.employeeName)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-semibold text-gray-900">{event.employeeName}</p>
                 {event.departmentName && (
-                  <div className="text-[11px] font-medium text-gray-500 uppercase tracking-wider mt-0.5">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-gray-500">
                     {event.departmentName}
-                  </div>
+                  </p>
                 )}
               </div>
               <Badge variant="secondary" className={statusColor[event.status] || 'bg-gray-100 text-gray-700'}>
                 {formatStatus(event.status)}
               </Badge>
             </div>
+            <div className="flex items-center justify-between gap-2 bg-[#2a517c] px-4 py-2.5 text-white">
+              <span className="flex min-w-0 items-center gap-2 text-xs font-bold uppercase tracking-wide">
+                <Clock className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{event.shiftName}</span>
+              </span>
+              <span className="shrink-0 rounded-md bg-white/15 px-2 py-0.5 font-mono text-xs font-semibold">
+                {event.slotTimeRange || event.shiftTime}
+              </span>
+            </div>
           </div>
 
-          <div className="space-y-2.5 pt-1">
-            <DetailRow label="Date" value={event.date} />
-            <DetailRow label="Period" value={`${event.startDate} → ${event.endDate}`} />
-            <DetailRow label="Working days" value={formatWorkingDays(event.workingDays)} />
-            <DetailRow label="Area" value={event.areaName} />
-            <DetailRow label="Location" value={event.locationLabel} />
-            <DetailRow label="Slot" value={event.slotTimeRange} />
-            <DetailRow label="Notes" value={event.notes} />
+          {event.isCoverDuty && event.originalEmployeeName && (
+            <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+              Covering for {event.originalEmployeeName}
+            </p>
+          )}
+
+          {/* Details */}
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            <DetailTile icon={CalendarDays} label="Date" value={formatDay(event.date)} />
+            <DetailTile icon={Timer} label="Slot" value={event.slotTimeRange || event.shiftTime} />
+            <DetailTile
+              icon={CalendarRange}
+              label="Roster period"
+              value={`${formatDay(event.startDate, 'dd MMM yyyy')} – ${formatDay(event.endDate, 'dd MMM yyyy')}`}
+              className="sm:col-span-2"
+            />
+            <DetailTile
+              icon={Repeat}
+              label="Working days"
+              value={<WorkingDayChips days={event.workingDays} />}
+              className="sm:col-span-2"
+            />
+            <DetailTile icon={MapPin} label="Area" value={event.areaName} />
+            {event.locationLabel !== event.areaName && (
+              <DetailTile icon={Building2} label="Location" value={event.locationLabel} />
+            )}
+            <DetailTile icon={StickyNote} label="Notes" value={event.notes} className="sm:col-span-2" />
             {event.status === 'day_off' && (
               <>
-                <DetailRow
+                <DetailTile
+                  icon={Coffee}
                   label="Leave type"
                   value={LEAVE_TYPES.find((t) => t.value === event.leaveType)?.label || event.leaveType}
                 />
-                <DetailRow label="Reason" value={event.leaveNote} />
+                <DetailTile icon={StickyNote} label="Reason" value={event.leaveNote} />
               </>
             )}
           </div>
 
           {!(event.status === 'covered' && !event.isCoverDuty) && (
             <RosterPermission action="update">
-              <div className="grid grid-cols-2 gap-2 pt-2">
+              <div className="border-t pt-4">
                 {event.status === 'day_off' ? (
                   <Button
                     variant="outline"
-                    className="col-span-2"
+                    className="w-full"
                     disabled={actionsDisabled}
                     onClick={async () => {
                       const dateId = await ensureDateId()
@@ -379,7 +466,7 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
                     Restore day off
                   </Button>
                 ) : (
-                  <>
+                  <div className="grid grid-cols-3 gap-2">
                     <Button variant="outline" disabled={actionsDisabled} onClick={() => setActionMode('swap')}>
                       <ArrowLeftRight className="h-4 w-4 mr-1.5" />
                       Swap
@@ -390,14 +477,17 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
                     </Button>
                     <Button
                       variant="outline"
-                      className="col-span-2 border-[#2a517c]/40 text-[#2a517c]"
+                      className="border-amber-300 text-amber-700 hover:bg-amber-50"
                       disabled={actionsDisabled}
                       onClick={() => setActionMode('day_off')}
                     >
                       <Coffee className="h-4 w-4 mr-1.5" />
                       Day Off
                     </Button>
-                  </>
+                  </div>
+                )}
+                {event.status === 'completed' && (
+                  <p className="mt-2 text-center text-xs text-gray-500">Completed shifts can no longer be changed.</p>
                 )}
               </div>
             </RosterPermission>

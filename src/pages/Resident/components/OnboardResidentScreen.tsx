@@ -3,13 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { type FieldPath, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
-  ArrowLeft,
-  Boxes,
-  Building2,
   Camera,
   Check,
   CheckCircle2,
-  CreditCard,
   IndianRupee,
   KeyRound,
   Mail,
@@ -18,7 +14,6 @@ import {
   RefreshCw,
   ShieldAlert,
   Trash2,
-  UserCheck,
   UserPlus,
   Users,
   X,
@@ -34,6 +29,7 @@ import { useLocationContext } from '@/hooks/useLocation'
 import { z } from 'zod'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/common/PageHeader'
 import { cn, getFileUrl } from '@/lib/utils'
 
 import { notifyError, notifySuccess } from '@/utils/toast'
@@ -43,6 +39,86 @@ import {
   type PackageTaskItemInfo,
   type TaskScheduleConfig,
 } from '@/components/common/PackageTaskSchedulesConfig'
+
+/** One numbered step of the form: a white card with a short title and hint. */
+function StepCard({
+  step,
+  title,
+  hint,
+  action,
+  children,
+}: {
+  step: number
+  title: string
+  hint?: string
+  action?: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-2xs md:p-6 dark:border-gray-800 dark:bg-slate-900">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#005390] text-xs font-bold text-white">
+            {step}
+          </span>
+          <div>
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">{title}</h2>
+            {hint && <p className="text-xs text-gray-500">{hint}</p>}
+          </div>
+        </div>
+        {action}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+/** A large selectable option with a title and one-line explanation. */
+function ChoiceCard({
+  selected,
+  disabled,
+  title,
+  hint,
+  onSelect,
+}: {
+  selected: boolean
+  disabled?: boolean
+  title: string
+  hint: string
+  onSelect: () => void
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      disabled={disabled}
+      onClick={onSelect}
+      className={cn(
+        'flex w-full items-start gap-3 rounded-xl border p-3.5 text-left transition-colors',
+        selected
+          ? 'border-[#005390] bg-[#005390]/5 ring-2 ring-[#005390]/15'
+          : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50',
+        disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
+      )}
+    >
+      <span
+        className={cn(
+          'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2',
+          selected ? 'border-[#005390] bg-[#005390]' : 'border-gray-300 bg-white',
+        )}
+      >
+        {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+      </span>
+      <span>
+        <span className="block text-sm font-semibold text-gray-900">{title}</span>
+        <span className="block text-xs text-gray-500">{hint}</span>
+      </span>
+    </button>
+  )
+}
+
+const selectClass =
+  'h-9 w-full min-w-0 rounded-xl border border-gray-200 bg-white px-3.5 py-1 text-xs font-medium text-gray-900 shadow-2xs focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:opacity-70'
 
 function formatTimeTo12h(time24: string): string {
   if (!time24) return '10:00 AM'
@@ -959,41 +1035,16 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
 
   return (
     <div className="w-full space-y-6">
-      {/* Top Back Navigation Link */}
-      <button
-        type="button"
-        onClick={() => navigate(backUrl)}
-        className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
-      >
-        <ArrowLeft className="w-4 h-4" /> Back to Resident Directory
-      </button>
-
-      {/* Page Header Card */}
-      <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="flex size-12 items-center justify-center rounded-2xl bg-[#005390]/10 text-[#005390] shadow-xs">
-            <UserPlus className="h-6 w-6" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
-              {isEditMode ? 'Edit Resident Profile' : 'Onboard Resident / Tenant'}
-            </h1>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Register flat owner or tenant, set physically residing status, add family members, and configure mobile
-              credentials.
-            </p>
-          </div>
-        </div>
-
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => navigate(backUrl)}
-          className="rounded-xl border-gray-200 shrink-0"
-        >
-          Cancel & Back
-        </Button>
-      </div>
+      <PageHeader
+        icon={UserPlus}
+        title={isEditMode ? 'Edit Resident' : 'Onboard Resident'}
+        description={
+          isEditMode
+            ? 'Update this resident’s details, family members and app login.'
+            : 'Add an owner or tenant to a flat in a few steps.'
+        }
+        onBack={() => navigate(backUrl)}
+      />
 
       {formError && (
         <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs text-rose-700 font-bold flex items-center gap-2 shadow-xs">
@@ -1010,108 +1061,96 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
       )}
 
       {isLoading ? (
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-400 shadow-xl backdrop-blur-xl">
+        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center text-sm text-gray-400">
           <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#005390]" />
-          Loading property units...
+          Loading flats…
         </div>
       ) : (
         <form onSubmit={handleHookSubmit(onSubmit, onInvalid)} className="space-y-6">
-          {/* Section 1: Resident Type & Residing Status Card (PLACED ON TOP) */}
-          <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-5">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 border-b border-gray-100 pb-3">
-              <UserCheck className="w-5 h-5 text-[#005390]" />
-              Resident Type & Residing Status
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
+          <StepCard
+            step={1}
+            title="Owner or tenant?"
+            hint={
+              isEditMode
+                ? 'Owner/tenant can’t be changed after onboarding.'
+                : 'Tell us how this person is linked to the flat.'
+            }
+          >
+            <div className="space-y-4">
               <div>
-                <label htmlFor="select-resident-type" className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Resident Role Type
-                </label>
-                <select
-                  id="select-resident-type"
-                  value={watchedResidentType}
-                  disabled={isEditMode}
-                  onChange={(e) => handleResidentTypeChange(e.target.value as ResidentType)}
-                  className={cn(
-                    'h-9 w-full rounded-xl border border-gray-200 bg-white px-3.5 py-1 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20 shadow-2xs',
-                    isEditMode && 'bg-gray-100/80 text-gray-500 cursor-not-allowed border-gray-200',
-                  )}
-                >
-                  <option value="OWNER">Owner (Property Owner)</option>
-                  <option value="TENANT">Tenant (Renter)</option>
-                </select>
-                {isEditMode ? (
-                  <p className="mt-1 text-[11px] font-medium text-gray-400">
-                    Resident role type (Owner/Tenant) cannot be changed while editing.
-                  </p>
-                ) : (
-                  errors.residentType && (
-                    <p className="mt-1 text-xs font-semibold text-red-500">{errors.residentType.message}</p>
-                  )
+                <p className="mb-2 text-xs font-semibold text-gray-700">Resident type</p>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <ChoiceCard
+                    selected={watchedResidentType === 'OWNER'}
+                    disabled={isEditMode}
+                    title="Owner"
+                    hint="Owns the flat"
+                    onSelect={() => handleResidentTypeChange('OWNER')}
+                  />
+                  <ChoiceCard
+                    selected={watchedResidentType === 'TENANT'}
+                    disabled={isEditMode}
+                    title="Tenant"
+                    hint="Rents the flat from its owner"
+                    onSelect={() => handleResidentTypeChange('TENANT')}
+                  />
+                </div>
+                {!isEditMode && errors.residentType && (
+                  <p className="mt-1 text-xs font-semibold text-red-500">{errors.residentType.message}</p>
                 )}
               </div>
 
               {watchedResidentType !== 'TENANT' && (
                 <div>
-                  <label htmlFor="select-residing-key" className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Residing Status
-                  </label>
-                  <select
-                    id="select-residing-key"
-                    value={watchedIsResiding ? 'true' : 'false'}
-                    disabled={isEditingOwnerResidingDisabled}
-                    onChange={(e) => setValue('isResiding', e.target.value === 'true')}
-                    className={cn(
-                      'h-9 w-full rounded-xl border border-gray-200 bg-white px-3.5 py-1 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20 shadow-2xs',
-                      isEditingOwnerResidingDisabled &&
-                        'bg-gray-100/80 text-gray-500 cursor-not-allowed border-gray-200',
-                    )}
-                  >
-                    <option value="true">Physically Residing (Living in Flat)</option>
-                    <option value="false">Off-site Landlord (Non-residing)</option>
-                  </select>
+                  <p className="mb-2 text-xs font-semibold text-gray-700">Does the owner live in the flat?</p>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <ChoiceCard
+                      selected={Boolean(watchedIsResiding)}
+                      disabled={isEditingOwnerResidingDisabled}
+                      title="Residing"
+                      hint="Lives in this flat"
+                      onSelect={() => setValue('isResiding', true)}
+                    />
+                    <ChoiceCard
+                      selected={!watchedIsResiding}
+                      disabled={isEditingOwnerResidingDisabled}
+                      title="Off-site Resident"
+                      hint="Lives elsewhere, e.g. rents the flat out"
+                      onSelect={() => setValue('isResiding', false)}
+                    />
+                  </div>
                   {isEditingOwnerResidingDisabled && (
-                    <p className="mt-1 text-[11px] font-semibold text-amber-600">
-                      Residing status cannot be changed to Physically Residing because this flat is currently occupied
-                      by a tenant.
+                    <p className="mt-1.5 text-[11px] font-semibold text-amber-600">
+                      A tenant lives in this flat, so the owner can’t be marked as residing.
                     </p>
                   )}
                 </div>
               )}
-            </div>
 
-            {/* Mandatory Off-site Owner Hint Banner for Tenants */}
-            {watchedResidentType === 'TENANT' && availableUnits.length === 0 && (
-              <div className="p-3.5 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-2xl flex items-start gap-2.5 shadow-xs">
-                <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <strong>No Eligible Units for Tenant Onboarding:</strong> Tenants can only be onboarded to flats that
-                  already have a registered <strong>Off-site Owner (Landlord)</strong>. Please onboard an Off-site Owner
-                  first.
+              {watchedResidentType === 'TENANT' && availableUnits.length === 0 && (
+                <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-800">
+                  <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                  <p>
+                    <strong>No flat is ready for a tenant yet.</strong> A tenant can only be added to a flat whose owner
+                    is registered as an <strong>Off-site Resident</strong>. Onboard the owner first.
+                  </p>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          </StepCard>
 
-          {/* Section 2: Property & Unit Selection Card */}
-          <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-5">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 border-b border-gray-100 pb-3">
-              <Building2 className="w-5 h-5 text-[#005390]" />
-              Property & Flat Unit Mapping
-            </h2>
-
+          <StepCard step={2} title="Which flat?" hint="Pick the block, then the floor, then the flat.">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs">
               {/* Block Selection */}
               <div>
                 <label htmlFor="select-block" className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Property Block <span className="text-red-500 font-bold">*</span>
+                  Block <span className="text-red-500 font-bold">*</span>
                 </label>
                 <select
                   id="select-block"
                   value={selectedBlockId}
                   onChange={(e) => handleBlockChange(e.target.value)}
-                  className="h-9 w-full rounded-xl border border-gray-200 bg-white px-3.5 py-1 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20 shadow-2xs"
+                  className={selectClass}
                 >
                   <option value="">Select Block...</option>
                   {blocks.map((b) => (
@@ -1132,7 +1171,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                   value={selectedFloorId}
                   disabled={!selectedBlockId}
                   onChange={(e) => handleFloorChange(e.target.value)}
-                  className="h-9 w-full rounded-xl border border-gray-200 bg-white px-3.5 py-1 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20 shadow-2xs disabled:bg-gray-100 disabled:opacity-70"
+                  className={selectClass}
                 >
                   {!selectedBlockId ? (
                     <option value="">Select Block first...</option>
@@ -1154,7 +1193,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
               {/* Unit Selection */}
               <div>
                 <label htmlFor="select-unit" className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Property Flat / Unit <span className="text-red-500 font-bold">*</span>
+                  Flat <span className="text-red-500 font-bold">*</span>
                 </label>
                 <select
                   id="select-unit"
@@ -1184,8 +1223,11 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                               isDisabled ? 'text-gray-400 bg-gray-100 font-normal' : 'text-gray-900 font-medium'
                             }
                           >
-                            Unit {u.unit_number} ({u.unit_type}) — Occupancy: {u.occupancyStatus || 'VACANT'}{' '}
-                            {isDisabled ? '(Occupied - Unavailable)' : ''}
+                            {u.unit_number}
+                            {u.unit_type ? ` · ${u.unit_type}` : ''}
+                            {isDisabled
+                              ? ' · Occupied'
+                              : ` · ${(u.occupancyStatus || 'VACANT').toLowerCase().replace(/_/g, ' ')}`}
                           </option>
                         )
                       })}
@@ -1195,262 +1237,236 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                 {errors.unitId && <p className="mt-1 text-xs font-semibold text-red-500">{errors.unitId.message}</p>}
               </div>
             </div>
-          </div>
+          </StepCard>
 
-          {/* Section 3: Personal & Family Information Card */}
-          <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-6">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 border-b border-gray-100 pb-3">
-              <UserPlus className="w-5 h-5 text-[#005390]" />
-              Personal & Family Profile
-            </h2>
-
-            {/* Main Resident Profile Photo Header */}
-            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 p-4 rounded-2xl bg-gray-50/70 border border-gray-100">
-              <div className="relative group shrink-0">
-                <div className="w-24 h-24 rounded-2xl bg-white border-2 border-dashed border-gray-300 flex flex-col items-center justify-center overflow-hidden shadow-2xs group-hover:border-[#005390] transition">
-                  {watchedPhotoUrl ? (
-                    <img src={getFileUrl(watchedPhotoUrl)} alt="Main Resident" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-gray-400 p-2 text-center">
-                      <Camera className="w-6 h-6 mb-1 text-[#005390]" />
-                      <span className="text-[10px] font-semibold text-gray-500">Upload Photo</span>
-                    </div>
-                  )}
-                </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  id="main-resident-photo-upload"
-                  onChange={(e) => handlePhotoUpload(e, (url) => setValue('photoUrl', url, { shouldValidate: true }))}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="main-resident-photo-upload"
-                  className="absolute -bottom-2 -right-2 bg-[#005390] text-white p-1.5 rounded-xl shadow-md cursor-pointer hover:bg-[#003d6b] transition"
-                  title="Upload Resident Photo"
-                >
-                  <Camera className="w-3.5 h-3.5" />
-                </label>
-                {watchedPhotoUrl && (
-                  <button
-                    type="button"
-                    onClick={() => setValue('photoUrl', '')}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-md hover:bg-red-600 transition"
-                    title="Remove Photo"
+          <StepCard step={3} title="Personal details" hint="Fields marked * are required.">
+            <div className="space-y-5">
+              <div className="flex flex-col gap-5 sm:flex-row">
+                <div className="relative shrink-0 self-center sm:self-start">
+                  <label
+                    htmlFor="main-resident-photo-upload"
+                    className="flex h-24 w-24 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 transition hover:border-[#005390]"
+                    title="Upload photo"
                   >
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex-1 space-y-1 text-center sm:text-left pt-1">
-                <h3 className="text-sm font-bold text-gray-800">Main Resident Profile</h3>
-                <p className="text-xs text-gray-500">
-                  Enter primary occupant details including full name, gender, date of birth, blood group, and contact
-                  details.
-                </p>
-              </div>
-            </div>
-
-            {/* Main Resident Input Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Input
-                label="First Name"
-                required
-                {...registerFiltered('firstName', lettersOnly)}
-                error={errors.firstName?.message}
-                placeholder="e.g. Rahul"
-              />
-              <Input
-                label="Last Name"
-                {...registerFiltered('lastName', lettersOnly)}
-                error={errors.lastName?.message}
-                placeholder="e.g. Sharma"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <div>
-                <label htmlFor="resident-gender-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Gender <span className="text-red-500 font-bold">*</span>
-                </label>
-                <select
-                  id="resident-gender-select"
-                  {...register('gender')}
-                  className={cn(
-                    'h-9 w-full min-w-0 rounded-xl border border-gray-200 bg-white px-3.5 py-1 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20',
-                    errors.gender && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
-                  )}
-                >
-                  <option value="MALE">Male</option>
-                  <option value="FEMALE">Female</option>
-                  <option value="OTHER">Other</option>
-                </select>
-                {errors.gender && <p className="mt-1 text-xs font-semibold text-red-500">{errors.gender.message}</p>}
-              </div>
-
-              <Input label="Date of Birth" required type="date" {...register('dob')} error={errors.dob?.message} />
-
-              <div>
-                <label
-                  htmlFor="resident-blood-group-select"
-                  className="block text-xs font-semibold text-gray-700 mb-1.5"
-                >
-                  Blood Group
-                </label>
-                <select
-                  id="resident-blood-group-select"
-                  {...register('bloodGroup')}
-                  className="h-9 w-full min-w-0 rounded-xl border border-gray-200 bg-white px-3.5 py-1 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20"
-                >
-                  <option value="">Select Blood Group...</option>
-                  <option value="A+">A+</option>
-                  <option value="A-">A-</option>
-                  <option value="B+">B+</option>
-                  <option value="B-">B-</option>
-                  <option value="AB+">AB+</option>
-                  <option value="AB-">AB-</option>
-                  <option value="O+">O+</option>
-                  <option value="O-">O-</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Input
-                label="Mobile Phone"
-                required
-                {...register('phone')}
-                error={errors.phone?.message}
-                placeholder="e.g. 9876543210"
-                icon={<Phone className="h-4 w-4 text-gray-400" />}
-              />
-              <Input
-                label="Email Address"
-                required
-                type="email"
-                {...register('email')}
-                error={errors.email?.message}
-                placeholder="e.g. rahul@example.com"
-                icon={<Mail className="h-4 w-4 text-gray-400" />}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Input
-                label="Emergency Contact Phone"
-                {...register('emergencyContact')}
-                error={errors.emergencyContact?.message}
-                placeholder="e.g. 99887 76655"
-                icon={<Phone className="h-4 w-4 text-gray-400" />}
-              />
-              <Input
-                label="Move-In Date"
-                required
-                type="date"
-                {...register('moveInDate')}
-                error={errors.moveInDate?.message}
-              />
-            </div>
-
-            {/* Rent & Billing Configuration Section for Tenants */}
-            {watchedResidentType === 'TENANT' && (
-              <div className="mt-5 p-5 bg-gradient-to-br from-blue-50/60 via-indigo-50/40 to-slate-50 rounded-2xl border border-blue-100/90 shadow-2xs space-y-4">
-                <div className="flex items-center gap-2 font-bold text-gray-800 text-sm border-b border-blue-100/80 pb-2.5">
-                  <CreditCard className="w-4 h-4 text-[#005390]" />
-                  <span>Rent & Billing Configuration</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <Input
-                    label="Agreed Monthly Rent Amount (₹)"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="e.g. 25000"
-                    {...register('rentAmount')}
-                    error={errors.rentAmount?.message}
-                    icon={<IndianRupee className="h-4 w-4 text-gray-400" />}
+                    {watchedPhotoUrl ? (
+                      <img src={getFileUrl(watchedPhotoUrl)} alt="Resident" className="h-full w-full object-cover" />
+                    ) : (
+                      <>
+                        <Camera className="mb-1 h-5 w-5 text-[#005390]" />
+                        <span className="text-[10px] font-semibold text-gray-500">Add photo</span>
+                      </>
+                    )}
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="main-resident-photo-upload"
+                    onChange={(e) => handlePhotoUpload(e, (url) => setValue('photoUrl', url, { shouldValidate: true }))}
+                    className="hidden"
                   />
-
-                  <div className="flex flex-col justify-start">
-                    <span className="block text-xs font-bold text-gray-700 mb-1.5">Rent Payment Routing Channel</span>
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <button
-                        type="button"
-                        onClick={() => setValue('payRentToCompany', false, { shouldValidate: true })}
-                        className={cn(
-                          'flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left',
-                          !watchedPayRentToCompany
-                            ? 'border-[#005390] bg-[#005390]/10 text-[#005390] ring-1 ring-[#005390] shadow-2xs'
-                            : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50',
-                        )}
-                      >
-                        <input
-                          type="radio"
-                          name="rentRouting"
-                          checked={!watchedPayRentToCompany}
-                          onChange={() => {}}
-                          className="w-3.5 h-3.5 text-[#005390]"
-                        />
-                        <span>Direct to Owner</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setValue('payRentToCompany', true, { shouldValidate: true })}
-                        className={cn(
-                          'flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left',
-                          watchedPayRentToCompany
-                            ? 'border-[#005390] bg-[#005390]/10 text-[#005390] ring-1 ring-[#005390] shadow-2xs'
-                            : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50',
-                        )}
-                      >
-                        <input
-                          type="radio"
-                          name="rentRouting"
-                          checked={Boolean(watchedPayRentToCompany)}
-                          onChange={() => {}}
-                          className="w-3.5 h-3.5 text-[#005390]"
-                        />
-                        <span>Pay to Company</span>
-                      </button>
-                    </div>
-                    <p className="text-[11px] text-gray-500 mt-2 font-medium">
-                      {watchedPayRentToCompany
-                        ? '✓ Rent will be generated & collected via company monthly billing invoices.'
-                        : '✓ Tenant pays rent directly to owner. Excluded from company rent billing.'}
-                    </p>
+                  {watchedPhotoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setValue('photoUrl', '')}
+                      className="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white shadow-md transition hover:bg-red-600"
+                      title="Remove photo"
+                      aria-label="Remove photo"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  {/* Main Resident Input Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <Input
+                      label="First Name"
+                      required
+                      {...registerFiltered('firstName', lettersOnly)}
+                      error={errors.firstName?.message}
+                      placeholder="e.g. Rahul"
+                    />
+                    <Input
+                      label="Last Name"
+                      {...registerFiltered('lastName', lettersOnly)}
+                      error={errors.lastName?.message}
+                      placeholder="e.g. Sharma"
+                    />
                   </div>
                 </div>
               </div>
-            )}
 
-            {/* Dynamic Family Members Section (Vertical Cards) */}
-            <div className="mt-6 pt-5 border-t border-gray-100 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 font-bold text-gray-800 text-sm">
-                  <Users className="w-4 h-4 text-[#005390]" />
-                  Family Members (Living in this Flat)
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div>
+                  <label htmlFor="resident-gender-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Gender <span className="text-red-500 font-bold">*</span>
+                  </label>
+                  <select
+                    id="resident-gender-select"
+                    {...register('gender')}
+                    className={cn(
+                      selectClass,
+                      errors.gender && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+                    )}
+                  >
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                  {errors.gender && <p className="mt-1 text-xs font-semibold text-red-500">{errors.gender.message}</p>}
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddFamilyMember}
-                  className="rounded-xl border-[#005390]/20 text-[#005390] hover:bg-[#005390]/10 font-semibold"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Family Member
-                </Button>
+
+                <Input label="Date of Birth" required type="date" {...register('dob')} error={errors.dob?.message} />
+
+                <div>
+                  <label
+                    htmlFor="resident-blood-group-select"
+                    className="block text-xs font-semibold text-gray-700 mb-1.5"
+                  >
+                    Blood Group
+                  </label>
+                  <select id="resident-blood-group-select" {...register('bloodGroup')} className={selectClass}>
+                    <option value="">Not known</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                  </select>
+                </div>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Input
+                  label="Mobile number"
+                  required
+                  {...register('phone')}
+                  error={errors.phone?.message}
+                  placeholder="e.g. 9876543210"
+                  icon={<Phone className="h-4 w-4 text-gray-400" />}
+                />
+                <Input
+                  label="Email"
+                  required
+                  type="email"
+                  {...register('email')}
+                  error={errors.email?.message}
+                  placeholder="e.g. rahul@example.com"
+                  icon={<Mail className="h-4 w-4 text-gray-400" />}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Input
+                  label="Emergency contact number"
+                  {...register('emergencyContact')}
+                  error={errors.emergencyContact?.message}
+                  placeholder="e.g. 99887 76655"
+                  icon={<Phone className="h-4 w-4 text-gray-400" />}
+                />
+                <Input
+                  label="Move-in date"
+                  required
+                  type="date"
+                  {...register('moveInDate')}
+                  error={errors.moveInDate?.message}
+                />
+              </div>
+            </div>
+          </StepCard>
+
+          {watchedResidentType === 'TENANT' && (
+            <StepCard step={4} title="Rent" hint="How much the tenant pays and who collects it.">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Input
+                  label="Monthly rent (₹)"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="e.g. 25000"
+                  {...register('rentAmount')}
+                  error={errors.rentAmount?.message}
+                  icon={<IndianRupee className="h-4 w-4 text-gray-400" />}
+                />
+
+                <div className="flex flex-col justify-start">
+                  <span className="block text-xs font-bold text-gray-700 mb-1.5">Who receives the rent?</span>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setValue('payRentToCompany', false, { shouldValidate: true })}
+                      className={cn(
+                        'flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left',
+                        !watchedPayRentToCompany
+                          ? 'border-[#005390] bg-[#005390]/10 text-[#005390] ring-1 ring-[#005390] shadow-2xs'
+                          : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50',
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="rentRouting"
+                        checked={!watchedPayRentToCompany}
+                        onChange={() => {}}
+                        className="w-3.5 h-3.5 text-[#005390]"
+                      />
+                      <span>Owner directly</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setValue('payRentToCompany', true, { shouldValidate: true })}
+                      className={cn(
+                        'flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left',
+                        watchedPayRentToCompany
+                          ? 'border-[#005390] bg-[#005390]/10 text-[#005390] ring-1 ring-[#005390] shadow-2xs'
+                          : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50',
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="rentRouting"
+                        checked={Boolean(watchedPayRentToCompany)}
+                        onChange={() => {}}
+                        className="w-3.5 h-3.5 text-[#005390]"
+                      />
+                      <span>Company</span>
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-gray-500 mt-2 font-medium">
+                    {watchedPayRentToCompany
+                      ? 'Rent is added to the tenant’s monthly company bill.'
+                      : 'Tenant pays the owner; it isn’t added to the company bill.'}
+                  </p>
+                </div>
+              </div>
+            </StepCard>
+          )}
+
+          <StepCard
+            step={watchedResidentType === 'TENANT' ? 5 : 4}
+            title="Family members"
+            hint="Optional. Add people who live in this flat with the resident."
+            action={
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddFamilyMember}
+                className="rounded-xl border-[#005390]/20 text-[#005390] hover:bg-[#005390]/10 font-semibold"
+              >
+                <Plus className="w-4 h-4" />
+                Add member
+              </Button>
+            }
+          >
+            <div className="space-y-4">
               {familyMemberFields.length === 0 ? (
                 <div className="p-6 text-center rounded-2xl border border-dashed border-gray-200 bg-gray-50/50">
                   <Users className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                  <p className="text-xs text-gray-500 font-medium">No family members added yet.</p>
-                  <p className="text-[11px] text-gray-400 mt-1">
-                    Click "+ Add Family Member" above to add relatives living in this flat.
-                  </p>
+                  <p className="text-xs text-gray-500 font-medium">No family members added.</p>
                 </div>
               ) : (
                 <div className="space-y-5">
@@ -1671,7 +1687,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                   {...register(`familyMembers.${idx}.bloodGroup`)}
                                   className="h-9 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20"
                                 >
-                                  <option value="">Select Blood Group...</option>
+                                  <option value="">Not known</option>
                                   <option value="A+">A+</option>
                                   <option value="A-">A-</option>
                                   <option value="B+">B+</option>
@@ -1691,7 +1707,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                   htmlFor={`fm-phone-input-${idx}`}
                                   className="block text-xs font-semibold text-gray-700 mb-1"
                                 >
-                                  Mobile Phone <span className="text-red-500 font-bold">*</span>
+                                  Mobile number <span className="text-red-500 font-bold">*</span>
                                 </label>
                                 <input
                                   id={`fm-phone-input-${idx}`}
@@ -1713,7 +1729,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                   htmlFor={`fm-email-input-${idx}`}
                                   className="block text-xs font-semibold text-gray-700 mb-1"
                                 >
-                                  Email Address <span className="text-red-500 font-bold">*</span>
+                                  Email <span className="text-red-500 font-bold">*</span>
                                 </label>
                                 <input
                                   id={`fm-email-input-${idx}`}
@@ -1768,7 +1784,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                       className="rounded border-gray-300 text-[#005390] focus:ring-[#005390]"
                                     />
                                     <KeyRound className="w-3.5 h-3.5" />
-                                    Enable Individual Mobile App Login Credentials
+                                    Give this member their own app login
                                   </label>
 
                                   {isCurrentlyEnabled && (
@@ -1778,7 +1794,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                           htmlFor={`fm-username-input-${idx}`}
                                           className="block text-[10px] font-semibold text-gray-600 mb-1"
                                         >
-                                          Username Handle
+                                          Username
                                         </label>
                                         <input
                                           id={`fm-username-input-${idx}`}
@@ -1801,10 +1817,10 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                           id={`fm-password-input-${idx}`}
                                           label="Password"
                                           type="password"
-                                          placeholder="Leave blank to use default password"
+                                          placeholder="Blank = default password"
                                           {...register(`familyMembers.${idx}.password`)}
                                           error={fmErrors?.password?.message}
-                                          helperText="Password cannot be viewed for security reasons, but you can enter a new password to update it."
+                                          helperText="Type a new password only to change it."
                                         />
                                       </div>
                                     </div>
@@ -1820,142 +1836,134 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                 </div>
               )}
             </div>
-          </div>
+          </StepCard>
 
-          {/* Section: Care Package Subscription Card (Hidden if Non-residing / isResiding = false) */}
           {isResidingEffective && (
-            <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Boxes className="w-5 h-5 text-[#005390]" />
-                  Care Package Subscription (Optional)
-                </h2>
-                <span className="text-xs font-medium text-gray-500">
-                  Bundled wellness & clinical tasks for the resident
-                </span>
-              </div>
-
-              {isLoadingPackages ? (
-                <div className="text-center py-6 text-xs text-gray-400">
-                  <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-[#005390]" />
-                  Loading care packages...
-                </div>
-              ) : carePackages.length === 0 ? (
-                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-xs text-gray-500 text-center">
-                  No active Care Packages configured. You can configure them in Settings &gt; Packages.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Option for No Package */}
-                  <button
-                    type="button"
-                    onClick={() => setValue('carePackageId', '', { shouldValidate: true })}
-                    className={cn(
-                      'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full',
-                      !watchedCarePackageId
-                        ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20'
-                        : 'border-gray-200 bg-white hover:border-gray-300',
-                    )}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-gray-800">No Care Package</span>
-                        {!watchedCarePackageId && (
-                          <span className="inline-flex items-center justify-center size-5 rounded-full bg-[#005390] text-white">
-                            <Check className="w-3 h-3" />
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-gray-500 mt-1">
-                        Resident will not be subscribed to any care package upon onboarding.
-                      </p>
-                    </div>
-                  </button>
-
-                  {/* Available Care Packages */}
-                  {carePackages.map((pkg) => {
-                    const isSelected = watchedCarePackageId === pkg.id
-                    const taskCount = pkg.features?.length || pkg.tasks?.length || 0
-                    return (
-                      <button
-                        key={pkg.id}
-                        type="button"
-                        onClick={() => setValue('carePackageId', pkg.id, { shouldValidate: true })}
-                        className={cn(
-                          'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full',
-                          isSelected
-                            ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20'
-                            : 'border-gray-200 bg-white hover:border-gray-300',
-                        )}
-                      >
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-gray-900">{pkg.packageName}</span>
-                            {isSelected && (
-                              <span className="inline-flex items-center justify-center size-5 rounded-full bg-[#005390] text-white">
-                                <Check className="w-3 h-3" />
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-2 mt-1.5">
-                            <span className="text-sm font-black text-[#005390]">
-                              ₹{Number(pkg.packageCost).toLocaleString('en-IN')}
+            <StepCard
+              step={watchedResidentType === 'TENANT' ? 6 : 5}
+              title="Care package"
+              hint="Optional. Wellness and clinical tasks bundled for the resident."
+            >
+              <div className="space-y-5">
+                {isLoadingPackages ? (
+                  <div className="text-center py-6 text-xs text-gray-400">
+                    <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-[#005390]" />
+                    Loading care packages...
+                  </div>
+                ) : carePackages.length === 0 ? (
+                  <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-xs text-gray-500 text-center">
+                    No care packages set up yet. Add them in Settings → Packages.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Option for No Package */}
+                    <button
+                      type="button"
+                      onClick={() => setValue('carePackageId', '', { shouldValidate: true })}
+                      className={cn(
+                        'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full',
+                        !watchedCarePackageId
+                          ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20'
+                          : 'border-gray-200 bg-white hover:border-gray-300',
+                      )}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-gray-800">No Care Package</span>
+                          {!watchedCarePackageId && (
+                            <span className="inline-flex items-center justify-center size-5 rounded-full bg-[#005390] text-white">
+                              <Check className="w-3 h-3" />
                             </span>
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
-                              {pkg.duration}
-                            </span>
-                          </div>
-
-                          {pkg.description && (
-                            <p className="text-[11px] text-gray-500 mt-1 line-clamp-2">{pkg.description}</p>
-                          )}
-
-                          {taskCount > 0 && (
-                            <div className="mt-2.5 pt-2 border-t border-gray-100 flex flex-wrap gap-1">
-                              {(pkg.features || []).map((feat) => {
-                                const count = feat?.CarePackageFeaturesMap?.complimentaryCount ?? 0
-                                return (
-                                  <span
-                                    key={feat.id}
-                                    className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                  >
-                                    {feat.taskName || feat.careTaskName || 'Task'} {count > 0 ? `× ${count}` : '(Free)'}
-                                  </span>
-                                )
-                              })}
-                            </div>
                           )}
                         </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
+                        <p className="text-[11px] text-gray-500 mt-1">Skip the care package for now.</p>
+                      </div>
+                    </button>
 
-              {/* Package Tasks Frequency & Times Schedule Configuration */}
-              {selectedOnboardPackage && onboardPackageTasks.length > 0 && (
-                <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
-                  <PackageTaskSchedulesConfig
-                    tasks={onboardPackageTasks}
-                    schedules={packageTaskSchedules}
-                    onChange={setPackageTaskSchedules}
-                  />
-                </div>
-              )}
-            </div>
+                    {/* Available Care Packages */}
+                    {carePackages.map((pkg) => {
+                      const isSelected = watchedCarePackageId === pkg.id
+                      const taskCount = pkg.features?.length || pkg.tasks?.length || 0
+                      return (
+                        <button
+                          key={pkg.id}
+                          type="button"
+                          onClick={() => setValue('carePackageId', pkg.id, { shouldValidate: true })}
+                          className={cn(
+                            'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full',
+                            isSelected
+                              ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20'
+                              : 'border-gray-200 bg-white hover:border-gray-300',
+                          )}
+                        >
+                          <div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-gray-900">{pkg.packageName}</span>
+                              {isSelected && (
+                                <span className="inline-flex items-center justify-center size-5 rounded-full bg-[#005390] text-white">
+                                  <Check className="w-3 h-3" />
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <span className="text-sm font-black text-[#005390]">
+                                ₹{Number(pkg.packageCost).toLocaleString('en-IN')}
+                              </span>
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                                {pkg.duration}
+                              </span>
+                            </div>
+
+                            {pkg.description && (
+                              <p className="text-[11px] text-gray-500 mt-1 line-clamp-2">{pkg.description}</p>
+                            )}
+
+                            {taskCount > 0 && (
+                              <div className="mt-2.5 pt-2 border-t border-gray-100 flex flex-wrap gap-1">
+                                {(pkg.features || []).map((feat) => {
+                                  const count = feat?.CarePackageFeaturesMap?.complimentaryCount ?? 0
+                                  return (
+                                    <span
+                                      key={feat.id}
+                                      className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                    >
+                                      {feat.taskName || feat.careTaskName || 'Task'}{' '}
+                                      {count > 0 ? `× ${count}` : '(Free)'}
+                                    </span>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Package Tasks Frequency & Times Schedule Configuration */}
+                {selectedOnboardPackage && onboardPackageTasks.length > 0 && (
+                  <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+                    <PackageTaskSchedulesConfig
+                      tasks={onboardPackageTasks}
+                      schedules={packageTaskSchedules}
+                      onChange={setPackageTaskSchedules}
+                    />
+                  </div>
+                )}
+              </div>
+            </StepCard>
           )}
 
-          {/* Section 4: Mobile App Credentials Card */}
-          <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-5">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 border-b border-gray-100 pb-3">
-              <KeyRound className="w-5 h-5 text-[#005390]" />
-              Mobile App Login Account
-            </h2>
-
-            <div className="p-5 bg-blue-50/50 border border-blue-100/80 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
+          <StepCard
+            step={(watchedResidentType === 'TENANT' ? 6 : 5) + (isResidingEffective ? 1 : 0)}
+            title="App login"
+            hint="Used to sign in to the resident app."
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
               <Input
-                label="Mobile Username Handle"
+                label="Username"
                 {...register('username')}
                 error={errors.username?.message}
                 placeholder="e.g. rahul_101"
@@ -1965,18 +1973,22 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                 type="password"
                 {...register('password')}
                 error={errors.password?.message}
-                helperText="Password cannot be viewed for security reasons, but you can enter a new password here to update it."
-                placeholder="Default: Leave blank to use default password"
+                helperText={
+                  isEditMode ? 'Type a new password only to change it.' : 'Leave blank to use the default password.'
+                }
+                placeholder="Blank = default password"
               />
             </div>
-          </div>
+          </StepCard>
 
-          {/* Action Footer Card (Matching Employee Screen Footer) */}
-          <div className="flex items-center justify-end gap-3 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl">
+          <div className="sticky bottom-0 z-10 flex items-center justify-end gap-3 rounded-2xl border border-gray-100 bg-white/95 px-5 py-3 shadow-lg backdrop-blur dark:border-gray-800 dark:bg-slate-900/95">
+            {isOwnerMissingForTenant && (
+              <p className="mr-auto text-xs font-medium text-amber-700">Onboard the flat’s owner first.</p>
+            )}
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate('/admin/residents')}
+              onClick={() => navigate(backUrl)}
               className="rounded-xl border-gray-200"
             >
               Cancel
@@ -1992,12 +2004,12 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
               {isSubmitting ? (
                 <span className="inline-flex items-center gap-2">
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  {isEditMode ? 'Updating Resident...' : 'Saving Resident...'}
+                  {isEditMode ? 'Saving…' : 'Onboarding…'}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-2">
                   <Plus className="w-4 h-4" />
-                  {isEditMode ? 'Update Resident' : 'Save & Onboard Resident'}
+                  {isEditMode ? 'Save Changes' : 'Onboard Resident'}
                 </span>
               )}
             </Button>

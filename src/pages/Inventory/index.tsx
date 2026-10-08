@@ -43,14 +43,17 @@ import { AssignItemsForm } from './AssignItemsForm'
 import { StockInForm } from './StockInForm'
 import { SupplierList } from './Suppliers'
 import { PODetail, TransactionDetail, ItemDetail } from './Details'
+import { PageHeader } from '@/components/common/PageHeader'
 export default function InventoryPage() {
   const { selectedLocationId } = useLocation()
   return (
     <div className="min-w-0 space-y-6 pb-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Inventory</h1>
-        <p className="mt-1 text-sm text-gray-600 md:text-base">Manage property inventory</p>
-      </div>
+      <PageHeader
+        icon={Package}
+        title="Inventory"
+        description="Manage property inventory: items, stock, purchase orders and suppliers."
+      />
+
       {selectedLocationId ? (
         <PropertyInventory key={selectedLocationId} locationId={selectedLocationId} />
       ) : (
@@ -91,48 +94,37 @@ function PropertyInventory({ locationId }: { locationId: string }) {
 }
 function CategoryList({ locationId, onSelect }: { locationId: string; onSelect: (category: CenterCategory) => void }) {
   return (
-    <Section title="Categories">
-      <InventoryTable
-        locationId={locationId}
-        kind="categories"
-        columns={[
-          {
-            accessorKey: 'name',
-            header: 'Name',
-            cell: ({ row }) => (
-              <div className="flex min-w-0 flex-wrap items-center gap-3">
-                {row.original.image ? (
-                  <img src={row.original.image} alt="" className="size-10 rounded-lg object-cover" />
-                ) : (
-                  <FolderOpen className="size-8 text-muted-foreground" />
-                )}
-                <div>
-                  <Button variant="link" onClick={() => onSelect(row.original)}>
-                    {row.original.name}
-                  </Button>
-                  <p className="max-w-md truncate text-sm text-muted-foreground">{row.original.description}</p>
-                </div>
+    <InventoryTable
+      locationId={locationId}
+      kind="categories"
+      columns={[
+        {
+          accessorKey: 'name',
+          header: 'Name',
+          cell: ({ row }) => (
+            <div className="flex min-w-0 flex-wrap items-center gap-3">
+              {row.original.image ? (
+                <img src={row.original.image} alt="" className="size-10 rounded-lg object-cover" />
+              ) : (
+                <FolderOpen className="size-8 text-muted-foreground" />
+              )}
+              <div>
+                <Button variant="link" onClick={() => onSelect(row.original)}>
+                  {row.original.name}
+                </Button>
+                <p className="max-w-md truncate text-sm text-muted-foreground">{row.original.description}</p>
               </div>
-            ),
-          },
-          { accessorKey: 'itemCount', header: 'Items' },
-          {
-            id: 'status',
-            header: 'Status',
-            cell: ({ row }) => <ActiveStatus active={row.original.isActive} />,
-          },
-          {
-            id: 'actions',
-            header: 'Actions',
-            cell: ({ row }) => (
-              <Button variant="ghost" onClick={() => onSelect(row.original)}>
-                View Inventory
-              </Button>
-            ),
-          },
-        ]}
-      />
-    </Section>
+            </div>
+          ),
+        },
+        { accessorKey: 'itemCount', header: 'Items' },
+        {
+          id: 'status',
+          header: 'Status',
+          cell: ({ row }) => <ActiveStatus active={row.original.isActive} />,
+        },
+      ]}
+    />
   )
 }
 function CategoryInventory({

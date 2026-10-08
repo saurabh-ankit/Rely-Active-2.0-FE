@@ -28,6 +28,7 @@ import { TEXT_LIBRARY } from '@/lib/constants/textLibrary'
 
 import { getCompaniesAPI, saveCompanyFormDataAPI } from '@/lib/services/companyService'
 import { getFileUrl, isImageFile } from '@/lib/utils'
+import { PageHeader } from '@/components/common/PageHeader'
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export const PHONE_REGEX = /^[6-9][0-9]{9}$/
@@ -251,17 +252,11 @@ export default function CompanyPage() {
     return (
       <div className="w-full space-y-6 pb-12">
         {/* Full Page Header */}
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 shadow-sm">
-              <Building2 className="h-6 w-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">{TEXT_LIBRARY.COMPANY.CREATE_TITLE}</h1>
-              <p className="text-sm text-gray-500">{TEXT_LIBRARY.COMPANY.CREATE_SUBTITLE}</p>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          icon={Building2}
+          title={TEXT_LIBRARY.COMPANY.CREATE_TITLE}
+          description={TEXT_LIBRARY.COMPANY.CREATE_SUBTITLE}
+        />
 
         {/* Full Page Form Card */}
         <div className="rounded-3xl border border-white/60 bg-white/80 p-6 md:p-8 shadow-xl backdrop-blur-xl">

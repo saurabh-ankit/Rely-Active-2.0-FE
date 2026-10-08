@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Building2, Check, Edit, Home, MoreVertical, Search, Trash2, UserCheck, UserPlus, Users } from 'lucide-react'
+import { Edit, Home, MoreVertical, Search, Trash2, UserCheck, UserPlus } from 'lucide-react'
 import type { Property, ResidentItem } from '@/lib/types'
 import { getPropertiesAPI } from '@/lib/services/propertyService'
 import { residentService } from '@/lib/services/residentService'
 import { useLocationContext } from '@/hooks/useLocation'
 import { Button } from '@/components/ui/button'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import {
   Pagination,
@@ -18,7 +17,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination'
 import { notifyError, notifySuccess } from '@/utils/toast'
-import { getFileUrl } from '@/lib/utils'
+import { cn, getFileUrl } from '@/lib/utils'
 
 interface FlatGroup {
   unitId: string
@@ -31,20 +30,30 @@ interface FlatGroup {
   allOccupants: ResidentItem[]
 }
 
-/** "1998-01-12" -> "12 Jan 1998 · 27 yrs" */
-const formatDob = (value?: string | null) => {
-  if (!value) return null
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return null
+const LIVING_BADGES = {
+  here: { label: 'Residing', className: 'border-emerald-200 bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' },
+  elsewhere: {
+    label: 'Off-site Resident',
+    className: 'border-amber-200 bg-amber-50 text-amber-700',
+    dot: 'bg-amber-500',
+  },
+  not: { label: 'Off-site Resident', className: 'border-amber-200 bg-amber-50 text-amber-700', dot: 'bg-amber-500' },
+} as const
 
-  const label = date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-  const now = new Date()
-  let age = now.getFullYear() - date.getFullYear()
-  const hasHadBirthday =
-    now.getMonth() > date.getMonth() || (now.getMonth() === date.getMonth() && now.getDate() >= date.getDate())
-  if (!hasHadBirthday) age -= 1
-
-  return age >= 0 && age < 130 ? `${label} · ${age} yrs` : label
+/** Whether a person actually lives in the flat. */
+const LivingBadge = ({ status }: { status: keyof typeof LIVING_BADGES }) => {
+  const badge = LIVING_BADGES[status]
+  return (
+    <span
+      className={cn(
+        'inline-flex w-32 items-center justify-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold',
+        badge.className,
+      )}
+    >
+      <span className={cn('h-1.5 w-1.5 rounded-full', badge.dot)} />
+      {badge.label}
+    </span>
+  )
 }
 
 export interface ResidentListScreenProps {
@@ -244,9 +253,6 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
     return orderedFlats.slice(start, start + pageSize)
   }, [orderedFlats, activePage, pageSize])
 
-  /** Flat, Resident, Type, Status, Handle, Contact, Rent, Actions */
-  const columnCount = 8
-
   const goToResident = (residentId: string) =>
     navigate(
       isGlobalMode ? `/global-settings/residents/details/${residentId}` : `/admin/residents/details/${residentId}`,
@@ -267,10 +273,10 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
           aria-label="Property Location"
           className="h-9 px-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-2xs cursor-pointer"
         >
-          <option value="ALL">Property: All Properties ({properties.length})</option>
+          <option value="ALL">All properties ({properties.length})</option>
           {properties.map((p) => (
             <option key={p.id} value={p.id}>
-              Property: {p.property_name || (p as { name?: string }).name || 'Property'}
+              {p.property_name || (p as { name?: string }).name || 'Property'}
             </option>
           ))}
         </select>
@@ -287,9 +293,9 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
         aria-label="Resident Type"
         className="h-9 px-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-2xs cursor-pointer"
       >
-        <option value="ALL">Resident Type: All Types (Owner, Tenant)</option>
-        <option value="OWNER">Resident Type: Owner Only</option>
-        <option value="TENANT">Resident Type: Tenant Only</option>
+        <option value="ALL">Owners & tenants</option>
+        <option value="OWNER">Owners only</option>
+        <option value="TENANT">Tenants only</option>
       </select>
 
       {/* Residing Status Filter */}
@@ -303,9 +309,9 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
         aria-label="Residing Status"
         className="h-9 px-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-2xs cursor-pointer"
       >
-        <option value="ALL">Residing Status: All Occupants</option>
-        <option value="RESIDING">Residing Status: Physically Residing</option>
-        <option value="OFFSITE">Residing Status: Off-site Landlord</option>
+        <option value="ALL">Everyone</option>
+        <option value="RESIDING">Residing</option>
+        <option value="OFFSITE">Off-site Resident</option>
       </select>
     </div>
   )
@@ -344,7 +350,7 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
           <input
             type="text"
             className="pl-9 pr-4 py-2 w-full rounded-xl text-xs bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 shadow-2xs focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] focus:outline-none"
-            placeholder="Search Name, username, Unit #..."
+            placeholder="Search by name, username or flat…"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
           />
@@ -363,371 +369,198 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-2xs dark:border-gray-800 dark:bg-slate-900">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-gray-50/90 border-b border-gray-200 dark:bg-gray-800/80 dark:border-gray-800">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="py-3 pl-4 text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                      Flat / Unit
-                    </TableHead>
-                    <TableHead className="py-3 text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                      Resident
-                    </TableHead>
-                    <TableHead className="py-3 text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                      Type
-                    </TableHead>
-                    <TableHead className="py-3 text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                      Residing Status
-                    </TableHead>
-                    <TableHead className="py-3 text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                      Contact
-                    </TableHead>
-                    <TableHead className="py-3 text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                      Rent &amp; Billing
-                    </TableHead>
-                    <TableHead className="py-3 pr-4 text-right text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                      Actions
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedFlats.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={columnCount} className="p-12 text-center text-sm text-gray-400">
-                        No resident records found.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    paginatedFlats.map((flat) => {
-                      const flatOwner = flat.residingOwner || flat.offsiteOwner
-                      // Each occupant occupies one row plus one per family member.
-                      const flatRowCount = flat.allOccupants.reduce(
-                        (count, occ) => count + 1 + (occ.familyMembers?.length || 0),
-                        0,
-                      )
+          {paginatedFlats.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center text-sm text-gray-400 dark:border-gray-800 dark:bg-slate-900">
+              No residents found.
+            </div>
+          ) : (
+            paginatedFlats.map((flat) => {
+              const livingCount = flat.allOccupants.reduce(
+                (n, occ) =>
+                  n +
+                  (occ.isResiding ? 1 : 0) +
+                  (occ.familyMembers || []).filter((fm) => fm.isResiding !== false).length,
+                0,
+              )
+              return (
+                <div
+                  key={flat.unitId}
+                  className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xs dark:border-gray-800 dark:bg-slate-900"
+                >
+                  {/* Flat header */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 bg-gray-50/70 px-4 py-3 dark:border-gray-800 dark:bg-slate-800/50">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#005390]/10 text-[#005390]">
+                        <Home className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-gray-900 dark:text-white">{flat.unitNumber}</h3>
+                        <p className="text-[11px] text-gray-500">
+                          {flat.floorLabel}
+                          {isGlobalMode && ` · ${flat.propertyName}`}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="rounded-full border border-gray-200 bg-white px-2.5 py-0.5 text-[11px] font-semibold text-gray-600">
+                      {livingCount} residing
+                    </span>
+                  </div>
 
+                  {/* People: each resident, with their family indented underneath */}
+                  <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+                    {flat.allOccupants.map((occ) => {
+                      const fullName = `${occ.firstName} ${occ.lastName || ''}`.trim()
+                      const family = occ.familyMembers || []
+                      const isTenant = occ.residentType === 'TENANT'
                       return (
-                        <React.Fragment key={flat.unitId}>
-                          {/* ── The people in that flat: owner first, members below ── */}
-                          {flat.allOccupants.map((occ, occIndex) => {
-                            const fullName = `${occ.firstName} ${occ.lastName || ''}`.trim()
-                            const family = occ.familyMembers || []
-                            const isLastOccupant = occIndex === flat.allOccupants.length - 1
+                        <li key={occ.id}>
+                          <div className="flex flex-col gap-2 px-4 py-3 transition-colors hover:bg-[#005390]/[0.03] md:flex-row md:items-center">
+                            <button
+                              type="button"
+                              onClick={() => goToResident(occ.id)}
+                              className="group flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left"
+                              title="View profile"
+                            >
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#005390]/10 text-xs font-bold text-[#005390]">
+                                {occ.photoUrl ? (
+                                  <img
+                                    src={getFileUrl(occ.photoUrl)}
+                                    alt={fullName}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  occ.firstName[0]?.toUpperCase()
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-gray-900 group-hover:text-[#005390] dark:text-white">
+                                  {fullName}
+                                  <span
+                                    className={cn(
+                                      'rounded-full border px-2 py-px text-[10px] font-semibold',
+                                      isTenant
+                                        ? 'border-purple-200 bg-purple-50 text-purple-700'
+                                        : 'border-blue-200 bg-blue-50 text-blue-700',
+                                    )}
+                                  >
+                                    {isTenant ? 'Tenant' : 'Owner'}
+                                  </span>
+                                </p>
+                                {occ.email && <p className="truncate text-xs text-gray-500">{occ.email}</p>}
+                              </div>
+                            </button>
 
-                            return (
-                              <React.Fragment key={occ.id}>
-                                <TableRow
-                                  className={`hover:bg-[#005390]/5 transition-colors ${
-                                    isLastOccupant && family.length === 0
-                                      ? 'border-b-2 border-b-gray-200 dark:border-b-gray-700'
-                                      : 'border-b border-gray-100 dark:border-gray-800'
-                                  }`}
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pl-12 text-xs md:pl-0">
+                              <LivingBadge status={occ.isResiding ? 'here' : 'elsewhere'} />
+                              <span className="w-28 text-gray-700 dark:text-gray-300">{occ.phone || '—'}</span>
+                              <span className="w-36">
+                                {isTenant ? (
+                                  <>
+                                    <span className="font-semibold text-gray-900 dark:text-white">
+                                      {occ.rentAmount != null
+                                        ? `₹${Number(occ.rentAmount).toLocaleString('en-IN')}/mo`
+                                        : 'Rent not set'}
+                                    </span>
+                                    <span className="block text-[10px] text-gray-500">
+                                      {occ.payRentToCompany ? 'Paid via company' : 'Paid to owner'}
+                                    </span>
+                                  </>
+                                ) : null}
+                              </span>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger
+                                  className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-[#005390] dark:hover:bg-gray-800"
+                                  title="Actions"
+                                  aria-label={`Actions for ${fullName}`}
                                 >
-                                  {/* Flat details — merged down the flat's rows, so the unit is read first */}
-                                  {occIndex === 0 && (
-                                    <TableCell
-                                      rowSpan={flatRowCount}
-                                      className="py-3 pl-4 pr-3 align-top whitespace-normal w-56 bg-[#005390]/[0.05] border-r border-gray-200 dark:bg-slate-800/60 dark:border-gray-700"
-                                    >
-                                      <div className="space-y-1.5">
-                                        {isGlobalMode && (
-                                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-[#005390]/10 text-[#005390] border border-[#005390]/20">
-                                            <Building2 className="w-3 h-3" />
-                                            {flat.propertyName}
-                                          </span>
-                                        )}
-
-                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-xs font-bold shadow-2xs">
-                                          <Home className="w-3.5 h-3.5 text-[#005390]" />
-                                          {flat.floorLabel} — {flat.unitNumber}
-                                        </div>
-
-                                        <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">
-                                          {flat.allOccupants.length} occupant{flat.allOccupants.length === 1 ? '' : 's'}
-                                        </div>
-
-                                        {flatOwner && (
-                                          <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-800 dark:text-gray-100">
-                                            <span className="text-blue-700 dark:text-blue-300 text-[9px] font-semibold bg-blue-50 dark:bg-blue-950 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800">
-                                              Owner
-                                            </span>
-                                            {flatOwner.firstName} {flatOwner.lastName || ''}
-                                          </div>
-                                        )}
-
-                                        {flat.residingTenant && (
-                                          <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-800 dark:text-gray-100">
-                                            <span className="text-purple-700 dark:text-purple-300 text-[9px] font-semibold bg-purple-50 dark:bg-purple-950 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-800">
-                                              Tenant
-                                            </span>
-                                            {flat.residingTenant.firstName} {flat.residingTenant.lastName || ''}
-                                          </div>
-                                        )}
-                                      </div>
-                                    </TableCell>
-                                  )}
-
-                                  {/* Resident: photo, name, email, family members */}
-                                  <TableCell className="py-3 whitespace-normal">
-                                    <div
-                                      role="button"
-                                      tabIndex={0}
-                                      className="flex items-start gap-2.5 cursor-pointer group/occ outline-none"
+                                  <MoreVertical className="h-4 w-4" />
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-44 rounded-xl p-1 shadow-xl">
+                                  {canViewResident && (
+                                    <DropdownMenuItem
                                       onClick={() => goToResident(occ.id)}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                          e.preventDefault()
-                                          goToResident(occ.id)
-                                        }
-                                      }}
-                                      title="Click to view resident profile details"
+                                      className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold"
                                     >
-                                      <div className="w-8 h-8 rounded-full bg-[#005390]/10 text-[#005390] group-hover/occ:border-[#005390] overflow-hidden border border-gray-200/80 transition-colors flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
-                                        {occ.photoUrl ? (
+                                      <UserCheck className="h-3.5 w-3.5 text-[#005390]" />
+                                      View Profile
+                                    </DropdownMenuItem>
+                                  )}
+                                  {canUpdateResident && (
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        navigate(
+                                          isGlobalMode
+                                            ? `/global-settings/residents/edit/${occ.id}`
+                                            : `/admin/residents/edit/${occ.id}`,
+                                        )
+                                      }
+                                      className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold"
+                                    >
+                                      <Edit className="h-3.5 w-3.5 text-[#005390]" />
+                                      Edit Profile
+                                    </DropdownMenuItem>
+                                  )}
+                                  {canDeleteResident && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleDelete(occ.id, fullName)}
+                                      className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                      Remove
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </div>
+
+                          {family.length > 0 && (
+                            <ul className="border-t border-dashed border-gray-100 bg-slate-50/50 dark:border-gray-800 dark:bg-slate-800/20">
+                              {family.map((fm, fmIndex) => {
+                                const fmName = `${fm.firstName} ${fm.lastName || ''}`.trim()
+                                return (
+                                  <li
+                                    key={fm.id || `${occ.id}-${fmIndex}`}
+                                    className="flex flex-col gap-1.5 py-2 pl-10 pr-4 md:flex-row md:items-center"
+                                  >
+                                    <div className="flex min-w-0 flex-1 items-center gap-3 border-l-2 border-gray-200 pl-3 dark:border-gray-700">
+                                      <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-violet-100 text-[11px] font-bold text-violet-700">
+                                        {fm.photoUrl ? (
                                           <img
-                                            src={getFileUrl(occ.photoUrl)}
-                                            alt={fullName}
-                                            className="w-full h-full object-cover"
+                                            src={getFileUrl(fm.photoUrl)}
+                                            alt={fmName}
+                                            className="h-full w-full object-cover"
                                           />
                                         ) : (
-                                          <span>{occ.firstName[0]?.toUpperCase()}</span>
+                                          fm.firstName[0]?.toUpperCase()
                                         )}
                                       </div>
-                                      <div className="min-w-0">
-                                        <div className="font-bold text-gray-900 dark:text-white text-xs group-hover/occ:text-[#005390] transition-colors">
-                                          {fullName}
-                                        </div>
-                                        {occ.email && <div className="text-[10px] text-gray-400">{occ.email}</div>}
-                                        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-semibold text-gray-500 dark:text-gray-400">
-                                          {occ.gender && <span>{occ.gender}</span>}
-                                          {formatDob(occ.dob) && <span>{formatDob(occ.dob)}</span>}
-                                          {occ.bloodGroup && (
-                                            <span className="text-rose-600 dark:text-rose-400">{occ.bloodGroup}</span>
-                                          )}
-                                        </div>
-                                        {family.length > 0 && (
-                                          <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-[#005390]">
-                                            <Users className="w-3 h-3" />
-                                            {family.length} family member{family.length === 1 ? '' : 's'} listed below
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </TableCell>
-
-                                  {/* Owner / Tenant */}
-                                  <TableCell className="py-3">
-                                    <span
-                                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                        occ.residentType === 'OWNER'
-                                          ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950 dark:text-blue-300'
-                                          : 'bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950 dark:text-purple-300'
-                                      }`}
-                                    >
-                                      {occ.residentType}
-                                    </span>
-                                  </TableCell>
-
-                                  {/* Residing Status */}
-                                  <TableCell className="py-3">
-                                    {occ.isResiding ? (
-                                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300">
-                                        <Check className="w-3 h-3" /> Physically Residing
-                                      </span>
-                                    ) : (
-                                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950 dark:text-amber-300">
-                                        Off-site Landlord
-                                      </span>
-                                    )}
-                                  </TableCell>
-
-                                  {/* Contact Phone */}
-                                  <TableCell className="py-3">
-                                    <span className="text-xs text-gray-800 dark:text-gray-200 font-semibold">
-                                      {occ.phone || 'N/A'}
-                                    </span>
-                                  </TableCell>
-
-                                  {/* Rent & Billing */}
-                                  <TableCell className="py-3">
-                                    {occ.residentType === 'TENANT' ? (
-                                      <div className="flex flex-col gap-0.5">
-                                        <span className="text-xs font-extrabold text-gray-900 dark:text-white">
-                                          {occ.rentAmount !== undefined && occ.rentAmount !== null
-                                            ? `₹${Number(occ.rentAmount).toLocaleString('en-IN')}`
-                                            : 'Rent Not Set'}
-                                        </span>
-                                        {occ.payRentToCompany ? (
-                                          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-md dark:bg-blue-950 dark:text-blue-300 w-max">
-                                            Company Billing
-                                          </span>
-                                        ) : (
-                                          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md dark:bg-amber-950 dark:text-amber-300 w-max">
-                                            Direct to Owner
-                                          </span>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <span className="text-gray-400 text-xs">-</span>
-                                    )}
-                                  </TableCell>
-
-                                  {/* Actions Dropdown / Menu */}
-                                  <TableCell className="py-3 text-right pr-4">
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger
-                                        className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-[#005390] hover:bg-[#005390]/10 hover:text-[#005390] transition-colors cursor-pointer shadow-2xs dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
-                                        title="Actions"
-                                      >
-                                        <MoreVertical className="h-3.5 w-3.5" />
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent
-                                        align="end"
-                                        className="w-48 rounded-xl p-1 shadow-xl border border-gray-100 bg-white dark:bg-slate-900 dark:border-gray-800"
-                                      >
-                                        {canViewResident && (
-                                          <DropdownMenuItem
-                                            onClick={() => goToResident(occ.id)}
-                                            className="flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-lg px-2.5 py-1.5 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
-                                          >
-                                            <UserCheck className="h-3.5 w-3.5 text-[#005390]" />
-                                            View Profile
-                                          </DropdownMenuItem>
-                                        )}
-
-                                        {canUpdateResident && (
-                                          <DropdownMenuItem
-                                            onClick={() =>
-                                              navigate(
-                                                isGlobalMode
-                                                  ? `/global-settings/residents/edit/${occ.id}`
-                                                  : `/admin/residents/edit/${occ.id}`,
-                                              )
-                                            }
-                                            className="flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-lg px-2.5 py-1.5 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
-                                          >
-                                            <Edit className="h-3.5 w-3.5 text-[#005390]" />
-                                            Edit Profile
-                                          </DropdownMenuItem>
-                                        )}
-
-                                        {canDeleteResident && (
-                                          <DropdownMenuItem
-                                            onClick={() => handleDelete(occ.id, fullName)}
-                                            className="flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-lg px-2.5 py-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50"
-                                          >
-                                            <Trash2 className="h-3.5 w-3.5 text-rose-600" />
-                                            Remove Resident
-                                          </DropdownMenuItem>
-                                        )}
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </TableCell>
-                                </TableRow>
-
-                                {/* ── Family members of this resident ── */}
-                                {family.map((fm, fmIndex) => {
-                                  const fmName = `${fm.firstName} ${fm.lastName || ''}`.trim()
-                                  const isLastFamilyRow = isLastOccupant && fmIndex === family.length - 1
-
-                                  return (
-                                    <TableRow
-                                      key={fm.id || `${occ.id}-${fm.firstName}-${fmIndex}`}
-                                      className={`bg-gray-50/60 dark:bg-slate-800/30 hover:bg-[#005390]/5 transition-colors ${
-                                        isLastFamilyRow
-                                          ? 'border-b-2 border-b-gray-200 dark:border-b-gray-700'
-                                          : 'border-b border-gray-100 dark:border-gray-800'
-                                      }`}
-                                    >
-                                      {/* Name, photo and personal details, indented under the resident */}
-                                      <TableCell className="py-2.5 pl-8 whitespace-normal">
-                                        <div className="flex items-start gap-2.5">
-                                          <span className="text-gray-300 dark:text-gray-600 text-xs leading-6 select-none">
-                                            &#8627;
-                                          </span>
-                                          <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-500 overflow-hidden border border-gray-200/80 flex items-center justify-center font-bold text-[10px] shrink-0 dark:bg-slate-800 dark:border-gray-700">
-                                            {fm.photoUrl ? (
-                                              <img
-                                                src={getFileUrl(fm.photoUrl)}
-                                                alt={fmName}
-                                                className="w-full h-full object-cover"
-                                              />
-                                            ) : (
-                                              <span>{fm.firstName[0]?.toUpperCase()}</span>
-                                            )}
-                                          </div>
-                                          <div className="min-w-0">
-                                            <div className="font-bold text-gray-800 dark:text-gray-100 text-xs">
-                                              {fmName}
-                                            </div>
-                                            {fm.email && <div className="text-[10px] text-gray-400">{fm.email}</div>}
-                                            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-semibold text-gray-500 dark:text-gray-400">
-                                              {fm.gender && <span>{fm.gender}</span>}
-                                              {formatDob(fm.dob) && <span>{formatDob(fm.dob)}</span>}
-                                              {fm.bloodGroup && (
-                                                <span className="text-rose-600 dark:text-rose-400">
-                                                  {fm.bloodGroup}
-                                                </span>
-                                              )}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </TableCell>
-
-                                      {/* Type: family, with the relation */}
-                                      <TableCell className="py-2.5">
-                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
-                                          <Users className="w-3 h-3" />
+                                      <p className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-gray-800 dark:text-gray-100">
+                                        {fmName}
+                                        <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-px text-[10px] font-semibold capitalize text-violet-700">
                                           {fm.relation || 'Family'}
                                         </span>
-                                      </TableCell>
-
-                                      {/* Residing status */}
-                                      <TableCell className="py-2.5">
-                                        {fm.isResiding === false ? (
-                                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-500 border border-gray-200 dark:bg-slate-800 dark:text-gray-400 dark:border-gray-700">
-                                            Not Residing
-                                          </span>
-                                        ) : (
-                                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300">
-                                            <Check className="w-3 h-3" /> Physically Residing
-                                          </span>
-                                        )}
-                                      </TableCell>
-
-                                      {/* Contact */}
-                                      <TableCell className="py-2.5">
-                                        <span className="text-xs text-gray-700 dark:text-gray-300 font-semibold">
-                                          {fm.phone || 'N/A'}
-                                        </span>
-                                      </TableCell>
-
-                                      {/* Rent & billing never applies to a family member */}
-                                      <TableCell className="py-2.5">
-                                        <span className="text-gray-400 text-xs">-</span>
-                                      </TableCell>
-
-                                      {/* Family members are managed from the resident's profile */}
-                                      <TableCell className="py-2.5 pr-4 text-right">
-                                        <span className="text-[10px] font-semibold text-gray-400">
-                                          via {occ.firstName}
-                                        </span>
-                                      </TableCell>
-                                    </TableRow>
-                                  )
-                                })}
-                              </React.Fragment>
-                            )
-                          })}
-                        </React.Fragment>
+                                      </p>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pl-10 text-xs md:pl-0">
+                                      <LivingBadge status={fm.isResiding === false ? 'not' : 'here'} />
+                                      <span className="w-28 text-gray-600 dark:text-gray-300">{fm.phone || '—'}</span>
+                                      <span className="w-36" />
+                                      <span className="w-8" />
+                                    </div>
+                                  </li>
+                                )
+                              })}
+                            </ul>
+                          )}
+                        </li>
                       )
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
+                    })}
+                  </ul>
+                </div>
+              )
+            })
+          )}
           {/* Pagination Footer */}
           {totalGroups > 0 && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-3 px-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xs">
@@ -738,7 +571,7 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                     {activePage * pageSize + 1}–{Math.min((activePage + 1) * pageSize, totalGroups)}
                   </span>{' '}
                   of <span className="font-bold text-gray-900 dark:text-white">{totalGroups}</span> (
-                  <span className="font-bold text-[#005390]">{totalRows}</span> resident records)
+                  <span className="font-bold text-[#005390]">{totalRows}</span> residents)
                 </span>
                 <span>
                   • Page <span className="font-bold text-gray-900 dark:text-white">{activePage + 1}</span> of{' '}

@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, ClipboardList, Megaphone, Shield } from 'lucide-react'
+import { ArrowRight, ClipboardList, Megaphone, Settings as SettingsIcon, Shield } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocation } from '@/hooks/useLocation'
+import { PageHeader } from '@/components/common/PageHeader'
 
 interface SettingsCard {
   title: string
@@ -57,22 +58,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ initialView = 'main'
 
   return (
     <div className="space-y-8 pb-10">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">Settings</h1>
-          </div>
-          <p className="text-sm text-gray-500 mt-1">Configure property-level operations and templates.</p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-600 bg-white/70 border border-gray-200 shadow-2xs backdrop-blur-sm">
-            <Shield className="w-3.5 h-3.5 text-[#005390]" />
-            {isSuperAdmin ? 'Super Admin' : 'Property Admin'}
-          </span>
-        </div>
-      </div>
+      <PageHeader
+        icon={SettingsIcon}
+        title="Settings"
+        description="Configure property-level operations and templates."
+        actions={
+          <>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-600 bg-white/70 border border-gray-200 shadow-2xs backdrop-blur-sm">
+              <Shield className="w-3.5 h-3.5 text-[#005390]" />
+              {isSuperAdmin ? 'Super Admin' : 'Property Admin'}
+            </span>
+          </>
+        }
+      />
 
       {visibleCards.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

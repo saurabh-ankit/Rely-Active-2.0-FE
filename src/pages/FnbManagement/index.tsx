@@ -6,6 +6,7 @@ import { FnbPropertySettingsScreen } from '../Property/components/FnbPropertySet
 import { FnbDishesMasterTab } from '../GlobalSettings/components/FnbDishesMasterTab'
 import { FnbResidentOrdersTab } from '../Property/components/FnbResidentOrdersTab'
 import { FnbAttendanceTab } from '../Property/components/FnbAttendanceTab'
+import { PageHeader } from '@/components/common/PageHeader'
 
 export default function FnbManagementPage() {
   const { selectedLocationId } = useLocationContext()
@@ -15,21 +16,11 @@ export default function FnbManagementPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-blue-50 text-[#005390]">
-              <Utensils className="w-6 h-6" />
-            </div>
-            Food & Beverage (F&B) Management
-          </h1>
-          <p className="text-xs text-gray-500 mt-1">
-            Manage food packages, dish catalogues, flexible daily menus, meal slots & timings, resident meal orders, and
-            dine-in attendance.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Utensils}
+        title="Food & Beverage (F&B) Management"
+        description="Manage food packages, dish catalogues, flexible daily menus, meal slots & timings, resident meal orders, and dine-in attendance."
+      />
 
       {/* Tabs */}
       <div className="flex border-b border-gray-200 space-x-6 text-sm font-semibold text-gray-500 overflow-x-auto">

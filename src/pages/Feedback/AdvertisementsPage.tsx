@@ -2,7 +2,8 @@ import { useMemo, useState, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import type { ColumnDef } from '@tanstack/react-table'
-import { ArrowLeft, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Megaphone, Pencil, Plus, Trash2 } from 'lucide-react'
+import { PageHeader } from '@/components/common/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
@@ -150,25 +151,20 @@ const AdvertisementsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex flex-1 items-start gap-3">
-          <Button variant="ghost" size="sm" aria-label="Back to Settings" onClick={() => navigate('/admin/settings')}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Advertisements</h1>
-            <p className="text-sm md:text-base text-gray-600 mt-1">
-              Upload advertisements shown to residents of this property
-            </p>
-          </div>
-        </div>
-        <FeedbackPermission action="create">
-          <Button onClick={() => openModal(null)} size="sm" className="bg-[#2a517c] hover:bg-[#476587] text-white">
-            <Plus className="h-4 w-4 mr-2" />
-            Upload New Ad
-          </Button>
-        </FeedbackPermission>
-      </div>
+      <PageHeader
+        icon={Megaphone}
+        title="Advertisements"
+        description="Upload advertisements shown to residents and employees of this property."
+        onBack={() => navigate('/admin/settings')}
+        actions={
+          <FeedbackPermission action="create">
+            <Button onClick={() => openModal(null)} size="sm" className="bg-[#2a517c] hover:bg-[#476587] text-white">
+              <Plus className="h-4 w-4 mr-2" />
+              Upload New Ad
+            </Button>
+          </FeedbackPermission>
+        }
+      />
 
       <DataTable
         columns={columns}

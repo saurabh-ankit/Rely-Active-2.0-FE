@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -12,8 +11,9 @@ import {
   ComboboxItem,
   ComboboxList,
 } from '@/components/ui/combobox'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
 import {
   useCreateEvent,
   useDeleteEvent,
@@ -25,7 +25,21 @@ import type { AddOnService, EventType, FrequencyType, Venue } from '@/lib/servic
 import { checkVenueAvailabilityAPI } from '@/lib/services/eventService'
 import { parseJsonArray } from '@/lib/utils/jsonUtils'
 import { useLocationStore } from '@/lib/stores/locationStore'
-import { ArrowLeft, Trash2, X } from 'lucide-react'
+import {
+  ArrowLeft,
+  CalendarClock,
+  CalendarDays,
+  ImagePlus,
+  IndianRupee,
+  MapPin,
+  Repeat,
+  Sparkles,
+  Ticket,
+  Trash2,
+  Upload,
+  X,
+  type LucideIcon,
+} from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useForm, Controller } from 'react-hook-form'
@@ -46,6 +60,37 @@ import {
   WEEKDAYS,
   type RecurrenceConfig,
 } from '@/utils/event.utils'
+
+/** A titled card that groups related form fields. */
+const FormSection = ({
+  icon: Icon,
+  title,
+  description,
+  children,
+}: {
+  icon: LucideIcon
+  title: string
+  description?: string
+  children: React.ReactNode
+}) => (
+  <section className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
+    <div className="mb-4 flex items-start gap-3">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#005390]/10 text-[#005390]">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div>
+        <h3 className="text-sm font-bold text-gray-900">{title}</h3>
+        {description && <p className="text-xs text-gray-500">{description}</p>}
+      </div>
+    </div>
+    <div className="space-y-4">{children}</div>
+  </section>
+)
+
+const EVENT_TYPE_OPTIONS: { value: EventType; label: string; hint: string; icon: LucideIcon }[] = [
+  { value: 'regular', label: 'Regular Event', hint: 'Repeats daily, weekly, monthly or yearly', icon: Repeat },
+  { value: 'special', label: 'Special Event', hint: 'A one-time occasion', icon: Sparkles },
+]
 
 const eventTypeSchema = z.enum(['regular', 'special'])
 const frequencyTypeSchema = z.enum(['once', 'daily', 'weekly', 'monthly', 'yearly', 'custom'])
@@ -971,503 +1016,589 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
         ]
 
   const formFields = (
-    <form onSubmit={handleSubmit(onSubmit, onInvalid)} noValidate className="space-y-6">
-      {errors.root?.message && <p className="text-sm text-red-600">{errors.root.message}</p>}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label className="mb-1.5">Event Type *</Label>
-          <Controller
-            name="eventType"
-            control={control}
-            render={({ field }) => (
-              <Select value={field.value} onValueChange={(value) => handleEventTypeChange(value as EventType)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="regular">Regular Event</SelectItem>
-                  <SelectItem value="special">Special Event</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-          />
-        </div>
-        <div>
-          <Label className="mb-1.5">Frequency Type *</Label>
-          <Controller
-            name="frequencyType"
-            control={control}
-            render={({ field }) => (
-              <Select
-                value={field.value}
-                disabled={eventForm.eventType === 'special'}
-                onValueChange={(value) => {
-                  field.onChange(value as FrequencyType)
-                  setValue('recurrenceDaysOfWeek', [])
-                  setValue('recurrenceDayOfMonth', undefined)
-                  setValue('recurrenceMonth', undefined)
-                  setRecurrenceDatePicker('')
-                  setScheduleTimes({})
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {frequencyOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {errors.frequencyType?.message && <p className="text-sm text-red-600 mt-1">{errors.frequencyType.message}</p>}
-        </div>
-      </div>
-
-      {eventForm.frequencyType === 'weekly' && eventForm.eventType === 'regular' && (
-        <div className="space-y-2">
-          <Label className="mb-1.5">Select Days *</Label>
-          <Combobox
-            multiple
-            items={WEEKDAYS}
-            value={selectedWeekdays}
-            onValueChange={(days) =>
-              setValue(
-                'recurrenceDaysOfWeek',
-                days.map((day) => day.value).sort((a, b) => a - b),
-              )
-            }
-            itemToStringLabel={(item) => item.label}
-            isItemEqualToValue={(a, b) => a.value === b.value}
-          >
-            <ComboboxInput placeholder="Select days..." className="w-full rounded-xl" showTrigger />
-            <ComboboxContent side="bottom" align="start" className="w-[var(--anchor-width)]">
-              <ComboboxList className="max-h-60">
-                {(day: WeekdayOption) => (
-                  <ComboboxItem key={day.value} value={day} className="text-xs py-2">
-                    {day.label}
-                  </ComboboxItem>
-                )}
-              </ComboboxList>
-              <ComboboxEmpty className="text-xs text-gray-500 py-2">No days found</ComboboxEmpty>
-            </ComboboxContent>
-          </Combobox>
-          {selectedWeekdays.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {selectedWeekdays.map((day) => (
-                <span
-                  key={day.value}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-blue-50 text-[#005390] border border-blue-100"
-                >
-                  {day.label}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setValue(
-                        'recurrenceDaysOfWeek',
-                        (eventForm.recurrenceDaysOfWeek || []).filter((value) => value !== day.value),
-                      )
-                    }
-                    className="p-0.5 rounded hover:bg-blue-100 transition-colors cursor-pointer"
-                    aria-label={`Remove ${day.label}`}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {(eventForm.frequencyType === 'monthly' || eventForm.frequencyType === 'yearly') &&
-        eventForm.eventType === 'regular' && (
-          <div>
-            <Label className="mb-1.5">Select Date *</Label>
-            <Input
-              type="date"
-              value={recurrenceDatePicker}
-              onChange={(e) => handleRecurrenceDateChange(e.target.value)}
-            />
-          </div>
-        )}
-
-      <div>
-        <Label className="mb-1.5">Event Title *</Label>
-        <Input
-          {...register('title', {
-            onChange: (e) => {
-              e.target.value = e.target.value.replace(/[0-9]/g, '')
-            },
-          })}
-          error={errors.title?.message}
-          placeholder="Event title"
-        />
-      </div>
-
-      <div>
-        <Label className="mb-1.5">Description</Label>
-        <Textarea
-          {...register('description')}
-          placeholder="Enter description"
-          rows={4}
-          className={errors.description ? 'border-red-500' : ''}
-        />
-        {errors.description?.message && <p className="text-sm text-red-600 mt-1">{errors.description.message}</p>}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label className="mb-1.5">{isRecurring ? 'Select Start Date *' : 'Select Start Date & Time *'}</Label>
-          <Input
-            type={isRecurring ? 'date' : 'datetime-local'}
-            min={isRecurring ? getMinDate() : getMinDateTimeLocal()}
-            max="9999-12-31"
-            {...register('startDate', {
-              onChange: (e) => {
-                const rawValue = e.target.value
-                const minNow = isRecurring ? getMinDate() : getMinDateTimeLocal()
-                const newStartDate = clampToMinDateTime(rawValue, minNow)
-                setValue('startDate', newStartDate, { shouldValidate: true })
-                if (eventForm.endDate && eventForm.endDate < newStartDate) {
-                  setValue('endDate', '', { shouldValidate: true })
-                }
-              },
-            })}
-            error={errors.startDate?.message}
-          />
-        </div>
-        <div>
-          <Label className="mb-1.5">{isRecurring ? 'Select End Date *' : 'Select End Date & Time *'}</Label>
-          <Input
-            type={isRecurring ? 'date' : 'datetime-local'}
-            min={eventForm.startDate || (isRecurring ? getMinDate() : getMinDateTimeLocal())}
-            max="9999-12-31"
-            {...register('endDate', {
-              onChange: (e) => {
-                const rawValue = e.target.value
-                const minEnd = eventForm.startDate || (isRecurring ? getMinDate() : getMinDateTimeLocal())
-                setValue('endDate', clampToMinDateTime(rawValue, minEnd), { shouldValidate: true })
-              },
-            })}
-            error={errors.endDate?.message}
-          />
-        </div>
-      </div>
-
-      <Input
-        id="event-occupancy-input"
-        label="Occupancy *"
-        type="number"
-        min={1}
-        step={1}
-        {...register('occupancy', {
-          setValueAs: (value) => {
-            if (value === '' || value === null || value === undefined) return undefined
-            const parsed = Number(value)
-            return Number.isNaN(parsed) ? undefined : parsed
-          },
-        })}
-        error={errors.occupancy?.message}
-        placeholder="e.g. 50"
-      />
-
-      <div>
-        <Label className="mb-1.5">Select Venue *</Label>
-        {!hasValidOccupancy ? (
-          <p className="text-sm text-muted-foreground rounded-lg border border-dashed p-4">
-            Enter occupancy first to see matching venues
+    <form onSubmit={handleSubmit(onSubmit, onInvalid)} noValidate className="flex min-h-0 flex-1 flex-col">
+      <div className="flex-1 space-y-4 overflow-y-auto bg-gray-50/60 p-4 sm:p-5">
+        {errors.root?.message && (
+          <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {errors.root.message}
           </p>
-        ) : filteredVenues.length === 0 ? (
-          <p className="text-sm text-red-600 mt-1">No Venue is available for {occupancyValue} occupancy</p>
-        ) : (
-          <div className="space-y-2">
-            {loadingVenueAvailability && !isRecurring && eventForm.startDate && eventForm.endDate && (
-              <p className="text-xs text-muted-foreground">Checking venue availability...</p>
-            )}
-            <div className="max-h-72 overflow-y-auto space-y-2 rounded-xl border border-gray-200 bg-gray-50/60 p-2">
-              {filteredVenues.map((venue: Venue) => {
-                const availability = venueAvailability[venue.id]
-                const isBooked = availability?.available === false
-                const isSelected = eventForm.venueId === venue.id
+        )}
+        <FormSection
+          icon={CalendarDays}
+          title="Event details"
+          description="What kind of event is this and what is it about?"
+        >
+          <div>
+            <Label className="mb-1.5">Event Type *</Label>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {EVENT_TYPE_OPTIONS.map(({ value, label, hint, icon: TypeIcon }) => {
+                const active = eventForm.eventType === value
                 return (
                   <button
-                    key={venue.id}
+                    key={value}
                     type="button"
-                    disabled={isBooked}
-                    onClick={() => {
-                      if (isBooked) return
-                      setValue('venueId', venue.id, { shouldValidate: true })
-                      setValue('selectedServices', [])
-                      clearErrors('venueId')
-                    }}
-                    className={`w-full text-left rounded-xl border px-3 py-3 transition-colors ${
-                      isBooked
-                        ? 'bg-red-50/80 border-red-200 cursor-not-allowed opacity-90'
-                        : isSelected
-                          ? 'bg-white border-[#005390] ring-2 ring-[#005390]/20 shadow-sm'
-                          : 'bg-white border-gray-200 hover:border-[#005390]/50 hover:bg-white cursor-pointer'
-                    }`}
+                    aria-pressed={active}
+                    onClick={() => handleEventTypeChange(value)}
+                    className={cn(
+                      'flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition-colors',
+                      active
+                        ? value === 'special'
+                          ? 'border-purple-400 bg-purple-50 ring-2 ring-purple-400/20'
+                          : 'border-[#005390] bg-[#005390]/5 ring-2 ring-[#005390]/20'
+                        : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50',
+                    )}
                   >
-                    <div className="flex items-start justify-between gap-3 min-w-0">
-                      <div className="min-w-0 flex-1">
-                        <p className={`font-semibold truncate ${isBooked ? 'text-gray-500' : 'text-gray-900'}`}>
-                          {venue.name}
-                        </p>
-                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                          <span>
-                            <span className="font-semibold text-gray-400">Occupancy </span>
-                            <span className={`font-semibold ${isBooked ? 'text-gray-500' : 'text-[#005390]'}`}>
-                              {venue.occupancy}
-                            </span>
-                          </span>
-                          {venue.price != null && (
-                            <span>
-                              <span className="font-semibold text-gray-400">Cost </span>
-                              <span className={`font-semibold ${isBooked ? 'text-gray-500' : 'text-[#005390]'}`}>
-                                ₹{Number(venue.price).toLocaleString('en-IN')}
-                              </span>
-                            </span>
-                          )}
-                        </div>
-                        {isBooked && (
-                          <p className="mt-2 text-xs font-medium text-red-600 leading-snug">
-                            {availability?.message || 'This Venue is booked for the selected schedule'}
-                          </p>
-                        )}
-                      </div>
-                      {isSelected && !isBooked && (
-                        <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-[#005390] bg-blue-50 px-2 py-1 rounded-md">
-                          Selected
-                        </span>
+                    <span
+                      className={cn(
+                        'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
+                        active
+                          ? value === 'special'
+                            ? 'bg-purple-500 text-white'
+                            : 'bg-[#005390] text-white'
+                          : 'bg-gray-100 text-gray-500',
                       )}
-                      {isBooked && (
-                        <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-red-600 bg-red-100 px-2 py-1 rounded-md">
-                          Unavailable
-                        </span>
-                      )}
-                    </div>
+                    >
+                      <TypeIcon className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-gray-900">{label}</span>
+                      <span className="block text-xs text-gray-500">{hint}</span>
+                    </span>
                   </button>
                 )
               })}
             </div>
           </div>
-        )}
-        {errors.venueId?.message && filteredVenues.length > 0 && (
-          <p className="text-sm text-red-600 mt-1">{errors.venueId.message}</p>
-        )}
-      </div>
 
-      {eventForm.venueId && (
-        <Controller
-          name="selectedServices"
-          control={control}
-          render={({ field }) => (
-            <div>
-              <EventVenueServicesSelect
-                services={venueServices}
-                selectedServices={field.value || []}
-                onChange={field.onChange}
+          <div>
+            <Label className="mb-1.5">Event Title *</Label>
+            <Input
+              {...register('title', {
+                onChange: (e) => {
+                  e.target.value = e.target.value.replace(/[0-9]/g, '')
+                },
+              })}
+              error={errors.title?.message}
+              placeholder="e.g. Diwali Celebration"
+            />
+          </div>
+
+          <div>
+            <Label className="mb-1.5">Description</Label>
+            <Textarea
+              {...register('description')}
+              placeholder="Tell residents what to expect"
+              rows={3}
+              className={errors.description ? 'border-red-500' : ''}
+            />
+            {errors.description?.message && <p className="text-sm text-red-600 mt-1">{errors.description.message}</p>}
+          </div>
+        </FormSection>
+
+        <FormSection
+          icon={CalendarClock}
+          title="Schedule"
+          description={
+            isRecurring ? 'How often it repeats and the date range it runs over.' : 'When the event starts and ends.'
+          }
+        >
+          <div>
+            <Label className="mb-1.5">Frequency *</Label>
+            {eventForm.eventType === 'special' ? (
+              <p className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500">
+                Special events happen <span className="font-semibold text-gray-700">once</span>.
+              </p>
+            ) : (
+              <Controller
+                name="frequencyType"
+                control={control}
+                render={({ field }) => (
+                  <div className="flex flex-wrap gap-1.5" role="group" aria-label="Frequency">
+                    {frequencyOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        aria-pressed={field.value === opt.value}
+                        onClick={() => {
+                          field.onChange(opt.value)
+                          setValue('recurrenceDaysOfWeek', [])
+                          setValue('recurrenceDayOfMonth', undefined)
+                          setValue('recurrenceMonth', undefined)
+                          setRecurrenceDatePicker('')
+                          setScheduleTimes({})
+                        }}
+                        className={cn(
+                          'h-8 cursor-pointer rounded-lg border px-3.5 text-xs font-semibold transition-colors',
+                          field.value === opt.value
+                            ? 'border-[#005390] bg-[#005390] text-white shadow-xs'
+                            : 'border-gray-200 bg-white text-gray-600 hover:border-[#005390]/40 hover:text-[#005390]',
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               />
-              {errors.selectedServices?.message && (
-                <p className="text-sm text-red-600 mt-1">{errors.selectedServices.message}</p>
+            )}
+            {errors.frequencyType?.message && (
+              <p className="text-sm text-red-600 mt-1">{errors.frequencyType.message}</p>
+            )}
+          </div>
+
+          {eventForm.frequencyType === 'weekly' && eventForm.eventType === 'regular' && (
+            <div className="space-y-2">
+              <Label className="mb-1.5">Select Days *</Label>
+              <Combobox
+                multiple
+                items={WEEKDAYS}
+                value={selectedWeekdays}
+                onValueChange={(days) =>
+                  setValue(
+                    'recurrenceDaysOfWeek',
+                    days.map((day) => day.value).sort((a, b) => a - b),
+                  )
+                }
+                itemToStringLabel={(item) => item.label}
+                isItemEqualToValue={(a, b) => a.value === b.value}
+              >
+                <ComboboxInput placeholder="Select days..." className="w-full rounded-xl" showTrigger />
+                <ComboboxContent side="bottom" align="start" className="w-[var(--anchor-width)]">
+                  <ComboboxList className="max-h-60">
+                    {(day: WeekdayOption) => (
+                      <ComboboxItem key={day.value} value={day} className="text-xs py-2">
+                        {day.label}
+                      </ComboboxItem>
+                    )}
+                  </ComboboxList>
+                  <ComboboxEmpty className="text-xs text-gray-500 py-2">No days found</ComboboxEmpty>
+                </ComboboxContent>
+              </Combobox>
+              {selectedWeekdays.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedWeekdays.map((day) => (
+                    <span
+                      key={day.value}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-blue-50 text-[#005390] border border-blue-100"
+                    >
+                      {day.label}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setValue(
+                            'recurrenceDaysOfWeek',
+                            (eventForm.recurrenceDaysOfWeek || []).filter((value) => value !== day.value),
+                          )
+                        }
+                        className="p-0.5 rounded hover:bg-blue-100 transition-colors cursor-pointer"
+                        aria-label={`Remove ${day.label}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
           )}
-        />
-      )}
 
-      <div className="flex items-center gap-2">
-        <Controller
-          name="allowReservation"
-          control={control}
-          render={({ field }) => (
-            <Checkbox
-              id="allowReservation"
-              checked={field.value ?? false}
-              onCheckedChange={(checked) => {
-                const isChecked = checked as boolean
-                field.onChange(isChecked)
-                if (!isChecked) {
-                  setValue('reservationPerFlat', undefined)
-                }
-              }}
-            />
+          {(eventForm.frequencyType === 'monthly' || eventForm.frequencyType === 'yearly') &&
+            eventForm.eventType === 'regular' && (
+              <div>
+                <Label className="mb-1.5">Select Date *</Label>
+                <Input
+                  type="date"
+                  value={recurrenceDatePicker}
+                  onChange={(e) => handleRecurrenceDateChange(e.target.value)}
+                />
+              </div>
+            )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="mb-1.5">{isRecurring ? 'Select Start Date *' : 'Select Start Date & Time *'}</Label>
+              <Input
+                type={isRecurring ? 'date' : 'datetime-local'}
+                min={isRecurring ? getMinDate() : getMinDateTimeLocal()}
+                max="9999-12-31"
+                {...register('startDate', {
+                  onChange: (e) => {
+                    const rawValue = e.target.value
+                    const minNow = isRecurring ? getMinDate() : getMinDateTimeLocal()
+                    const newStartDate = clampToMinDateTime(rawValue, minNow)
+                    setValue('startDate', newStartDate, { shouldValidate: true })
+                    if (eventForm.endDate && eventForm.endDate < newStartDate) {
+                      setValue('endDate', '', { shouldValidate: true })
+                    }
+                  },
+                })}
+                error={errors.startDate?.message}
+              />
+            </div>
+            <div>
+              <Label className="mb-1.5">{isRecurring ? 'Select End Date *' : 'Select End Date & Time *'}</Label>
+              <Input
+                type={isRecurring ? 'date' : 'datetime-local'}
+                min={eventForm.startDate || (isRecurring ? getMinDate() : getMinDateTimeLocal())}
+                max="9999-12-31"
+                {...register('endDate', {
+                  onChange: (e) => {
+                    const rawValue = e.target.value
+                    const minEnd = eventForm.startDate || (isRecurring ? getMinDate() : getMinDateTimeLocal())
+                    setValue('endDate', clampToMinDateTime(rawValue, minEnd), { shouldValidate: true })
+                  },
+                })}
+                error={errors.endDate?.message}
+              />
+            </div>
+          </div>
+
+          {isRecurring && eventForm.startDate && eventForm.endDate && (
+            <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50/70 p-4">
+              {noOccurrencesMessage ? (
+                <p className="text-sm text-red-600">{noOccurrencesMessage}</p>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Controller
+                      name="sameScheduleForAllDates"
+                      control={control}
+                      render={({ field }) => (
+                        <Checkbox
+                          id="sameSchedule"
+                          checked={field.value ?? false}
+                          onCheckedChange={(checked) => field.onChange(checked as boolean)}
+                        />
+                      )}
+                    />
+                    <Label htmlFor="sameSchedule" className="cursor-pointer text-sm font-medium">
+                      Same schedule for all dates
+                    </Label>
+                  </div>
+
+                  {eventForm.sameScheduleForAllDates ? (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <Label className="mb-1.5">Select Start Time *</Label>
+                        <Input
+                          type="time"
+                          value={sameScheduleStartTime}
+                          onChange={(e) => handleSameScheduleStartTimeChange(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label className="mb-1.5">Select End Time *</Label>
+                        <Input
+                          type="time"
+                          value={sameScheduleEndTime}
+                          min={sameScheduleStartTime ? getMinEndTime(sameScheduleStartTime) : undefined}
+                          disabled={!sameScheduleStartTime}
+                          onChange={(e) => handleSameScheduleEndTimeChange(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="max-h-96 space-y-2 overflow-y-auto pr-1">
+                      {occurrenceDates.map((dateKey) => (
+                        <div key={dateKey} className="rounded-xl border border-gray-200 bg-white p-3">
+                          <div className="mb-2 text-sm font-semibold text-gray-800">
+                            {formatOccurrenceDateLabel(dateKey)}
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <Label className="text-xs mb-1.5">Select Start Time *</Label>
+                              <Input
+                                type="time"
+                                value={scheduleTimes[dateKey]?.startTime || ''}
+                                onChange={(e) => handleOccurrenceStartTimeChange(dateKey, e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs mb-1.5">Select End Time *</Label>
+                              <Input
+                                type="time"
+                                value={scheduleTimes[dateKey]?.endTime || ''}
+                                min={
+                                  scheduleTimes[dateKey]?.startTime
+                                    ? getMinEndTime(scheduleTimes[dateKey]!.startTime)
+                                    : undefined
+                                }
+                                disabled={!scheduleTimes[dateKey]?.startTime}
+                                onChange={(e) => handleOccurrenceEndTimeChange(dateKey, e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {errors.root?.message && <p className="text-sm text-red-600">{errors.root.message}</p>}
+                </>
+              )}
+            </div>
           )}
-        />
-        <Label htmlFor="allowReservation" className="cursor-pointer text-sm font-medium">
-          Allow Reservation
-        </Label>
-      </div>
+        </FormSection>
 
-      {eventForm.allowReservation && (
-        <div>
-          <Label className="mb-1.5">Reservation Per Flat *</Label>
+        <FormSection icon={MapPin} title="Venue" description="Enter the expected headcount to see venues that fit.">
           <Input
+            id="event-occupancy-input"
+            label="Occupancy *"
             type="number"
-            min="1"
-            {...register('reservationPerFlat', {
+            min={1}
+            step={1}
+            {...register('occupancy', {
               setValueAs: (value) => {
                 if (value === '' || value === null || value === undefined) return undefined
                 const parsed = Number(value)
                 return Number.isNaN(parsed) ? undefined : parsed
               },
             })}
-            error={errors.reservationPerFlat?.message}
-            placeholder="Enter reservation per flat"
+            error={errors.occupancy?.message}
+            placeholder="e.g. 50"
           />
-        </div>
-      )}
 
-      {isRecurring && eventForm.startDate && eventForm.endDate && (
-        <div className="border rounded-lg p-4 bg-gray-50 space-y-4">
-          {noOccurrencesMessage ? (
-            <p className="text-sm text-red-600">{noOccurrencesMessage}</p>
-          ) : (
-            <>
-              <div className="flex items-center gap-2">
-                <Controller
-                  name="sameScheduleForAllDates"
-                  control={control}
-                  render={({ field }) => (
-                    <Checkbox
-                      id="sameSchedule"
-                      checked={field.value ?? false}
-                      onCheckedChange={(checked) => field.onChange(checked as boolean)}
-                    />
-                  )}
-                />
-                <Label htmlFor="sameSchedule" className="cursor-pointer text-sm font-medium">
-                  Same schedule for all dates
-                </Label>
-              </div>
-
-              {eventForm.sameScheduleForAllDates ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="mb-1.5">Select Start Time *</Label>
-                    <Input
-                      type="time"
-                      value={sameScheduleStartTime}
-                      onChange={(e) => handleSameScheduleStartTimeChange(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label className="mb-1.5">Select End Time *</Label>
-                    <Input
-                      type="time"
-                      value={sameScheduleEndTime}
-                      min={sameScheduleStartTime ? getMinEndTime(sameScheduleStartTime) : undefined}
-                      disabled={!sameScheduleStartTime}
-                      onChange={(e) => handleSameScheduleEndTimeChange(e.target.value)}
-                    />
-                  </div>
+          <div>
+            <Label className="mb-1.5">Select Venue *</Label>
+            {!hasValidOccupancy ? (
+              <p className="text-sm text-muted-foreground rounded-lg border border-dashed p-4">
+                Enter occupancy first to see matching venues
+              </p>
+            ) : filteredVenues.length === 0 ? (
+              <p className="text-sm text-red-600 mt-1">No Venue is available for {occupancyValue} occupancy</p>
+            ) : (
+              <div className="space-y-2">
+                {loadingVenueAvailability && !isRecurring && eventForm.startDate && eventForm.endDate && (
+                  <p className="text-xs text-muted-foreground">Checking venue availability...</p>
+                )}
+                <div className="max-h-72 overflow-y-auto space-y-2 rounded-xl border border-gray-200 bg-gray-50/60 p-2">
+                  {filteredVenues.map((venue: Venue) => {
+                    const availability = venueAvailability[venue.id]
+                    const isBooked = availability?.available === false
+                    const isSelected = eventForm.venueId === venue.id
+                    return (
+                      <button
+                        key={venue.id}
+                        type="button"
+                        disabled={isBooked}
+                        onClick={() => {
+                          if (isBooked) return
+                          setValue('venueId', venue.id, { shouldValidate: true })
+                          setValue('selectedServices', [])
+                          clearErrors('venueId')
+                        }}
+                        className={`w-full text-left rounded-xl border px-3 py-3 transition-colors ${
+                          isBooked
+                            ? 'bg-red-50/80 border-red-200 cursor-not-allowed opacity-90'
+                            : isSelected
+                              ? 'bg-white border-[#005390] ring-2 ring-[#005390]/20 shadow-sm'
+                              : 'bg-white border-gray-200 hover:border-[#005390]/50 hover:bg-white cursor-pointer'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3 min-w-0">
+                          <div className="min-w-0 flex-1">
+                            <p className={`font-semibold truncate ${isBooked ? 'text-gray-500' : 'text-gray-900'}`}>
+                              {venue.name}
+                            </p>
+                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                              <span>
+                                <span className="font-semibold text-gray-400">Occupancy </span>
+                                <span className={`font-semibold ${isBooked ? 'text-gray-500' : 'text-[#005390]'}`}>
+                                  {venue.occupancy}
+                                </span>
+                              </span>
+                              {venue.price != null && (
+                                <span>
+                                  <span className="font-semibold text-gray-400">Cost </span>
+                                  <span className={`font-semibold ${isBooked ? 'text-gray-500' : 'text-[#005390]'}`}>
+                                    ₹{Number(venue.price).toLocaleString('en-IN')}
+                                  </span>
+                                </span>
+                              )}
+                            </div>
+                            {isBooked && (
+                              <p className="mt-2 text-xs font-medium text-red-600 leading-snug">
+                                {availability?.message || 'This Venue is booked for the selected schedule'}
+                              </p>
+                            )}
+                          </div>
+                          {isSelected && !isBooked && (
+                            <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-[#005390] bg-blue-50 px-2 py-1 rounded-md">
+                              Selected
+                            </span>
+                          )}
+                          {isBooked && (
+                            <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-red-600 bg-red-100 px-2 py-1 rounded-md">
+                              Unavailable
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
-              ) : (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {occurrenceDates.map((dateKey) => (
-                    <div key={dateKey} className="bg-white p-3 rounded border border-gray-200">
-                      <div className="font-medium text-sm text-gray-700 mb-2">{formatOccurrenceDateLabel(dateKey)}</div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <Label className="text-xs mb-1.5">Select Start Time *</Label>
-                          <Input
-                            type="time"
-                            value={scheduleTimes[dateKey]?.startTime || ''}
-                            onChange={(e) => handleOccurrenceStartTimeChange(dateKey, e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs mb-1.5">Select End Time *</Label>
-                          <Input
-                            type="time"
-                            value={scheduleTimes[dateKey]?.endTime || ''}
-                            min={
-                              scheduleTimes[dateKey]?.startTime
-                                ? getMinEndTime(scheduleTimes[dateKey]!.startTime)
-                                : undefined
-                            }
-                            disabled={!scheduleTimes[dateKey]?.startTime}
-                            onChange={(e) => handleOccurrenceEndTimeChange(dateKey, e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+              </div>
+            )}
+            {errors.venueId?.message && filteredVenues.length > 0 && (
+              <p className="text-sm text-red-600 mt-1">{errors.venueId.message}</p>
+            )}
+          </div>
+
+          {eventForm.venueId && (
+            <Controller
+              name="selectedServices"
+              control={control}
+              render={({ field }) => (
+                <div>
+                  <EventVenueServicesSelect
+                    services={venueServices}
+                    selectedServices={field.value || []}
+                    onChange={field.onChange}
+                  />
+                  {errors.selectedServices?.message && (
+                    <p className="text-sm text-red-600 mt-1">{errors.selectedServices.message}</p>
+                  )}
                 </div>
               )}
-
-              {errors.root?.message && <p className="text-sm text-red-600">{errors.root.message}</p>}
-            </>
+            />
           )}
-        </div>
-      )}
+        </FormSection>
 
-      <div>
-        <Label className="mb-1.5">Poster Image</Label>
-        <Input type="file" accept="image/*" onChange={handlePosterFileChange} />
-        {posterPreview && (
-          <div className="mt-2">
-            <img
-              src={posterPreview}
-              alt="Poster preview"
-              className="w-48 h-32 object-cover rounded-lg border border-gray-200"
+        <FormSection icon={Ticket} title="Reservations & pricing" description="Control sign-ups and any entry fee.">
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50/70 px-4 py-3">
+            <div>
+              <Label htmlFor="allowReservation" className="cursor-pointer text-sm font-semibold text-gray-900">
+                Allow reservations
+              </Label>
+              <p className="text-xs text-gray-500">Residents must book a spot before attending.</p>
+            </div>
+            <Controller
+              name="allowReservation"
+              control={control}
+              render={({ field }) => (
+                <Switch
+                  id="allowReservation"
+                  checked={field.value ?? false}
+                  className="data-checked:bg-green-600"
+                  onCheckedChange={(checked) => {
+                    field.onChange(checked)
+                    if (!checked) {
+                      setValue('reservationPerFlat', undefined)
+                    }
+                  }}
+                />
+              )}
             />
           </div>
-        )}
-        {!posterPreview && eventForm.poster && (
-          <div className="mt-2">
-            <img
-              src={eventForm.poster}
-              alt="Current poster"
-              className="w-48 h-32 object-cover rounded-lg border border-gray-200"
-            />
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {eventForm.allowReservation && (
+              <div>
+                <Label className="mb-1.5">Reservations per flat *</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  {...register('reservationPerFlat', {
+                    setValueAs: (value) => {
+                      if (value === '' || value === null || value === undefined) return undefined
+                      const parsed = Number(value)
+                      return Number.isNaN(parsed) ? undefined : parsed
+                    },
+                  })}
+                  error={errors.reservationPerFlat?.message}
+                  placeholder="Enter reservation per flat"
+                />
+              </div>
+            )}
+
+            <div>
+              <Label className="mb-1.5">Entry fee (optional)</Label>
+              <Input
+                icon={<IndianRupee className="h-4 w-4" />}
+                type="number"
+                step="0.01"
+                min="0"
+                {...register('entryFee', {
+                  setValueAs: (value) => {
+                    if (value === '' || value === null || value === undefined) return undefined
+                    const parsed = Number(value)
+                    return Number.isNaN(parsed) ? undefined : parsed
+                  },
+                })}
+                placeholder="0.00"
+              />
+            </div>
           </div>
-        )}
+        </FormSection>
+
+        <FormSection icon={ImagePlus} title="Poster" description="Shown to residents on the event card.">
+          {(() => {
+            const posterSrc = posterPreview || eventForm.poster
+            return (
+              <label
+                htmlFor="event-poster-input"
+                className={cn(
+                  'group relative flex cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed transition-colors',
+                  posterSrc
+                    ? 'h-48 border-gray-200'
+                    : 'h-36 border-gray-300 bg-gray-50 hover:border-[#005390]/50 hover:bg-blue-50/40',
+                )}
+              >
+                {posterSrc ? (
+                  <>
+                    <img src={posterSrc} alt="Poster preview" className="h-full w-full object-cover" />
+                    <span className="absolute inset-0 flex items-center justify-center gap-2 bg-black/45 text-sm font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
+                      <Upload className="h-4 w-4" />
+                      Change poster
+                    </span>
+                  </>
+                ) : (
+                  <span className="flex flex-col items-center gap-1.5 text-center">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#005390] shadow-xs">
+                      <Upload className="h-4 w-4" />
+                    </span>
+                    <span className="text-sm font-semibold text-gray-700">Click to upload a poster</span>
+                    <span className="text-xs text-gray-400">PNG or JPG, landscape works best</span>
+                  </span>
+                )}
+                <input
+                  id="event-poster-input"
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={handlePosterFileChange}
+                />
+              </label>
+            )
+          })()}
+        </FormSection>
       </div>
 
-      <div>
-        <Label className="mb-1.5">Entry Fee (Optional)</Label>
-        <Input
-          type="number"
-          step="0.01"
-          min="0"
-          {...register('entryFee', {
-            setValueAs: (value) => {
-              if (value === '' || value === null || value === undefined) return undefined
-              const parsed = Number(value)
-              return Number.isNaN(parsed) ? undefined : parsed
-            },
-          })}
-          placeholder="0.00"
-        />
-      </div>
-
-      <div className={`flex pt-4 border-t ${isEditMode ? 'justify-between items-center' : 'justify-end gap-4'}`}>
-        {isEditMode && (
+      <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-white px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+        {isEditMode ? (
           <Button
             type="button"
-            variant="destructive"
+            variant="ghost"
             onClick={handleDeleteEvent}
             disabled={deleteEventMutation.isPending}
+            className="cursor-pointer text-red-600 hover:bg-red-50 hover:text-red-700"
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Delete Event
           </Button>
+        ) : (
+          <span className="hidden sm:block" />
         )}
-        <div className="flex gap-4">
-          <Button type="button" variant="outline" onClick={handleClose} className="cursor-pointer">
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={handleClose} className="flex-1 cursor-pointer sm:flex-none">
             Cancel
           </Button>
           <Button
             type="submit"
             disabled={isPending}
-            className="border-[#2a517c] text-white hover:bg-[#2a517c] hover:text-white cursor-pointer"
+            className="flex-1 cursor-pointer bg-[#005390] text-white hover:bg-[#004273] sm:flex-none sm:min-w-32"
           >
-            {isPending ? (isEditMode ? 'Updating...' : 'Creating...') : isEditMode ? 'Update Event' : 'Create'}
+            {isPending ? (isEditMode ? 'Saving...' : 'Creating...') : isEditMode ? 'Save Changes' : 'Create Event'}
           </Button>
         </div>
       </div>
@@ -1483,9 +1614,19 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
           onOpenChange?.(value)
         }}
       >
-        <DialogContent className="sm:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{isEditMode ? 'Edit Event' : 'Create an Event'}</DialogTitle>
+        <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[760px]">
+          <DialogHeader className="flex-row items-center gap-3 border-b border-gray-100 px-5 py-4 pr-12">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#005390] text-white">
+              <CalendarDays className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <DialogTitle className="text-base font-bold text-gray-900">
+                {isEditMode ? 'Edit Event' : 'Create an Event'}
+              </DialogTitle>
+              <DialogDescription className="truncate text-xs">
+                {isEditMode && event?.title ? event.title : 'Fill in the details residents will see.'}
+              </DialogDescription>
+            </div>
           </DialogHeader>
           {formFields}
         </DialogContent>
@@ -1503,12 +1644,7 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
         <h2 className="text-2xl font-bold text-gray-700">{isEditMode ? 'Edit Event' : 'Create an Event'}</h2>
       </div>
 
-      <Card className="mt-5">
-        <CardHeader>
-          <CardTitle>Event Details</CardTitle>
-        </CardHeader>
-        <CardContent>{formFields}</CardContent>
-      </Card>
+      <div className="mt-5 flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white">{formFields}</div>
     </div>
   )
 }

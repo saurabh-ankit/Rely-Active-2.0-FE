@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Check, Edit, Eye, MoreVertical, Plus, Shield, UserCheck } from 'lucide-react'
+import { Edit, Eye, MoreVertical, Plus, UserCheck } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
@@ -16,6 +16,14 @@ import { EmployeeDetailsScreen } from '@/pages/Employees/components/EmployeeDeta
 import { useLocationContext } from '@/hooks/useLocation'
 
 import { useDebounce } from '@/hooks/useDebounce'
+import {
+  DepartmentCell,
+  EmployeeContact,
+  EmployeeIdentity,
+  EmployeeStatus,
+  JoinedDate,
+  RoleBadges,
+} from '@/components/employees/EmployeeCells'
 
 interface LocationRec {
   locId?: string
@@ -281,187 +289,64 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
     {
       accessorKey: 'username',
       header: 'Employee',
-      cell: ({ row }) => {
-        const u = row.original
-        const fName = u.profile?.firstName || u.profile?.first_name || ''
-        const lName = u.profile?.lastName || u.profile?.last_name || ''
-        const fullName = `${fName} ${lName}`.trim() || u.username || 'System User'
-        const empCode = u.profile?.employeeCode || u.profile?.employee_code
-
-        return (
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#005390]/10 text-[#005390] flex items-center justify-center font-bold text-xs shrink-0">
-              {fullName.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <div className="font-bold text-gray-900 dark:text-white text-sm">{fullName}</div>
-              {empCode ? (
-                <div className="text-[10px] text-gray-400">Code: {empCode}</div>
-              ) : (
-                <div className="text-[10px] text-gray-400">@{u.username}</div>
-              )}
-            </div>
-          </div>
-        )
-      },
+      cell: ({ row }) => <EmployeeIdentity user={row.original} />,
     },
     {
       id: 'contact',
       header: 'Contact',
-      cell: ({ row }) => {
-        const u = row.original
-        const email = u.email
-        const phone = u.phone || u.profile?.phone
-        return (
-          <div>
-            <div className="text-gray-800 dark:text-gray-200 font-semibold text-xs">{email || phone || 'N/A'}</div>
-            {phone && email && <div className="text-[10px] text-gray-400">{phone}</div>}
-          </div>
-        )
-      },
+      cell: ({ row }) => <EmployeeContact user={row.original} />,
     },
     {
       id: 'departmentCategory',
-      header: 'Dept & Category',
+      header: 'Department',
       cell: ({ row }) => {
-        const u = row.original
-        const primaryLoc = u.userLocations?.[0] as LocationRec | undefined
+        const primaryLoc = row.original.userLocations?.[0] as LocationRec | undefined
         const deptName = primaryLoc?.department?.name || primaryLoc?.departmentName
         const catName = primaryLoc?.jobCategory?.name || primaryLoc?.jobCategoryName
-
-        if (!deptName && !catName) {
-          return <span className="text-xs text-gray-400">N/A</span>
-        }
-
-        return (
-          <div className="space-y-0.5">
-            {deptName && <div className="text-xs font-bold text-gray-900 dark:text-white">{deptName}</div>}
-            {catName && (
-              <span className="inline-block text-[10px] font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-md border border-gray-200 dark:border-gray-700">
-                {catName}
-              </span>
-            )}
-          </div>
-        )
+        return <DepartmentCell pairs={deptName || catName ? [{ deptName, catName }] : []} />
       },
     },
     {
+      id: 'roles',
+      header: 'Role',
+      cell: ({ row }) => <RoleBadges user={row.original} />,
+    },
+    {
       id: 'reportingManager',
-      header: 'Reporting Manager',
+      header: 'Reports To',
       cell: ({ row }) => {
-        const u = row.original
-        const primaryLoc = u.userLocations?.[0] as LocationRec | undefined
-        const mgr = primaryLoc?.manager
-
+        const mgr = (row.original.userLocations?.[0] as LocationRec | undefined)?.manager
         if (!mgr) {
-          return <span className="text-xs text-gray-400 font-medium">Unassigned</span>
+          return <span className="text-xs italic text-gray-400">Not assigned</span>
         }
-
         const mgrProfile = mgr.profile || {}
-        const fName = mgrProfile.firstName || mgrProfile.first_name || ''
-        const lName = mgrProfile.lastName || mgrProfile.last_name || ''
-        const mgrName = `${fName} ${lName}`.trim() || mgr.username || 'Manager'
+        const mgrName =
+          `${mgrProfile.firstName || mgrProfile.first_name || ''} ${mgrProfile.lastName || mgrProfile.last_name || ''}`.trim() ||
+          mgr.username ||
+          'Manager'
         const mgrCode = mgrProfile.employeeCode || mgrProfile.employee_code
-
-        const mgrLoc = mgr.userLocations?.[0]
-        const mgrDept = mgrLoc?.department?.name || mgrLoc?.departmentName
-        const mgrCat = mgrLoc?.jobCategory?.name || mgrLoc?.jobCategoryName
-
         return (
-          <div className="space-y-0.5">
-            <div className="text-xs font-bold text-[#005390] dark:text-sky-400">{mgrName}</div>
-            {mgrCode && <div className="text-[10px] text-gray-500 dark:text-gray-400 font-mono">Code: {mgrCode}</div>}
-            {(mgrDept || mgrCat) && (
-              <div className="text-[10px] text-gray-400 italic">{[mgrDept, mgrCat].filter(Boolean).join(' • ')}</div>
-            )}
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-[11px] font-bold text-amber-800">
+              {mgrName.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold text-gray-900 dark:text-white">{mgrName}</p>
+              {mgrCode && <p className="font-mono text-[10px] text-gray-400">{mgrCode}</p>}
+            </div>
           </div>
         )
       },
     },
     {
       id: 'dateOfJoining',
-      header: 'Date of Joining',
-      cell: ({ row }) => (
-        <span className="text-gray-700 dark:text-gray-300 text-xs font-medium font-mono">
-          {row.original.profile?.dateOfJoining || row.original.profile?.date_of_joining || 'N/A'}
-        </span>
-      ),
-    },
-    {
-      id: 'employeeCode',
-      header: 'Employee Code',
-      cell: ({ row }) => (
-        <span className="font-mono text-xs font-bold text-[#005390] dark:text-[#38bdf8] bg-[#005390]/10 dark:bg-[#005390]/30 px-2 py-1 rounded-md">
-          {row.original.profile?.employeeCode || row.original.profile?.employee_code || 'N/A'}
-        </span>
-      ),
-    },
-    {
-      id: 'roles',
-      header: 'Assigned Roles',
-      cell: ({ row }) => {
-        const user = row.original
-        const roleSet = new Set<string>()
-
-        const uRecord = user as unknown as Record<string, unknown>
-        const uRoleObj = uRecord.role as { name?: string; code?: string } | undefined
-        if (uRoleObj?.name) roleSet.add(uRoleObj.name)
-        else if (uRoleObj?.code) roleSet.add(uRoleObj.code)
-
-        user.userRoles?.forEach((ur: RoleRec) => {
-          const rName = ur.role?.name || ur.role?.code || ur.name || ur.code
-          if (rName && typeof rName === 'string' && rName.trim()) {
-            roleSet.add(rName.trim())
-          }
-        })
-
-        user.userLocations?.forEach((ul: LocationRec) => {
-          const rName = ul.role?.name || ul.role?.code || ul.name || ul.code
-          if (rName && typeof rName === 'string' && rName.trim()) {
-            roleSet.add(rName.trim())
-          }
-        })
-
-        const rolesList = Array.from(roleSet)
-
-        return (
-          <div className="flex flex-wrap gap-1.5">
-            {rolesList.length > 0 ? (
-              rolesList.map((r, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#005390]/10 text-[#005390] border border-[#005390]/20"
-                >
-                  <Shield className="w-3 h-3 shrink-0 text-[#005390]" />
-                  {r}
-                </span>
-              ))
-            ) : (
-              <span className="text-gray-400 text-[10px]">Staff</span>
-            )}
-          </div>
-        )
-      },
+      header: 'Joined',
+      cell: ({ row }) => <JoinedDate user={row.original} />,
     },
     {
       id: 'status',
       header: 'Status',
-      cell: ({ row }) => {
-        const u = row.original
-        const isActive = u.isActive && u.status === 'ACTIVE'
-        return (
-          <span
-            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-              isActive
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400'
-                : 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950 dark:text-rose-400'
-            }`}
-          >
-            <Check className="w-3 h-3" />
-            {isActive ? 'ACTIVE' : 'INACTIVE'}
-          </span>
-        )
-      },
+      cell: ({ row }) => <EmployeeStatus user={row.original} />,
     },
     {
       id: 'actions',
@@ -582,10 +467,10 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
               onChange={(e) => setSelectedDepartmentFilter(e.target.value)}
               className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
             >
-              <option value="ALL">Department: All Departments</option>
+              <option value="ALL">All departments</option>
               {departments.map((dept) => (
                 <option key={dept.id} value={dept.id}>
-                  Department: {dept.name}
+                  {dept.name}
                 </option>
               ))}
             </select>
@@ -595,10 +480,10 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
               onChange={(e) => setSelectedRoleFilter(e.target.value)}
               className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
             >
-              <option value="ALL">Role: All Roles</option>
+              <option value="ALL">All roles</option>
               {roles.map((role) => (
                 <option key={role.id} value={role.code || role.name}>
-                  Role: {role.name}
+                  {role.name}
                 </option>
               ))}
             </select>
@@ -608,9 +493,9 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
               onChange={(e) => setSelectedStatusFilter(e.target.value)}
               className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
             >
-              <option value="ALL">Status: All Statuses</option>
-              <option value="ACTIVE">Status: Active Only</option>
-              <option value="INACTIVE">Status: Inactive Only</option>
+              <option value="ALL">All statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
             </select>
           </div>
         }

@@ -1,10 +1,22 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { Calendar, Clock, Search, CheckCircle2, XCircle, Users, User, Home, UserPlus, Filter } from 'lucide-react'
+import {
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Home,
+  Loader2,
+  Search,
+  User,
+  UserPlus,
+  Users,
+  UtensilsCrossed,
+  XCircle,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { fnbService, fnbAttendanceService } from '@/lib/services/fnbService'
 import type {
   FnbFoodAttendanceMember,
   FnbFoodAttendanceFlat,
-  FnbAttendanceSummary,
   FnbPropertyMealSlot,
   FnbGuestAttendance,
 } from '@/lib/types/fnb'
@@ -17,24 +29,130 @@ const DEFAULT_MEAL_SLOTS = [
   { key: 'midnight_snacks', label: 'Midnight Snacks', time: '23:30 - 00:00' },
 ]
 
+const ALL_SLOTS = 'all'
+
+type SlotStatus = 'attended' | 'missed' | 'upcoming'
+type StatusFilter = 'all' | SlotStatus | 'extra'
+
+interface MealSlotOption {
+  key: string
+  label: string
+  time?: string | undefined
+}
+
+interface SlotResult {
+  slot: MealSlotOption
+  status: SlotStatus
+  covered: boolean
+  time?: string | undefined
+}
+
+/** YYYY-MM-DD in the browser's timezone (toISOString would give the UTC date). */
+const toLocalDateKey = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+const normaliseSlotKey = (value: string) => value.toLowerCase().trim().replace(/\s+/g, '_')
+
+const formatSlotTime = (value?: string) => (value ? value.slice(0, 5) : '')
+
+const STATUS_META: Record<SlotStatus, { label: string; chip: string; icon: typeof CheckCircle2; iconClass: string }> = {
+  attended: {
+    label: 'Attended',
+    chip: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    icon: CheckCircle2,
+    iconClass: 'text-emerald-600',
+  },
+  missed: {
+    label: 'Missed',
+    chip: 'border-rose-200 bg-rose-50 text-rose-700',
+    icon: XCircle,
+    iconClass: 'text-rose-500',
+  },
+  upcoming: {
+    label: 'Upcoming',
+    chip: 'border-gray-200 bg-gray-50 text-gray-500',
+    icon: Clock,
+    iconClass: 'text-gray-400',
+  },
+}
+
+const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
+  { value: 'all', label: 'Everyone' },
+  { value: 'attended', label: 'Attended' },
+  { value: 'missed', label: 'Missed' },
+  { value: 'upcoming', label: 'Upcoming' },
+  { value: 'extra', label: 'Extra meals' },
+]
+
+/** One meal slot's result for a member: status, time and whether the package covers it. */
+const SlotChip = ({ result, showLabel }: { result: SlotResult; showLabel: boolean }) => {
+  const meta = STATUS_META[result.status]
+  const Icon = meta.icon
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] font-semibold whitespace-nowrap',
+        meta.chip,
+      )}
+      title={`${result.slot.label}: ${meta.label}${result.time ? ` at ${result.time}` : ''} · ${
+        result.covered ? 'Covered by package' : 'Extra meal (not in package)'
+      }`}
+    >
+      <Icon className={cn('h-3.5 w-3.5 shrink-0', meta.iconClass)} />
+      {showLabel ? result.slot.label : meta.label}
+      {result.time && <span className="font-medium opacity-70">{result.time}</span>}
+      {!result.covered && (
+        <span className="rounded bg-amber-100 px-1 text-[9px] font-bold uppercase tracking-wide text-amber-800">
+          Extra
+        </span>
+      )}
+    </span>
+  )
+}
+
+const StatTile = ({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  icon: typeof Users
+  label: string
+  value: number
+  hint: string
+  tone: string
+}) => (
+  <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-2xs">
+    <div className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-xl', tone)}>
+      <Icon className="h-5 w-5" />
+    </div>
+    <div className="min-w-0">
+      <p className="text-xs font-medium text-gray-500">{label}</p>
+      <p className="text-2xl font-bold leading-tight text-gray-900">{value}</p>
+      <p className="truncate text-[11px] text-gray-400">{hint}</p>
+    </div>
+  </div>
+)
+
 interface FnbAttendanceTabProps {
   locId: string
 }
 
 export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => {
-  const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().split('T')[0]!)
-  const [selectedMealSlotKey, setSelectedMealSlotKey] = useState<string>('breakfast')
+  const [selectedDate, setSelectedDate] = useState<string>(() => toLocalDateKey(new Date()))
+  // Every slot by default; picking a slot narrows the whole page to that slot.
+  const [selectedSlot, setSelectedSlot] = useState<string>(ALL_SLOTS)
   const [mealSlots, setMealSlots] = useState<FnbPropertyMealSlot[]>([])
   const [viewMode, setViewMode] = useState<'flat' | 'member'>('flat')
   const [searchQuery, setSearchQuery] = useState<string>('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'attended' | 'absent' | 'not_in_package'>('all')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
 
   const [members, setMembers] = useState<FnbFoodAttendanceMember[]>([])
   const [flats, setFlats] = useState<FnbFoodAttendanceFlat[]>([])
-  const [summary, setSummary] = useState<FnbAttendanceSummary | null>(null)
 
   // Fetch meal slots for location
   useEffect(() => {
@@ -43,12 +161,7 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
     fnbService
       .getMealSlots(locId)
       .then((slots) => {
-        if (!isMounted) return
-        setMealSlots(slots)
-        if (slots.length > 0 && !slots.some((s) => (s.slotKey || s.name.toLowerCase()) === selectedMealSlotKey)) {
-          const firstKey = slots[0]?.slotKey || slots[0]?.name.toLowerCase() || 'breakfast'
-          setSelectedMealSlotKey(firstKey)
-        }
+        if (isMounted) setMealSlots(slots)
       })
       .catch((err) => {
         console.error('Error fetching meal slots:', err)
@@ -56,18 +169,17 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
     return () => {
       isMounted = false
     }
-  }, [locId, selectedMealSlotKey])
+  }, [locId])
 
-  // Fetch attendance data
+  // The response carries every attendance for the date, so slot switching is done client-side.
   const fetchAttendanceData = useCallback(async () => {
     if (!locId || !selectedDate) return
     setLoading(true)
     setError(null)
     try {
-      const data = await fnbAttendanceService.getMembersAndFlats(locId, selectedDate, selectedMealSlotKey, searchQuery)
+      const data = await fnbAttendanceService.getMembersAndFlats(locId, selectedDate, undefined, searchQuery)
       setMembers(data.members || [])
       setFlats(data.flats || [])
-      setSummary(data.summary || null)
     } catch (err: unknown) {
       console.error('Failed to load attendance data:', err)
       const msg =
@@ -80,7 +192,7 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
     } finally {
       setLoading(false)
     }
-  }, [locId, selectedDate, selectedMealSlotKey, searchQuery])
+  }, [locId, selectedDate, searchQuery])
 
   useEffect(() => {
     let ignore = false
@@ -140,7 +252,7 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
   // Check if slot end time has passed for selected date
   const isSlotTimeCrossed = useCallback(
     (slotKey: string): boolean => {
-      const todayStr = new Date().toISOString().split('T')[0]!
+      const todayStr = toLocalDateKey(new Date())
       if (selectedDate < todayStr) return true
       if (selectedDate > todayStr) return false
 
@@ -207,10 +319,10 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
         normItem === normTarget ||
         (cleanTarget.includes('break') && cleanItem.includes('break')) ||
         (cleanTarget.includes('lunch') && cleanItem.includes('lunch')) ||
+        // Snack slots only match the same kind (morning snacks is not evening snacks)
         (cleanTarget.includes('snack') &&
           cleanItem.includes('snack') &&
-          !cleanTarget.includes('mid') &&
-          !cleanItem.includes('mid')) ||
+          cleanTarget.split('snack')[0] === cleanItem.split('snack')[0]) ||
         (cleanTarget.includes('dinner') && cleanItem.includes('dinner')) ||
         ((cleanTarget.includes('mid') || cleanTarget.includes('night')) &&
           (cleanItem.includes('mid') || cleanItem.includes('night')))
@@ -248,7 +360,9 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
             (normTarget.length > 2 && attKey.length > 2 && attKey.includes(normTarget)) ||
             (normTarget.includes('break') && attKey.includes('break')) ||
             (normTarget.includes('lunch') && attKey.includes('lunch')) ||
-            (normTarget.includes('snack') && attKey.includes('snack')) ||
+            (normTarget.includes('snack') &&
+              attKey.includes('snack') &&
+              normTarget.split('_')[0] === attKey.split('_')[0]) ||
             (normTarget.includes('dinner') && attKey.includes('dinner'))
           )
         })
@@ -284,7 +398,9 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
                 (normTarget.length > 2 && singleKey.length > 2 && singleKey.includes(normTarget)) ||
                 (normTarget.includes('break') && singleKey.includes('break')) ||
                 (normTarget.includes('lunch') && singleKey.includes('lunch')) ||
-                (normTarget.includes('snack') && singleKey.includes('snack')) ||
+                (normTarget.includes('snack') &&
+                  singleKey.includes('snack') &&
+                  normTarget.split('_')[0] === singleKey.split('_')[0]) ||
                 (normTarget.includes('dinner') && singleKey.includes('dinner'))
           if (isMatch) {
             const timeVal = member.attendance.attendedAt
@@ -300,396 +416,385 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
     [isSlotTimeCrossed],
   )
 
-  // Filtered members list for Member-Wise View
-  const filteredMembers = useMemo(() => {
-    return members.filter((m) => {
-      const { attended, isCrossed } = isSlotAttendedForMember(m, selectedMealSlotKey)
-      if (statusFilter === 'attended' && !attended) return false
-      if (statusFilter === 'absent' && (attended || !isCrossed)) return false
-      if (statusFilter === 'not_in_package' && m.isSlotIncludedInPackage) return false
-      return true
-    })
-  }, [members, statusFilter, selectedMealSlotKey, isSlotAttendedForMember])
-
-  const activeMealSlotsList = useMemo(() => {
+  const activeMealSlotsList = useMemo<MealSlotOption[]>(() => {
     if (mealSlots.length > 0) {
       return mealSlots.map((s) => ({
-        key: (s.slotKey || s.name).toLowerCase().replace(/\s+/g, '_'),
+        key: normaliseSlotKey(s.slotKey || s.name),
         label: s.name || s.slotKey || 'Meal Slot',
-        time: s.startTime && s.endTime ? `${s.startTime} - ${s.endTime}` : undefined,
+        time: s.startTime && s.endTime ? `${formatSlotTime(s.startTime)} - ${formatSlotTime(s.endTime)}` : undefined,
       }))
     }
     return DEFAULT_MEAL_SLOTS
   }, [mealSlots])
 
+  const isAllSlots = selectedSlot === ALL_SLOTS
+  const slotsInScope = useMemo(
+    () => (isAllSlots ? activeMealSlotsList : activeMealSlotsList.filter((s) => s.key === selectedSlot)),
+    [isAllSlots, activeMealSlotsList, selectedSlot],
+  )
+  const selectedSlotLabel = slotsInScope[0]?.label ?? ''
+
+  const getSlotResults = useCallback(
+    (member: FnbFoodAttendanceMember): SlotResult[] =>
+      slotsInScope.map((slot) => {
+        const { attended, isCrossed, time } = isSlotAttendedForMember(member, slot.key)
+        return {
+          slot,
+          status: attended ? 'attended' : isCrossed ? 'missed' : 'upcoming',
+          covered: isSlotCoveredInPackage(member, slot.key),
+          time,
+        }
+      }),
+    [slotsInScope, isSlotAttendedForMember, isSlotCoveredInPackage],
+  )
+
+  const matchesStatusFilter = useCallback(
+    (results: SlotResult[]) => {
+      if (statusFilter === 'all') return true
+      if (statusFilter === 'extra') return results.some((r) => r.status === 'attended' && !r.covered)
+      return results.some((r) => r.status === statusFilter)
+    },
+    [statusFilter],
+  )
+
+  const guestMatchesScope = useCallback(
+    (ga: FnbGuestAttendance) => {
+      if (isAllSlots) return true
+      const key = normaliseSlotKey(ga.mealSlotKey || ga.globalMealSlot?.name || '')
+      return key === selectedSlot || getSlotDisplayLabel(key) === getSlotDisplayLabel(selectedSlot)
+    },
+
+    [isAllSlots, selectedSlot],
+  )
+
+  const guestSlotLabel = (ga: FnbGuestAttendance) => {
+    const key = normaliseSlotKey(ga.mealSlotKey || ga.globalMealSlot?.name || '')
+    return activeMealSlotsList.find((s) => s.key === key)?.label ?? getSlotDisplayLabel(key || 'breakfast')
+  }
+
+  // Counts for the selected scope, computed from the same data the list shows.
+  const stats = useMemo(() => {
+    let attended = 0
+    let missed = 0
+    let upcoming = 0
+    members.forEach((m) => {
+      getSlotResults(m).forEach((r) => {
+        if (r.status === 'attended') attended += 1
+        else if (r.status === 'missed') missed += 1
+        else upcoming += 1
+      })
+    })
+    const guests = flats
+      .flatMap((f) => f.guestAttendances || [])
+      .filter(guestMatchesScope)
+      .reduce((sum, g) => sum + (g.guestCount || 1), 0)
+    return { members: members.length, attended, missed, upcoming, guests }
+  }, [members, flats, getSlotResults, guestMatchesScope])
+
+  const visibleFlats = useMemo(
+    () =>
+      flats
+        .map((flat) => ({
+          flat,
+          members: flat.members.filter((m) => matchesStatusFilter(getSlotResults(m))),
+          guests: (flat.guestAttendances || []).filter(guestMatchesScope),
+        }))
+        .filter((f) => f.members.length > 0 || (statusFilter === 'all' && f.guests.length > 0)),
+    [flats, getSlotResults, matchesStatusFilter, guestMatchesScope, statusFilter],
+  )
+
+  const filteredMembers = useMemo(
+    () => members.filter((m) => matchesStatusFilter(getSlotResults(m))),
+    [members, getSlotResults, matchesStatusFilter],
+  )
+
+  const scopeHint = isAllSlots ? `All ${slotsInScope.length} meal slots` : selectedSlotLabel
+  const mealUnit = isAllSlots ? 'meals' : 'members'
+
+  const renderStatus = (results: SlotResult[]) =>
+    isAllSlots ? (
+      <div className="flex flex-wrap gap-1.5">
+        {results.map((r) => (
+          <SlotChip key={r.slot.key} result={r} showLabel />
+        ))}
+      </div>
+    ) : results[0] ? (
+      <SlotChip result={results[0]} showLabel={false} />
+    ) : null
+
+  const emptyState = (message: string) => (
+    <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center">
+      <UtensilsCrossed className="h-8 w-8 text-gray-300" />
+      <p className="text-sm font-medium text-gray-500">{message}</p>
+    </div>
+  )
+
   return (
-    <div className="space-y-6">
-      {/* Header Filters & Slot Selector */}
-      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          {/* Left: View Mode Toggle & Search */}
+    <div className="space-y-5">
+      {/* Filters */}
+      <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-2xs sm:p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="bg-gray-100 p-1 rounded-xl flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => setViewMode('flat')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  viewMode === 'flat' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <Home className="w-3.5 h-3.5" />
-                <span>Flat-Wise View</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('member')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  viewMode === 'member' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <User className="w-3.5 h-3.5" />
-                <span>Member List View</span>
-              </button>
+            <div className="flex items-center gap-1 rounded-xl bg-gray-100 p-1">
+              {(
+                [
+                  { value: 'flat', label: 'By Flat', icon: Home },
+                  { value: 'member', label: 'By Member', icon: User },
+                ] as const
+              ).map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={viewMode === value}
+                  onClick={() => setViewMode(value)}
+                  className={cn(
+                    'flex cursor-pointer items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all',
+                    viewMode === value ? 'bg-white text-[#005390] shadow-sm' : 'text-gray-600 hover:text-gray-900',
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </button>
+              ))}
             </div>
 
-            <div className="relative min-w-[240px]">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by resident name, phone, or flat #..."
+                aria-label="Search residents"
+                placeholder="Search name, phone or flat…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#005390]"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-4 text-xs font-medium focus:border-[#005390] focus:outline-none"
               />
             </div>
-
-            {viewMode === 'member' && (
-              <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5">
-                <Filter className="w-3.5 h-3.5 text-gray-500" />
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as 'all' | 'attended' | 'absent' | 'not_in_package')}
-                  className="bg-transparent text-xs font-semibold text-gray-700 focus:outline-none cursor-pointer"
-                >
-                  <option value="all">All Members</option>
-                  <option value="attended">Attended Only</option>
-                  <option value="absent">Pending / Absent</option>
-                  <option value="not_in_package">Package Exceptions</option>
-                </select>
-              </div>
-            )}
           </div>
 
-          {/* Right: Date Picker */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2">
-              <Calendar className="w-4 h-4 text-[#005390]" />
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="bg-transparent text-sm font-semibold text-gray-800 focus:outline-none cursor-pointer"
-              />
-            </div>
+          <label className="flex w-fit items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2">
+            <Calendar className="h-4 w-4 text-[#005390]" />
+            <span className="sr-only">Date</span>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
+              className="cursor-pointer bg-transparent text-sm font-semibold text-gray-800 focus:outline-none"
+            />
+          </label>
+        </div>
+
+        <div className="space-y-2 border-t border-gray-100 pt-4">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Meal slot</p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Meal slot">
+            {[{ key: ALL_SLOTS, label: 'All slots', time: undefined } as MealSlotOption, ...activeMealSlotsList].map(
+              (slot) => {
+                const isSelected = selectedSlot === slot.key
+                return (
+                  <button
+                    key={slot.key}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => setSelectedSlot(slot.key)}
+                    className={cn(
+                      'flex cursor-pointer items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-all',
+                      isSelected
+                        ? 'border-[#005390] bg-[#005390] text-white shadow-md shadow-blue-900/10'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-[#005390]/40 hover:text-[#005390]',
+                    )}
+                  >
+                    {slot.key === ALL_SLOTS ? (
+                      <UtensilsCrossed className="h-3.5 w-3.5" />
+                    ) : (
+                      <Clock className="h-3.5 w-3.5" />
+                    )}
+                    {slot.label}
+                    {slot.time && (
+                      <span className={cn('text-[10px] font-medium', isSelected ? 'text-white/75' : 'text-gray-400')}>
+                        {slot.time}
+                      </span>
+                    )}
+                  </button>
+                )
+              },
+            )}
           </div>
         </div>
 
-        {/* Meal Slot Selection Pills */}
-        <div className="pt-2 border-t border-gray-100 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mr-2">Meal Slot:</span>
-          {activeMealSlotsList.map((slot) => {
-            const isSelected = selectedMealSlotKey === slot.key
-            return (
+        <div className="flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Status filter">
+            {STATUS_FILTERS.map((f) => (
               <button
-                key={slot.key}
+                key={f.value}
                 type="button"
-                onClick={() => setSelectedMealSlotKey(slot.key)}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-[#005390] text-white shadow-md shadow-blue-900/10'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                aria-pressed={statusFilter === f.value}
+                onClick={() => setStatusFilter(f.value)}
+                className={cn(
+                  'h-7 cursor-pointer rounded-full border px-3 text-[11px] font-semibold transition-colors',
+                  statusFilter === f.value
+                    ? 'border-gray-900 bg-gray-900 text-white'
+                    : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50',
+                )}
               >
-                <Clock className="w-3.5 h-3.5" />
-                <span>{slot.label}</span>
-                {slot.time && <span className="opacity-75 text-[10px]">({slot.time})</span>}
+                {f.label}
               </button>
-            )
-          })}
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-500">
+            {(Object.keys(STATUS_META) as SlotStatus[]).map((s) => {
+              const Icon = STATUS_META[s].icon
+              return (
+                <span key={s} className="flex items-center gap-1">
+                  <Icon className={cn('h-3.5 w-3.5', STATUS_META[s].iconClass)} />
+                  {STATUS_META[s].label}
+                </span>
+              )
+            })}
+            <span className="flex items-center gap-1">
+              <span className="rounded bg-amber-100 px-1 text-[9px] font-bold uppercase text-amber-800">Extra</span>
+              Not in package
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-          <div className="p-3.5 rounded-xl bg-blue-50 text-blue-600">
-            <Users className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Residing Members</div>
-            <div className="text-2xl font-bold text-gray-900 mt-0.5">{summary?.totalResidingMembers ?? 0}</div>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-          <div className="p-3.5 rounded-xl bg-emerald-50 text-emerald-600">
-            <CheckCircle2 className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">Dine-In Attended</div>
-            <div className="text-2xl font-bold text-emerald-600 mt-0.5">
-              {summary?.attendedCount ?? summary?.attendedMembersCount ?? summary?.totalDinedInToday ?? 0}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-          <div className="p-3.5 rounded-xl bg-amber-50 text-amber-600">
-            <XCircle className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">Absent / Pending</div>
-            <div className="text-2xl font-bold text-amber-600 mt-0.5">
-              {summary?.absentCount ?? summary?.absentMembersCount ?? summary?.pendingCount ?? 0}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-          <div className="p-3.5 rounded-xl bg-purple-50 text-purple-600">
-            <UserPlus className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">Guest Meals Recorded</div>
-            <div className="text-2xl font-bold text-purple-600 mt-0.5">
-              {summary?.guestMealsCount ?? summary?.totalGuestCount ?? summary?.totalGuestDinedInToday ?? 0}
-            </div>
-          </div>
-        </div>
+      {/* Summary for the selected slot (or every slot) */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <StatTile
+          icon={Users}
+          label="Residing members"
+          value={stats.members}
+          hint="In this property"
+          tone="bg-blue-50 text-blue-600"
+        />
+        <StatTile
+          icon={CheckCircle2}
+          label="Attended"
+          value={stats.attended}
+          hint={`${mealUnit} · ${scopeHint}`}
+          tone="bg-emerald-50 text-emerald-600"
+        />
+        <StatTile
+          icon={XCircle}
+          label="Missed"
+          value={stats.missed}
+          hint={`${mealUnit} · slot already over`}
+          tone="bg-rose-50 text-rose-500"
+        />
+        <StatTile
+          icon={Clock}
+          label="Upcoming"
+          value={stats.upcoming}
+          hint={`${mealUnit} · slot not over yet`}
+          tone="bg-gray-100 text-gray-500"
+        />
+        <StatTile
+          icon={UserPlus}
+          label="Guest meals"
+          value={stats.guests}
+          hint={scopeHint}
+          tone="bg-purple-50 text-purple-600"
+        />
       </div>
 
       {/* Main Content Area */}
       {loading ? (
-        <div className="p-16 text-center text-gray-400 bg-white rounded-2xl border border-gray-100">
-          <Clock className="w-8 h-8 animate-spin mx-auto text-[#005390] mb-3 opacity-60" />
-          <p className="text-sm font-medium">Loading attendance records...</p>
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-gray-100 bg-white p-16 text-gray-400">
+          <Loader2 className="h-7 w-7 animate-spin text-[#005390]" />
+          <p className="text-sm font-medium">Loading attendance…</p>
         </div>
       ) : error ? (
-        <div className="p-8 text-center text-red-600 bg-red-50 rounded-2xl border border-red-100 text-sm font-semibold">
+        <div className="rounded-2xl border border-red-100 bg-red-50 p-8 text-center text-sm font-semibold text-red-600">
           {error}
         </div>
       ) : viewMode === 'flat' ? (
-        /* FLAT-WISE VIEW */
-        flats.length === 0 ? (
-          <div className="p-12 text-center text-gray-400 bg-white rounded-2xl border border-gray-100">
-            No flats or members found for the selected criteria.
-          </div>
+        visibleFlats.length === 0 ? (
+          emptyState('No flats match the selected filters.')
         ) : (
           <div className="space-y-4">
-            {flats.map((flat) => {
+            {visibleFlats.map(({ flat, members: flatMembers, guests }) => {
               const primaryRes = flat.members.find((m) => m.memberType === 'resident')
+              const guestTotal = guests.reduce((sum: number, g: FnbGuestAttendance) => sum + (g.guestCount || 1), 0)
               return (
                 <div
                   key={flat.unitId}
-                  className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
+                  className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xs"
                 >
-                  {/* Flat Header */}
-                  <div className="bg-gray-50/80 p-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex flex-col gap-1 border-b border-gray-100 bg-gray-50/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-blue-100 text-[#005390] rounded-xl">
-                        <Home className="w-5 h-5" />
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#005390]/10 text-[#005390]">
+                        <Home className="h-4 w-4" />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2.5">
-                          <h3 className="font-bold text-gray-900 text-base">Flat {flat.unitNumber}</h3>
-                          <span className="text-[11px] px-2.5 py-0.5 bg-blue-50 text-blue-700 font-semibold rounded-full border border-blue-200">
-                            {flat.members.length} Residing Member(s)
-                          </span>
-                        </div>
+                        <h3 className="text-sm font-bold text-gray-900">Flat {flat.unitNumber}</h3>
                         {primaryRes && (
-                          <div className="text-xs text-gray-500 mt-0.5">
-                            Primary Resident: <span className="font-medium text-gray-700">{primaryRes.fullName}</span>
-                            {primaryRes.phone && <span> • {primaryRes.phone}</span>}
-                          </div>
+                          <p className="text-[11px] text-gray-500">
+                            {primaryRes.fullName}
+                            {primaryRes.phone && ` · ${primaryRes.phone}`}
+                          </p>
                         )}
                       </div>
                     </div>
+                    <span className="w-fit rounded-full border border-blue-100 bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
+                      {flat.members.length} {flat.members.length === 1 ? 'member' : 'members'}
+                    </span>
                   </div>
 
-                  {/* Members List */}
                   <div className="divide-y divide-gray-100">
-                    {flat.members.map((member) => {
-                      return (
-                        <div key={member.memberId} className="p-4 space-y-3 hover:bg-gray-50/50 transition-colors">
-                          {/* Member Header */}
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div className="flex items-center gap-3.5">
-                              <div className="w-10 h-10 rounded-full bg-blue-100 text-[#005390] border border-blue-200 flex items-center justify-center font-bold text-sm shrink-0 uppercase">
-                                {member.fullName.charAt(0)}
-                              </div>
-                              <div className="space-y-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="font-bold text-gray-900 text-sm">{member.fullName}</span>
-                                  <span
-                                    className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold ${
-                                      member.memberType === 'resident'
-                                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                        : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                    }`}
-                                  >
-                                    {member.memberType === 'resident'
-                                      ? 'Primary Resident'
-                                      : `Family (${member.relation || 'Member'})`}
-                                  </span>
-                                  {member.dietaryPreference && (
-                                    <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-semibold border border-amber-200 uppercase">
-                                      {member.dietaryPreference}
-                                    </span>
-                                  )}
-                                </div>
-
-                                <div className="text-xs text-gray-500 flex flex-wrap items-center gap-3">
-                                  {member.phone && <span>Phone: {member.phone}</span>}
-                                  <span className="font-medium text-gray-700">
-                                    Package:{' '}
-                                    <span className="font-semibold text-gray-900">
-                                      {member.packageName || member.package?.packageName || 'No Active Package'}
-                                    </span>
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
+                    {flatMembers.map((member) => (
+                      <div
+                        key={member.memberId}
+                        className="flex flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:justify-between"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-bold uppercase text-[#005390]">
+                            {member.fullName.charAt(0)}
                           </div>
-
-                          {/* Meal Slots Attendance Grid According to Location Slots */}
-                          <div className="pt-2 border-t border-gray-100 space-y-2">
-                            <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="w-3.5 h-3.5 text-[#005390]" />
-                                <span>Meal Slots Attendance ({selectedDate}):</span>
-                              </div>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-sm font-semibold text-gray-900">{member.fullName}</span>
+                              <span
+                                className={cn(
+                                  'rounded-full border px-2 py-px text-[10px] font-semibold',
+                                  member.memberType === 'resident'
+                                    ? 'border-blue-200 bg-blue-50 text-blue-700'
+                                    : 'border-gray-200 bg-gray-50 text-gray-600',
+                                )}
+                              >
+                                {member.memberType === 'resident' ? 'Primary' : member.relation || 'Family'}
+                              </span>
+                              {member.dietaryPreference && (
+                                <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-px text-[10px] font-semibold uppercase text-amber-700">
+                                  {member.dietaryPreference}
+                                </span>
+                              )}
                             </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
-                              {activeMealSlotsList.map((slotObj) => {
-                                const slotKey = slotObj.key
-                                const slotLabel = slotObj.label || getSlotDisplayLabel(slotKey)
-                                const isCoveredInPkg = isSlotCoveredInPackage(member, slotKey)
-                                const { attended, isCrossed, time } = isSlotAttendedForMember(member, slotKey)
-
-                                return (
-                                  <div
-                                    key={slotKey}
-                                    className={`p-2.5 rounded-xl border text-xs flex flex-col justify-between gap-2 transition-all ${
-                                      attended
-                                        ? 'bg-emerald-50 border-emerald-200 text-emerald-900 shadow-2xs'
-                                        : isCrossed
-                                          ? 'bg-amber-50/60 border-amber-200 text-amber-900'
-                                          : 'bg-gray-50 border-gray-200 text-gray-700'
-                                    }`}
-                                  >
-                                    <div className="flex items-center justify-between gap-1.5">
-                                      <div className="font-bold text-xs flex items-center gap-1.5 truncate">
-                                        <Clock
-                                          className={`w-3.5 h-3.5 shrink-0 ${attended ? 'text-emerald-600' : isCrossed ? 'text-amber-600' : 'text-gray-400'}`}
-                                        />
-                                        <span className="truncate">{slotLabel}</span>
-                                      </div>
-
-                                      {attended ? (
-                                        <span className="px-2 py-0.5 bg-emerald-600 text-white rounded-md text-[10px] font-bold flex items-center gap-1 shrink-0">
-                                          <CheckCircle2 className="w-3 h-3" />
-                                          <span>Attended</span>
-                                          {time && (
-                                            <span className="text-[9px] opacity-80 pl-1 border-l border-emerald-400">
-                                              {time}
-                                            </span>
-                                          )}
-                                        </span>
-                                      ) : isCrossed ? (
-                                        <span className="px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-300 rounded-md text-[10px] font-bold flex items-center gap-1 shrink-0">
-                                          <XCircle className="w-3 h-3 text-amber-600" />
-                                          Absent
-                                        </span>
-                                      ) : (
-                                        <span className="px-2 py-0.5 bg-gray-200 text-gray-600 rounded-md text-[10px] font-semibold flex items-center gap-1 shrink-0">
-                                          <Clock className="w-3 h-3 text-gray-400" />
-                                          Pending
-                                        </span>
-                                      )}
-                                    </div>
-
-                                    <div className="flex items-center justify-between text-[10px] pt-1.5 border-t border-gray-200/60 mt-0.5">
-                                      {isCoveredInPkg ? (
-                                        <span className="px-2 py-0.5 rounded-full font-bold bg-emerald-100/90 text-emerald-800 border border-emerald-200 shrink-0">
-                                          Covered in Package
-                                        </span>
-                                      ) : (
-                                        <span className="px-2 py-0.5 rounded-full font-bold bg-amber-100/90 text-amber-800 border border-amber-200 shrink-0">
-                                          Extra Meal
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                )
-                              })}
-                            </div>
+                            <p className="truncate text-[11px] text-gray-500">
+                              {member.packageName || member.package?.packageName || 'No active package'}
+                            </p>
                           </div>
                         </div>
-                      )
-                    })}
+                        <div className="lg:max-w-[60%]">{renderStatus(getSlotResults(member))}</div>
+                      </div>
+                    ))}
                   </div>
 
-                  {/* Guest Meals Recorded for this Flat */}
-                  {flat.guestAttendances && flat.guestAttendances.length > 0 && (
-                    <div className="p-4 bg-purple-50/50 border-t border-purple-100 space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs font-bold text-purple-900">
-                          <UserPlus className="w-4 h-4 text-purple-600" />
-                          <span>
-                            Logged Guest Meals (
-                            {flat.guestAttendances.reduce(
-                              (sum: number, g: FnbGuestAttendance) => sum + (g.guestCount || 1),
-                              0,
-                            )}{' '}
-                            Guest(s))
+                  {guests.length > 0 && (
+                    <div className="space-y-2 border-t border-purple-100 bg-purple-50/40 px-4 py-3">
+                      <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-purple-800">
+                        <UserPlus className="h-3.5 w-3.5" />
+                        Guest meals · {guestTotal}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {guests.map((ga: FnbGuestAttendance) => (
+                          <span
+                            key={ga.id}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-purple-100 bg-white px-2.5 py-1 text-[11px]"
+                          >
+                            <span className="font-semibold text-gray-900">{ga.guestName || 'Guest'}</span>
+                            <span className="text-gray-400">×{ga.guestCount || 1}</span>
+                            <span className="text-purple-700">{guestSlotLabel(ga)}</span>
                           </span>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                        {flat.guestAttendances.map((ga: FnbGuestAttendance) => {
-                          const slotKey =
-                            ga.mealSlotKey || (ga.globalMealSlot?.name || '').toLowerCase().replace(/\s+/g, '_')
-                          const slotLabel = getSlotDisplayLabel(slotKey || 'breakfast')
-                          const gName = ga.guestName || 'Guest'
-                          const gCount = ga.guestCount || 1
-
-                          return (
-                            <div
-                              key={ga.id}
-                              className="p-3 bg-white rounded-xl border border-purple-100 shadow-2xs flex items-center justify-between gap-2"
-                            >
-                              <div className="space-y-1 min-w-0">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="font-bold text-gray-900 text-xs truncate">{gName}</span>
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 font-bold">
-                                    {gCount} Guest(s)
-                                  </span>
-                                </div>
-                                <div className="text-[11px] text-gray-500 flex items-center gap-1">
-                                  <Clock className="w-3 h-3 text-purple-500 shrink-0" />
-                                  <span>
-                                    Slot: <strong className="text-gray-800 font-semibold">{slotLabel}</strong>
-                                  </span>
-                                </div>
-                              </div>
-                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-md text-[10px] font-bold flex items-center gap-1 shrink-0">
-                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                <span>Attended</span>
-                              </span>
-                            </div>
-                          )
-                        })}
+                        ))}
                       </div>
                     </div>
                   )}
@@ -698,81 +803,36 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
             })}
           </div>
         )
-      ) : /* MEMBER-WISE LIST VIEW */
-      filteredMembers.length === 0 ? (
-        <div className="p-12 text-center text-gray-400 bg-white rounded-2xl border border-gray-100">
-          No members found matching the selected filters.
-        </div>
+      ) : filteredMembers.length === 0 ? (
+        emptyState('No members match the selected filters.')
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xs">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  <th className="py-3.5 px-4">Member Name</th>
-                  <th className="py-3.5 px-4">Flat / Location</th>
-                  <th className="py-3.5 px-4">Member Type</th>
-                  <th className="py-3.5 px-4">Food Package</th>
-                  <th className="py-3.5 px-4">Meal Slots Attendance</th>
+                <tr className="border-b border-gray-100 bg-gray-50 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                  <th className="px-4 py-3">Member</th>
+                  <th className="px-4 py-3">Flat</th>
+                  <th className="px-4 py-3">Package</th>
+                  <th className="px-4 py-3">{isAllSlots ? 'Meal slots' : selectedSlotLabel}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
-                {filteredMembers.map((member) => {
-                  return (
-                    <tr key={member.memberId} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="py-3.5 px-4">
-                        <div className="font-bold text-gray-900">{member.fullName}</div>
-                      </td>
-                      <td className="py-3.5 px-4 font-medium text-gray-800">{member.fullLocation}</td>
-                      <td className="py-3.5 px-4">{member.memberType === 'resident' ? 'Primary' : 'Family'}</td>
-                      <td className="py-3.5 px-4 text-gray-600">
-                        {member.packageName || member.package?.packageName || 'No Package'}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="flex flex-wrap items-center gap-2">
-                          {activeMealSlotsList.map((slotObj) => {
-                            const slotKey = slotObj.key
-                            const slotLabel = slotObj.label || getSlotDisplayLabel(slotKey)
-                            const isCoveredInPkg = isSlotCoveredInPackage(member, slotKey)
-                            const { attended, isCrossed } = isSlotAttendedForMember(member, slotKey)
-                            return (
-                              <span
-                                key={slotKey}
-                                className={`px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1.5 ${
-                                  attended
-                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                    : isCrossed
-                                      ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                                      : 'bg-gray-100 text-gray-500 border border-gray-200'
-                                }`}
-                              >
-                                {attended ? (
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
-                                ) : isCrossed ? (
-                                  <XCircle className="w-3 h-3 text-amber-600 shrink-0" />
-                                ) : (
-                                  <Clock className="w-3 h-3 text-gray-400 shrink-0" />
-                                )}
-                                <span>
-                                  {slotLabel}: {attended ? 'Attended' : isCrossed ? 'Absent' : 'Pending'}
-                                </span>
-                                {isCoveredInPkg ? (
-                                  <span className="text-[9px] px-1.5 py-0.2 rounded-full font-bold bg-emerald-200/60 text-emerald-900">
-                                    Covered
-                                  </span>
-                                ) : (
-                                  <span className="text-[9px] px-1.5 py-0.2 rounded-full font-bold bg-amber-200/60 text-amber-900">
-                                    Extra
-                                  </span>
-                                )}
-                              </span>
-                            )
-                          })}
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
+                {filteredMembers.map((member) => (
+                  <tr key={member.memberId} className="transition-colors hover:bg-gray-50/50">
+                    <td className="px-4 py-3">
+                      <p className="font-semibold text-gray-900">{member.fullName}</p>
+                      <p className="text-[11px] text-gray-500">
+                        {member.memberType === 'resident' ? 'Primary resident' : member.relation || 'Family'}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3 font-medium text-gray-800">{member.fullLocation}</td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {member.packageName || member.package?.packageName || 'No package'}
+                    </td>
+                    <td className="px-4 py-3">{renderStatus(getSlotResults(member))}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

@@ -1,6 +1,6 @@
 import { lazy, Suspense, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Calendar, Clock, MapPin, Plus, Trash2, Users } from 'lucide-react'
+import { Calendar, Clock, MapPin, Pencil, Plus, Timer, Trash2, Users } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { ResponsiveTabs } from '@/components/common/ResponsiveTabs'
 import PageLoader from '@/components/shared/PageLoader'
@@ -42,24 +42,33 @@ const ShiftsGrid = () => {
     () => [
       {
         accessorKey: 'name',
-        header: 'Name',
-        cell: ({ row }) => <span className="font-medium text-gray-900">{row.original.name}</span>,
+        header: 'Shift',
+        cell: ({ row }) => (
+          <div className="flex min-w-[180px] items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#005390]/10 text-[#005390]">
+              <Clock className="h-4 w-4" />
+            </div>
+            <span className="font-semibold text-gray-900">{row.original.name}</span>
+          </div>
+        ),
       },
       {
         accessorKey: 'description',
         header: 'Description',
         cell: ({ row }) => (
-          <span className="text-sm text-gray-600 line-clamp-2 max-w-[240px]">
-            {row.original.description?.trim() || '—'}
+          <span className="block min-w-[220px] max-w-md text-sm text-gray-600 line-clamp-2">
+            {row.original.description?.trim() || <span className="text-gray-400">—</span>}
           </span>
         ),
       },
       {
         id: 'time',
-        header: 'Time',
+        header: 'Timing',
         cell: ({ row }) => (
-          <span className="whitespace-nowrap text-sm text-gray-800">
-            {row.original.startTime} – {row.original.endTime}
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-slate-100 px-2.5 py-1 font-mono text-xs font-semibold text-slate-700">
+            {row.original.startTime}
+            <span className="text-slate-400">→</span>
+            {row.original.endTime}
           </span>
         ),
       },
@@ -73,73 +82,81 @@ const ShiftsGrid = () => {
             return <span className="text-sm text-gray-400">Not set</span>
           }
           return (
-            <span className="whitespace-nowrap text-sm text-gray-800">
-              {count ? `${count} slot${count === 1 ? '' : 's'}` : '—'}
-              {duration ? ` · ${duration} min` : ''}
-            </span>
+            <div className="whitespace-nowrap leading-tight">
+              <p className="text-sm font-semibold text-gray-900">
+                {count ? `${count} slot${count === 1 ? '' : 's'}` : '—'}
+              </p>
+              {duration ? <p className="text-xs text-gray-500">{duration} min each</p> : null}
+            </div>
           )
         },
       },
       {
         id: 'status',
         header: 'Status',
-        cell: ({ row }) => (
-          <Badge
-            variant={row.original.isActive ? 'default' : 'secondary'}
-            className={row.original.isActive ? 'bg-[#2a517c]' : ''}
-          >
-            {row.original.isActive ? 'Active' : 'Inactive'}
-          </Badge>
-        ),
+        cell: ({ row }) =>
+          row.original.isActive ? (
+            <Badge className="border border-green-200 bg-green-50 text-green-700">Active</Badge>
+          ) : (
+            <Badge className="border border-gray-200 bg-gray-100 text-gray-600">Inactive</Badge>
+          ),
       },
       {
         id: 'actions',
-        header: 'Actions',
-        cell: ({ row }) => (
-          <div className="flex items-center gap-1.5 whitespace-nowrap">
-            <RosterPermission action="update">
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 shrink-0"
-                onClick={() => {
-                  setSlotShift(row.original)
-                  setSlotDialogOpen(true)
-                }}
-              >
-                Manage SlotTime
-              </Button>
-            </RosterPermission>
-            <RosterPermission action="update">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-8 shrink-0"
-                onClick={() => {
-                  setEditing(row.original)
-                  setDialogOpen(true)
-                }}
-              >
-                Edit
-              </Button>
-            </RosterPermission>
-            <RosterPermission action="delete">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-8 shrink-0 text-red-600"
-                disabled={(row.original.assignmentCount ?? 0) > 0}
-                onClick={() => {
-                  if (window.confirm(`Delete shift "${row.original.name}"?`)) {
-                    deleteShift.mutate(row.original.id)
-                  }
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </RosterPermission>
-          </div>
-        ),
+        header: () => <span className="block text-right">Actions</span>,
+        cell: ({ row }) => {
+          const inUse = (row.original.assignmentCount ?? 0) > 0
+          return (
+            <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+              <RosterPermission action="update">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 shrink-0 gap-1.5 text-xs"
+                  onClick={() => {
+                    setSlotShift(row.original)
+                    setSlotDialogOpen(true)
+                  }}
+                >
+                  <Timer className="h-3.5 w-3.5" />
+                  Manage Slots
+                </Button>
+              </RosterPermission>
+              <RosterPermission action="update">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  aria-label={`Edit ${row.original.name}`}
+                  title="Edit shift"
+                  className="h-8 w-8 shrink-0 p-0"
+                  onClick={() => {
+                    setEditing(row.original)
+                    setDialogOpen(true)
+                  }}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </RosterPermission>
+              <RosterPermission action="delete">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  aria-label={`Delete ${row.original.name}`}
+                  title={inUse ? 'Shift is assigned to employees and cannot be deleted' : 'Delete shift'}
+                  className="h-8 w-8 shrink-0 p-0 text-red-600 hover:text-red-700"
+                  disabled={inUse}
+                  onClick={() => {
+                    if (window.confirm(`Delete shift "${row.original.name}"?`)) {
+                      deleteShift.mutate(row.original.id)
+                    }
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </RosterPermission>
+            </div>
+          )
+        },
       },
     ],
     [deleteShift],

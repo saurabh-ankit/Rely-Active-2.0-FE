@@ -6,6 +6,7 @@ import type { Property } from './types'
 import { PROPERTY_TYPE_LABELS } from './types'
 import { deletePropertyAPI, getPropertiesAPI } from '@/lib/services/propertyService'
 import PropertyDetailDrawer from './components/PropertyDetailDrawer'
+import { PageHeader } from '@/components/common/PageHeader'
 
 export default function PropertyPage() {
   const navigate = useNavigate()
@@ -80,21 +81,23 @@ export default function PropertyPage() {
 
   return (
     <div className="space-y-6">
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">Properties</h1>
-          <p className="text-sm text-gray-500">Manage your residential property portfolio &amp; structure</p>
-        </div>
-        <Button
-          id="add-property-btn"
-          onClick={() => navigate('/property/create')}
-          className="flex items-center gap-2 bg-[#005390] hover:bg-[#004274] text-white rounded-xl shadow-xs px-4 py-2 font-bold"
-        >
-          <Plus className="h-4 w-4" />
-          Add Property
-        </Button>
-      </div>
+      <PageHeader
+        icon={Building2}
+        title="Properties"
+        description="Manage your residential property portfolio & structure."
+        actions={
+          <>
+            <Button
+              id="add-property-btn"
+              onClick={() => navigate('/property/create')}
+              className="flex items-center gap-2 bg-[#005390] hover:bg-[#004274] text-white rounded-xl shadow-xs px-4 py-2 font-bold"
+            >
+              <Plus className="h-4 w-4" />
+              Add Property
+            </Button>
+          </>
+        }
+      />
 
       {/* ── Stats row ──────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ListFilter, Trash2 } from 'lucide-react'
+import { format } from 'date-fns'
+import { ArrowLeft, CalendarCheck, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -20,11 +21,11 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useDepartmentsQuery } from '@/hooks/react-query/rbac'
 import { useUsersQuery } from '@/hooks/react-query/user'
 import type { EmployeeShiftAssignment, ShiftEmployeeDate } from '@/lib/services/rosterService'
 import { useLocationStore } from '@/lib/stores/locationStore'
+import { cn } from '@/lib/utils'
 import {
   getUserDepartmentName,
   getUserDisplayName,
@@ -46,8 +47,8 @@ const ROSTER_PAGE_SIZE = 9
 const ALL_STATUS = 'all'
 
 const ROSTER_STATUS_FILTERS = [
-  { value: ALL_STATUS, label: 'All statuses' },
   { value: 'today', label: 'Today' },
+  { value: ALL_STATUS, label: 'All' },
   { value: 'upcoming', label: 'Upcoming' },
   { value: 'on_duty', label: 'On duty' },
   { value: 'completed', label: 'Completed' },
@@ -193,6 +194,17 @@ const EmployeeDetail = () => {
   const isLoading = assignmentsLoading || datesLoading
   const today = todayYmdLocal()
 
+  const filterCounts = useMemo(
+    () =>
+      Object.fromEntries(
+        ROSTER_STATUS_FILTERS.map((opt) => [
+          opt.value,
+          rosterEvents.filter((event) => matchesRosterFilter(event, opt.value, today)).length,
+        ]),
+      ) as Record<RosterStatusFilter, number>,
+    [rosterEvents, today],
+  )
+
   const filteredEvents = useMemo(
     () => rosterEvents.filter((event) => matchesRosterFilter(event, statusFilter, today)),
     [rosterEvents, statusFilter, today],
@@ -330,6 +342,67 @@ const EmployeeDetail = () => {
       </div>
 
       <div className="pb-4">
+        {/* Status filters: Today first and highlighted */}
+        <div className="mb-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Filter rosters">
+          {ROSTER_STATUS_FILTERS.map((opt) => {
+            const active = statusFilter === opt.value
+            const count = filterCounts[opt.value] ?? 0
+            if (opt.value === 'today') {
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => handleStatusFilterChange(opt.value)}
+                  className={cn(
+                    'flex shrink-0 items-center gap-2.5 rounded-xl border-2 px-4 py-2 text-left transition-all cursor-pointer',
+                    active
+                      ? 'border-[#005390] bg-[#005390] text-white shadow-md shadow-[#005390]/25'
+                      : 'border-[#005390]/30 bg-[#005390]/5 text-[#005390] hover:border-[#005390]/60',
+                  )}
+                >
+                  <CalendarCheck className="h-5 w-5 shrink-0" />
+                  <span className="leading-tight">
+                    <span className="block text-sm font-bold">Today</span>
+                    <span
+                      className={cn('block text-[11px] font-medium', active ? 'text-white/80' : 'text-[#005390]/70')}
+                    >
+                      {format(new Date(), 'EEE, dd MMM')}
+                    </span>
+                  </span>
+                  <span
+                    className={cn(
+                      'ml-1 rounded-full px-2 py-0.5 text-xs font-bold',
+                      active ? 'bg-white text-[#005390]' : 'bg-[#005390] text-white',
+                    )}
+                  >
+                    {count}
+                  </span>
+                </button>
+              )
+            }
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => handleStatusFilterChange(opt.value)}
+                className={cn(
+                  'flex shrink-0 items-center gap-1.5 self-center rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer',
+                  active
+                    ? 'border-[#005390] bg-[#005390]/10 text-[#005390]'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-900',
+                )}
+              >
+                {opt.label}
+                <span className={cn('text-[11px]', active ? 'text-[#005390]/80' : 'text-gray-400')}>{count}</span>
+              </button>
+            )
+          })}
+        </div>
+
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h3 className="text-base font-semibold text-slate-900">Assigned rosters</h3>
@@ -361,21 +434,6 @@ const EmployeeDetail = () => {
                 </Button>
               </div>
             </RosterPermission>
-            <Select value={statusFilter} onValueChange={(v) => handleStatusFilterChange(v as RosterStatusFilter)}>
-              <SelectTrigger className="h-9 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-xs sm:w-[200px] hover:border-gray-400 hover:bg-gray-50 focus-visible:border-[#2a517c] focus-visible:ring-2 focus-visible:ring-[#2a517c]/20">
-                <span className="flex min-w-0 flex-1 items-center gap-2">
-                  <ListFilter className="h-4 w-4 shrink-0 text-gray-400" />
-                  <SelectValue placeholder="Filter by status" />
-                </span>
-              </SelectTrigger>
-              <SelectContent className="min-w-[200px] rounded-lg border border-gray-200 bg-white shadow-lg">
-                {ROSTER_STATUS_FILTERS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value} className="cursor-pointer">
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         </div>
         {isLoading ? (
@@ -387,26 +445,57 @@ const EmployeeDetail = () => {
             No rosters created for this employee.
           </div>
         ) : filteredEvents.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-12 text-center text-sm text-slate-500">
-            No rosters match this filter.
-          </div>
+          statusFilter === 'today' ? (
+            <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-[#005390]/30 bg-[#005390]/5 py-12 text-center">
+              <CalendarCheck className="h-8 w-8 text-[#005390]/60" />
+              <p className="text-sm font-semibold text-slate-800">No shifts scheduled for today</p>
+              <p className="text-xs text-slate-500">{format(new Date(), 'EEEE, dd MMMM yyyy')}</p>
+              {filterCounts.upcoming > 0 && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="mt-2"
+                  onClick={() => handleStatusFilterChange('upcoming')}
+                >
+                  View {filterCounts.upcoming} upcoming
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-12 text-center text-sm text-slate-500">
+              No rosters match this filter.
+            </div>
+          )
         ) : (
           <>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {pagedEvents.map((event) => (
-                <RosterShiftCard
+                <div
                   key={event.id}
-                  event={event}
-                  showAssignedResidents={false}
-                  selectable
-                  selected={!!event.shiftEmployeeDateId && selectedIds.includes(event.shiftEmployeeDateId)}
-                  onSelectChange={(checked) => {
-                    if (event.shiftEmployeeDateId) toggleSelectOne(event.shiftEmployeeDateId, checked)
-                  }}
-                  removePending={bulkDeleteDates.isPending && confirmId === event.shiftEmployeeDateId}
-                  removeLabel={confirmId === event.shiftEmployeeDateId ? 'Confirm remove' : 'Remove'}
-                  onAction={(action) => handleCardAction(event, action)}
-                />
+                  className={cn(
+                    'relative rounded-xl',
+                    event.date === today && 'ring-2 ring-[#005390] ring-offset-2 ring-offset-gray-50',
+                  )}
+                >
+                  {event.date === today && (
+                    <span className="absolute -top-2.5 left-3 z-10 rounded-full bg-[#005390] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                      Today
+                    </span>
+                  )}
+                  <RosterShiftCard
+                    event={event}
+                    showAssignedResidents={false}
+                    selectable
+                    selected={!!event.shiftEmployeeDateId && selectedIds.includes(event.shiftEmployeeDateId)}
+                    onSelectChange={(checked) => {
+                      if (event.shiftEmployeeDateId) toggleSelectOne(event.shiftEmployeeDateId, checked)
+                    }}
+                    removePending={bulkDeleteDates.isPending && confirmId === event.shiftEmployeeDateId}
+                    removeLabel={confirmId === event.shiftEmployeeDateId ? 'Confirm remove' : 'Remove'}
+                    onAction={(action) => handleCardAction(event, action)}
+                  />
+                </div>
               ))}
             </div>
 

@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useLocationContext } from '@/hooks/useLocation'
 import { useGetInvoices, useGetUnitsBillingSummary } from '@/hooks/react-query/billing'
+import { PageHeader } from '@/components/common/PageHeader'
 
 export const FlatsDirectoryScreen: React.FC = () => {
   const navigate = useNavigate()
@@ -107,38 +108,30 @@ export const FlatsDirectoryScreen: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-blue-50 text-[#005390]">
-              <ReceiptIndianRupee className="w-6 h-6" />
-            </div>
-            Billing & Revenue Management
-          </h1>
-          <p className="text-xs text-gray-500 mt-1">
-            Select any flat to view its dedicated billing dashboard, monthly invoices, subscriptions, and sacred ledger
-          </p>
-        </div>
+      <PageHeader
+        icon={ReceiptIndianRupee}
+        title="Billing & Revenue Management"
+        description="Select any flat to view its dedicated billing dashboard, monthly invoices, subscriptions, and ledger."
+        actions={
+          <>
+            <Badge variant="outline" className="text-xs px-3 py-1 font-medium bg-slate-50 border-gray-200">
+              <Building2 className="w-3.5 h-3.5 mr-1.5 text-gray-500" />
+              {selectedLocationName || 'All Properties'}
+            </Badge>
 
-        <div className="flex items-center gap-3">
-          <Badge variant="outline" className="text-xs px-3 py-1 font-medium bg-slate-50 border-gray-200">
-            <Building2 className="w-3.5 h-3.5 mr-1.5 text-gray-500" />
-            {selectedLocationName || 'All Properties'}
-          </Badge>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={unitsLoading || invoicesLoading}
-            className="text-xs h-9 cursor-pointer"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${unitsLoading || invoicesLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-        </div>
-      </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={unitsLoading || invoicesLoading}
+              className="text-xs h-9 cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${unitsLoading || invoicesLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </>
+        }
+      />
 
       {/* KPI Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

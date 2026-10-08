@@ -13,6 +13,7 @@ import {
   Stethoscope,
   UserCheck,
   Utensils,
+  Settings2,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { AdminUserManagement } from './components/AdminUserManagement'
@@ -30,6 +31,7 @@ import { LabTestsTab } from './components/LabTestsTab'
 import { TasksTab } from './components/TasksTab'
 import { PackagesTab } from './components/PackagesTab'
 import { GstTaxSettingsTab } from './components/GstTaxSettingsTab'
+import { PageHeader } from '@/components/common/PageHeader'
 
 interface SettingItem {
   id: string
@@ -396,13 +398,11 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
 
   return (
     <div className="space-y-8 pb-10">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">Global Settings</h1>
-        <p className="text-sm text-gray-500">
-          Manage core organization profile, property locations, user roles, and RBAC module authorization.
-        </p>
-      </div>
+      <PageHeader
+        icon={Settings2}
+        title="Global Settings"
+        description="Manage core organization profile, property locations, user roles, and RBAC module authorization."
+      />
 
       {/* Access Control & Permission Management */}
       <section className="space-y-4">

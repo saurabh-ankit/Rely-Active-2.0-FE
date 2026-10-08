@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge'
 import { useGetAssetStats } from '@/hooks/react-query/assetManagement'
 import StatCard from './components/StatCard'
 import StatsGrid from './components/StatsGrid'
+import { PageHeader } from '@/components/common/PageHeader'
 
 // Dynamic imports for better code splitting
 const AssetCategories = lazy(() => import('./components/AssetCategories'))
@@ -47,24 +48,22 @@ const AssetManagementPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Asset Management</h1>
-          <p className="text-sm md:text-base text-gray-600 mt-1">
-            Track and manage your assets, assignments, and maintenance
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {stats.maintenanceAssets > 0 && (
-            <Badge className="bg-orange-100 text-orange-800 border-orange-200 px-3 py-1">
-              <Wrench className="h-4 w-4 mr-1" />
-              <span className="hidden sm:inline">{stats.maintenanceAssets} In Maintenance</span>
-              <span className="sm:hidden">{stats.maintenanceAssets}</span>
-            </Badge>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        icon={Box}
+        title="Asset Management"
+        description="Track and manage your assets, assignments, and maintenance."
+        actions={
+          <>
+            {stats.maintenanceAssets > 0 && (
+              <Badge className="bg-orange-100 text-orange-800 border-orange-200 px-3 py-1">
+                <Wrench className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">{stats.maintenanceAssets} In Maintenance</span>
+                <span className="sm:hidden">{stats.maintenanceAssets}</span>
+              </Badge>
+            )}
+          </>
+        }
+      />
 
       {/* Stats Overview */}
       <StatsGrid>

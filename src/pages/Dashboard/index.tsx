@@ -20,7 +20,6 @@ import {
   LayoutDashboard,
   Package,
   Receipt,
-  RefreshCw,
   ShieldAlert,
   Sparkles,
   Star,
@@ -32,6 +31,7 @@ import {
   Users,
   Wallet,
 } from 'lucide-react'
+import { PageHeader } from '@/components/common/PageHeader'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDashboardStatsQuery } from '@/hooks/react-query/dashboard'
 import { useLocation } from '@/hooks/useLocation'
@@ -105,7 +105,6 @@ export default function DashboardPage() {
   const {
     data: stats,
     isLoading,
-    isFetching,
     isError,
     refetch,
   } = useDashboardStatsQuery(selectedLocationId, {
@@ -118,26 +117,15 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5">
-      {/* Page Title & Refresh */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#2d3748]">Dashboard</h1>
-        </div>
-        <button
-          type="button"
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-gray-600 shadow-sm transition hover:bg-gray-50 disabled:opacity-50"
-          title="Refresh dashboard stats"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin text-[#005390]' : ''}`} />
-          <span>Refresh</span>
-        </button>
-      </div>
+      <PageHeader
+        icon={LayoutDashboard}
+        title="Dashboard"
+        description="Property overview: tickets, occupancy, billing, staff and resident care at a glance."
+      />
 
       {isError && (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700 flex items-center justify-between">
-          <span>Failed to load dashboard statistics. Please try refreshing.</span>
+          <span>Failed to load dashboard statistics.</span>
           <button type="button" onClick={() => refetch()} className="font-bold underline hover:text-rose-900 ml-2">
             Retry
           </button>

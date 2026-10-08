@@ -1,28 +1,29 @@
 import React, { useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { differenceInYears, format, formatDistanceToNowStrict, isValid, parseISO } from 'date-fns'
 import {
   ArrowLeft,
   Briefcase,
   Building2,
-  Calendar,
-  CheckCircle2,
+  CalendarDays,
   Clock,
   Edit,
-  HeartPulse,
+  KeyRound,
   Mail,
+  MapPin,
   Phone,
   RefreshCw,
-  Shield,
+  ShieldAlert,
+  User,
   UserCheck,
-  Users,
-  CalendarDays,
 } from 'lucide-react'
 import { useUserByIdQuery } from '@/hooks/react-query/user'
 import { useListEmployeeShifts } from '@/hooks/react-query/roster'
 import { useLocationContext } from '@/hooks/useLocation'
 import { Button } from '@/components/ui/button'
-import { getFileUrl } from '@/lib/utils'
-import type { UserItem } from '@/lib/types'
+import { RoleBadges } from '@/components/employees/EmployeeCells'
+import { HeroFact, InfoList, NotAdded, Panel } from '@/components/common/DetailPanel'
+import { cn, getFileUrl } from '@/lib/utils'
 import type { EmployeeShiftAssignment } from '@/lib/types/roster'
 
 interface LocationRec {
@@ -55,40 +56,23 @@ interface LocationRec {
   property?: { id?: string; property_name?: string; name?: string }
 }
 
-interface RoleRec {
-  role?: { code?: string; name?: string }
-  name?: string
-  code?: string
-}
-
 export interface EmployeeDetailsScreenProps {
   isGlobalMode?: boolean
 }
 
-function collectRoles(user: UserItem): string[] {
-  const roleSet = new Set<string>()
-  const uRecord = user as unknown as Record<string, unknown>
-  const uRoleObj = uRecord.role as { name?: string; code?: string } | undefined
-  if (uRoleObj?.name) roleSet.add(uRoleObj.name)
-  else if (uRoleObj?.code) roleSet.add(uRoleObj.code)
-
-  user.userRoles?.forEach((ur: RoleRec) => {
-    const rName = ur.role?.name || ur.role?.code || ur.name || ur.code
-    if (rName && typeof rName === 'string' && rName.trim()) roleSet.add(rName.trim())
-  })
-
-  user.userLocations?.forEach((ul: LocationRec) => {
-    const rName = ul.role?.name || ul.role?.code || ul.name || ul.code
-    if (rName && typeof rName === 'string' && rName.trim()) roleSet.add(rName.trim())
-  })
-
-  return Array.from(roleSet)
+const parseDate = (value?: string | null) => {
+  if (!value) return null
+  const date = parseISO(value)
+  return isValid(date) ? date : null
 }
 
-function formatDate(value?: string | null): string {
-  if (!value) return 'N/A'
-  return value.includes('T') ? value.split('T')[0]! : value
+/** "17 Sep 2026", or null when missing. */
+const formatDate = (value?: string | null, pattern = 'dd MMM yyyy') => {
+  const date = parseDate(value)
+  return date ? format(date, pattern) : null
 }
+
+const WEEK_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
 
 export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ isGlobalMode = false }) => {
   const navigate = useNavigate()
@@ -103,27 +87,30 @@ export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ is
   const backUrl = isGlobal ? '/global-settings/users' : '/admin/employees'
   const editUrl = isGlobal ? `/global-settings/edit-user/${id}` : `/admin/employees/edit/${id}`
 
-  const rolesList = useMemo(() => (user ? collectRoles(user) : []), [user])
-
   const shiftAssignments: EmployeeShiftAssignment[] = useMemo(() => {
     const rows = shiftsRes?.data
     return Array.isArray(rows) ? rows.filter((a) => !a.isDeleted) : []
   }, [shiftsRes])
 
+  const backLabel = isGlobal ? 'Back to Global Employee Directory' : 'Back to Employee Directory'
+  const backButton = (
+    <button
+      type="button"
+      onClick={() => navigate(backUrl)}
+      className="inline-flex cursor-pointer items-center gap-2 text-xs font-bold text-gray-600 transition-colors hover:text-[#005390]"
+    >
+      <ArrowLeft className="h-4 w-4" />
+      {backLabel}
+    </button>
+  )
+
   if (isLoading) {
     return (
       <div className="w-full space-y-6 pb-12">
-        <button
-          type="button"
-          onClick={() => navigate(backUrl)}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" />{' '}
-          {isGlobal ? 'Back to Global Employee Directory' : 'Back to Employee Directory'}
-        </button>
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-400 shadow-xl backdrop-blur-xl">
-          <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#005390]" />
-          Loading employee profile details...
+        {backButton}
+        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center text-sm text-gray-400">
+          <RefreshCw className="mx-auto mb-2 h-6 w-6 animate-spin text-[#005390]" />
+          Loading employee profile…
         </div>
       </div>
     )
@@ -135,15 +122,8 @@ export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ is
   if (errorMsg || !user) {
     return (
       <div className="w-full space-y-6 pb-12">
-        <button
-          type="button"
-          onClick={() => navigate(backUrl)}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" />{' '}
-          {isGlobal ? 'Back to Global Employee Directory' : 'Back to Employee Directory'}
-        </button>
-        <div className="rounded-3xl bg-rose-50 border border-rose-200 p-8 text-center text-xs text-rose-700 font-bold shadow-xs">
+        {backButton}
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center text-xs font-bold text-rose-700">
           {errorMsg || 'Employee profile not found.'}
         </div>
       </div>
@@ -182,439 +162,323 @@ export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ is
       .filter((p): p is { id: string; property_name: string } => !!p && !!p.id) ||
     []
 
+  const joinedOn = parseDate(profile?.dateOfJoining || profile?.date_of_joining)
+  const birthDate = parseDate(profile?.dateOfBirth || profile?.date_of_birth)
+  const weekOff = (profile?.weekOffDays || profile?.week_off_days || []).map((d) => String(d).toLowerCase())
+  const emergency = profile?.emergencyContact || profile?.emergency_contact
+  const consultantFee = profile?.consultantFee ?? profile?.consultant_fee
+  const hasConsultantFee = consultantFee != null && consultantFee !== ''
+  const initials = fullName
+    .split(/\s+/)
+    .map((part) => part.charAt(0))
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+
   return (
-    <div className="w-full space-y-6 pb-16">
-      <button
-        type="button"
-        onClick={() => navigate(backUrl)}
-        className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
-      >
-        <ArrowLeft className="w-4 h-4" />{' '}
-        {isGlobal ? 'Back to Global Employee Directory' : 'Back to Employee Directory'}
-      </button>
+    <div className="w-full space-y-5 pb-16">
+      {backButton}
 
-      {/* Hero */}
-      <div className="rounded-3xl border border-white/70 bg-white/90 p-6 md:p-8 shadow-xl backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-[#005390] to-sky-600 text-white flex items-center justify-center font-bold text-2xl shadow-md shrink-0 border-2 border-white overflow-hidden">
-            {photoUrl ? (
-              <img src={getFileUrl(photoUrl)} alt={fullName} className="w-full h-full object-cover" />
-            ) : (
-              fullName.charAt(0).toUpperCase()
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">{fullName}</h1>
-              {empCode && (
-                <span className="text-xs font-mono font-bold text-[#005390] bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded-lg border border-blue-200 dark:border-blue-800">
-                  {empCode}
-                </span>
-              )}
-              {user.username && (
-                <span className="text-xs font-mono font-semibold text-gray-500 bg-gray-50 dark:bg-gray-800 px-2 py-0.5 rounded-lg border border-gray-200 dark:border-gray-700">
-                  @{user.username}
-                </span>
+      {/* Summary: who this is and where they sit */}
+      <div className="rounded-2xl border border-gray-100 bg-white shadow-2xs dark:border-gray-800 dark:bg-slate-900">
+        <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between md:p-6">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#005390] to-sky-600 text-xl font-bold text-white shadow-sm">
+              {photoUrl ? (
+                <img src={getFileUrl(photoUrl)} alt={fullName} className="h-full w-full object-cover" />
+              ) : (
+                initials
               )}
             </div>
-
-            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-              {rolesList.length > 0 ? (
-                rolesList.map((r) => (
-                  <span
-                    key={r}
-                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-[#005390]/10 text-[#005390] border border-[#005390]/20"
-                  >
-                    <Shield className="w-3 h-3" />
-                    {r}
-                  </span>
-                ))
-              ) : (
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700 border border-gray-200">
-                  Staff
+            <div className="min-w-0 space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white md:text-2xl">{fullName}</h1>
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold',
+                    isActive
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                      : 'border-gray-200 bg-gray-100 text-gray-500',
+                  )}
+                >
+                  <span className={cn('h-1.5 w-1.5 rounded-full', isActive ? 'bg-emerald-500' : 'bg-gray-400')} />
+                  {isActive ? 'Active' : 'Inactive'}
                 </span>
-              )}
-
-              {isActive ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Active
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                  Inactive
-                </span>
-              )}
+              </div>
+              <p className="font-mono text-xs text-gray-500">{empCode || `@${user.username ?? ''}`}</p>
+              <RoleBadges user={user} />
             </div>
           </div>
-        </div>
 
-        {canUpdateEmployee && (
-          <div className="flex items-center gap-3 shrink-0 flex-wrap">
+          {canUpdateEmployee && (
             <Button
               variant="primary"
-              icon={<Edit className="w-4 h-4" />}
+              icon={<Edit className="h-4 w-4" />}
               onClick={() => navigate(editUrl)}
-              className="rounded-xl"
+              className="shrink-0 self-start rounded-xl sm:self-center"
             >
-              Edit Employee Profile
+              Edit Profile
             </Button>
-          </div>
-        )}
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 border-t border-gray-100 px-5 py-4 sm:grid-cols-2 lg:grid-cols-4 md:px-6 dark:border-gray-800">
+          <HeroFact
+            icon={Briefcase}
+            label="Department"
+            value={deptName ? `${deptName}${catName ? ` · ${catName}` : ''}` : <NotAdded />}
+          />
+          <HeroFact
+            icon={UserCheck}
+            label="Reports to"
+            value={
+              mgrName ? (
+                `${mgrName}${mgrCode ? ` (${mgrCode})` : ''}`
+              ) : (
+                <span className="font-normal text-gray-400">No manager assigned</span>
+              )
+            }
+          />
+          <HeroFact
+            icon={CalendarDays}
+            label="Joined"
+            value={
+              joinedOn ? (
+                <>
+                  {format(joinedOn, 'dd MMM yyyy')}
+                  <span className="ml-1 text-xs font-normal text-gray-500">
+                    ({joinedOn > new Date() ? 'starts soon' : formatDistanceToNowStrict(joinedOn)})
+                  </span>
+                </>
+              ) : (
+                <NotAdded />
+              )
+            }
+          />
+          <HeroFact
+            icon={Phone}
+            label="Phone"
+            value={
+              phone ? (
+                <a href={`tel:${phone}`} className="hover:text-[#005390]">
+                  {phone}
+                </a>
+              ) : (
+                <NotAdded />
+              )
+            }
+          />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Personal */}
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-3">
-            <UserCheck className="w-5 h-5 text-[#005390]" />
-            Personal Information
-          </h2>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="space-y-5 lg:col-span-2">
+          <Panel icon={Briefcase} title="Work details">
+            <InfoList
+              rows={[
+                ['Department', deptName ?? null],
+                ['Job category', catName ?? null],
+                ['Qualification', profile?.qualification || null],
+                ['Experience', profile?.experience ? `${profile.experience} year(s)` : null],
+                ...(hasConsultantFee
+                  ? ([['Consultant fee', `₹${String(consultantFee)}`]] as Array<[string, React.ReactNode]>)
+                  : []),
+                ...(user.specializations && user.specializations.length > 0
+                  ? ([
+                      [
+                        'Specializations',
+                        <div key="spec" className="flex flex-wrap gap-1.5">
+                          {user.specializations.map((sp) => (
+                            <span
+                              key={sp.id}
+                              className="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[11px] font-semibold text-teal-700"
+                            >
+                              {sp.name}
+                              {sp.isPrimary ? ' · Primary' : ''}
+                            </span>
+                          ))}
+                        </div>,
+                      ],
+                    ] as Array<[string, React.ReactNode]>)
+                  : []),
+                [
+                  'Weekly off',
+                  <div key="off" className="flex flex-wrap gap-1">
+                    {WEEK_DAYS.map((day) => {
+                      const off = weekOff.includes(day)
+                      return (
+                        <span
+                          key={day}
+                          title={off ? 'Day off' : 'Working day'}
+                          className={cn(
+                            'w-10 rounded-md border py-0.5 text-center text-[11px] font-semibold capitalize',
+                            off ? 'border-rose-200 bg-rose-50 text-rose-600' : 'border-gray-200 bg-white text-gray-500',
+                          )}
+                        >
+                          {day.slice(0, 3)}
+                        </span>
+                      )
+                    })}
+                  </div>,
+                ],
+              ]}
+            />
+            {weekOff.length === 0 && <p className="mt-1 text-[11px] text-gray-400">No weekly off days set.</p>}
+          </Panel>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Full Name</span>
-              <span className="font-bold text-gray-900 dark:text-white text-xs">{fullName}</span>
-            </div>
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Gender</span>
-              <span className="font-bold text-gray-900 dark:text-white text-xs">{profile?.gender || 'N/A'}</span>
-            </div>
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Date of Birth</span>
-              <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5 text-xs">
-                <Calendar className="w-3.5 h-3.5 text-[#005390]" />
-                {formatDate(profile?.dateOfBirth || profile?.date_of_birth)}
-              </span>
-            </div>
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Blood Group</span>
-              <span className="font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5 text-xs">
-                <HeartPulse className="w-3.5 h-3.5" />
-                {profile?.bloodGroup || profile?.blood_group || 'N/A'}
-              </span>
-            </div>
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700 sm:col-span-2">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Address</span>
-              <span className="font-bold text-gray-900 dark:text-white text-xs">{profile?.address || 'N/A'}</span>
-            </div>
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700 sm:col-span-2">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Weekoff Days</span>
-              <span className="font-bold text-gray-900 dark:text-white text-xs capitalize">
-                {(() => {
-                  const days = profile?.weekOffDays || profile?.week_off_days || []
-                  if (!Array.isArray(days) || days.length === 0) return 'None'
-                  return days.map((d) => String(d).slice(0, 3)).join(', ')
-                })()}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Contact */}
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-3">
-            <Phone className="w-5 h-5 text-[#005390]" />
-            Contact Details
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Email</span>
-              <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5 text-xs truncate">
-                <Mail className="w-3.5 h-3.5 text-[#005390] shrink-0" />
-                <span className="truncate">{user.email || 'N/A'}</span>
-              </span>
-            </div>
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Phone</span>
-              <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5 text-xs">
-                <Phone className="w-3.5 h-3.5 text-[#005390]" />
-                {phone || 'N/A'}
-              </span>
-            </div>
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700 sm:col-span-2">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Emergency Contact</span>
-              <span className="font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5 text-xs">
-                <Phone className="w-3.5 h-3.5" />
-                {profile?.emergencyContact || profile?.emergency_contact || 'N/A'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Professional */}
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-3">
-            <Briefcase className="w-5 h-5 text-[#005390]" />
-            Professional Information
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Department</span>
-              <span className="font-bold text-gray-900 dark:text-white text-xs">{deptName || 'N/A'}</span>
-            </div>
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Job Category</span>
-              <span className="font-bold text-gray-900 dark:text-white text-xs">{catName || 'N/A'}</span>
-            </div>
-            {(profile?.consultantFee != null && profile.consultantFee !== '') ||
-            (profile?.consultant_fee != null && profile.consultant_fee !== '') ? (
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-                <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Consultant Fee</span>
-                <span className="font-bold text-gray-900 dark:text-white text-xs">
-                  {String(profile?.consultantFee ?? profile?.consultant_fee)}
-                </span>
+          <Panel
+            icon={Clock}
+            title={`Shift roster${shiftAssignments.length ? ` (${shiftAssignments.length})` : ''}`}
+            action={
+              id && !isGlobal ? (
+                <Button
+                  variant="secondary"
+                  className="h-8 rounded-xl text-xs"
+                  onClick={() => navigate(`/admin/shift-roster-management/employees/${id}`)}
+                >
+                  View full roster
+                </Button>
+              ) : null
+            }
+          >
+            {shiftsLoading ? (
+              <div className="p-6 text-center text-xs text-gray-400">
+                <RefreshCw className="mx-auto mb-2 h-5 w-5 animate-spin text-[#005390]" />
+                Loading shifts…
               </div>
-            ) : null}
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Qualification</span>
-              <span className="font-bold text-gray-900 dark:text-white text-xs">{profile?.qualification || 'N/A'}</span>
-            </div>
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Experience</span>
-              <span className="font-bold text-gray-900 dark:text-white text-xs">
-                {profile?.experience ? `${profile.experience} year(s)` : 'N/A'}
-              </span>
-            </div>
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Date of Joining</span>
-              <span className="font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 text-xs">
-                <Clock className="w-3.5 h-3.5" />
-                {formatDate(profile?.dateOfJoining || profile?.date_of_joining)}
-              </span>
-            </div>
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Employee Code</span>
-              <span className="font-mono font-bold text-[#005390] text-xs">{empCode || 'N/A'}</span>
-            </div>
-            {user.specializations && user.specializations.length > 0 && (
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700 sm:col-span-2">
-                <span className="text-[10px] font-bold uppercase text-gray-400 block mb-2">Specializations</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {user.specializations.map((s) => (
-                    <span
-                      key={s.id}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-[#005390] border border-blue-200"
+            ) : shiftAssignments.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-gray-200 p-6 text-center text-xs text-gray-400">
+                No shifts assigned yet.
+              </p>
+            ) : (
+              <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+                {shiftAssignments.map((a) => {
+                  const shiftTime =
+                    a.shift?.startTime && a.shift?.endTime
+                      ? `${a.shift.startTime.slice(0, 5)} – ${a.shift.endTime.slice(0, 5)}`
+                      : a.slotTimeRange || null
+                  const locationParts: string[] = []
+                  if (a.area?.areaName) locationParts.push(a.area.areaName)
+                  if (a.block?.block_name) locationParts.push(a.block.block_name)
+                  if (a.floor?.floor_name || a.floor?.floor_number != null) {
+                    locationParts.push(a.floor.floor_name || `Floor ${a.floor.floor_number}`)
+                  }
+                  if (a.unit?.unit_number) locationParts.push(`Unit ${a.unit.unit_number}`)
+                  const from = formatDate(a.startDate, 'dd MMM')
+                  const to = formatDate(a.endDate, 'dd MMM yyyy')
+
+                  return (
+                    <li
+                      key={a.id}
+                      className="flex flex-col gap-1.5 py-3 sm:flex-row sm:items-center sm:justify-between"
                     >
-                      {s.name}
-                      {s.isPrimary ? ' (Primary)' : ''}
-                    </span>
-                  ))}
-                </div>
-              </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {a.shift?.name || 'Shift'}
+                          {shiftTime && (
+                            <span className="ml-2 font-mono text-xs font-medium text-gray-500">{shiftTime}</span>
+                          )}
+                        </p>
+                        {locationParts.length > 0 && (
+                          <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
+                            <MapPin className="h-3 w-3" />
+                            {locationParts.join(' · ')}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 flex-wrap items-center gap-1.5 text-[11px]">
+                        {(from || to) && (
+                          <span className="rounded-md bg-slate-100 px-2 py-0.5 font-semibold text-slate-700">
+                            {from ?? '…'} → {to ?? '…'}
+                          </span>
+                        )}
+                        {a.workingDays && a.workingDays.length > 0 && (
+                          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-600">
+                            {a.workingDays.length} days/week
+                          </span>
+                        )}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
             )}
-          </div>
+          </Panel>
         </div>
 
-        {/* Assignment */}
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-3">
-            <Users className="w-5 h-5 text-[#005390]" />
-            Assignment Summary
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700 sm:col-span-2">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Reporting Manager</span>
-              {mgrName ? (
-                <div>
-                  <span className="font-bold text-[#005390] text-xs">{mgrName}</span>
-                  {mgrCode && <span className="block text-[10px] text-gray-400 font-mono mt-0.5">Code: {mgrCode}</span>}
-                </div>
-              ) : (
-                <span className="font-medium text-gray-400 text-xs">Unassigned</span>
-              )}
-            </div>
-
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700 sm:col-span-2">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-2">Assigned Roles</span>
-              <div className="flex flex-wrap gap-1.5">
-                {rolesList.length > 0 ? (
-                  rolesList.map((r) => (
-                    <span
-                      key={r}
-                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#005390]/10 text-[#005390] border border-[#005390]/20"
-                    >
-                      <Shield className="w-3 h-3" />
-                      {r}
+        <div className="space-y-5">
+          <Panel icon={Phone} title="Contact">
+            <InfoList
+              rows={[
+                [
+                  'Email',
+                  user.email ? (
+                    <a href={`mailto:${user.email}`} className="flex items-center gap-1.5 hover:text-[#005390]">
+                      <Mail className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                      <span className="truncate">{user.email}</span>
+                    </a>
+                  ) : null,
+                ],
+                ['Phone', phone || null],
+                [
+                  'Emergency',
+                  emergency ? (
+                    <span className="flex items-center gap-1.5">
+                      <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                      {emergency}
                     </span>
-                  ))
-                ) : (
-                  <span className="text-gray-400 text-[10px]">No roles assigned</span>
-                )}
-              </div>
-            </div>
+                  ) : null,
+                ],
+              ]}
+            />
+          </Panel>
 
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700 sm:col-span-2">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-2">Assigned Properties</span>
-              {assignedProperties.length > 0 ? (
+          <Panel icon={User} title="Personal">
+            <InfoList
+              rows={[
+                ['Gender', profile?.gender ? <span className="capitalize">{profile.gender.toLowerCase()}</span> : null],
+                [
+                  'Date of birth',
+                  birthDate
+                    ? `${format(birthDate, 'dd MMM yyyy')} (${differenceInYears(new Date(), birthDate)} yrs)`
+                    : null,
+                ],
+                ['Blood group', profile?.bloodGroup || profile?.blood_group || null],
+                ['Address', profile?.address || null],
+              ]}
+            />
+          </Panel>
+
+          <Panel icon={KeyRound} title="Account">
+            <InfoList
+              rows={[
+                ['Username', user.username ? <span className="font-mono text-xs">{user.username}</span> : null],
+                ['Created', formatDate(user.createdAt)],
+                [
+                  'Last login',
+                  formatDate(lastLogin, 'dd MMM yyyy, h:mm a') ?? (
+                    <span className="font-normal text-gray-400">Never</span>
+                  ),
+                ],
+              ]}
+            />
+            {assignedProperties.length > 0 && (
+              <div className="mt-3 border-t border-gray-100 pt-3 dark:border-gray-800">
+                <p className="mb-2 text-xs text-gray-500">Properties</p>
                 <div className="flex flex-wrap gap-1.5">
                   {assignedProperties.map((p) => (
                     <span
                       key={p.id}
-                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-gray-700 border border-gray-200"
+                      className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-gray-700"
                     >
-                      <Building2 className="w-3 h-3 text-[#005390]" />
+                      <Building2 className="h-3 w-3 text-[#005390]" />
                       {p.property_name}
                     </span>
                   ))}
                 </div>
-              ) : (
-                <span className="text-gray-400 text-[10px]">No properties assigned</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Account */}
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4 md:col-span-2">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-3">
-            <Shield className="w-5 h-5 text-[#005390]" />
-            Account Summary
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Status</span>
-              <span
-                className={`font-bold text-xs ${isActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}
-              >
-                {user.status || (isActive ? 'ACTIVE' : 'INACTIVE')}
-              </span>
-            </div>
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Username</span>
-              <span className="font-mono font-bold text-[#005390] text-xs">{user.username || 'N/A'}</span>
-            </div>
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Created At</span>
-              <span className="font-bold text-gray-900 dark:text-white text-xs">{formatDate(user.createdAt)}</span>
-            </div>
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Last Login</span>
-              <span className="font-bold text-gray-900 dark:text-white text-xs">{formatDate(lastLogin)}</span>
-            </div>
-          </div>
-
-          {user.userLocations && user.userLocations.length > 0 && (
-            <div className="pt-2">
-              <span className="text-[10px] font-bold uppercase text-gray-400 block mb-2">Location Role Mappings</span>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {user.userLocations.map((ul) => {
-                  const loc = ul as LocationRec
-                  const propName = loc.property?.property_name || loc.property?.name || loc.departmentName || 'Location'
-                  const roleName = loc.role?.name || loc.role?.code || 'Staff'
-                  const dName = loc.department?.name || loc.departmentName
-                  const cName = loc.jobCategory?.name || loc.jobCategoryName
-                  return (
-                    <div
-                      key={ul.id}
-                      className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700 text-xs space-y-1"
-                    >
-                      <div className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-                        <Building2 className="w-3.5 h-3.5 text-[#005390]" />
-                        {propName}
-                      </div>
-                      <div className="text-[10px] text-gray-500">
-                        Role: <span className="font-semibold text-[#005390]">{roleName}</span>
-                        {dName ? ` · ${dName}` : ''}
-                        {cName ? ` · ${cName}` : ''}
-                      </div>
-                    </div>
-                  )
-                })}
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Roster */}
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4 md:col-span-2">
-          <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3 gap-3 flex-wrap">
-            <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <CalendarDays className="w-5 h-5 text-[#005390]" />
-              Shift Roster
-            </h2>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-[#005390] bg-blue-50 dark:bg-blue-950 px-3 py-1 rounded-full border border-blue-200 dark:border-blue-800">
-                {shiftAssignments.length} Assignment(s)
-              </span>
-              {id && !isGlobal && (
-                <Button
-                  variant="secondary"
-                  className="rounded-xl h-8 text-xs"
-                  onClick={() => navigate(`/admin/shift-roster-management/employees/${id}`)}
-                >
-                  View Full Roster
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {shiftsLoading ? (
-            <div className="p-8 text-center text-xs text-gray-400">
-              <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-[#005390]" />
-              Loading roster assignments...
-            </div>
-          ) : shiftAssignments.length === 0 ? (
-            <div className="p-8 text-center text-xs text-gray-400 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
-              No shift roster assignments created for this employee.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {shiftAssignments.map((a) => {
-                const shiftName = a.shift?.name || 'Shift'
-                const shiftTime =
-                  a.shift?.startTime && a.shift?.endTime
-                    ? `${a.shift.startTime} – ${a.shift.endTime}`
-                    : a.slotTimeRange || null
-                const locationParts: string[] = []
-                if (a.area?.areaName) locationParts.push(a.area.areaName)
-                if (a.block?.block_name) locationParts.push(a.block.block_name)
-                if (a.floor?.floor_name || a.floor?.floor_number != null) {
-                  locationParts.push(a.floor.floor_name || `Floor ${a.floor.floor_number}`)
-                }
-                if (a.unit?.unit_number) locationParts.push(`Unit ${a.unit.unit_number}`)
-                const locationLabel = locationParts.join(' · ') || null
-
-                return (
-                  <div
-                    key={a.id}
-                    className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-gray-700 text-xs space-y-2"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="font-bold text-gray-900 dark:text-white truncate">{shiftName}</div>
-                        {shiftTime && <div className="text-[10px] text-gray-500 mt-0.5">{shiftTime}</div>}
-                      </div>
-                      <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#005390]/10 text-[#005390] border border-[#005390]/20">
-                        <CalendarDays className="w-3 h-3" />
-                        Roster
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 text-[10px] text-gray-500">
-                      <span className="px-2 py-0.5 rounded-md bg-white border border-gray-200 font-semibold">
-                        {formatDate(a.startDate)} → {formatDate(a.endDate)}
-                      </span>
-                      {locationLabel && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-gray-200">
-                          <Building2 className="w-3 h-3 text-[#005390]" />
-                          {locationLabel}
-                        </span>
-                      )}
-                      {a.workingDays && a.workingDays.length > 0 && (
-                        <span className="px-2 py-0.5 rounded-md bg-white border border-gray-200">
-                          {a.workingDays.length} working day(s)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+            )}
+          </Panel>
         </div>
       </div>
     </div>

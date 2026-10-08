@@ -4,8 +4,9 @@ import { Controller, useFieldArray, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format, startOfDay } from 'date-fns'
-import { ArrowLeft, BarChart3, CalendarIcon, Info, Lock, Plus, Save, Send } from 'lucide-react'
+import { BarChart3, CalendarIcon, ClipboardList, Info, Lock, Plus, Save, Send } from 'lucide-react'
 import { toast } from 'sonner'
+import { PageHeader } from '@/components/common/PageHeader'
 import PageLoader from '@/components/shared/PageLoader'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -176,21 +177,15 @@ const FormBuilder = () => {
   if (existing && !existing.isEditable) {
     return (
       <div className="space-y-6">
-        <div className="flex items-start gap-3">
-          <Button variant="ghost" size="sm" aria-label="Back" onClick={() => navigate(BACK_TO_LIST)}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{existing.title}</h1>
-              <FormStatusBadge form={existing} />
-            </div>
-            <p className="text-sm md:text-base text-gray-600 mt-1">
-              Expires {format(new Date(existing.expiryDate), 'dd MMM yyyy')}
-              {existing.sentAt && ` · Sent ${format(new Date(existing.sentAt), 'dd MMM yyyy, h:mm a')}`}
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={ClipboardList}
+          title={existing.title}
+          description={`Expires ${format(new Date(existing.expiryDate), 'dd MMM yyyy')}${
+            existing.sentAt ? ` · Sent ${format(new Date(existing.sentAt), 'dd MMM yyyy, h:mm a')}` : ''
+          }`}
+          onBack={() => navigate(BACK_TO_LIST)}
+          actions={<FormStatusBadge form={existing} />}
+        />
 
         <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center">
           <Lock className="h-5 w-5 shrink-0 text-amber-600" />
@@ -251,22 +246,13 @@ const FormBuilder = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex flex-1 items-start gap-3">
-          <Button variant="ghost" size="sm" aria-label="Back" onClick={() => navigate(BACK_TO_LIST)}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-              {isEdit ? 'Edit Feedback Form' : 'Create Feedback Form'}
-            </h1>
-            <p className="text-sm md:text-base text-gray-600 mt-1">
-              Add questions, then send the form to residents, employees or both
-            </p>
-          </div>
-        </div>
-        {actionButtons}
-      </div>
+      <PageHeader
+        icon={ClipboardList}
+        title={isEdit ? 'Edit Feedback Form' : 'Create Feedback Form'}
+        description="Add questions, then send the form to residents, employees or both."
+        onBack={() => navigate(BACK_TO_LIST)}
+        actions={actionButtons}
+      />
 
       {isSent && existing && (
         <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
