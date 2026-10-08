@@ -23,6 +23,7 @@ export type RosterAreaType =
 export interface ShiftV2 {
   id: string
   name: string
+  shiftCode: string
   description: string
   startTime: string
   endTime: string
@@ -40,6 +41,7 @@ export interface ShiftV2 {
 
 export interface CreateShiftPayload {
   name: string
+  shiftCode?: string
   description?: string | null
   startTime: string
   endTime: string
@@ -74,6 +76,7 @@ export interface EmployeeShiftAssignment {
   shift?: {
     id: string
     name: string
+    shiftCode?: string
     startTime: string
     endTime: string
   }
@@ -160,7 +163,7 @@ export interface ShiftEmployeeDate {
       email?: string
       profile?: { firstName?: string; lastName?: string }
     }
-    shift?: { id: string; name: string; startTime: string; endTime: string }
+    shift?: { id: string; name: string; shiftCode?: string; startTime: string; endTime: string }
     area?: { id: string; areaName: string }
     block?: { id: string; block_name?: string }
     floor?: { id: string; floor_name?: string | null; floor_number?: number }
