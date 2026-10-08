@@ -1,6 +1,6 @@
 import api from '@/lib/api/axios'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
-import type { CreatePropertyPayload, Property } from '@/lib/types'
+import type { CreatePropertyPayload, EntityInput, Property, UnitOption } from '@/lib/types'
 
 export const getPropertiesAPI = async (companyId?: string): Promise<Property[]> => {
   const url = companyId ? `${API_ENDPOINTS.property.getAll}?companyId=${companyId}` : API_ENDPOINTS.property.getAll
@@ -25,4 +25,10 @@ export const updatePropertyAPI = async (id: string, payload: Partial<CreatePrope
 
 export const deletePropertyAPI = async (id: string): Promise<void> => {
   await api.delete(API_ENDPOINTS.property.delete(id))
+}
+
+/** Every unit of a property with readable labels, plus its structure without hidden levels. */
+export const getUnitPickerAPI = async (id: string): Promise<{ entities: EntityInput[]; units: UnitOption[] }> => {
+  const response = await api.get(API_ENDPOINTS.property.unitPicker(id))
+  return response.data.data
 }

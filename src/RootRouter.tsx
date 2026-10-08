@@ -9,6 +9,7 @@ import GlobalSettingsPage from '@/pages/GlobalSettings'
 import LoginPage from '@/pages/Login'
 import PropertyPage from '@/pages/Property'
 import CreatePropertyPage from '@/pages/Property/CreatePropertyPage'
+import PropertyDetailsPage from '@/pages/Property/PropertyDetailsPage'
 import ResidentPage, { ResidentBillingPage } from '@/pages/Resident'
 import SectionPage from '@/pages/SectionPage'
 import SetupPage from '@/pages/Setup'
@@ -56,6 +57,7 @@ export default function RootRouter() {
         <Route path="property" element={<PropertyPage />} />
         <Route path="property/create" element={<CreatePropertyPage />} />
         <Route path="property/edit/:id" element={<CreatePropertyPage />} />
+        <Route path="property/:id" element={<PropertyDetailsPage />} />
         <Route
           path="global-settings/inventory/*"
           element={

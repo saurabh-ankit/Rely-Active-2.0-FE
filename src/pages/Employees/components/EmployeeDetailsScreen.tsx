@@ -25,6 +25,7 @@ import { RoleBadges } from '@/components/employees/EmployeeCells'
 import { HeroFact, InfoList, NotAdded, Panel } from '@/components/common/DetailPanel'
 import { cn, getFileUrl } from '@/lib/utils'
 import type { EmployeeShiftAssignment } from '@/lib/types/roster'
+import { floorLabel } from '@/utils/unitLabel'
 
 interface LocationRec {
   locId?: string
@@ -360,9 +361,8 @@ export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ is
                   const locationParts: string[] = []
                   if (a.area?.areaName) locationParts.push(a.area.areaName)
                   if (a.block?.block_name) locationParts.push(a.block.block_name)
-                  if (a.floor?.floor_name || a.floor?.floor_number != null) {
-                    locationParts.push(a.floor.floor_name || `Floor ${a.floor.floor_number}`)
-                  }
+                  const floorText = floorLabel(a.floor)
+                  if (floorText) locationParts.push(floorText)
                   if (a.unit?.unit_number) locationParts.push(`Unit ${a.unit.unit_number}`)
                   const from = formatDate(a.startDate, 'dd MMM')
                   const to = formatDate(a.endDate, 'dd MMM yyyy')

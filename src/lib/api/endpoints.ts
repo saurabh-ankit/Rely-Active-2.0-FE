@@ -30,6 +30,7 @@ export const API_ENDPOINTS = {
   property: {
     getAll: `${BASE_URL}/property`,
     getById: (id: string) => `${BASE_URL}/property/${id}`,
+    unitPicker: (id: string) => `${BASE_URL}/property/${id}/unit-picker`,
     create: `${BASE_URL}/property`,
     update: (id: string) => `${BASE_URL}/property/${id}`,
     delete: (id: string) => `${BASE_URL}/property/${id}`,

@@ -26,6 +26,7 @@ import {
   useDeleteResidentPool,
   useListResidentPools,
 } from '@/hooks/react-query/roster'
+import { floorLabel } from '@/utils/unitLabel'
 
 type OccupiedFlatOption = {
   id: string
@@ -43,7 +44,7 @@ const formatPoolUnitLabel = (unit?: {
 }) => {
   if (!unit) return null
   const block = unit.floor?.block?.block_name
-  const floor = unit.floor?.floor_name || (unit.floor?.floor_number != null ? `Floor ${unit.floor.floor_number}` : null)
+  const floor = floorLabel(unit.floor)
   const unitNumber = unit.unit_number
   return [block, floor, unitNumber].filter(Boolean).join(' · ') || null
 }
@@ -104,8 +105,7 @@ const ResidentAssignment = () => {
         for (const unit of floor.units || []) {
           if (!unit.id || !unit.unit_number) continue
           if (!isOccupiedStatus(unit.occupancyStatus || unit.occupancy_status)) continue
-          const floorLabel = floor.floor_name || (floor.floor_number != null ? `Floor ${floor.floor_number}` : null)
-          const label = [block.block_name, floorLabel, unit.unit_number].filter(Boolean).join(' · ')
+          const label = [block.block_name, floorLabel(floor), unit.unit_number].filter(Boolean).join(' · ')
           options.push({ id: unit.id, label: label || unit.unit_number })
         }
       }

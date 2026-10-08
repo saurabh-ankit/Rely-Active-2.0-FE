@@ -19,6 +19,7 @@ import { useLocationContext } from '@/hooks/useLocation'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { isHiddenFloor } from '@/utils/unitLabel'
 
 interface OrderDetail {
   id: string
@@ -303,10 +304,11 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
       )
     }
 
-    const fName =
-      unitObj.floor?.floor_name ||
-      unitObj.floor?.name ||
-      (unitObj.floor?.floor_number !== undefined ? `Floor ${unitObj.floor.floor_number}` : '')
+    const fName = isHiddenFloor(unitObj.floor)
+      ? ''
+      : unitObj.floor?.floor_name ||
+        unitObj.floor?.name ||
+        (unitObj.floor?.floor_number !== undefined ? `Floor ${unitObj.floor.floor_number}` : '')
     if (fName) {
       parts.push(fName.toLowerCase().startsWith('floor') ? fName : `Floor ${fName}`)
     }

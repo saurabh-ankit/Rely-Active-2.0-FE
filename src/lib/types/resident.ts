@@ -66,6 +66,10 @@ export interface ResidentItem {
       id: string
       floor_number: number
       floor_name?: string | null
+      floor_type?: string | null
+      /** Hidden floor of an entity without floors (villas, plots…). */
+      is_virtual?: boolean
+      block?: { id: string; block_name: string; is_virtual?: boolean; entityId?: string | null } | null
     }
   }
   familyMembers?: ResidentFamilyMember[]

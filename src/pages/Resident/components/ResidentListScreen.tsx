@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/pagination'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { cn, getFileUrl } from '@/lib/utils'
+import { floorLabel as floorText } from '@/utils/unitLabel'
 
 interface FlatGroup {
   unitId: string
@@ -192,10 +193,8 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
     map.forEach((occupants, unitId) => {
       const firstOcc = occupants[0]
       const firstUnit = firstOcc?.unit
-      const floorNum = firstUnit?.floor?.floor_number
-      const floorLabel =
-        firstUnit?.floor?.floor_name ||
-        (floorNum ? (floorNum === 1 ? 'Ground Floor' : `Floor ${floorNum}`) : 'Main Level')
+      // "Tower B · Floor 2", or just "Villas" for entities without floors
+      const floorLabel = [firstUnit?.floor?.block?.block_name, floorText(firstUnit?.floor)].filter(Boolean).join(' · ')
       const unitNumber = firstUnit?.unit_number ? `Unit ${firstUnit.unit_number}` : 'Unassigned Flat'
       const propertyName = firstOcc?.property?.property_name || firstOcc?.property?.name || 'Property'
 

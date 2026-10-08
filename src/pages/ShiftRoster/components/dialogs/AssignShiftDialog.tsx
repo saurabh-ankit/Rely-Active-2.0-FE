@@ -64,6 +64,7 @@ import {
   useListShifts,
 } from '@/hooks/react-query/roster'
 import EmployeeAvailabilityDialog from './EmployeeAvailabilityDialog'
+import { floorLabel } from '@/utils/unitLabel'
 
 interface AssignShiftDialogProps {
   open: boolean
@@ -232,13 +233,13 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
     const selectedFloors = availableFloors.filter((f) => floorIds.includes(f.id))
     const flats: FlatOption[] = []
     for (const floor of selectedFloors) {
-      const floorLabel = floor.floor_name || `Floor ${floor.floor_number}`
+      const floorText = floorLabel(floor)
       for (const unit of floor.units || []) {
         flats.push({
           id: unit.id,
           unit_number: unit.unit_number,
           floorId: floor.id,
-          floorLabel: `${floor.blockName} · ${floorLabel}`,
+          floorLabel: [floor.blockName, floorText].filter(Boolean).join(' · '),
         })
       }
     }
@@ -912,9 +913,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                               items={availableFloors}
                               value={selected}
                               onValueChange={(vals: FloorOption[]) => field.onChange(vals.map((f) => f.id))}
-                              itemToStringLabel={(item) =>
-                                `${item.blockName} · ${item.floor_name || `Floor ${item.floor_number}`}`
-                              }
+                              itemToStringLabel={(item) => `${item.blockName} · ${floorLabel(item) ?? 'All units'}`}
                               isItemEqualToValue={(a, b) => a.id === b.id}
                             >
                               <ComboboxChips ref={floorChipsAnchor} className="w-full min-h-9 rounded-md">
@@ -925,7 +924,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                                 )}
                                 {selected.map((f) => (
                                   <ComboboxChip key={f.id}>
-                                    {f.blockName} · {f.floor_name || `Floor ${f.floor_number}`}
+                                    {f.blockName} · {floorLabel(f) ?? 'All units'}
                                   </ComboboxChip>
                                 ))}
                                 <ComboboxTrigger className="ml-auto shrink-0 self-center" />
@@ -940,7 +939,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                                 <ComboboxList className="max-h-60">
                                   {(f: FloorOption) => (
                                     <ComboboxItem key={f.id} value={f}>
-                                      {f.blockName} · {f.floor_name || `Floor ${f.floor_number}`}
+                                      {f.blockName} · {floorLabel(f) ?? 'All units'}
                                     </ComboboxItem>
                                   )}
                                 </ComboboxList>

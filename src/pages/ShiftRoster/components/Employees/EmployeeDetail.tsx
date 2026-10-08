@@ -42,6 +42,7 @@ import {
   useListShiftEmployeeDates,
   useUnmarkDayOff,
 } from '@/hooks/react-query/roster'
+import { floorLabel } from '@/utils/unitLabel'
 
 const ROSTER_PAGE_SIZE = 9
 const ALL_STATUS = 'all'
@@ -71,9 +72,8 @@ const buildLocationLabel = (assignment?: EmployeeShiftAssignment | null): string
   if (assignment.area?.areaName) return assignment.area.areaName
   const parts: string[] = []
   if (assignment.block?.block_name) parts.push(assignment.block.block_name)
-  if (assignment.floor) {
-    parts.push(assignment.floor.floor_name || `Floor ${assignment.floor.floor_number}`)
-  }
+  const floorText = floorLabel(assignment.floor)
+  if (floorText) parts.push(floorText)
   if (assignment.unit?.unit_number) parts.push(assignment.unit.unit_number)
   else if (assignment.floorId && !assignment.unitId) parts.push('Entire floor')
   else if (assignment.blockId && !assignment.floorId) parts.push('Entire block')

@@ -5,6 +5,7 @@ import type { ResidentItem } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { InfoList, Panel } from '@/components/common/DetailPanel'
 import { cn, getFileUrl } from '@/lib/utils'
+import { unitLocationLabel } from '@/utils/unitLabel'
 
 export interface FnbSubscriptionItem {
   id: string
@@ -136,10 +137,6 @@ export const ResidentPersonalDetailsTab: React.FC<ResidentPersonalDetailsTabProp
   onAssignFoodPackage,
 }) => {
   const unit = resident.unit
-  const floor = unit?.floor
-  const floorNum = floor?.floor_number
-  const floorLabel =
-    floor?.floor_name || (floorNum ? (floorNum === 1 ? 'Ground Floor' : `Floor ${floorNum}`) : 'Main Level')
   const propertyName = resident.property?.property_name || resident.property?.name || null
   const familyMembers = resident.familyMembers || []
   const primarySub = fnbSubscriptions.find((s) => !s.familyMemberId && (!s.familyMember || !s.familyMember.id))
@@ -152,7 +149,7 @@ export const ResidentPersonalDetailsTab: React.FC<ResidentPersonalDetailsTabProp
           <InfoList
             rows={[
               ['Property', propertyName],
-              ['Flat', unit?.unit_number ? `Unit ${unit.unit_number} · ${floorLabel}` : null],
+              ['Flat', unit?.unit_number ? unitLocationLabel(unit) : null],
               ['Layout', unit?.unit_type || null],
               ['Flat occupancy', humanize(unit?.occupancyStatus)],
               ['Moved in', formatDate(resident.moveInDate)],
