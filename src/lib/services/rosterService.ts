@@ -133,6 +133,11 @@ export const listShiftEmployeeDatesAPI = async (
     date?: string
     status?: string
     includeDeleted?: string
+    /** One employee's own dates plus dates they cover. */
+    employeeId?: string
+    /** Inclusive yyyy-MM-dd range. */
+    from?: string
+    to?: string
   },
 ) => {
   const url = formatUrl(API_ENDPOINTS.shiftRoster.listShiftEmployeeDates, locationId)

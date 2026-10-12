@@ -80,6 +80,9 @@ export const API_ENDPOINTS = {
     updateProperties: (id: string) => `${BASE_URL}/users/${id}/properties`,
     updatePermissions: (id: string) => `${BASE_URL}/users/${id}/permissions`,
     getAccessibleProperties: `${BASE_URL}/users/accessible-properties`,
+    activitySummary: (id: string) => `${BASE_URL}/users/${id}/activity/summary`,
+    activityRecords: (id: string) => `${BASE_URL}/users/${id}/activity/records`,
+    activityWorkLog: (id: string) => `${BASE_URL}/users/${id}/activity/work-log`,
   },
 
   rbac: {

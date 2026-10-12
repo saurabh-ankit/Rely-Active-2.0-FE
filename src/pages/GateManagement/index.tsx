@@ -25,6 +25,7 @@ import {
   addGateEntryItems,
 } from '@/lib/services/gateService'
 import type { GateEntry, GatePreapproved, GateStats } from '@/lib/types'
+import type { GateStaffUser } from '@/lib/types/gate'
 import { PageHeader } from '@/components/common/PageHeader'
 
 interface StatCardProps {
@@ -47,6 +48,94 @@ const StatCard = ({ title, value, icon: Icon, colorClass }: StatCardProps) => (
     </div>
   </div>
 )
+
+const staffUserName = (u?: GateStaffUser | null) =>
+  u ? `${u.profile?.firstName ?? ''} ${u.profile?.lastName ?? ''}`.trim() || u.username || u.email || 'Staff' : ''
+
+const APPROVER_BADGES: Record<string, { label: string; cls: string }> = {
+  RESIDENT: { label: 'Resident', cls: 'bg-violet-50 text-violet-700 border-violet-200' },
+  FAMILY_MEMBER: { label: 'Family member', cls: 'bg-violet-50 text-violet-700 border-violet-200' },
+  STAFF: { label: 'Staff', cls: 'bg-sky-50 text-sky-700 border-sky-200' },
+}
+
+/** Who approved (or rejected) the entry, what kind of person they are, and when. */
+const ApprovedByCell = ({ entry }: { entry: GateEntry }) => {
+  // A pre-approved pass is approved by the resident who raised it (see Raised By); only a
+  // staff decision at the gate (e.g. rejecting the pass) is shown here.
+  if (entry.entrySource === 'Preapproved' && entry.approverType !== 'STAFF') {
+    return <span className="text-gray-400">— Pre-approved</span>
+  }
+  if (!entry.approverType) {
+    return entry.status === 'PendingApproval' ? (
+      <span className="font-semibold text-purple-700">Awaiting approval</span>
+    ) : (
+      <span className="text-gray-400">Not recorded</span>
+    )
+  }
+  const badge = APPROVER_BADGES[entry.approverType]
+  return (
+    <div className="space-y-1">
+      <p className="font-bold text-gray-900">{entry.approverName || 'Unknown'}</p>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {badge && (
+          <span className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${badge.cls}`}>{badge.label}</span>
+        )}
+        {entry.status === 'Rejected' && <span className="text-[10px] font-bold text-red-600">Rejected</span>}
+      </div>
+      {entry.approvedAt && (
+        <p className="text-[11px] text-gray-500 whitespace-nowrap">{new Date(entry.approvedAt).toLocaleString()}</p>
+      )}
+    </div>
+  )
+}
+
+const personName = (p?: { firstName?: string; lastName?: string | null } | null) =>
+  p ? `${p.firstName ?? ''} ${p.lastName ?? ''}`.trim() : ''
+
+const PersonBadge = ({ type }: { type?: string | null }) => {
+  const badge = type ? APPROVER_BADGES[type] : undefined
+  return badge ? (
+    <span className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${badge.cls}`}>{badge.label}</span>
+  ) : null
+}
+
+/** Who raised the entry: the resident behind a pre-approval, or the guard who raised a walk-in. */
+const RaisedByCell = ({ entry }: { entry: GateEntry }) => {
+  const r = entry.raisedBy
+  if (!r) return <span className="text-gray-400">Not recorded</span>
+  return (
+    <div className="space-y-1">
+      <p className="font-bold text-gray-900">{r.name || 'Unknown'}</p>
+      <PersonBadge type={r.type} />
+      {r.type === 'FAMILY_MEMBER' && r.residentName && (
+        <p className="text-[11px] text-gray-500">Household of {r.residentName}</p>
+      )}
+      {entry.createdAt && (
+        <p className="text-[11px] text-gray-500 whitespace-nowrap">
+          {/* A pre-approval was raised when the resident made the pass, not when the visitor arrived. */}
+          {new Date(entry.preapproved?.createdAt || entry.createdAt).toLocaleString()}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** The resident (or family member) who made the pre-approval. */
+const PreapprovedByCell = ({ preapproved }: { preapproved: GatePreapproved }) => {
+  const resident = personName(preapproved.resident)
+  const member = personName(preapproved.createdByFamilyMember)
+  if (!resident && !member) return <span className="text-gray-400">Not recorded</span>
+  return (
+    <div className="space-y-1">
+      <p className="font-bold text-gray-900">{member || resident}</p>
+      <PersonBadge type={member ? 'FAMILY_MEMBER' : 'RESIDENT'} />
+      {member && resident && <p className="text-[11px] text-gray-500">Household of {resident}</p>}
+      {preapproved.unit?.unit_number && (
+        <p className="text-[11px] text-gray-500">Flat {preapproved.unit.unit_number}</p>
+      )}
+    </div>
+  )
+}
 
 export default function GateManagementPage() {
   const { selectedLocationId, hasResourcePermission } = useLocationContext()
@@ -299,7 +388,7 @@ export default function GateManagementPage() {
                 : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-transparent'
             }`}
           >
-            Pre-Approved (L1 App)
+            Pre-Approved (by Resident)
           </button>
         </div>
 
@@ -315,6 +404,8 @@ export default function GateManagementPage() {
                   <th className="pb-3 px-2 font-semibold">Type</th>
                   <th className="pb-3 px-2 font-semibold">Source</th>
                   <th className="pb-3 px-2 font-semibold">Status</th>
+                  <th className="pb-3 px-2 font-semibold">Raised By</th>
+                  <th className="pb-3 px-2 font-semibold">Approved By</th>
                   <th className="pb-3 px-2 font-semibold">Time</th>
                   <th className="pb-3 px-2 font-semibold">Actions</th>
                 </tr>
@@ -322,7 +413,7 @@ export default function GateManagementPage() {
               <tbody className="divide-y divide-gray-100">
                 {filteredEntries.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-sm text-gray-500 font-medium">
+                    <td colSpan={9} className="py-8 text-center text-sm text-gray-500 font-medium">
                       No entries found
                     </td>
                   </tr>
@@ -401,22 +492,6 @@ export default function GateManagementPage() {
                             </span>
                           </div>
                         )}
-                        {(entry.createdByUser as any) && (
-                          <div>
-                            <span className="font-semibold text-gray-500 text-[10px] uppercase">Requested By:</span>{' '}
-                            <span className="text-gray-700 text-xs">
-                              {(entry.createdByUser as any).username || (entry.createdByUser as any).email}
-                            </span>
-                          </div>
-                        )}
-                        {(entry.approvedByUser as any) && (
-                          <div>
-                            <span className="font-semibold text-gray-500 text-[10px] uppercase">Approved By:</span>{' '}
-                            <span className="text-gray-700 text-xs">
-                              {(entry.approvedByUser as any).username || (entry.approvedByUser as any).email}
-                            </span>
-                          </div>
-                        )}
                         {entry.items && (entry.items as any[]).length > 0 && (
                           <div className="mt-2 bg-white rounded border border-gray-200 p-1.5 shadow-sm">
                             <p className="text-[10px] uppercase font-bold text-gray-400 mb-1 border-b pb-0.5">
@@ -454,8 +529,6 @@ export default function GateManagementPage() {
                           !entry.vehicleNumber &&
                           !entry.personToMeet &&
                           !entry.notes &&
-                          !entry.createdByUser &&
-                          !entry.approvedByUser &&
                           (!entry.items || (entry.items as any[]).length === 0) &&
                           !entry.preapproved?.scheduleType && <span className="text-gray-400">-</span>}
                       </td>
@@ -489,14 +562,27 @@ export default function GateManagementPage() {
                           {entry.status}
                         </span>
                       </td>
+                      <td className="py-4 px-2 text-xs">
+                        <RaisedByCell entry={entry} />
+                      </td>
+                      <td className="py-4 px-2 text-xs">
+                        <ApprovedByCell entry={entry} />
+                      </td>
                       <td className="py-4 px-2 text-xs text-gray-600 font-medium">
                         {entry.createdAt && (
                           <div className="text-blue-600 mb-1 font-semibold whitespace-nowrap">
                             Entry: {new Date(entry.createdAt).toLocaleString()}
                           </div>
                         )}
-                        {entry.clockedInAt ? `In: ${new Date(entry.clockedInAt).toLocaleTimeString()}` : '-'} <br />
+                        {entry.clockedInAt ? `In: ${new Date(entry.clockedInAt).toLocaleTimeString()}` : '-'}
+                        {entry.clockedInAt && entry.clockedInByUser && (
+                          <span className="text-gray-400"> by {staffUserName(entry.clockedInByUser)}</span>
+                        )}
+                        <br />
                         {entry.clockedOutAt ? `Out: ${new Date(entry.clockedOutAt).toLocaleTimeString()}` : ''}
+                        {entry.clockedOutAt && entry.clockedOutByUser && (
+                          <span className="text-gray-400"> by {staffUserName(entry.clockedOutByUser)}</span>
+                        )}
                       </td>
                       <td className="py-4 px-2">
                         {canUpdateGNS && entry.status === 'PendingApproval' && (
@@ -552,6 +638,7 @@ export default function GateManagementPage() {
                   <th className="pb-3 px-2 font-semibold">Visitor</th>
                   <th className="pb-3 px-2 font-semibold">Details</th>
                   <th className="pb-3 px-2 font-semibold">Type</th>
+                  <th className="pb-3 px-2 font-semibold">Pre-Approved By</th>
                   <th className="pb-3 px-2 font-semibold">Expected</th>
                   <th className="pb-3 px-2 font-semibold">Status</th>
                   <th className="pb-3 px-2 font-semibold">QR Code</th>
@@ -560,7 +647,7 @@ export default function GateManagementPage() {
               <tbody className="divide-y divide-gray-100">
                 {filteredPreapproved.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-sm text-gray-500 font-medium">
+                    <td colSpan={7} className="py-8 text-center text-sm text-gray-500 font-medium">
                       No preapproved found
                     </td>
                   </tr>
@@ -645,6 +732,9 @@ export default function GateManagementPage() {
                           !preapproved.personToMeet &&
                           !preapproved.notes &&
                           !preapproved.scheduleType && <span className="text-gray-400">-</span>}
+                      </td>
+                      <td className="py-4 px-2 text-xs">
+                        <PreapprovedByCell preapproved={preapproved} />
                       </td>
                       <td className="py-4 px-2">
                         <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-md font-semibold border border-blue-200">

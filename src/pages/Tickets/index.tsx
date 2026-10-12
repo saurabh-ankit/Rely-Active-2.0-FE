@@ -35,6 +35,7 @@ import type { Ticket, TicketCategoryMaster, TicketFeedback, TicketPriority, Tick
 import { CreateTicketModal } from './components/CreateTicketModal'
 import { SelectPersonDrawer } from './components/SelectPersonDrawer'
 import { AddInvoiceModal } from './components/AddInvoiceModal'
+import { ConfirmStatusChangeDialog } from './components/ConfirmStatusChangeDialog'
 import { PageHeader } from '@/components/common/PageHeader'
 
 interface ParsedCompletion {
@@ -378,6 +379,9 @@ export default function TicketsPage() {
   const [isTatModalOpen, setIsTatModalOpen] = useState(false)
   const [previewMediaUrl, setPreviewMediaUrl] = useState<string | null>(null)
   const [verifying, setVerifying] = useState(false)
+  // Status picked in the dropdown, waiting for the admin to confirm it.
+  const [pendingStatus, setPendingStatus] = useState<TicketStatus | null>(null)
+  const [changingStatus, setChangingStatus] = useState(false)
   const [viewedTicketIds, setViewedTicketIds] = useState<Set<string>>(() => new Set(readViewedTickets(user?.id)))
 
   // Fetch Master Categories & Sub-Categories
@@ -456,8 +460,8 @@ export default function TicketsPage() {
     tatOption?: string
     priority?: TicketPriority
     status?: TicketStatus
-  }) => {
-    if (!selectedTicket) return
+  }): Promise<boolean> => {
+    if (!selectedTicket) return false
     try {
       const url = API_ENDPOINTS.tickets.updateOptions(selectedTicket.id, selectedLocationId)
       await apiClient.patch(url, payload)
@@ -465,8 +469,24 @@ export default function TicketsPage() {
       // Optimistic update
       setSelectedTicket((prev) => (prev ? { ...prev, ...payload } : null))
       fetchTickets()
+      return true
     } catch (err) {
       console.error('Failed to update ticket option:', err)
+      return false
+    }
+  }
+
+  /** Runs the status change the admin confirmed in the dialog. */
+  const handleConfirmStatusChange = async () => {
+    if (!pendingStatus || changingStatus) return
+    setChangingStatus(true)
+    const ok = await handleUpdateOption({ status: pendingStatus })
+    setChangingStatus(false)
+    if (ok) {
+      notifySuccess('Ticket status updated')
+      setPendingStatus(null)
+    } else {
+      notifyError('Could not update the ticket status')
     }
   }
 
@@ -1468,7 +1488,7 @@ export default function TicketsPage() {
                   {/* Status Badge Dropdown */}
                   <select
                     value={selectedTicket.status}
-                    onChange={(e) => handleUpdateOption({ status: e.target.value as TicketStatus })}
+                    onChange={(e) => setPendingStatus(e.target.value as TicketStatus)}
                     className="px-3 py-1.5 bg-amber-50/90 text-amber-800 border border-amber-200 rounded-xl text-xs font-extrabold focus:outline-none cursor-pointer shadow-2xs"
                   >
                     <option value="OPEN">Open</option>
@@ -1845,7 +1865,7 @@ export default function TicketsPage() {
                       )}
                       <select
                         value={selectedTicket.status}
-                        onChange={(e) => handleUpdateOption({ status: e.target.value as TicketStatus })}
+                        onChange={(e) => setPendingStatus(e.target.value as TicketStatus)}
                         disabled={!canUpdateTicket}
                         className={`px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-xs font-bold focus:outline-none ${
                           canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'
@@ -2278,6 +2298,15 @@ export default function TicketsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmStatusChangeDialog
+        ticketNumber={selectedTicket?.ticketNumber}
+        fromStatus={selectedTicket?.status}
+        toStatus={pendingStatus}
+        isPending={changingStatus}
+        onCancel={() => setPendingStatus(null)}
+        onConfirm={handleConfirmStatusChange}
+      />
     </div>
   )
 }
