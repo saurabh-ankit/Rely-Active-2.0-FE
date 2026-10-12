@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { getPropertyByIdAPI } from '@/lib/services/propertyService'
 import { cn, getFileUrl } from '@/lib/utils'
-import { ENTITY_PRESETS, levelLabel } from './components/structure/entityPresets'
+import { ENTITY_PRESETS, floorNameFor, levelLabel } from './components/structure/entityPresets'
 import { formatPropertyTypes, type EntityInput, type Property } from './types'
 
 // ─── Unit status ──────────────────────────────────────────────────────────────
@@ -199,6 +199,7 @@ interface FloorView {
   id?: string
   floor_number: number
   floor_name?: string | null
+  floor_type?: string | null
   is_sellable?: boolean
   units?: ViewUnit[]
 }
@@ -222,11 +223,10 @@ function Building({ name, floors }: { name: string; floors: FloorView[] }) {
             <div key={floor.id ?? floor.floor_number} className="flex items-center gap-1.5">
               <span
                 className="w-7 shrink-0 text-right text-[10px] font-semibold text-slate-500"
-                title={floor.floor_name ?? undefined}
+                title={floorNameFor(floor.floor_number, floor.floor_type ?? 'FLOOR', floor.floor_name)}
               >
-                {floor.floor_number === 1 && floor.floor_name?.toLowerCase().includes('ground')
-                  ? 'G'
-                  : floor.floor_number}
+                {/* "G" only for floors whose type is Ground Floor; the name can be stale. */}
+                {floor.floor_type === 'GROUND_FLOOR' ? 'G' : floor.floor_number}
               </span>
               {floorUnits.length === 0 || floor.is_sellable === false ? (
                 <div className="h-7 flex-1 rounded bg-[repeating-linear-gradient(45deg,#e2e8f0,#e2e8f0_4px,#f1f5f9_4px,#f1f5f9_8px)] px-2 text-[10px] leading-7 text-slate-400">

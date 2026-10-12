@@ -24,6 +24,7 @@ import {
   levelLabel,
   isUnitOccupied,
   listNumbers,
+  floorNameFor,
   newTower,
   normalizeEntity,
   occupiedInBlock,
@@ -551,7 +552,7 @@ export default function CreatePropertyScreen({
       generatedFloors.push({
         id: existingFloor?.id,
         floor_number: f,
-        floor_name: existingFloor?.floor_name || (isGround ? 'Ground Floor' : `Floor ${f}`),
+        floor_name: floorNameFor(f, floorType, existingFloor?.floor_name),
         floor_type: floorType,
         is_sellable: isSellable,
         units: floorUnits,
@@ -717,7 +718,7 @@ export default function CreatePropertyScreen({
             generatedFloors.push({
               id: existingFloor?.id,
               floor_number: f,
-              floor_name: existingFloor?.floor_name || (isGround ? 'Ground Floor' : `Floor ${f}`),
+              floor_name: floorNameFor(f, floorType, existingFloor?.floor_name),
               floor_type: floorType,
               is_sellable: isSellable,
               units: floorUnits,
@@ -1577,19 +1578,24 @@ export default function CreatePropertyScreen({
                               const existingIdx = currentFloors.findIndex((fl) => fl.floor_number === floorNum)
                               let nextFloors: FloorInput[] = []
 
+                              // Changing the type renames an auto-named floor ("Ground Floor" → "Floor 1").
+                              const nextType = updated.floor_type ?? currentFloorType
+                              const named = {
+                                ...updated,
+                                floor_name: floorNameFor(floorNum, nextType, existingFloor?.floor_name),
+                              }
                               if (existingIdx >= 0) {
                                 nextFloors = currentFloors.map((fl, i) =>
-                                  i === existingIdx ? { ...fl, ...updated } : fl,
+                                  i === existingIdx ? { ...fl, ...named } : fl,
                                 )
                               } else {
                                 nextFloors = [
                                   ...currentFloors,
                                   {
                                     floor_number: floorNum,
-                                    floor_name: isGround ? 'Ground Floor' : `Floor ${floorNum}`,
                                     floor_type: currentFloorType,
                                     is_sellable: isSellable,
-                                    ...updated,
+                                    ...named,
                                   },
                                 ]
                               }

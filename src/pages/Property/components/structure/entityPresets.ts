@@ -403,3 +403,20 @@ export const isUnitOccupied = isOccupied
 /** "A-11, A-12 and 3 more" */
 export const listNumbers = (numbers: string[], max = 3) =>
   numbers.length <= max ? numbers.join(', ') : `${numbers.slice(0, max).join(', ')} and ${numbers.length - max} more`
+
+// ─── Floor names ────────────────────────────────────────────────────────────
+
+const FLOOR_TYPE_NAMES: Record<string, string> = {
+  GROUND_FLOOR: 'Ground Floor',
+  STILT: 'Stilt',
+  BASEMENT: 'Basement',
+  PENTHOUSE: 'Penthouse',
+}
+
+/** Names the system generates; anything else was typed by someone and is kept. */
+const isAutoFloorName = (name?: string | null) =>
+  !name || /^(ground floor|floor \d+|stilt|basement|penthouse)$/i.test(name.trim())
+
+/** A floor's name follows its type ("Floor 1" once it's no longer a ground floor) unless it was renamed by hand. */
+export const floorNameFor = (floorNumber: number, floorType: string, current?: string | null) =>
+  current && !isAutoFloorName(current) ? current : (FLOOR_TYPE_NAMES[floorType] ?? `Floor ${floorNumber}`)
