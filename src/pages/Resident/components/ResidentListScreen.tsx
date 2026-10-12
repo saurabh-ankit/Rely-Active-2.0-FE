@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Edit, Home, MoreVertical, Search, Trash2, UserCheck, UserPlus } from 'lucide-react'
+import { Building2, Edit, Home, MoreVertical, Search, Trash2, UserCheck, UserPlus } from 'lucide-react'
 import type { Property, ResidentItem } from '@/lib/types'
 import { getPropertiesAPI } from '@/lib/services/propertyService'
 import { residentService } from '@/lib/services/residentService'
@@ -24,6 +24,9 @@ interface FlatGroup {
   unitId: string
   unitNumber: string
   floorLabel: string
+  /** Entity the home is in, e.g. "Apartment" or "Villa". */
+  entityName: string | null
+  entityType: string | null
   propertyName: string
   residingTenant?: ResidentItem
   residingOwner?: ResidentItem
@@ -193,9 +196,14 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
     map.forEach((occupants, unitId) => {
       const firstOcc = occupants[0]
       const firstUnit = firstOcc?.unit
-      // "Tower B · Floor 2", or just "Villas" for entities without floors
-      const floorLabel = [firstUnit?.floor?.block?.block_name, floorText(firstUnit?.floor)].filter(Boolean).join(' · ')
-      const unitNumber = firstUnit?.unit_number ? `Unit ${firstUnit.unit_number}` : 'Unassigned Flat'
+      const block = firstUnit?.floor?.block
+      // Where in the entity: "Tower B · Floor 2"; empty for villas (their block is hidden).
+      const floorLabel = [block && !block.is_virtual ? block.block_name : null, floorText(firstUnit?.floor)]
+        .filter(Boolean)
+        .join(' · ')
+      const unitNumber = firstUnit?.unit_number ?? 'Unassigned'
+      const entityName = block?.entity?.name ?? (block?.is_virtual ? block.block_name : null)
+      const entityType = block?.entity?.entity_type ?? null
       const propertyName = firstOcc?.property?.property_name || firstOcc?.property?.name || 'Property'
 
       const residingTenant = occupants.find((r) => r.residentType === 'TENANT' && r.isResiding)
@@ -206,6 +214,8 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
         unitId,
         unitNumber,
         floorLabel,
+        entityName,
+        entityType,
         propertyName,
         residingTenant,
         residingOwner,
@@ -389,15 +399,28 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                   {/* Flat header */}
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 bg-gray-50/70 px-4 py-3 dark:border-gray-800 dark:bg-slate-800/50">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#005390]/10 text-[#005390]">
-                        <Home className="h-4 w-4" />
-                      </div>
+                      {(() => {
+                        const EntityIcon = flat.entityType === 'apartment' ? Building2 : Home
+                        return (
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#005390]/10 text-[#005390]">
+                            <EntityIcon className="h-4 w-4" />
+                          </div>
+                        )
+                      })()}
                       <div>
-                        <h3 className="text-sm font-bold text-gray-900 dark:text-white">{flat.unitNumber}</h3>
-                        <p className="text-[11px] text-gray-500">
-                          {flat.floorLabel}
-                          {isGlobalMode && ` · ${flat.propertyName}`}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-sm font-bold text-gray-900 dark:text-white">{flat.unitNumber}</h3>
+                          {flat.entityName && (
+                            <span className="rounded-full border border-[#005390]/20 bg-[#005390]/5 px-2 py-px text-[10px] font-semibold text-[#005390]">
+                              {flat.entityName}
+                            </span>
+                          )}
+                        </div>
+                        {(flat.floorLabel || isGlobalMode) && (
+                          <p className="text-[11px] text-gray-500">
+                            {[flat.floorLabel, isGlobalMode ? flat.propertyName : null].filter(Boolean).join(' · ')}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <span className="rounded-full border border-gray-200 bg-white px-2.5 py-0.5 text-[11px] font-semibold text-gray-600">
