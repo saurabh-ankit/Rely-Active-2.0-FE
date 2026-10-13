@@ -7,6 +7,8 @@ import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { RequiredLabel } from '@/components/inventory/InventoryCells'
+import { brandCheckbox } from '@/components/inventory/brand'
 
 export function FormInput({
   name,
@@ -33,7 +35,9 @@ export function FormInput({
   }
   return (
     <Field data-invalid={!!error}>
-      <FieldLabel htmlFor={name}>{label}</FieldLabel>
+      <FieldLabel htmlFor={name}>
+        <RequiredLabel text={label} />
+      </FieldLabel>
       {children ? (
         <NativeSelect {...props}>{children}</NativeSelect>
       ) : type === 'textarea' ? (
@@ -55,11 +59,14 @@ export function FormCheck({ name, label }: { name: string; label: string }) {
         <Field orientation="horizontal" data-invalid={!!fieldState.error}>
           <Checkbox
             id={name}
+            className={brandCheckbox}
             checked={!!field.value}
             onCheckedChange={field.onChange}
             aria-invalid={!!fieldState.error}
           />
-          <FieldLabel htmlFor={name}>{label}</FieldLabel>
+          <FieldLabel htmlFor={name}>
+            <RequiredLabel text={label} />
+          </FieldLabel>
           <FieldError errors={[fieldState.error]} />
         </Field>
       )}
@@ -81,6 +88,7 @@ export function LocationChecks({ options }: { options: { id: string; name: strin
                 <Field key={option.id} orientation="horizontal">
                   <Checkbox
                     id={`location-${option.id}`}
+                    className={brandCheckbox}
                     checked={(field.value as string[]).includes(option.id)}
                     disabled={option.disabled && !(field.value as string[]).includes(option.id)}
                     onCheckedChange={(checked) =>
@@ -117,7 +125,7 @@ export function FormActions({
   disabled?: boolean
 }) {
   return (
-    <div className="flex flex-col-reverse gap-2 rounded-xl border bg-muted/50 p-4 sm:flex-row sm:justify-end">
+    <div className="sticky bottom-0 z-10 flex flex-col-reverse gap-2 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] backdrop-blur sm:flex-row sm:justify-end">
       <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
         Cancel
       </Button>
