@@ -3,7 +3,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { toast } from 'sonner'
 import type { PaginationState } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
-import { Truck, AlertTriangle } from 'lucide-react'
+import { Truck, AlertTriangle, Eye, Pencil, Trash2 } from 'lucide-react'
 import { DataTable } from '@/components/ui/data-table'
 import { ActiveStatus } from '@/components/inventory/InventoryStatus'
 import StatCard from '@/pages/AssetManagement/components/StatCard'
@@ -23,6 +23,7 @@ import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { useCenterData, useCenterMutation } from '@/hooks/react-query/centerInventory'
 import type { CenterAccess, CenterSupplier, SupplierListResponse } from '@/lib/types/centerInventory'
 import { ErrorNotice, FormField } from './shared'
+import { ContactCell, CountBadge, EntityCell, RowActionButtons } from '@/components/inventory/InventoryCells'
 
 export function SupplierList({
   locationId,
@@ -49,9 +50,9 @@ export function SupplierList({
     <div className="flex min-w-0 flex-col gap-6">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title="Total Vendors"
+          title="Total Suppliers"
           value={query.data?.summary.totalSuppliers ?? '—'}
-          description="Vendors for this category"
+          description="Suppliers for this category"
           icon={Users}
           color="blue"
           isLoading={query.isPending}
@@ -74,7 +75,7 @@ export function SupplierList({
         <StatCard
           title="Total Orders"
           value={query.data?.summary.totalPurchaseOrders ?? '—'}
-          description="Vendor purchase orders"
+          description="Supplier purchase orders"
           icon={ClipboardList}
           color="purple"
           isLoading={query.isPending}
@@ -95,10 +96,10 @@ export function SupplierList({
           setSearch(value)
           setPagination((p) => ({ ...p, pageIndex: 0 }))
         }}
-        searchPlaceholder="Search vendors…"
+        searchPlaceholder="Search suppliers…"
         filterActions={
           <NativeSelect
-            aria-label="Vendor status"
+            aria-label="Supplier status"
             value={status}
             onChange={(e) => {
               setStatus(e.target.value)
@@ -113,53 +114,73 @@ export function SupplierList({
         columns={[
           {
             accessorKey: 'name',
-            header: 'Vendor Name',
+            header: 'Supplier',
             cell: ({ row }) => (
-              <Button variant="link" onClick={() => setSelected({ supplier: row.original, mode: 'view' })}>
-                {row.original.name}
-              </Button>
+              <EntityCell
+                icon={Truck}
+                tone="amber"
+                title={
+                  <button
+                    type="button"
+                    className="cursor-pointer text-left hover:text-[#005390] hover:underline"
+                    onClick={() => setSelected({ supplier: row.original, mode: 'view' })}
+                  >
+                    {row.original.name}
+                  </button>
+                }
+                subtitle={row.original.address}
+              />
             ),
           },
           {
             id: 'contact',
-            header: 'Contact Info',
+            header: 'Contact',
             cell: ({ row }) => (
-              <div>
-                {row.original.contactPerson}
-                <p className="text-sm text-muted-foreground">
-                  {row.original.email}
-                  <br />
-                  {row.original.phone}
-                </p>
-              </div>
+              <ContactCell person={row.original.contactPerson} email={row.original.email} phone={row.original.phone} />
             ),
           },
-          { accessorKey: 'address', header: 'Address' },
+          {
+            accessorKey: 'purchaseOrderCount',
+            header: 'Purchase Orders',
+            cell: ({ row }) => <CountBadge count={row.original.purchaseOrderCount ?? 0} noun="order" />,
+          },
           {
             id: 'status',
             header: 'Status',
             cell: ({ row }) => <ActiveStatus active={row.original.isActive} />,
           },
-          { accessorKey: 'purchaseOrderCount', header: 'Purchase Orders' },
           {
             id: 'actions',
-            header: 'Actions',
+            header: () => <span className="block text-right">Actions</span>,
             cell: ({ row }) => (
-              <div className="flex gap-1">
-                <Button variant="ghost" onClick={() => setSelected({ supplier: row.original, mode: 'view' })}>
-                  View
-                </Button>
-                {access.update && (
-                  <Button variant="ghost" onClick={() => setSelected({ supplier: row.original, mode: 'edit' })}>
-                    Edit
-                  </Button>
-                )}
-                {access.delete && (
-                  <Button variant="ghost" onClick={() => setSelected({ supplier: row.original, mode: 'delete' })}>
-                    Delete
-                  </Button>
-                )}
-              </div>
+              <RowActionButtons
+                actions={[
+                  {
+                    label: 'View',
+                    icon: Eye,
+                    onClick: () => setSelected({ supplier: row.original, mode: 'view' }),
+                  },
+                  ...(access.update
+                    ? [
+                        {
+                          label: 'Edit',
+                          icon: Pencil,
+                          onClick: () => setSelected({ supplier: row.original, mode: 'edit' }),
+                        },
+                      ]
+                    : []),
+                  ...(access.delete
+                    ? [
+                        {
+                          label: 'Delete',
+                          icon: Trash2,
+                          tone: 'danger' as const,
+                          onClick: () => setSelected({ supplier: row.original, mode: 'delete' }),
+                        },
+                      ]
+                    : []),
+                ]}
+              />
             ),
           },
         ]}
@@ -221,11 +242,11 @@ function SupplierDialog({
             </div>
             <div>
               <DialogTitle className="text-lg font-bold text-gray-900">
-                {mode === 'view' ? 'Vendor Details' : mode === 'edit' ? 'Edit Vendor' : 'Delete Vendor'}
+                {mode === 'view' ? 'Supplier Details' : mode === 'edit' ? 'Edit Supplier' : 'Delete Supplier'}
               </DialogTitle>
               <DialogDescription className="text-xs text-gray-500 mt-0.5">
                 {mode === 'delete'
-                  ? `Delete ${supplier.name}? The vendor will be deactivated. Existing transaction history is retained.`
+                  ? `Delete ${supplier.name}? The supplier will be deactivated. Existing transaction history is retained.`
                   : supplier.name}
               </DialogDescription>
             </div>
@@ -264,7 +285,7 @@ function SupplierDialog({
                   className="bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer"
                   onClick={onEdit}
                 >
-                  Edit Vendor
+                  Edit Supplier
                 </Button>
               )}
             </DialogFooter>
@@ -280,7 +301,7 @@ function SupplierDialog({
                   method: mode === 'delete' ? 'delete' : 'put',
                   ...(mode === 'edit' ? { data: form } : {}),
                 })
-                toast.success(mode === 'delete' ? 'Vendor removed' : 'Vendor updated')
+                toast.success(mode === 'delete' ? 'Supplier removed' : 'Supplier updated')
                 onClose()
               } catch {
                 /* inline error */
@@ -293,7 +314,7 @@ function SupplierDialog({
                   <FormField
                     key={key}
                     id={`supplier-${key}`}
-                    label={`${['Vendor Name', 'Contact Person', 'Email', 'Phone'][index]}${key === 'email' ? '' : ' *'}`}
+                    label={`${['Supplier Name', 'Contact Person', 'Email', 'Phone'][index]}${key === 'email' ? '' : ' *'}`}
                   >
                     <Input
                       id={`supplier-${key}`}
@@ -346,7 +367,7 @@ function SupplierDialog({
                 }
                 disabled={mutation.isPending}
               >
-                {mutation.isPending ? 'Saving…' : mode === 'delete' ? 'Delete Vendor' : 'Save Changes'}
+                {mutation.isPending ? 'Saving…' : mode === 'delete' ? 'Delete Supplier' : 'Save Changes'}
               </Button>
             </DialogFooter>
           </form>

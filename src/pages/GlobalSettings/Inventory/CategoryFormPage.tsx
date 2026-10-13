@@ -6,11 +6,10 @@ import { FormProvider, useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { Plus, Trash2 } from 'lucide-react'
+import { FolderOpen, ListChecks, Plus, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Field, FieldGroup, FieldLabel, FieldError, FieldDescription } from '@/components/ui/field'
-import { DataTable } from '@/components/ui/data-table'
 import { useInventoryDetail, useSaveInventory, useUploadInventoryImage } from '@/hooks/react-query/inventory'
 import { inventoryCategoryFormSchema, inventoryImageSchema, parseInventoryValue } from '@/lib/validations/inventory'
 import type { InventoryCategory } from '@/lib/types/inventory'
@@ -151,8 +150,12 @@ export function CategoryEditor({ record }: { record?: InventoryCategory }) {
           })}
         >
           <fieldset disabled={pending} className="flex min-w-0 flex-col gap-6">
-            <FormSection title="Basic Information">
-              <FieldGroup>
+            <FormSection
+              icon={FolderOpen}
+              title="Category details"
+              description="Name, description and picture shown to properties. Fields marked * are required."
+            >
+              <FieldGroup className="max-w-3xl">
                 <FormInput name="name" label="Category Name *" />
                 {debouncedName === categoryName.trim() && availability.data?.available === false && (
                   <p role="status" className="text-sm text-destructive">
@@ -221,21 +224,35 @@ export function CategoryEditor({ record }: { record?: InventoryCategory }) {
                   )}
                   <FieldError errors={[form.formState.errors.image]} />
                 </Field>
-                <FormCheck name="isActive" label="Active" />
+                <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                  <FormCheck name="isActive" label="Active" />
+                  <p className="mt-1 pl-6 text-xs text-gray-500">
+                    Inactive categories are hidden from properties; their items are kept.
+                  </p>
+                </div>
               </FieldGroup>
             </FormSection>
-            <FormSection title="Default Fields" description="These standard fields are available for every item.">
-              <DataTable
-                data={standardFields}
-                columns={[
-                  { accessorKey: 'name', header: 'Field' },
-                  { accessorKey: 'type', header: 'Type' },
-                ]}
-              />
+            <FormSection
+              icon={ListChecks}
+              title="Standard item fields"
+              description="Every item in every category records these."
+            >
+              <div className="flex flex-wrap gap-2">
+                {standardFields.map((f) => (
+                  <span
+                    key={f.name}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs"
+                  >
+                    <span className="font-semibold text-gray-800">{f.name}</span>
+                    <span className="text-gray-400">· {f.type}</span>
+                  </span>
+                ))}
+              </div>
             </FormSection>
             <FormSection
-              title="Custom Field Definitions"
-              description="Define additional information for this category. Existing item values are preserved."
+              icon={SlidersHorizontal}
+              title="Custom item fields"
+              description="Extra information to record for items in this category only. Existing item values are kept."
               action={
                 <Button
                   type="button"

@@ -72,7 +72,7 @@ export function PurchaseOrderForm({
                 {record ? 'Edit Purchase Order' : 'Create Purchase Order'}
               </DialogTitle>
               <DialogDescription className="text-xs text-gray-500 mt-0.5">
-                Select a vendor and the items to order.
+                Select a supplier and the items to order.
               </DialogDescription>
             </div>
           </div>
@@ -91,7 +91,7 @@ export function PurchaseOrderForm({
                 notes: notes || null,
                 items: lines.map((l) => {
                   const item = eligible.find((i) => i.id === l.itemId)
-                  if (!item) throw new Error('Select an item supplied by this vendor')
+                  if (!item) throw new Error('Select an item supplied by this supplier')
                   const agreedPrice = l.price
                   if (!Number.isInteger(l.packages)) throw new Error('Purchase orders must contain whole packages')
                   return {
@@ -114,7 +114,7 @@ export function PurchaseOrderForm({
           }}
         >
           <FieldGroup>
-            <FormField id="po-supplier" label="Vendor *">
+            <FormField id="po-supplier" label="Supplier *">
               <NativeSelect
                 id="po-supplier"
                 value={supplierId}
@@ -124,7 +124,7 @@ export function PurchaseOrderForm({
                   setLines([{ key: generateUUID(), itemId: '', packages: 1, price: 0 }])
                 }}
               >
-                <NativeSelectOption value="">Select vendor</NativeSelectOption>
+                <NativeSelectOption value="">Select supplier</NativeSelectOption>
                 {suppliers.data
                   ?.filter((s) => s.isActive)
                   .map((s) => (
