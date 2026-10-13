@@ -43,9 +43,14 @@ const ShiftsGrid = () => {
       {
         accessorKey: 'shiftCode',
         header: 'Code',
-        cell: ({ row }) => (
-          <span className="whitespace-nowrap font-mono text-sm text-gray-800">{row.original.shiftCode || '—'}</span>
-        ),
+        cell: ({ row }) =>
+          row.original.shiftCode ? (
+            <span className="inline-flex items-center whitespace-nowrap rounded-md border border-[#005390]/20 bg-[#005390]/10 px-2 py-0.5 font-mono text-xs font-semibold tracking-wide text-[#005390]">
+              {row.original.shiftCode}
+            </span>
+          ) : (
+            <span className="text-sm text-gray-400">—</span>
+          ),
       },
       {
         accessorKey: 'name',

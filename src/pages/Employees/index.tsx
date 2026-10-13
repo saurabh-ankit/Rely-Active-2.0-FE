@@ -33,8 +33,10 @@ interface LocationRec {
   department_id?: string
   departmentName?: string
   department?: { name?: string }
+  jobCategoryId?: string
+  job_category_id?: string
   jobCategoryName?: string
-  jobCategory?: { name?: string }
+  jobCategory?: { id?: string; name?: string }
   managerId?: string
   manager_id?: string
   manager?: {
@@ -76,6 +78,7 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearch = useDebounce(searchTerm, 400)
   const [selectedDepartmentFilter, setSelectedDepartmentFilter] = useState('ALL')
+  const [selectedJobCategoryFilter, setSelectedJobCategoryFilter] = useState('ALL')
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('ALL')
   const [selectedRoleFilter, setSelectedRoleFilter] = useState('ALL')
 
@@ -180,6 +183,12 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
     }
   }
 
+  // Job categories offered by the filter: those of the chosen department, or all of them.
+  const availableFilterCategories =
+    selectedDepartmentFilter !== 'ALL'
+      ? departments.find((d) => d.id === selectedDepartmentFilter)?.jobCategories || []
+      : departments.flatMap((d) => d.jobCategories || [])
+
   // Filter out SUPER_ADMIN and apply search & department filters
   const filteredUsers = users.filter((u) => {
     const primaryLoc = u.userLocations?.[0] as LocationRec | undefined
@@ -194,6 +203,15 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
     const deptId = primaryLoc?.departmentId || primaryLoc?.department_id || ''
     if (selectedDepartmentFilter !== 'ALL' && deptId !== selectedDepartmentFilter) {
       return false
+    }
+
+    // 3. Job category match
+    if (selectedJobCategoryFilter !== 'ALL') {
+      const hasCat = u.userLocations?.some(
+        (ul: LocationRec) =>
+          (ul.jobCategoryId || ul.job_category_id || ul.jobCategory?.id) === selectedJobCategoryFilter,
+      )
+      if (!hasCat) return false
     }
 
     if (selectedRoleFilter !== 'ALL') {
@@ -461,16 +479,32 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
         searchPlaceholder="Search employees by name, code, phone, or email..."
         onRowClick={(u) => navigate(`/admin/employees/details/${u.id}`)}
         filterActions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <select
               value={selectedDepartmentFilter}
-              onChange={(e) => setSelectedDepartmentFilter(e.target.value)}
+              onChange={(e) => {
+                setSelectedDepartmentFilter(e.target.value)
+                setSelectedJobCategoryFilter('ALL')
+              }}
               className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
             >
               <option value="ALL">All departments</option>
               {departments.map((dept) => (
                 <option key={dept.id} value={dept.id}>
                   {dept.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={selectedJobCategoryFilter}
+              onChange={(e) => setSelectedJobCategoryFilter(e.target.value)}
+              className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
+            >
+              <option value="ALL">All job categories</option>
+              {availableFilterCategories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
                 </option>
               ))}
             </select>
