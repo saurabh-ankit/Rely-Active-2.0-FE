@@ -1,3 +1,5 @@
+import type { MedicationMealTiming, MedicationRoute } from '@/lib/constants/medication'
+
 export type ResidentType = 'OWNER' | 'TENANT'
 export type OwnershipType = 'PRIMARY' | 'CO_OWNER' | 'DEPENDENT'
 export type ResidentStatus = 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'MOVED_OUT'
@@ -99,6 +101,262 @@ export interface UnitResidentsPayload {
   allOccupants: ResidentItem[]
   residingOccupant?: ResidentItem | null
   owner?: ResidentItem | null
+}
+
+// ── Clinical chart ────────────────────────────────────────────────────────────
+
+export type MedicationTimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night'
+
+export interface MedicationTiming {
+  timeOfDay: MedicationTimeOfDay
+  selected: boolean
+  time: string
+  dose: number
+  route: MedicationRoute
+  mealTiming: MedicationMealTiming
+}
+
+export interface ResidentMedicationItem {
+  id: string
+  inventoryItemId: string
+  /** Inventory pack type / unit of the linked item, e.g. "sheet" / "piece". */
+  packType?: string | null
+  packUnit?: string | null
+  medicineName: string
+  startDate: string
+  endDate: string | null
+  isUntilDischarge: boolean
+  timings: MedicationTiming[]
+  note: string | null
+  appointmentId: string | null
+  createdByName: string | null
+  createdAt: string
+}
+
+export interface ResidentVitalItem {
+  id: string
+  vitalSettingId: string
+  name: string
+  unit: string
+  value: string
+  note: string | null
+  recordedAt: string
+  appointmentId: string | null
+  createdByName: string | null
+  createdAt: string
+}
+
+export interface ResidentAllergyItem {
+  id: string
+  name: string
+  note: string | null
+  recordedAt: string
+  appointmentId: string | null
+  createdByName: string | null
+  createdAt: string
+}
+
+export type LabReportSeverity = 'normal' | 'abnormal' | 'severe'
+
+export interface ResidentLabReportItem {
+  id: string
+  labTestSettingId: string
+  labTestName: string | null
+  labTestImageUrl: string | null
+  severity: LabReportSeverity
+  reportDate: string
+  notes: string | null
+  cost: number | null
+  paymentMethod: string | null
+  reportFileUrl: string
+  receiptFileUrl: string | null
+  createdByName: string | null
+  createdAt: string
+}
+
+export interface ResidentDocumentItem {
+  id: string
+  name: string
+  fileUrl: string
+  fileName: string | null
+  mimeType: string | null
+  note: string | null
+  createdAt: string
+}
+
+export type DoctorNoteFileType = 'IMAGE' | 'PDF' | 'AUDIO'
+export type DiagnosisCondition = 'CRITICAL' | 'STABLE' | 'RECOVERING' | 'GOOD'
+
+export interface DoctorNoteFile {
+  id: string
+  url: string
+  key: string
+  name: string
+  contentType: string
+  size: number
+  fileType: DoctorNoteFileType
+  uploadedAt: string
+}
+
+export interface ResidentDoctorNote {
+  id: string
+  note: string | null
+  attachments: DoctorNoteFile[]
+  voiceNotes: DoctorNoteFile[]
+  condition: DiagnosisCondition | null
+  completedAt: string | null
+  doctorId: string
+  doctorName: string | null
+  appointmentId: string
+  appointmentDate: string | null
+}
+
+export type ResidentConditionSource = 'MANUAL' | 'DOCTOR'
+
+export interface ResidentCurrentCondition {
+  condition: DiagnosisCondition
+  source: ResidentConditionSource
+  note: string | null
+  updatedAt: string
+  updatedById: string | null
+  updatedByName: string | null
+}
+
+export interface UpdateResidentConditionPayload {
+  condition: DiagnosisCondition
+  note?: string | null
+}
+
+export interface ResidentMedicationPayload {
+  inventoryItemId: string
+  startDate: string
+  endDate: string | null
+  isUntilDischarge: boolean
+  timings: MedicationTiming[]
+  note: string | null
+}
+
+export type MedicationAdministrationKind = 'MEDICATION' | 'INSULIN'
+
+export type MedicationStockStatus = 'DEDUCTED' | 'INSUFFICIENT' | 'NOT_APPLICABLE'
+
+export type MedicationAdministrationStatus = 'COMPLETED' | 'CANCELLED'
+
+/** A medication / insulin dose a nurse marked as given or cancelled. */
+export interface MedicationAdministrationItem {
+  id: string
+  kind: MedicationAdministrationKind
+  medicationId: string
+  residentId: string
+  medicineName: string
+  timeOfDay: MedicationTimeOfDay
+  scheduledDate: string
+  scheduledTime: string
+  dose: number
+  route: MedicationRoute
+  mealTiming: MedicationMealTiming
+  status: MedicationAdministrationStatus
+  completedAt: string | null
+  completedBy: string | null
+  nurseName: string | null
+  notes: string | null
+  attachments: DoctorNoteFile[]
+  voiceNotes: DoctorNoteFile[]
+  cancelledAt: string | null
+  cancelledByName: string | null
+  cancelReason: string | null
+  cancelAttachments: DoctorNoteFile[]
+  cancelVoiceNotes: DoctorNoteFile[]
+  stockStatus: MedicationStockStatus
+  deductedQuantity: number
+  packUnit: string | null
+  isWholePack: boolean
+}
+
+export interface MedicationAdministrationsParams {
+  date?: string
+  kind?: MedicationAdministrationKind
+  medicationId?: string
+  limit?: number
+}
+
+export interface ResidentVitalPayload {
+  vitalSettingId: string
+  value: string
+  note: string | null
+  recordedAt: string
+}
+
+export interface ResidentAllergyPayload {
+  name: string
+  note: string | null
+  recordedAt: string
+}
+
+export interface LocationMedicineOption {
+  id: string
+  name: string
+  packType: string | null
+  packQuantity: number | null
+  packUnit: string | null
+  quantity: number
+  stockDisplay: string
+}
+
+export interface ResidentMedicinesParams {
+  search?: string
+  packType?: string
+  excludePackType?: string
+}
+
+export type ResidentClinicalMutationResponse<T = unknown> = { success: boolean; message?: string; data?: T }
+
+export interface ResidentClinicalData {
+  allergies: ResidentAllergyItem[]
+  vitals: ResidentVitalItem[]
+  medications: ResidentMedicationItem[]
+  insulin: ResidentMedicationItem[]
+  doctorNotes: ResidentDoctorNote[]
+  currentCondition: ResidentCurrentCondition | null
+}
+
+export type ResidentTimelineEventType =
+  'allergy' | 'vital' | 'medication' | 'insulin' | 'lab' | 'appointment' | 'care_task' | 'condition'
+
+export interface ResidentTimelineEvent {
+  id: string
+  type: ResidentTimelineEventType
+  title: string
+  description: string
+  at: string
+  createdAt: string
+  createdBy: { id: string; name: string } | null
+  fileUrl?: string | null
+  meta: Record<string, unknown>
+}
+
+export interface ResidentTimelinePagination {
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+  hasNext: boolean
+  hasPrevious: boolean
+}
+
+export interface ResidentTimelineParams {
+  startDate?: string
+  endDate?: string
+  page?: number
+  limit?: number
+  type?: ResidentTimelineEventType
+  /** Comma-separated `ResidentTimelineEventType` values. */
+  types?: string
+}
+
+export interface ResidentTimelineResponse {
+  events: ResidentTimelineEvent[]
+  pagination: ResidentTimelinePagination
 }
 
 export interface CreateResidentPayload {

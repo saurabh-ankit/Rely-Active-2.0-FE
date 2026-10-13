@@ -47,6 +47,22 @@ export const API_ENDPOINTS = {
     careTeam: (residentId: string) => `${BASE_URL}/residents/${residentId}/care-team`,
     removeCareTeamMember: (residentId: string, memberId: string) =>
       `${BASE_URL}/residents/${residentId}/care-team/${memberId}`,
+    clinical: (residentId: string) => `${BASE_URL}/residents/${residentId}/clinical`,
+    condition: (residentId: string) => `${BASE_URL}/residents/${residentId}/condition`,
+    labReports: (residentId: string) => `${BASE_URL}/residents/${residentId}/lab-reports`,
+    labReport: (residentId: string, id: string) => `${BASE_URL}/residents/${residentId}/lab-reports/${id}`,
+    medicines: (residentId: string) => `${BASE_URL}/residents/${residentId}/medicines`,
+    medications: (residentId: string) => `${BASE_URL}/residents/${residentId}/medications`,
+    medication: (residentId: string, id: string) => `${BASE_URL}/residents/${residentId}/medications/${id}`,
+    insulin: (residentId: string) => `${BASE_URL}/residents/${residentId}/insulin`,
+    insulinItem: (residentId: string, id: string) => `${BASE_URL}/residents/${residentId}/insulin/${id}`,
+    medicationAdministrations: (residentId: string) => `${BASE_URL}/residents/${residentId}/medication-administrations`,
+    vitals: (residentId: string) => `${BASE_URL}/residents/${residentId}/vitals`,
+    vital: (residentId: string, id: string) => `${BASE_URL}/residents/${residentId}/vitals/${id}`,
+    allergies: (residentId: string) => `${BASE_URL}/residents/${residentId}/allergies`,
+    allergy: (residentId: string, id: string) => `${BASE_URL}/residents/${residentId}/allergies/${id}`,
+    documents: (residentId: string) => `${BASE_URL}/residents/${residentId}/documents`,
+    timeline: (residentId: string) => `${BASE_URL}/residents/${residentId}/timeline`,
   },
 
   dashboard: {

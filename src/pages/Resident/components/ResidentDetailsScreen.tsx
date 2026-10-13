@@ -12,8 +12,10 @@ import { Button } from '@/components/ui/button'
 import { HeroFact, NotAdded } from '@/components/common/DetailPanel'
 import { cn, getFileUrl } from '@/lib/utils'
 import { fnbService } from '@/lib/services/fnbService'
+import { useResidentClinicalQuery } from '@/hooks/react-query/resident'
 import { ResidentPersonalDetailsTab, type FnbSubscriptionItem } from './ResidentPersonalDetailsTab'
 import { ResidentMedicalTab } from './ResidentMedicalTab'
+import { ResidentConditionMenu } from './medical/ResidentConditionMenu'
 
 export interface ResidentDetailsScreenProps {
   isGlobalMode?: boolean
@@ -26,6 +28,8 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   const { id } = useParams<{ id: string }>()
   const { hasResourcePermission } = useLocationContext()
   const canUpdateResident = hasResourcePermission('RESIDENT', 'update')
+  const clinicalQuery = useResidentClinicalQuery(id)
+  const currentCondition = clinicalQuery.data?.currentCondition ?? null
 
   const [resident, setResident] = useState<ResidentItem | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -214,9 +218,16 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
             </div>
           </div>
 
-          {canUpdateResident && (
-            <div className="flex shrink-0 flex-wrap gap-2">
-              {resident.isResiding && (
+          {(canUpdateResident || currentCondition) && (
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {clinicalQuery.isSuccess && (
+                <ResidentConditionMenu
+                  residentId={resident.id}
+                  currentCondition={currentCondition}
+                  canUpdate={canUpdateResident}
+                />
+              )}
+              {canUpdateResident && resident.isResiding && (
                 <Button
                   variant="secondary"
                   icon={<Utensils className="h-4 w-4" />}
@@ -226,14 +237,16 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
                   Food Plan
                 </Button>
               )}
-              <Button
-                variant="primary"
-                icon={<Edit className="h-4 w-4" />}
-                onClick={() => navigate(editUrl)}
-                className="rounded-xl"
-              >
-                Edit Profile
-              </Button>
+              {canUpdateResident && (
+                <Button
+                  variant="primary"
+                  icon={<Edit className="h-4 w-4" />}
+                  onClick={() => navigate(editUrl)}
+                  className="rounded-xl"
+                >
+                  Edit Profile
+                </Button>
+              )}
             </div>
           )}
         </div>

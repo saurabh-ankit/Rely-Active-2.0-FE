@@ -14,7 +14,7 @@ import { useLocation } from '@/hooks/useLocation'
 import { useAdvertisements, useDeleteAdvertisement, useUpdateAdvertisementStatus } from '@/hooks/react-query/feedback'
 import type { Advertisement } from '@/lib/types/feedback'
 import AdvertisementModal from './components/AdvertisementModal'
-import ConfirmDialog from './components/ConfirmDialog'
+import ConfirmDialog from '@/components/common/ConfirmDialog'
 import FeedbackPermission from './components/FeedbackPermission'
 
 const PAGE_SIZE = 10
