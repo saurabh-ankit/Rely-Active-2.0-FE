@@ -402,6 +402,7 @@ export const API_ENDPOINTS = {
     createEmployeeShift: `${BASE_URL}/location/:locationId/employee-shifts`,
     bulkCreateEmployeeShifts: `${BASE_URL}/location/:locationId/employee-shifts/bulk`,
     deleteEmployeeShift: `${BASE_URL}/location/:locationId/employee-shifts/:employeeShiftId`,
+    updateEmployeeShift: `${BASE_URL}/location/:locationId/employee-shifts/:employeeShiftId`,
 
     listShiftEmployeeDates: `${BASE_URL}/location/:locationId/shift-employee-dates`,
     createShiftEmployeeDate: `${BASE_URL}/location/:locationId/shift-employee-dates`,

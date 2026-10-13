@@ -12,6 +12,7 @@ import {
   getUserDepartmentName,
   getUserDisplayName,
   getUserRoleCodes,
+  groupRostersByShift,
   parseLocalDate,
   resolveLifecycleRosterStatus,
   todayYmdLocal,
@@ -24,26 +25,17 @@ import RosterDetailDialog, { type RosterCalendarEvent } from '../dialogs/RosterD
 import RosterGridView from './RosterGridView'
 import { useListEmployeeShifts, useListShiftEmployeeDates } from '@/hooks/react-query/roster'
 
-const MAX_VISIBLE_ROSTERS = 2
-
 const VIEW_MODES = ['month', 'grid'] as const
 type RosterViewMode = (typeof VIEW_MODES)[number]
 
-const getStatusClasses = (status: string) => {
-  const base = 'text-[10px] px-2 py-1.5 rounded-md border shadow-sm'
-  if (status === 'covered') {
-    return `${base} bg-amber-50 text-amber-700 border-amber-200`
-  }
-  if (status === 'day_off') {
-    return `${base} bg-gray-50 text-gray-400 border-gray-200`
-  }
-  if (status === 'completed') {
-    return `${base} bg-emerald-50 text-emerald-700 border-emerald-200`
-  }
-  if (status === 'absent') {
-    return `${base} bg-red-50 text-red-700 border-red-200`
-  }
-  return `${base} bg-[#2a517c]/5 text-[#2a517c] border-[#2a517c]/10`
+/** Left edge colour of an employee row, by roster status. */
+const statusEdge: Record<string, string> = {
+  upcoming: 'border-l-[#2a517c]/40',
+  on_duty: 'border-l-sky-500',
+  completed: 'border-l-emerald-500',
+  absent: 'border-l-red-500',
+  covered: 'border-l-amber-500',
+  day_off: 'border-l-gray-300',
 }
 
 const RosterCalendar = () => {
@@ -64,7 +56,8 @@ const RosterCalendar = () => {
   const locationId = useLocationStore((s) => s.selectedLocationId)
 
   const { data: shiftsData, isLoading: shiftsLoading } = useListEmployeeShifts()
-  const { data: datesData, isLoading: datesLoading } = useListShiftEmployeeDates()
+  // Deleted days are needed too: without them a deleted day would be filled back in from the roster period.
+  const { data: datesData, isLoading: datesLoading } = useListShiftEmployeeDates({ includeDeleted: 'true' })
   const { data: users } = useUsersQuery()
   const { data: departments = [] } = useDepartmentsQuery()
 
@@ -115,7 +108,11 @@ const RosterCalendar = () => {
 
     const overrideMap = new Map<string, ShiftEmployeeDate>()
     for (const sd of shiftDates) {
-      overrideMap.set(`${sd.employeeShiftAssignmentId}_${sd.date}`, sd)
+      const key = `${sd.employeeShiftAssignmentId}_${sd.date}`
+      // A day deleted and later re-added has both rows; the active one wins.
+      const existing = overrideMap.get(key)
+      if (existing && !existing.isDeleted && sd.isDeleted) continue
+      overrideMap.set(key, sd)
     }
 
     const assignmentById = new Map(assignments.map((a) => [a.id, a]))
@@ -315,52 +312,80 @@ const RosterCalendar = () => {
           ))}
           {cells.map(({ day, key }) => {
             if (day === null) {
-              return <div key={key} className="min-h-[120px] bg-white" />
+              return <div key={key} className="h-[210px] bg-white" />
             }
 
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
             const dayEvents = eventsByDate[dateStr] || []
             const isToday = dateStr === todayStr
-            const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_ROSTERS)
-            const overflowCount = Math.max(0, dayEvents.length - MAX_VISIBLE_ROSTERS)
+            const shiftGroups = groupRostersByShift(dayEvents)
 
             return (
-              <button
+              // A day cell (not a <button>, since each employee inside is one): clicking the
+              // free space opens the day's list; clicking an employee opens their roster directly.
+              <div
                 key={key}
-                type="button"
+                role="button"
+                tabIndex={0}
+                aria-label={`Rosters on ${dateStr}`}
                 onClick={() => setSelectedDay(dateStr)}
-                className={`min-h-[120px] p-2 bg-white flex flex-col gap-1 text-left w-full hover:bg-gray-50 transition-colors cursor-pointer ${
+                onKeyDown={(e) => {
+                  if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault()
+                    setSelectedDay(dateStr)
+                  }
+                }}
+                className={`h-[210px] p-2 bg-white flex flex-col gap-1.5 text-left w-full hover:bg-gray-50 transition-colors cursor-pointer ${
                   isToday ? 'bg-[#2a517c]/5' : ''
                 }`}
               >
-                <span className={`text-sm font-semibold ${isToday ? 'text-[#2a517c]' : 'text-gray-900'}`}>{day}</span>
-
-                <div className="flex-1 flex flex-col gap-1.5 overflow-hidden">
-                  {visibleEvents.map((event) => (
-                    <div key={event.id} className="space-y-0.5 pointer-events-none">
-                      <div className="bg-[#2a517c] px-1.5 py-0.5 rounded-sm flex items-center justify-between gap-1">
-                        <span className="text-[8px] font-black text-white truncate uppercase tracking-tighter block max-w-[70%]">
-                          {event.shiftName}
-                        </span>
-                        <span className="text-[7px] text-white/90 font-bold tracking-tighter shrink-0">
-                          {event.slotTimeRange || event.shiftTime}
-                        </span>
-                      </div>
-                      <div className={getStatusClasses(event.status)}>
-                        <div className="font-semibold truncate text-[#1e3a5a]">{event.employeeName}</div>
-                        {event.departmentName && (
-                          <div className="text-[8px] font-medium text-gray-500 uppercase tracking-wider mt-0.5">
-                            {event.departmentName}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {overflowCount > 0 && (
-                    <span className="text-[11px] font-semibold text-[#2a517c] pl-0.5">+{overflowCount}</span>
+                <div className="flex items-center justify-between gap-1">
+                  <span className={`text-sm font-semibold ${isToday ? 'text-[#2a517c]' : 'text-gray-900'}`}>{day}</span>
+                  {dayEvents.length > 0 && (
+                    <span className="text-[10px] font-semibold text-gray-400">{dayEvents.length} staff</span>
                   )}
                 </div>
-              </button>
+
+                {/* Every shift that day, each once, with its employees under it; scrolls when it doesn't fit. */}
+                <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-0.5 [scrollbar-width:thin]">
+                  {shiftGroups.map((group) => (
+                    <div key={group.key} className="overflow-hidden rounded-md border border-[#2a517c]/15">
+                      <div className="flex items-center justify-between gap-1 bg-[#2a517c] px-2 py-1">
+                        <span className="truncate text-[11px] font-bold uppercase tracking-wide text-white">
+                          {group.shiftName}
+                        </span>
+                        <span className="shrink-0 text-[10px] font-semibold tabular-nums text-white/90">
+                          {group.time}
+                        </span>
+                      </div>
+                      <ul className="divide-y divide-gray-100 bg-white">
+                        {group.events.map((event) => (
+                          <li key={event.id}>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setDetailEvent(event)
+                              }}
+                              title={`Open ${event.employeeName}'s roster for this day`}
+                              className={`block w-full cursor-pointer border-l-[3px] px-2 py-1.5 text-left transition-colors hover:bg-[#2a517c]/5 ${statusEdge[event.status] || statusEdge.upcoming}`}
+                            >
+                              <p className="truncate text-[13px] font-semibold leading-tight text-[#1e3a5a]">
+                                {event.employeeName}
+                              </p>
+                              {event.departmentName && (
+                                <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                                  {event.departmentName}
+                                </p>
+                              )}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )
           })}
         </div>

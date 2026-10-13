@@ -300,9 +300,20 @@ export const isGridCellOff = (entries: RosterGridEntry[]): boolean =>
 export const buildDateRange = (start: Date, days: number): Date[] =>
   Array.from({ length: days }, (_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i))
 
+const LEAVE_LABELS: Record<string, string> = {
+  week_off: 'Day off',
+  sick: 'Sick leave',
+  casual: 'Casual leave',
+  planned: 'Planned leave',
+  holiday: 'Holiday',
+}
+
 /**
- * Expand assignments into a per-employee, per-day grid of shift codes.
- * Non-working weekdays and day_off overrides become OFF; deleted overrides drop the day.
+ * Expand assignments into a per-employee, per-day grid of shifts (by name).
+ * Days outside the roster's working days are simply not rostered (left empty) —
+ * the system stores those as week_off rows, but they are not days off. Only a
+ * day_off on an actual working day (marked off / on leave) becomes OFF; deleted
+ * overrides drop the day.
  */
 export const buildRosterGridData = ({
   assignments,
@@ -352,7 +363,8 @@ export const buildRosterGridData = ({
     const startTime = shift?.startTime || assignment.shift?.startTime
     const endTime = shift?.endTime || assignment.shift?.endTime
     const shiftTime = startTime && endTime ? `${startTime} - ${endTime}` : ''
-    const label = shift?.shiftCode?.trim() || assignment.shift?.shiftCode?.trim() || shiftName
+    // Cells, counts and the export show the shift's name; the code is too cryptic to read at a glance.
+    const label = shiftName
 
     if (!metaByLabel.has(label)) {
       metaByLabel.set(label, { label, shiftId, shiftName, shiftTime })
@@ -368,15 +380,18 @@ export const buildRosterGridData = ({
       if (override?.isDeleted) continue
 
       const dayName = WEEKDAY_BY_INDEX[d.getDay()]
-      const isOff =
-        (workingDays.length > 0 && (!dayName || !workingDays.includes(dayName))) || override?.status === 'day_off'
+      const isWorkingDay = workingDays.length === 0 || (!!dayName && workingDays.includes(dayName))
+      if (!isWorkingDay) continue
+
+      const isOff = override?.status === 'day_off'
 
       const empCells = (shiftMap[employeeId] ??= {})
       const current = empCells[dateStr] ?? []
 
       if (isOff) {
         if (current.length === 0) {
-          current.push({ label: ROSTER_GRID_OFF_LABEL, shiftId, shiftName: 'Day Off', shiftTime: '', isOff: true })
+          const leave = (override?.leaveType && LEAVE_LABELS[override.leaveType]) || 'Day off'
+          current.push({ label: ROSTER_GRID_OFF_LABEL, shiftId, shiftName: leave, shiftTime: '', isOff: true })
         }
         empCells[dateStr] = current
         continue
@@ -958,4 +973,34 @@ export const resolveLifecycleRosterStatus = (
     return currentStatus
   }
   return resolveTimeBasedShiftStatus(dateYmd, window.start, window.end, now)
+}
+
+// ── Roster calendar grouping ──────────────────────────────────────────────────
+
+export interface RosterShiftGroup<T> {
+  key: string
+  shiftName: string
+  time: string
+  events: T[]
+}
+
+/**
+ * A day's rosters grouped by shift (name + time), so the shift is shown once with
+ * its employees listed under it. Groups follow the order the shifts first appear.
+ */
+export const groupRostersByShift = <
+  T extends { shiftName: string; shiftTime: string; slotTimeRange?: string | null; employeeName: string },
+>(
+  events: T[],
+): RosterShiftGroup<T>[] => {
+  const groups = new Map<string, RosterShiftGroup<T>>()
+  for (const event of events) {
+    const time = event.slotTimeRange || event.shiftTime || ''
+    const key = `${event.shiftName}|${time}`
+    const group = groups.get(key) ?? { key, shiftName: event.shiftName, time, events: [] }
+    group.events.push(event)
+    groups.set(key, group)
+  }
+  for (const group of groups.values()) group.events.sort((a, b) => a.employeeName.localeCompare(b.employeeName))
+  return [...groups.values()]
 }

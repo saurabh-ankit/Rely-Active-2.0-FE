@@ -24,6 +24,7 @@ import {
   swapShiftDatesAPI,
   unmarkDayOffAPI,
   updateAreaAPI,
+  updateEmployeeShiftAPI,
   updateShiftAPI,
   type BulkCreateEmployeeShiftPayload,
   type CoverShiftDatePayload,
@@ -36,6 +37,7 @@ import {
   type ListParams,
   type MarkDayOffPayload,
   type SwapShiftDatesPayload,
+  type UpdateEmployeeShiftPayload,
   type UpdateShiftPayload,
 } from '@/lib/services/rosterService'
 import { useLocationStore } from '@/lib/stores/locationStore'
@@ -156,6 +158,24 @@ export const useBulkCreateEmployeeShifts = () => {
     },
     onError: (error: ApiError) => {
       toast.error(error?.response?.data?.message || error.message || 'Failed to assign shifts')
+    },
+  })
+}
+
+export const useUpdateEmployeeShift = () => {
+  const queryClient = useQueryClient()
+  const locationId = useLocationId()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateEmployeeShiftPayload }) =>
+      updateEmployeeShiftAPI(locationId!, id, data),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['employee-shifts'] })
+      queryClient.invalidateQueries({ queryKey: ['shifts'] })
+      queryClient.invalidateQueries({ queryKey: ['shift-employee-dates'] })
+      toast.success(data.message || 'Roster updated')
+    },
+    onError: (error: ApiError) => {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to update roster')
     },
   })
 }

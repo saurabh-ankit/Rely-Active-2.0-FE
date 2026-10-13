@@ -1,4 +1,4 @@
-import { ArrowLeftRight, CalendarDays, ChevronRight, Clock3, Coffee, MapPin, Users, UserCheck, X } from 'lucide-react'
+import { ArrowLeftRight, CalendarDays, ChevronRight, Clock3, Coffee, MapPin, Users, UserCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
@@ -41,13 +41,11 @@ const formatRosterDate = (ymd: string) => {
   })
 }
 
-export type RosterCardAction = 'swap' | 'cover' | 'day_off' | 'details' | 'residents' | 'remove'
+export type RosterCardAction = 'swap' | 'cover' | 'day_off' | 'details' | 'residents'
 
 interface RosterShiftCardProps {
   event: RosterCalendarEvent
   onAction: (action: RosterCardAction) => void
-  removeLabel?: string
-  removePending?: boolean
   showAssignedResidents?: boolean
   selectable?: boolean
   selected?: boolean
@@ -57,8 +55,6 @@ interface RosterShiftCardProps {
 const RosterShiftCard = ({
   event,
   onAction,
-  removeLabel = 'Remove',
-  removePending = false,
   showAssignedResidents = true,
   selectable = false,
   selected = false,
@@ -134,10 +130,6 @@ const RosterShiftCard = ({
               <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
               <span className="leading-snug">{location}</span>
             </div>
-          ) : null}
-
-          {event.departmentName ? (
-            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-400">{event.departmentName}</p>
           ) : null}
 
           {event.isCoverDuty && event.originalEmployeeName ? (
@@ -217,21 +209,6 @@ const RosterShiftCard = ({
               )}
             </div>
           </RosterPermission>
-
-          {!event.isCoverDuty && (
-            <RosterPermission action="delete">
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 shrink-0 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600"
-                disabled={removePending}
-                title={removeLabel}
-                onClick={() => onAction('remove')}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </RosterPermission>
-          )}
         </div>
       )}
     </article>
