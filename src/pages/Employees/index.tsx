@@ -70,8 +70,9 @@ interface EmployeeDirectoryPageProps {
 export default function EmployeeDirectoryPage({ initialView = 'list' }: EmployeeDirectoryPageProps) {
   const navigate = useNavigate()
   const { hasResourcePermission } = useLocationContext()
-  const canCreateEmployee = hasResourcePermission('EMPLOYEE', 'create')
-  const canUpdateEmployee = hasResourcePermission('EMPLOYEE', 'update')
+  // The directory follows Employee › Directory & profiles.
+  const canCreateEmployee = hasResourcePermission('EMPLOYEE.DIRECTORY', 'create')
+  const canUpdateEmployee = hasResourcePermission('EMPLOYEE.DIRECTORY', 'update')
 
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearch = useDebounce(searchTerm, 400)

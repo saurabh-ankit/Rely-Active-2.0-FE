@@ -35,7 +35,7 @@ import type {
   PurchaseOrder,
   StockTransaction,
 } from '@/lib/types/centerInventory'
-import { poStatusLabels } from '@/lib/types/centerInventory'
+import { poStatusLabels, sectionAccess } from '@/lib/types/centerInventory'
 import { ErrorNotice, Section, Status } from './shared'
 import { money, quantityDisplay } from './utils'
 import { PurchaseOrderForm } from './PurchaseOrderForm'
@@ -143,9 +143,19 @@ function CategoryInventory({
   const category = useCenterData<CenterCategory>(locationId, `categories/${categoryId}`)
   const stats = useCenterData<CenterStats>(locationId, 'stats', { categoryId })
   const [modal, setModal] = useState<'po' | 'stock' | 'assign' | null>(null)
-  const current = ['items', 'suppliers', 'purchase-orders', 'transactions'].includes(params.get('tab') ?? '')
-    ? params.get('tab')!
-    : 'items'
+  // Each tab is an Inventory sub-module with its own access.
+  const itemsAccess = sectionAccess(access, 'INVENTORY.ITEMS')
+  const suppliersAccess = sectionAccess(access, 'INVENTORY.SUPPLIERS')
+  const poAccess = sectionAccess(access, 'INVENTORY.PURCHASE_ORDERS')
+  const txAccess = sectionAccess(access, 'INVENTORY.TRANSACTIONS')
+  const tabAccess: Record<string, boolean> = {
+    items: itemsAccess.view,
+    suppliers: suppliersAccess.view,
+    'purchase-orders': poAccess.view,
+    transactions: txAccess.view,
+  }
+  const requested = params.get('tab') ?? ''
+  const current = tabAccess[requested] ? requested : (Object.keys(tabAccess).find((t) => tabAccess[t]) ?? 'items')
   const poId = params.get('poId'),
     transactionId = params.get('transactionId'),
     itemId = params.get('itemId')
@@ -215,7 +225,7 @@ function CategoryInventory({
                     locationId={locationId}
                     id={itemId}
                     category={category.data}
-                    access={access}
+                    access={itemsAccess}
                     onBack={() => go({ tab: 'items' })}
                     onTransaction={showTransaction}
                   />
@@ -226,7 +236,7 @@ function CategoryInventory({
                       categoryId={categoryId}
                       onSelect={(id) => go({ tab: 'items', itemId: id })}
                       onPO={() => setModal('po')}
-                      canCreate={access.create}
+                      canCreate={poAccess.create}
                     />
                   </Section>
                 )}
@@ -241,7 +251,7 @@ function CategoryInventory({
             content: (
               <>
                 <Section title="Suppliers">
-                  <SupplierList locationId={locationId} categoryId={categoryId} access={access} />
+                  <SupplierList locationId={locationId} categoryId={categoryId} access={suppliersAccess} />
                 </Section>
               </>
             ),
@@ -258,7 +268,7 @@ function CategoryInventory({
                     locationId={locationId}
                     id={poId}
                     categoryId={categoryId}
-                    access={access}
+                    access={poAccess}
                     onBack={() => go({ tab: 'purchase-orders' })}
                     onTransaction={showTransaction}
                   />
@@ -266,7 +276,7 @@ function CategoryInventory({
                   <Section
                     title="Purchase Orders"
                     action={
-                      access.create ? (
+                      poAccess.create ? (
                         <Button onClick={() => setModal('po')}>
                           <Plus data-icon="inline-start" />
                           Create Purchase Order
@@ -298,7 +308,7 @@ function CategoryInventory({
                   <Section
                     title="Inventory Item Transactions"
                     action={
-                      access.create ? (
+                      txAccess.create ? (
                         <div className="flex flex-wrap gap-2">
                           <Button onClick={() => setModal('stock')}>Stock In</Button>
                           <Button variant="outline" onClick={() => setModal('assign')}>
@@ -314,7 +324,7 @@ function CategoryInventory({
               </>
             ),
           },
-        ]}
+        ].filter((tab) => tabAccess[tab.value])}
       />
       {modal === 'po' && (
         <PurchaseOrderForm

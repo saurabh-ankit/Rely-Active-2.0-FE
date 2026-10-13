@@ -296,7 +296,7 @@ export default function RootRouter() {
         <Route
           path="admin/employees"
           element={
-            <ProtectedRoute resourceKey="EMPLOYEE" action="view">
+            <ProtectedRoute resourceKey="EMPLOYEE.DIRECTORY" action="view">
               <EmployeeDirectoryPage initialView="list" />
             </ProtectedRoute>
           }
@@ -304,7 +304,7 @@ export default function RootRouter() {
         <Route
           path="admin/employees/create"
           element={
-            <ProtectedRoute resourceKey="EMPLOYEE" action="create">
+            <ProtectedRoute resourceKey="EMPLOYEE.DIRECTORY" action="create">
               <EmployeeDirectoryPage initialView="create" />
             </ProtectedRoute>
           }
@@ -312,7 +312,7 @@ export default function RootRouter() {
         <Route
           path="admin/employees/edit/:id"
           element={
-            <ProtectedRoute resourceKey="EMPLOYEE" action="update">
+            <ProtectedRoute resourceKey="EMPLOYEE.DIRECTORY" action="update">
               <EmployeeDirectoryPage initialView="edit" />
             </ProtectedRoute>
           }

@@ -18,7 +18,6 @@ import {
   UserCheck,
 } from 'lucide-react'
 import { useEmployeeActivitySummary, useUserByIdQuery } from '@/hooks/react-query/user'
-import { useLocationContext } from '@/hooks/useLocation'
 import { useLocationStore } from '@/lib/stores/locationStore'
 import { Button } from '@/components/ui/button'
 import { RoleBadges } from '@/components/employees/EmployeeCells'
@@ -30,6 +29,8 @@ import { EmployeeMonthlyRoster } from './EmployeeMonthlyRoster'
 import { RangeFilter } from './activity/shared'
 import { ACTIVITY_META, defaultRange, type DateRange } from './activity/utils'
 import { cn, getFileUrl } from '@/lib/utils'
+import { useResourceAccess } from '@/hooks/useResourceAccess'
+import { RESOURCE } from '@/lib/permissions/resourceKeys'
 
 interface LocationRec {
   locId?: string
@@ -82,8 +83,9 @@ const WEEK_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'satu
 export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ isGlobalMode = false }) => {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  const { hasResourcePermission } = useLocationContext()
-  const canUpdateEmployee = hasResourcePermission('EMPLOYEE', 'update')
+  const directoryAccess = useResourceAccess(RESOURCE.EMPLOYEE_DIRECTORY)
+  const activityAccess = useResourceAccess(RESOURCE.EMPLOYEE_ACTIVITY)
+  const canUpdateEmployee = directoryAccess.canUpdate
 
   const { data: user, isLoading, error: queryError } = useUserByIdQuery(id)
 
@@ -92,10 +94,14 @@ export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ is
   const activityLocId = isGlobal ? null : selectedLocationId || null
   const [activityRange, setActivityRange] = useState<DateRange>(defaultRange)
   const [activeTab, setActiveTab] = useState('overview')
-  const { data: activitySummary, isLoading: activitySummaryLoading } = useEmployeeActivitySummary(id, {
-    ...activityRange,
-    locId: activityLocId,
-  })
+  const { data: activitySummary, isLoading: activitySummaryLoading } = useEmployeeActivitySummary(
+    id,
+    {
+      ...activityRange,
+      locId: activityLocId,
+    },
+    activityAccess.canView,
+  )
 
   const backUrl = isGlobal ? '/global-settings/users' : '/admin/employees'
   const editUrl = isGlobal ? `/global-settings/edit-user/${id}` : `/admin/employees/edit/${id}`
@@ -194,7 +200,7 @@ export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ is
     </div>
   )
   const activityTabs: TabItem[] = []
-  if (id && activityKind !== 'none') {
+  if (id && activityAccess.canView && activityKind !== 'none') {
     const meta = ACTIVITY_META[activityKind]
     activityTabs.push({
       value: 'department',
@@ -216,7 +222,7 @@ export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ is
       ),
     })
   }
-  if (id) {
+  if (id && activityAccess.canView) {
     activityTabs.push({
       value: 'work-log',
       label: 'Work log',
@@ -230,6 +236,150 @@ export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ is
       ),
     })
   }
+
+  // Overview follows Employee › Directory & profiles; the activity tabs follow Employee › Activity & work log.
+  const overviewTab: TabItem = {
+    value: 'overview',
+    label: 'Overview',
+    shortLabel: 'Overview',
+    icon: LayoutGrid,
+    content: (
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="space-y-5 lg:col-span-2">
+          <Panel icon={Briefcase} title="Work details">
+            <InfoList
+              rows={[
+                ['Department', deptName ?? null],
+                ['Job category', catName ?? null],
+                ['Qualification', profile?.qualification || null],
+                ['Experience', profile?.experience ? `${profile.experience} year(s)` : null],
+                ...(hasConsultantFee
+                  ? ([['Consultant fee', `₹${String(consultantFee)}`]] as Array<[string, React.ReactNode]>)
+                  : []),
+                ...(user.specializations && user.specializations.length > 0
+                  ? ([
+                      [
+                        'Specializations',
+                        <div key="spec" className="flex flex-wrap gap-1.5">
+                          {user.specializations.map((sp) => (
+                            <span
+                              key={sp.id}
+                              className="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[11px] font-semibold text-teal-700"
+                            >
+                              {sp.name}
+                              {sp.isPrimary ? ' · Primary' : ''}
+                            </span>
+                          ))}
+                        </div>,
+                      ],
+                    ] as Array<[string, React.ReactNode]>)
+                  : []),
+                [
+                  'Weekly off',
+                  <div key="off" className="flex flex-wrap gap-1">
+                    {WEEK_DAYS.map((day) => {
+                      const off = weekOff.includes(day)
+                      return (
+                        <span
+                          key={day}
+                          title={off ? 'Day off' : 'Working day'}
+                          className={cn(
+                            'w-10 rounded-md border py-0.5 text-center text-[11px] font-semibold capitalize',
+                            off ? 'border-rose-200 bg-rose-50 text-rose-600' : 'border-gray-200 bg-white text-gray-500',
+                          )}
+                        >
+                          {day.slice(0, 3)}
+                        </span>
+                      )
+                    })}
+                  </div>,
+                ],
+              ]}
+            />
+            {weekOff.length === 0 && <p className="mt-1 text-[11px] text-gray-400">No weekly off days set.</p>}
+          </Panel>
+
+          {id && <EmployeeMonthlyRoster employeeId={id} showFullRosterLink={!isGlobal} />}
+        </div>
+
+        <div className="space-y-5">
+          <Panel icon={Phone} title="Contact">
+            <InfoList
+              rows={[
+                [
+                  'Email',
+                  user.email ? (
+                    <a href={`mailto:${user.email}`} className="flex items-center gap-1.5 hover:text-[#005390]">
+                      <Mail className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                      <span className="truncate">{user.email}</span>
+                    </a>
+                  ) : null,
+                ],
+                ['Phone', phone || null],
+                [
+                  'Emergency',
+                  emergency ? (
+                    <span className="flex items-center gap-1.5">
+                      <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                      {emergency}
+                    </span>
+                  ) : null,
+                ],
+              ]}
+            />
+          </Panel>
+
+          <Panel icon={User} title="Personal">
+            <InfoList
+              rows={[
+                ['Gender', profile?.gender ? <span className="capitalize">{profile.gender.toLowerCase()}</span> : null],
+                [
+                  'Date of birth',
+                  birthDate
+                    ? `${format(birthDate, 'dd MMM yyyy')} (${differenceInYears(new Date(), birthDate)} yrs)`
+                    : null,
+                ],
+                ['Blood group', profile?.bloodGroup || profile?.blood_group || null],
+                ['Address', profile?.address || null],
+              ]}
+            />
+          </Panel>
+
+          <Panel icon={KeyRound} title="Account">
+            <InfoList
+              rows={[
+                ['Username', user.username ? <span className="font-mono text-xs">{user.username}</span> : null],
+                ['Created', formatDate(user.createdAt)],
+                [
+                  'Last login',
+                  formatDate(lastLogin, 'dd MMM yyyy, h:mm a') ?? (
+                    <span className="font-normal text-gray-400">Never</span>
+                  ),
+                ],
+              ]}
+            />
+            {assignedProperties.length > 0 && (
+              <div className="mt-3 border-t border-gray-100 pt-3 dark:border-gray-800">
+                <p className="mb-2 text-xs text-gray-500">Properties</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {assignedProperties.map((p) => (
+                    <span
+                      key={p.id}
+                      className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-gray-700"
+                    >
+                      <Building2 className="h-3 w-3 text-[#005390]" />
+                      {p.property_name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Panel>
+        </div>
+      </div>
+    ),
+  }
+  const visibleTabs: TabItem[] = [...(directoryAccess.canView ? [overviewTab] : []), ...activityTabs]
 
   return (
     <div className="w-full space-y-5 pb-16">
@@ -327,159 +477,17 @@ export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ is
         </div>
       </div>
 
-      <ResponsiveTabs
-        value={activityTabs.some((t) => t.value === activeTab) ? activeTab : 'overview'}
-        onValueChange={setActiveTab}
-        tabs={[
-          {
-            value: 'overview',
-            label: 'Overview',
-            shortLabel: 'Overview',
-            icon: LayoutGrid,
-            content: (
-              <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-                <div className="space-y-5 lg:col-span-2">
-                  <Panel icon={Briefcase} title="Work details">
-                    <InfoList
-                      rows={[
-                        ['Department', deptName ?? null],
-                        ['Job category', catName ?? null],
-                        ['Qualification', profile?.qualification || null],
-                        ['Experience', profile?.experience ? `${profile.experience} year(s)` : null],
-                        ...(hasConsultantFee
-                          ? ([['Consultant fee', `₹${String(consultantFee)}`]] as Array<[string, React.ReactNode]>)
-                          : []),
-                        ...(user.specializations && user.specializations.length > 0
-                          ? ([
-                              [
-                                'Specializations',
-                                <div key="spec" className="flex flex-wrap gap-1.5">
-                                  {user.specializations.map((sp) => (
-                                    <span
-                                      key={sp.id}
-                                      className="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[11px] font-semibold text-teal-700"
-                                    >
-                                      {sp.name}
-                                      {sp.isPrimary ? ' · Primary' : ''}
-                                    </span>
-                                  ))}
-                                </div>,
-                              ],
-                            ] as Array<[string, React.ReactNode]>)
-                          : []),
-                        [
-                          'Weekly off',
-                          <div key="off" className="flex flex-wrap gap-1">
-                            {WEEK_DAYS.map((day) => {
-                              const off = weekOff.includes(day)
-                              return (
-                                <span
-                                  key={day}
-                                  title={off ? 'Day off' : 'Working day'}
-                                  className={cn(
-                                    'w-10 rounded-md border py-0.5 text-center text-[11px] font-semibold capitalize',
-                                    off
-                                      ? 'border-rose-200 bg-rose-50 text-rose-600'
-                                      : 'border-gray-200 bg-white text-gray-500',
-                                  )}
-                                >
-                                  {day.slice(0, 3)}
-                                </span>
-                              )
-                            })}
-                          </div>,
-                        ],
-                      ]}
-                    />
-                    {weekOff.length === 0 && <p className="mt-1 text-[11px] text-gray-400">No weekly off days set.</p>}
-                  </Panel>
-
-                  {id && <EmployeeMonthlyRoster employeeId={id} showFullRosterLink={!isGlobal} />}
-                </div>
-
-                <div className="space-y-5">
-                  <Panel icon={Phone} title="Contact">
-                    <InfoList
-                      rows={[
-                        [
-                          'Email',
-                          user.email ? (
-                            <a href={`mailto:${user.email}`} className="flex items-center gap-1.5 hover:text-[#005390]">
-                              <Mail className="h-3.5 w-3.5 shrink-0 text-gray-400" />
-                              <span className="truncate">{user.email}</span>
-                            </a>
-                          ) : null,
-                        ],
-                        ['Phone', phone || null],
-                        [
-                          'Emergency',
-                          emergency ? (
-                            <span className="flex items-center gap-1.5">
-                              <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-                              {emergency}
-                            </span>
-                          ) : null,
-                        ],
-                      ]}
-                    />
-                  </Panel>
-
-                  <Panel icon={User} title="Personal">
-                    <InfoList
-                      rows={[
-                        [
-                          'Gender',
-                          profile?.gender ? <span className="capitalize">{profile.gender.toLowerCase()}</span> : null,
-                        ],
-                        [
-                          'Date of birth',
-                          birthDate
-                            ? `${format(birthDate, 'dd MMM yyyy')} (${differenceInYears(new Date(), birthDate)} yrs)`
-                            : null,
-                        ],
-                        ['Blood group', profile?.bloodGroup || profile?.blood_group || null],
-                        ['Address', profile?.address || null],
-                      ]}
-                    />
-                  </Panel>
-
-                  <Panel icon={KeyRound} title="Account">
-                    <InfoList
-                      rows={[
-                        ['Username', user.username ? <span className="font-mono text-xs">{user.username}</span> : null],
-                        ['Created', formatDate(user.createdAt)],
-                        [
-                          'Last login',
-                          formatDate(lastLogin, 'dd MMM yyyy, h:mm a') ?? (
-                            <span className="font-normal text-gray-400">Never</span>
-                          ),
-                        ],
-                      ]}
-                    />
-                    {assignedProperties.length > 0 && (
-                      <div className="mt-3 border-t border-gray-100 pt-3 dark:border-gray-800">
-                        <p className="mb-2 text-xs text-gray-500">Properties</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {assignedProperties.map((p) => (
-                            <span
-                              key={p.id}
-                              className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-gray-700"
-                            >
-                              <Building2 className="h-3 w-3 text-[#005390]" />
-                              {p.property_name}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </Panel>
-                </div>
-              </div>
-            ),
-          },
-          ...activityTabs,
-        ]}
-      />
+      {visibleTabs.length > 0 ? (
+        <ResponsiveTabs
+          value={visibleTabs.some((t) => t.value === activeTab) ? activeTab : visibleTabs[0]!.value}
+          onValueChange={setActiveTab}
+          tabs={visibleTabs}
+        />
+      ) : (
+        <div className="rounded-2xl border border-gray-100 bg-white p-10 text-center text-sm text-gray-500">
+          You don&apos;t have access to this employee&apos;s profile or activity.
+        </div>
+      )}
     </div>
   )
 }

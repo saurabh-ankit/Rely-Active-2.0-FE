@@ -1,4 +1,7 @@
 import type { InventoryCategory, InventoryFieldDefinition, InventoryItem, InventoryVendor } from './inventory'
+export type InventorySection =
+  'INVENTORY.ITEMS' | 'INVENTORY.SUPPLIERS' | 'INVENTORY.PURCHASE_ORDERS' | 'INVENTORY.TRANSACTIONS'
+
 export interface CenterAccess {
   view: boolean
   create: boolean
@@ -6,6 +9,14 @@ export interface CenterAccess {
   delete: boolean
   approve: boolean
   autoApprove: boolean
+  /** Per-tab access (Inventory sub-modules); absent from older servers. */
+  sections?: Partial<Record<InventorySection, { view: boolean; create: boolean; update: boolean; delete: boolean }>>
+}
+
+/** The access for one Inventory tab, shaped like CenterAccess so existing checks keep working. */
+export const sectionAccess = (access: CenterAccess, section: InventorySection): CenterAccess => {
+  const flags = access.sections?.[section]
+  return flags ? { ...access, ...flags } : access
 }
 export type CenterCategory = Omit<InventoryCategory, 'locationIds' | 'fieldDefinitions'> & {
   fieldDefinitions?: InventoryFieldDefinition[]

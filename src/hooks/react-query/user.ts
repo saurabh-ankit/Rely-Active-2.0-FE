@@ -48,11 +48,11 @@ export const useUserByIdQuery = (id?: string) => {
   })
 }
 
-export const useEmployeeActivitySummary = (id: string | undefined, params: EmployeeActivityParams) => {
+export const useEmployeeActivitySummary = (id: string | undefined, params: EmployeeActivityParams, enabled = true) => {
   return useQuery({
     queryKey: ['users', id, 'activity', 'summary', params] as const,
     queryFn: () => getEmployeeActivitySummaryAPI(id!, params),
-    enabled: !!id,
+    enabled: !!id && enabled,
     placeholderData: keepPreviousData,
   })
 }
