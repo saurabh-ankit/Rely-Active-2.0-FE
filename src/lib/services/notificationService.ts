@@ -1,6 +1,11 @@
 import api from '@/lib/api/axios'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
-import type { NotificationListPayload, NotificationListQueryParams } from '@/lib/types/notification'
+import type {
+  NotificationListPayload,
+  NotificationListQueryParams,
+  RegisterNotificationDevicePayload,
+  UnregisterNotificationDevicePayload,
+} from '@/lib/types/notification'
 
 type ApiResponse<T> = {
   success: boolean
@@ -32,5 +37,26 @@ export const markAllNotificationsReadAPI = async (module?: string) => {
 
 export const archiveNotificationAPI = async (id: string) => {
   const response = await api.patch<ApiResponse<null>>(API_ENDPOINTS.notifications.archive(id))
+  return response.data
+}
+
+export const registerNotificationDeviceAPI = async (payload: RegisterNotificationDevicePayload, authToken?: string) => {
+  const response = await api.post<ApiResponse<null>>(API_ENDPOINTS.notifications.registerDevice, payload, {
+    ...(authToken ? { headers: { Authorization: `Bearer ${authToken}` } } : {}),
+  })
+  return response.data
+}
+
+export const unregisterNotificationDeviceAPI = async (
+  payload: UnregisterNotificationDevicePayload,
+  authToken?: string,
+) => {
+  const response = await api.post<ApiResponse<{ affected: number }>>(
+    API_ENDPOINTS.notifications.unregisterDevice,
+    payload,
+    {
+      ...(authToken ? { headers: { Authorization: `Bearer ${authToken}` } } : {}),
+    },
+  )
   return response.data
 }

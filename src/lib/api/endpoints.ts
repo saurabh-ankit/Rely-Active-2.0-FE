@@ -389,6 +389,8 @@ export const API_ENDPOINTS = {
   notifications: {
     list: `${BASE_URL}/notifications`,
     unreadCount: `${BASE_URL}/notifications/unread-count`,
+    registerDevice: `${BASE_URL}/notifications/devices/register`,
+    unregisterDevice: `${BASE_URL}/notifications/devices/unregister`,
     markRead: (id: string) => `${BASE_URL}/notifications/${id}/read`,
     markAllRead: `${BASE_URL}/notifications/read-all`,
     archive: (id: string) => `${BASE_URL}/notifications/${id}/archive`,

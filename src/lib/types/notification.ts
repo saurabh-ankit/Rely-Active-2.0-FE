@@ -1,6 +1,8 @@
 export type NotificationStatus = 'UNREAD' | 'READ' | 'ARCHIVED'
 export type NotificationActionType = 'OPEN_ENTITY' | 'OPEN_URL' | 'NONE'
 export type NotificationSeverity = 'INFO' | 'WARNING' | 'CRITICAL'
+export type NotificationAppSurface = 'WEB_APP' | 'MOBILE_L1' | 'MOBILE_L3'
+export type NotificationDevicePlatform = 'WEB' | 'ANDROID' | 'IOS'
 
 export interface NotificationEventItem {
   id: string
@@ -46,4 +48,17 @@ export interface NotificationListQueryParams {
   limit?: number
   status?: NotificationStatus | 'ALL'
   module?: string
+}
+
+export interface RegisterNotificationDevicePayload {
+  fcmToken: string
+  appSurface: NotificationAppSurface
+  platform?: NotificationDevicePlatform
+  deviceId?: string
+  appVersion?: string
+}
+
+export interface UnregisterNotificationDevicePayload {
+  fcmToken: string
+  reason?: string
 }
