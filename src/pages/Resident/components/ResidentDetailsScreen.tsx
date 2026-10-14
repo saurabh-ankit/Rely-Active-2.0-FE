@@ -5,7 +5,6 @@ import { ArrowLeft, CalendarDays, Edit, HeartPulse, Home, Phone, RefreshCw, User
 import type { ResidentItem } from '@/lib/types'
 import { residentService } from '@/lib/services/residentService'
 import { ResidentFnbPackageModal } from './ResidentFnbPackageModal'
-import { useLocationContext } from '@/hooks/useLocation'
 import { AssignCareTaskDialog } from '@/components/common/AssignCareTaskDialog'
 import { AssignCareTeamDialog } from '@/components/common/AssignCareTeamDialog'
 import { Button } from '@/components/ui/button'
@@ -16,6 +15,8 @@ import { useResidentClinicalQuery } from '@/hooks/react-query/resident'
 import { ResidentPersonalDetailsTab, type FnbSubscriptionItem } from './ResidentPersonalDetailsTab'
 import { ResidentMedicalTab } from './ResidentMedicalTab'
 import { ResidentConditionMenu } from './medical/ResidentConditionMenu'
+import { useResourceAccess } from '@/hooks/useResourceAccess'
+import { RESOURCE } from '@/lib/permissions/resourceKeys'
 
 export interface ResidentDetailsScreenProps {
   isGlobalMode?: boolean
@@ -26,8 +27,10 @@ type ResidentDetailTab = 'personal' | 'medical'
 export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ isGlobalMode = false }) => {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  const { hasResourcePermission } = useLocationContext()
-  const canUpdateResident = hasResourcePermission('RESIDENT', 'update')
+  // The two tabs are Resident sections with their own access.
+  const profileAccess = useResourceAccess(RESOURCE.RESIDENT_DIRECTORY)
+  const medicalAccess = useResourceAccess(RESOURCE.RESIDENT_MEDICAL)
+  const canUpdateResident = profileAccess.canUpdate
   const clinicalQuery = useResidentClinicalQuery(id)
   const currentCondition = clinicalQuery.data?.currentCondition ?? null
 
@@ -37,7 +40,18 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   const [isFnbModalOpen, setIsFnbModalOpen] = useState<boolean>(false)
   const [isCareTaskModalOpen, setIsCareTaskModalOpen] = useState<boolean>(false)
   const [isCareTeamModalOpen, setIsCareTeamModalOpen] = useState<boolean>(false)
-  const [activeTab, setActiveTab] = useState<ResidentDetailTab>('personal')
+  const [chosenTab, setActiveTab] = useState<ResidentDetailTab>('personal')
+  const tabAccess: Record<ResidentDetailTab, boolean> = {
+    personal: profileAccess.canView,
+    medical: medicalAccess.canView,
+  }
+  const activeTab: ResidentDetailTab | null = tabAccess[chosenTab]
+    ? chosenTab
+    : tabAccess.personal
+      ? 'personal'
+      : tabAccess.medical
+        ? 'medical'
+        : null
 
   const [fnbSubscriptions, setFnbSubscriptions] = useState<FnbSubscriptionItem[]>([])
   const [globalMealSlots, setGlobalMealSlots] = useState<Array<{ id: string; name: string; code?: string }>>([])
@@ -303,25 +317,35 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
 
       {/* Tab bar */}
       <div className="flex border-b border-gray-200 space-x-6 text-sm font-semibold text-gray-500 overflow-x-auto">
-        <button
-          type="button"
-          onClick={() => setActiveTab('personal')}
-          className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-            activeTab === 'personal' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
-          }`}
-        >
-          <User className="w-4 h-4" /> Profile
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('medical')}
-          className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-            activeTab === 'medical' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
-          }`}
-        >
-          <HeartPulse className="w-4 h-4 text-rose-500" /> Medical
-        </button>
+        {tabAccess.personal && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('personal')}
+            className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
+              activeTab === 'personal' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
+            }`}
+          >
+            <User className="w-4 h-4" /> Profile
+          </button>
+        )}
+        {tabAccess.medical && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('medical')}
+            className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
+              activeTab === 'medical' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
+            }`}
+          >
+            <HeartPulse className="w-4 h-4 text-rose-500" /> Medical
+          </button>
+        )}
       </div>
+
+      {!activeTab && (
+        <div className="rounded-2xl border border-gray-100 bg-white p-10 text-center text-sm text-gray-500">
+          You don&apos;t have access to this resident&apos;s Profile or Medical sections.
+        </div>
+      )}
 
       {activeTab === 'personal' && (
         <ResidentPersonalDetailsTab
@@ -336,7 +360,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
       {activeTab === 'medical' && (
         <ResidentMedicalTab
           resident={resident}
-          canUpdateResident={canUpdateResident}
+          canUpdateResident={medicalAccess.canUpdate}
           onAssignCareTeam={() => setIsCareTeamModalOpen(true)}
           onAssignCareTask={() => setIsCareTaskModalOpen(true)}
         />

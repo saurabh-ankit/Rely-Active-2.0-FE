@@ -3,6 +3,7 @@ import { DataTable } from '@/components/ui/data-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field'
+import { brandCheckbox } from '@/components/inventory/brand'
 export interface LocationOption {
   id: string
   name: string
@@ -20,6 +21,10 @@ export function LocationTable({ options }: { options: LocationOption[] }) {
         const all = allowed.length > 0 && allowed.every((id) => selected.includes(id))
         return (
           <>
+            <p className="mb-3 text-xs text-gray-500">
+              <span className="font-semibold text-gray-900">{selected.length}</span> of {options.length} location
+              {options.length === 1 ? '' : 's'} selected
+            </p>
             <DataTable
               data={options}
               filterKey="name"
@@ -47,6 +52,7 @@ export function LocationTable({ options }: { options: LocationOption[] }) {
                   cell: ({ row }) => (
                     <Checkbox
                       aria-label={row.original.name}
+                      className={brandCheckbox}
                       checked={selected.includes(row.original.id)}
                       disabled={row.original.disabled && !selected.includes(row.original.id)}
                       onCheckedChange={(checked) =>

@@ -11,6 +11,7 @@ import {
   Clock,
   Coffee,
   MapPin,
+  Pencil,
   Repeat,
   StickyNote,
   Timer,
@@ -46,6 +47,7 @@ import {
   type SwapFormValues,
 } from '@/utils/roster.utils'
 import { RosterPermission } from '../RosterPermission'
+import EditRosterDialog from './EditRosterDialog'
 import {
   getUserDisplayName,
   getUserRoleCodes,
@@ -53,6 +55,7 @@ import {
   isSameRoleGroup,
   LEAVE_TYPES,
   resolveAssignmentWindow,
+  todayYmdLocal,
   usersShareDepartment,
 } from '../../utils'
 import {
@@ -190,6 +193,7 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
   const createDate = useCreateShiftEmployeeDate()
 
   const [actionMode, setActionMode] = useState<ActionMode>(initialAction ?? null)
+  const [editOpen, setEditOpen] = useState(false)
   /** True when Swap/Cover/Day Off was opened directly from a roster card (not from details). */
   const openedViaInitialAction = useRef(false)
 
@@ -354,6 +358,10 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
 
   if (!event) return null
 
+  // A roster can be edited until it starts (cover duty belongs to someone else's roster).
+  const rosterStart = event.assignment?.startDate ? String(event.assignment.startDate).slice(0, 10) : null
+  const canEditRoster = !!event.assignment && !event.isCoverDuty && !!rosterStart && rosterStart > todayYmdLocal()
+
   const closeAll = () => {
     resetActionState()
     openedViaInitialAction.current = false
@@ -369,7 +377,7 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
   return (
     <>
       <Dialog
-        open={open && !actionMode}
+        open={open && !actionMode && !editOpen}
         onOpenChange={(next) => {
           if (!next) closeAll()
           else onOpenChange(next)
@@ -451,6 +459,24 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
           {!(event.status === 'covered' && !event.isCoverDuty) && (
             <RosterPermission action="update">
               <div className="border-t pt-4">
+                {canEditRoster ? (
+                  <Button
+                    variant="outline"
+                    className="mb-2 w-full border-[#2a517c]/30 text-[#2a517c] hover:bg-[#2a517c]/5"
+                    onClick={() => setEditOpen(true)}
+                  >
+                    <Pencil className="mr-1.5 h-4 w-4" />
+                    Edit roster
+                  </Button>
+                ) : (
+                  event.assignment &&
+                  !event.isCoverDuty &&
+                  rosterStart && (
+                    <p className="mb-2 text-center text-xs text-gray-500">
+                      This roster started on {formatDay(rosterStart, 'dd MMM yyyy')}, so it can no longer be edited.
+                    </p>
+                  )
+                )}
                 {event.status === 'day_off' ? (
                   <Button
                     variant="outline"
@@ -764,6 +790,16 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
           </form>
         </DialogContent>
       </Dialog>
+      {event.assignment && editOpen && (
+        <EditRosterDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          onSaved={closeAll}
+          assignment={event.assignment}
+          employeeName={event.employeeName}
+          locationLabel={event.locationLabel || event.areaName}
+        />
+      )}
     </>
   )
 }

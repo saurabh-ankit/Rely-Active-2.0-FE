@@ -30,6 +30,7 @@ export const API_ENDPOINTS = {
   property: {
     getAll: `${BASE_URL}/property`,
     getById: (id: string) => `${BASE_URL}/property/${id}`,
+    unitPicker: (id: string) => `${BASE_URL}/property/${id}/unit-picker`,
     create: `${BASE_URL}/property`,
     update: (id: string) => `${BASE_URL}/property/${id}`,
     delete: (id: string) => `${BASE_URL}/property/${id}`,
@@ -95,6 +96,9 @@ export const API_ENDPOINTS = {
     updateProperties: (id: string) => `${BASE_URL}/users/${id}/properties`,
     updatePermissions: (id: string) => `${BASE_URL}/users/${id}/permissions`,
     getAccessibleProperties: `${BASE_URL}/users/accessible-properties`,
+    activitySummary: (id: string) => `${BASE_URL}/users/${id}/activity/summary`,
+    activityRecords: (id: string) => `${BASE_URL}/users/${id}/activity/records`,
+    activityWorkLog: (id: string) => `${BASE_URL}/users/${id}/activity/work-log`,
   },
 
   rbac: {
@@ -414,6 +418,7 @@ export const API_ENDPOINTS = {
     createEmployeeShift: `${BASE_URL}/location/:locationId/employee-shifts`,
     bulkCreateEmployeeShifts: `${BASE_URL}/location/:locationId/employee-shifts/bulk`,
     deleteEmployeeShift: `${BASE_URL}/location/:locationId/employee-shifts/:employeeShiftId`,
+    updateEmployeeShift: `${BASE_URL}/location/:locationId/employee-shifts/:employeeShiftId`,
 
     listShiftEmployeeDates: `${BASE_URL}/location/:locationId/shift-employee-dates`,
     createShiftEmployeeDate: `${BASE_URL}/location/:locationId/shift-employee-dates`,

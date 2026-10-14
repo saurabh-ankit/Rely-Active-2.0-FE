@@ -3,7 +3,7 @@ import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { FieldGroup } from '@/components/ui/field'
+import { MapPin, Truck } from 'lucide-react'
 import { useInventoryDetail, useInventoryProperties, useSaveInventory } from '@/hooks/react-query/inventory'
 import { inventoryVendorFormSchema } from '@/lib/validations/inventory'
 import type { InventoryVendor } from '@/lib/types/inventory'
@@ -52,8 +52,8 @@ function VendorEditor({ record, locations }: { record?: InventoryVendor; locatio
   })
   return (
     <InventoryPage
-      title={record ? 'Edit Vendor' : 'Add Vendor'}
-      description="Manage vendor details and the locations they serve."
+      title={record ? 'Edit Supplier' : 'Add Supplier'}
+      description="Manage supplier details and the locations they serve."
       onBack={() => {
         if (!mutation.isPending) back()
       }}
@@ -71,7 +71,7 @@ function VendorEditor({ record, locations }: { record?: InventoryVendor; locatio
                 id: record?.id,
                 data: { ...data, email: data.email ?? '', phone: data.phone ?? '' },
               })
-              toast.success('Vendor saved')
+              toast.success('Supplier saved')
               back()
             } catch (error) {
               setInventoryFormError(form, error)
@@ -79,17 +79,32 @@ function VendorEditor({ record, locations }: { record?: InventoryVendor; locatio
           })}
         >
           <fieldset disabled={mutation.isPending} className="flex min-w-0 flex-col gap-6">
-            <FormSection title="Vendor Information">
-              <FieldGroup>
-                <FormInput name="name" label="Vendor Name *" />
+            <FormSection
+              icon={Truck}
+              title="Supplier details"
+              description="Who the supplier is and how to reach them. Fields marked * are required."
+            >
+              <div className="grid gap-5 md:grid-cols-2">
+                <FormInput name="name" label="Supplier Name *" />
                 <FormInput name="contactPerson" label="Contact Person *" />
-                <FormInput name="email" label="Email Address" type="email" />
                 <FormInput name="phone" label="Phone Number *" type="tel" />
-                <FormInput name="address" label="Address *" type="textarea" />
-                <FormCheck name="isActive" label="Active" />
-              </FieldGroup>
+                <FormInput name="email" label="Email Address" type="email" />
+                <div className="md:col-span-2">
+                  <FormInput name="address" label="Address *" type="textarea" />
+                </div>
+                <div className="md:col-span-2 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                  <FormCheck name="isActive" label="Active" />
+                  <p className="mt-1 pl-6 text-xs text-gray-500">
+                    Inactive vendors can't be used for new purchase orders.
+                  </p>
+                </div>
+              </div>
             </FormSection>
-            <FormSection title="Locations" description="Select the locations served by this vendor.">
+            <FormSection
+              icon={MapPin}
+              title="Locations served"
+              description="The properties that can buy from this supplier. Pick at least one."
+            >
               <LocationTable options={locations} />
             </FormSection>
             <RootError />

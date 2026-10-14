@@ -33,6 +33,7 @@ import type { AssetAssignment, AssetCondition, AssigneeType, CreateAssetAssignme
 import { formatDisplayDate } from '@/lib/utils'
 import { getPropertyByIdAPI } from '@/lib/services/propertyService'
 import { useLocationStore } from '@/lib/stores/locationStore'
+import { floorLabel } from '@/utils/unitLabel'
 
 interface AssetAssignmentsProps {
   enabled?: boolean
@@ -516,7 +517,7 @@ const AssetAssignments: React.FC<AssetAssignmentsProps> = ({ enabled = true }) =
                             ) : (
                               floors.map((floor) => (
                                 <SelectItem key={floor.id} value={floor.id}>
-                                  {floor.floor_name || (floor.floor_number ? `Floor ${floor.floor_number}` : 'Floor')}
+                                  {floorLabel(floor) ?? 'All units'}
                                 </SelectItem>
                               ))
                             )}

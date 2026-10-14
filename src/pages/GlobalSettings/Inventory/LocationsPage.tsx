@@ -11,6 +11,7 @@ import { inventoryLocationOptions } from './locationOptions'
 import { FormActions, RootError } from './FormControls'
 import { inventoryBase, useInventoryNavigation } from './navigation'
 import { setInventoryFormError } from './formErrors'
+import { MapPin } from 'lucide-react'
 export function LocationsPage({ kind }: { kind: 'categories' | 'vendors' }) {
   const params = useParams()
   const id = (kind === 'categories' ? params.categoryId : params.vendorId) ?? ''
@@ -71,7 +72,11 @@ function LocationsEditor({
           })}
         >
           <fieldset disabled={mutation.isPending} className="flex min-w-0 flex-col gap-6">
-            <FormSection title="Location Assignments">
+            <FormSection
+              icon={MapPin}
+              title="Location assignments"
+              description="Tick the properties that should have access. Unticking a property removes it from them."
+            >
               <LocationTable options={options} />
             </FormSection>
             <RootError />

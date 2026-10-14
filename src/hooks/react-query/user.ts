@@ -1,6 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   createUserAPI,
+  getEmployeeActivityRecordsAPI,
+  getEmployeeActivitySummaryAPI,
+  getEmployeeWorkLogAPI,
   getUserAccessiblePropertiesAPI,
   getUserByIdAPI,
   getUsersAPI,
@@ -9,6 +12,7 @@ import {
   updateUserPropertiesAPI,
 } from '@/lib/services/userService'
 import type { CreateUserPayload, UpdateUserPayload } from '@/lib/types'
+import type { EmployeeActivityParams } from '@/lib/types/employeeActivity'
 import { useLocationStore } from '@/lib/stores/locationStore'
 
 export const USER_KEYS = {
@@ -40,6 +44,34 @@ export const useUserByIdQuery = (id?: string) => {
   return useQuery({
     queryKey: USER_KEYS.byId(id),
     queryFn: () => getUserByIdAPI(id!),
+    enabled: !!id,
+  })
+}
+
+export const useEmployeeActivitySummary = (id: string | undefined, params: EmployeeActivityParams, enabled = true) => {
+  return useQuery({
+    queryKey: ['users', id, 'activity', 'summary', params] as const,
+    queryFn: () => getEmployeeActivitySummaryAPI(id!, params),
+    enabled: !!id && enabled,
+    placeholderData: keepPreviousData,
+  })
+}
+
+export const useEmployeeActivityRecords = (id: string | undefined, params: EmployeeActivityParams, enabled = true) => {
+  return useQuery({
+    queryKey: ['users', id, 'activity', 'records', params] as const,
+    queryFn: () => getEmployeeActivityRecordsAPI(id!, params),
+    enabled: !!id && enabled,
+    placeholderData: keepPreviousData,
+  })
+}
+
+export const useEmployeeWorkLog = (id: string | undefined, params: Omit<EmployeeActivityParams, 'page'>) => {
+  return useInfiniteQuery({
+    queryKey: ['users', id, 'activity', 'work-log', params] as const,
+    queryFn: ({ pageParam }) => getEmployeeWorkLogAPI(id!, { ...params, page: pageParam }),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.pagination.hasMore ? last.pagination.page + 1 : undefined),
     enabled: !!id,
   })
 }

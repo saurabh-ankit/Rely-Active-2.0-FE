@@ -256,8 +256,28 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
         </div>
       </div>
 
+      {shiftMetaList.length > 0 && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-gray-600">
+          {shiftMetaList.map((meta) => (
+            <span key={meta.label} className="inline-flex items-center gap-1.5">
+              <span className={`h-3 w-3 rounded ${getShiftColor(meta.shiftId).cell}`} />
+              <span className="font-semibold text-gray-800">{meta.shiftName}</span>
+              {meta.shiftTime && <span className="tabular-nums">{meta.shiftTime.replace(' - ', '–')}</span>}
+            </span>
+          ))}
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded bg-rose-100" />
+            <span className="font-semibold text-gray-800">Off / leave</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-3 text-center text-gray-400">—</span>
+            Not rostered
+          </span>
+        </div>
+      )}
+
       <div className="overflow-x-auto border border-gray-300 rounded-lg shadow-sm bg-white mb-8">
-        <table className="border-collapse text-xs w-full select-none" style={{ minWidth: '960px' }}>
+        <table className="border-collapse text-xs w-full select-none" style={{ minWidth: '1180px' }}>
           <thead>
             <tr className="bg-[#2a517c] text-white border-b border-white/20">
               <th
@@ -290,7 +310,7 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                   <th
                     key={`day-${ds}`}
                     onClick={() => onSelectDate(ds)}
-                    className={`px-1 py-1.5 text-center font-bold border-r border-white/20 min-w-[50px] cursor-pointer hover:bg-white/20 transition-colors ${
+                    className={`px-1 py-1.5 text-center font-bold border-r border-white/20 min-w-[118px] cursor-pointer hover:bg-white/20 transition-colors ${
                       ds === todayStr ? 'bg-blue-600' : 'bg-[#2a517c]'
                     }`}
                     title={`View rosters for ${date.toLocaleDateString()}`}
@@ -314,7 +334,7 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                   <th
                     key={`date-${ds}`}
                     onClick={() => onSelectDate(ds)}
-                    className={`px-1 py-1 text-center font-extrabold text-sm border-r border-white/20 min-w-[50px] cursor-pointer hover:bg-white/20 transition-colors ${
+                    className={`px-1 py-1 text-center font-extrabold text-sm border-r border-white/20 min-w-[118px] cursor-pointer hover:bg-white/20 transition-colors ${
                       ds === todayStr ? 'bg-blue-700 ring-2 ring-sky-300' : 'bg-[#1e3a5a]'
                     }`}
                     title={`View rosters for ${date.toLocaleDateString()}`}
@@ -381,7 +401,7 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                           <td
                             key={ds}
                             onClick={() => onSelectDate(ds)}
-                            className={`p-0 text-center border-r border-gray-300 min-w-[50px] h-8 align-middle text-gray-300 cursor-pointer hover:bg-slate-100 transition-colors ${
+                            className={`p-0 text-center border-r border-gray-300 min-w-[118px] h-10 align-middle text-gray-300 cursor-pointer hover:bg-slate-100 transition-colors ${
                               isToday ? 'bg-blue-50/50' : ''
                             }`}
                             title={`View rosters for ${date.toLocaleDateString()}`}
@@ -396,15 +416,18 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                           <td
                             key={ds}
                             onClick={() => onSelectDate(ds)}
-                            className={`p-0 border-r border-gray-300 min-w-[50px] h-8 align-middle cursor-pointer ${
+                            className={`p-0 border-r border-gray-300 min-w-[118px] h-8 align-middle cursor-pointer ${
                               isToday ? 'ring-1 ring-sky-400' : ''
                             }`}
                           >
                             <div
-                              className="w-full h-full min-h-[30px] flex items-center justify-center bg-red-600 text-white font-bold text-xs hover:opacity-90 transition-opacity"
-                              title="Day off"
+                              className="w-full h-full min-h-[40px] flex flex-col items-center justify-center bg-rose-50 text-rose-700 hover:bg-rose-100 transition-colors"
+                              title={entries[0]?.shiftName || 'Day off'}
                             >
-                              {ROSTER_GRID_OFF_LABEL}
+                              <span className="text-[11px] font-bold leading-tight">{ROSTER_GRID_OFF_LABEL}</span>
+                              <span className="text-[10px] font-medium leading-tight">
+                                {entries[0]?.shiftName || 'Day off'}
+                              </span>
                             </div>
                           </td>
                         )
@@ -413,20 +436,27 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                       return (
                         <td
                           key={ds}
-                          className={`p-0 border-r border-gray-300 min-w-[50px] h-8 align-middle ${
+                          className={`p-0 border-r border-gray-300 min-w-[118px] h-8 align-middle ${
                             isToday ? 'ring-1 ring-sky-400' : ''
                           }`}
                         >
-                          <div className="w-full h-full min-h-[30px] flex items-stretch divide-x divide-white/60">
+                          <div className="w-full h-full min-h-[40px] flex items-stretch divide-x divide-white/60">
                             {getActiveGridEntries(entries).map((entry) => (
                               <button
                                 key={entry.shiftId}
                                 type="button"
                                 onClick={() => onSelectDate(ds)}
-                                className={`flex-1 flex items-center justify-center px-1 font-bold text-xs whitespace-nowrap cursor-pointer hover:scale-105 active:scale-95 transition-transform ${getShiftColor(entry.shiftId).cell}`}
+                                className={`flex-1 flex flex-col items-center justify-center px-1.5 py-1 cursor-pointer hover:brightness-95 transition ${getShiftColor(entry.shiftId).cell}`}
                                 title={entry.shiftTime ? `${entry.shiftName} (${entry.shiftTime})` : entry.shiftName}
                               >
-                                {entry.label}
+                                <span className="max-w-full truncate text-[11px] font-bold leading-tight">
+                                  {entry.shiftName}
+                                </span>
+                                {entry.shiftTime && (
+                                  <span className="text-[10px] font-medium tabular-nums leading-tight opacity-75">
+                                    {entry.shiftTime.replace(' - ', '–')}
+                                  </span>
+                                )}
                               </button>
                             ))}
                           </div>
@@ -459,17 +489,14 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                         title={tooltip}
                       >
                         <div className="flex items-center gap-1.5 truncate">
-                          <span
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${getShiftColor(meta.shiftId).badge}`}
-                          >
-                            {meta.label}
-                          </span>
-                          <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider truncate">
-                            Count
-                          </span>
+                          <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${getShiftColor(meta.shiftId).badge}`} />
+                          <span className="truncate text-xs font-bold text-slate-800">{meta.shiftName}</span>
+                          <span className="text-[10px] font-medium text-slate-500 shrink-0">on shift</span>
                         </div>
                       </td>
-                      <td className="sticky left-[160px] z-20 bg-slate-100 border-r border-slate-200 min-w-[110px]" />
+                      <td className="sticky left-[160px] z-20 bg-slate-100 border-r border-slate-200 min-w-[110px] px-2.5 text-[11px] font-medium tabular-nums text-slate-500">
+                        {meta.shiftTime.replace(' - ', '–')}
+                      </td>
                       {dateStrs.map((ds) => {
                         const count = stats.countsByDate[ds]?.[meta.label] ?? 0
                         return (

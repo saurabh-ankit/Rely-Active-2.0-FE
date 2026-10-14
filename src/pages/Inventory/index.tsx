@@ -10,7 +10,10 @@ import {
   AlertTriangle,
   Clock,
   ArrowLeft,
+  ChevronRight,
+  Eye,
   Plus,
+  Truck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -35,7 +38,7 @@ import type {
   PurchaseOrder,
   StockTransaction,
 } from '@/lib/types/centerInventory'
-import { poStatusLabels } from '@/lib/types/centerInventory'
+import { poStatusLabels, sectionAccess } from '@/lib/types/centerInventory'
 import { ErrorNotice, Section, Status } from './shared'
 import { money, quantityDisplay } from './utils'
 import { PurchaseOrderForm } from './PurchaseOrderForm'
@@ -44,6 +47,7 @@ import { StockInForm } from './StockInForm'
 import { SupplierList } from './Suppliers'
 import { PODetail, TransactionDetail, ItemDetail } from './Details'
 import { PageHeader } from '@/components/common/PageHeader'
+import { CountBadge, EntityCell, LocationChips, RowActionButtons } from '@/components/inventory/InventoryCells'
 export default function InventoryPage() {
   const { selectedLocationId } = useLocation()
   return (
@@ -100,24 +104,29 @@ function CategoryList({ locationId, onSelect }: { locationId: string; onSelect: 
       columns={[
         {
           accessorKey: 'name',
-          header: 'Name',
+          header: 'Category',
           cell: ({ row }) => (
-            <div className="flex min-w-0 flex-wrap items-center gap-3">
-              {row.original.image ? (
-                <img src={row.original.image} alt="" className="size-10 rounded-lg object-cover" />
-              ) : (
-                <FolderOpen className="size-8 text-muted-foreground" />
-              )}
-              <div>
-                <Button variant="link" onClick={() => onSelect(row.original)}>
+            <EntityCell
+              icon={FolderOpen}
+              image={row.original.image}
+              title={
+                <button
+                  type="button"
+                  className="cursor-pointer text-left hover:text-[#005390] hover:underline"
+                  onClick={() => onSelect(row.original)}
+                >
                   {row.original.name}
-                </Button>
-                <p className="max-w-md truncate text-sm text-muted-foreground">{row.original.description}</p>
-              </div>
-            </div>
+                </button>
+              }
+              subtitle={row.original.description}
+            />
           ),
         },
-        { accessorKey: 'itemCount', header: 'Items' },
+        {
+          accessorKey: 'itemCount',
+          header: 'Items',
+          cell: ({ row }) => <CountBadge count={row.original.itemCount ?? 0} noun="item" />,
+        },
         {
           id: 'status',
           header: 'Status',
@@ -143,9 +152,19 @@ function CategoryInventory({
   const category = useCenterData<CenterCategory>(locationId, `categories/${categoryId}`)
   const stats = useCenterData<CenterStats>(locationId, 'stats', { categoryId })
   const [modal, setModal] = useState<'po' | 'stock' | 'assign' | null>(null)
-  const current = ['items', 'suppliers', 'purchase-orders', 'transactions'].includes(params.get('tab') ?? '')
-    ? params.get('tab')!
-    : 'items'
+  // Each tab is an Inventory sub-module with its own access.
+  const itemsAccess = sectionAccess(access, 'INVENTORY.ITEMS')
+  const suppliersAccess = sectionAccess(access, 'INVENTORY.SUPPLIERS')
+  const poAccess = sectionAccess(access, 'INVENTORY.PURCHASE_ORDERS')
+  const txAccess = sectionAccess(access, 'INVENTORY.TRANSACTIONS')
+  const tabAccess: Record<string, boolean> = {
+    items: itemsAccess.view,
+    suppliers: suppliersAccess.view,
+    'purchase-orders': poAccess.view,
+    transactions: txAccess.view,
+  }
+  const requested = params.get('tab') ?? ''
+  const current = tabAccess[requested] ? requested : (Object.keys(tabAccess).find((t) => tabAccess[t]) ?? 'items')
   const poId = params.get('poId'),
     transactionId = params.get('transactionId'),
     itemId = params.get('itemId')
@@ -157,16 +176,41 @@ function CategoryInventory({
   if (category.isError) return <ErrorNotice error={category.error} retry={() => void category.refetch()} />
   return (
     <div className="min-w-0 space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 flex-wrap items-center gap-3">
-          <Button variant="ghost" onClick={() => navigate({})}>
-            <ArrowLeft data-icon="inline-start" />
-            Back to Categories
-          </Button>
-          <div>
-            <h2 className="break-words text-xl font-semibold text-gray-900">{category.data.name}</h2>
-            <p className="text-sm text-muted-foreground">{category.data.description}</p>
-          </div>
+      {/* Where we are: Inventory › category */}
+      <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-gray-500">
+        <button
+          type="button"
+          onClick={() => navigate({})}
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 hover:bg-gray-100 hover:text-[#005390]"
+        >
+          <ArrowLeft className="size-3.5" />
+          Back to Categories
+        </button>
+        <ChevronRight className="size-3.5 text-gray-300" />
+        <span>Inventory</span>
+        <ChevronRight className="size-3.5 text-gray-300" />
+        <span className="text-[#005390]">{category.data.name}</span>
+      </nav>
+
+      {/* The category this page is about */}
+      <div className="flex flex-wrap items-center gap-4 rounded-3xl border border-[#005390]/15 bg-gradient-to-r from-[#005390]/[0.07] to-white p-5">
+        {category.data.image ? (
+          <img
+            src={category.data.image}
+            alt=""
+            className="size-16 shrink-0 rounded-2xl object-cover ring-2 ring-white shadow-sm"
+          />
+        ) : (
+          <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-[#005390] text-white shadow-sm">
+            <FolderOpen className="size-8" />
+          </span>
+        )}
+        <div className="min-w-0">
+          <span className="inline-flex rounded-full bg-[#005390]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#005390]">
+            Category
+          </span>
+          <h2 className="mt-1 break-words text-2xl font-bold text-gray-900">{category.data.name}</h2>
+          {category.data.description && <p className="text-sm text-gray-500">{category.data.description}</p>}
         </div>
       </div>
       {stats.isError ? (
@@ -215,18 +259,18 @@ function CategoryInventory({
                     locationId={locationId}
                     id={itemId}
                     category={category.data}
-                    access={access}
+                    access={itemsAccess}
                     onBack={() => go({ tab: 'items' })}
                     onTransaction={showTransaction}
                   />
                 ) : (
-                  <Section title="Inventory Items">
+                  <Section title={`Items in ${category.data.name}`}>
                     <ItemList
                       locationId={locationId}
                       categoryId={categoryId}
                       onSelect={(id) => go({ tab: 'items', itemId: id })}
                       onPO={() => setModal('po')}
-                      canCreate={access.create}
+                      canCreate={poAccess.create}
                     />
                   </Section>
                 )}
@@ -240,7 +284,7 @@ function CategoryInventory({
             icon: Users,
             content: (
               <>
-                <Section title="Suppliers">
+                <Section title={`Suppliers for ${category.data.name}`}>
                   <SupplierList locationId={locationId} categoryId={categoryId} access={access} />
                 </Section>
               </>
@@ -258,15 +302,15 @@ function CategoryInventory({
                     locationId={locationId}
                     id={poId}
                     categoryId={categoryId}
-                    access={access}
+                    access={poAccess}
                     onBack={() => go({ tab: 'purchase-orders' })}
                     onTransaction={showTransaction}
                   />
                 ) : (
                   <Section
-                    title="Purchase Orders"
+                    title={`Purchase orders for ${category.data.name}`}
                     action={
-                      access.create ? (
+                      poAccess.create ? (
                         <Button onClick={() => setModal('po')}>
                           <Plus data-icon="inline-start" />
                           Create Purchase Order
@@ -296,9 +340,9 @@ function CategoryInventory({
                   />
                 ) : (
                   <Section
-                    title="Inventory Item Transactions"
+                    title={`Stock transactions in ${category.data.name}`}
                     action={
-                      access.create ? (
+                      txAccess.create ? (
                         <div className="flex flex-wrap gap-2">
                           <Button onClick={() => setModal('stock')}>Stock In</Button>
                           <Button variant="outline" onClick={() => setModal('assign')}>
@@ -314,7 +358,7 @@ function CategoryInventory({
               </>
             ),
           },
-        ]}
+        ].filter((tab) => tabAccess[tab.value])}
       />
       {modal === 'po' && (
         <PurchaseOrderForm
@@ -447,46 +491,80 @@ function ItemList({
   const columns: ColumnDef<CenterItem>[] = [
     {
       accessorKey: 'name',
-      header: 'Item Name',
+      header: 'Item',
       cell: ({ row }) => (
-        <Button variant="link" onClick={() => onSelect(row.original.id)}>
-          {row.original.name}
-        </Button>
+        <EntityCell
+          icon={Package}
+          title={
+            <button
+              type="button"
+              className="cursor-pointer text-left hover:text-[#005390] hover:underline"
+              onClick={() => onSelect(row.original.id)}
+            >
+              {row.original.name}
+            </button>
+          }
+        />
       ),
     },
     {
       id: 'package',
       header: 'Package',
-      cell: ({ row }) => `${row.original.packQuantity} ${row.original.packUnit} / ${row.original.packType}`,
+      cell: ({ row }) => (
+        <div className="whitespace-nowrap">
+          <p className="text-sm font-semibold text-gray-900 tabular-nums">
+            {row.original.packQuantity} {row.original.packUnit}
+          </p>
+          <p className="text-xs text-gray-500">per {row.original.packType}</p>
+        </div>
+      ),
     },
     {
       id: 'suppliers',
       header: 'Suppliers',
-      cell: ({ row }) => row.original.suppliers.map((s) => s.name).join(', ') || 'No suppliers assigned',
+      cell: ({ row }) => (
+        <LocationChips
+          icon={Truck}
+          iconClass="text-amber-600"
+          empty="No suppliers assigned"
+          names={row.original.suppliers.map((s) => s.name)}
+        />
+      ),
     },
     {
       id: 'stock',
-      header: 'Current Stock',
-      cell: ({ row }) => (
-        <div className="flex flex-col gap-1">
-          <span>{row.original.stockDisplay}</span>
-          <span className="text-xs text-muted-foreground">
-            Min: {quantityDisplay(row.original.minQuantity, row.original)} · Threshold:{' '}
-            {quantityDisplay(row.original.threshold, row.original)} · Max:{' '}
-            {row.original.maxQuantity ? quantityDisplay(row.original.maxQuantity, row.original) : '—'}
-          </span>
-          {row.original.quantity < row.original.threshold && (
-            <div>
-              <InventoryStatus tone="amber">Low Stock</InventoryStatus>
-              {canCreate && (
-                <Button variant="link" onClick={onPO}>
-                  Create PO
-                </Button>
-              )}
+      header: 'Stock',
+      cell: ({ row }) => {
+        const item = row.original
+        const low = item.quantity < item.threshold
+        const out = item.quantity <= 0
+        return (
+          <div className="flex min-w-[220px] flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-gray-900">{item.stockDisplay}</span>
+              {out ? (
+                <InventoryStatus tone="red">Out of stock</InventoryStatus>
+              ) : low ? (
+                <InventoryStatus tone="amber">Low Stock</InventoryStatus>
+              ) : null}
             </div>
-          )}
-        </div>
-      ),
+            <span className="text-[11px] text-gray-500">
+              Min {quantityDisplay(item.minQuantity, item)} · Reorder at {quantityDisplay(item.threshold, item)} · Max{' '}
+              {item.maxQuantity ? quantityDisplay(item.maxQuantity, item) : '—'}
+            </span>
+            {low && canCreate && (
+              <button
+                type="button"
+                onClick={onPO}
+                className="inline-flex w-fit cursor-pointer items-center gap-1 rounded-md border border-[#005390]/30 bg-[#005390]/5 px-2 py-0.5 text-[11px] font-semibold text-[#005390] hover:bg-[#005390]/10"
+              >
+                <Plus className="size-3" />
+                Create PO
+              </button>
+            )}
+          </div>
+        )
+      },
     },
     {
       id: 'status',
@@ -495,11 +573,9 @@ function ItemList({
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: () => <span className="block text-right">Actions</span>,
       cell: ({ row }) => (
-        <Button variant="ghost" onClick={() => onSelect(row.original.id)}>
-          View Details
-        </Button>
+        <RowActionButtons actions={[{ label: 'View details', icon: Eye, onClick: () => onSelect(row.original.id) }]} />
       ),
     },
   ]

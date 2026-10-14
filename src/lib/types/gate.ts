@@ -33,14 +33,44 @@ export interface GateEntry {
   createdAt?: string
   clockedInAt?: string
   clockedOutAt?: string
-  preapproved?: { scheduleType?: string }
+  preapproved?: { scheduleType?: string; createdAt?: string }
   createdByUser?: { id?: string; username?: string; email?: string }
   approvedByUser?: { id?: string; username?: string; email?: string }
+  /** Who approved (or, for a Rejected entry, rejected) it. */
+  approverType?: 'STAFF' | 'RESIDENT' | 'FAMILY_MEMBER' | null
+  approverName?: string | null
+  approvedAt?: string | null
+  clockedInByUser?: GateStaffUser | null
+  clockedOutByUser?: GateStaffUser | null
+  /** Who raised it: the resident (or family member) behind a pre-approval, or the guard who raised a walk-in. */
+  raisedBy?: {
+    type: 'STAFF' | 'RESIDENT' | 'FAMILY_MEMBER'
+    name: string | null
+    userId: string | null
+    residentName: string | null
+  } | null
   items?: GateItem[]
+}
+
+export interface GateStaffUser {
+  id?: string
+  username?: string
+  email?: string
+  profile?: { firstName?: string; lastName?: string } | null
+}
+
+export interface GatePersonName {
+  id?: string
+  firstName?: string
+  lastName?: string | null
 }
 
 export interface GatePreapproved {
   id: string
+  /** The resident household that pre-approved the visitor. */
+  resident?: GatePersonName | null
+  /** Set when a family member, not the resident, made the pre-approval. */
+  createdByFamilyMember?: GatePersonName | null
   visitorName: string
   visitorPhone?: string
   visitorPhotos?: string[]

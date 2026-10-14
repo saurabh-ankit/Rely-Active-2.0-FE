@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { AlertTriangle, SlidersHorizontal, Truck } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ChevronRight, Gauge, Package, Pencil, SlidersHorizontal, Truck } from 'lucide-react'
+import { ActiveStatus } from '@/components/inventory/InventoryStatus'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -29,6 +30,7 @@ import { Section, ErrorNotice, Status, FormField } from './shared'
 import { money, quantityDisplay } from './utils'
 import { PurchaseOrderForm } from './PurchaseOrderForm'
 import { StockInForm } from './StockInForm'
+import { brandCheckbox } from '@/components/inventory/brand'
 export function PODetail({
   locationId,
   id,
@@ -99,7 +101,7 @@ export function PODetail({
       <Section title="Purchase Order Information">
         <dl className="grid gap-4 sm:grid-cols-3">
           {[
-            ['Vendor', po.supplier?.name ?? '—'],
+            ['Supplier', po.supplier?.name ?? '—'],
             ['Order Date', new Date(po.createdAt).toLocaleDateString()],
             ['Total Amount', money(po.totalAmount)],
             ['Notes', po.notes || '—'],
@@ -265,7 +267,7 @@ export function TransactionDetail({
             ['Type', record.transactionType === 'issue' ? 'Stock Out' : 'Stock In'],
             ['Date', record.date],
             [
-              record.transactionType === 'issue' ? 'Recipient' : 'Vendor',
+              record.transactionType === 'issue' ? 'Recipient' : 'Supplier',
               record.transactionType === 'issue' ? (record.recipientName ?? '—') : (record.supplier?.name ?? '—'),
             ],
             ...(record.transactionType === 'issue'
@@ -352,39 +354,102 @@ export function ItemDetail({
   if (modal === 'edit') return <CenterItemEditor locationId={locationId} id={id} onClose={() => setModal(null)} />
   return (
     <div className="flex min-w-0 flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 flex-wrap items-center gap-3">
-          <Button variant="ghost" onClick={onBack}>
-            Back
-          </Button>
-          <h2 className="break-words text-xl font-semibold text-gray-900">{item.name}</h2>
+      {/* Where we are: category › items › this item */}
+      <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-gray-500">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 hover:bg-gray-100 hover:text-[#005390]"
+        >
+          <ArrowLeft className="size-3.5" />
+          Back to items
+        </button>
+        {activeCategory && (
+          <>
+            <ChevronRight className="size-3.5 text-gray-300" />
+            <span>{activeCategory.name}</span>
+          </>
+        )}
+        <ChevronRight className="size-3.5 text-gray-300" />
+        <span>Items</span>
+        <ChevronRight className="size-3.5 text-gray-300" />
+        <span className="text-[#005390]">{item.name}</span>
+      </nav>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-gray-200 bg-white p-5 shadow-xs">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#005390]/10 text-[#005390]">
+            <Package className="size-6" />
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="break-words text-xl font-bold text-gray-900">{item.name}</h2>
+              <ActiveStatus active={item.isActive} />
+            </div>
+            <p className="text-xs text-gray-500">
+              {item.packQuantity} {item.packUnit} per {item.packType}
+              {activeCategory ? ` · ${activeCategory.name}` : ''}
+            </p>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {access.update && (
-            <>
-              <Button variant="outline" onClick={() => setModal('edit')}>
-                Edit Item
-              </Button>
-              <Button variant="outline" onClick={() => setModal('suppliers')}>
-                Manage Vendors
-              </Button>
-              <Button variant="outline" onClick={() => setModal('thresholds')}>
-                Manage Thresholds
-              </Button>
-            </>
-          )}
-        </div>
+        {access.update && (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setModal('edit')}>
+              <Pencil data-icon="inline-start" />
+              Edit Item
+            </Button>
+            <Button variant="outline" onClick={() => setModal('suppliers')}>
+              <Truck data-icon="inline-start" />
+              Manage Suppliers
+            </Button>
+            <Button variant="outline" onClick={() => setModal('thresholds')}>
+              <Gauge data-icon="inline-start" />
+              Manage Thresholds
+            </Button>
+          </div>
+        )}
       </div>
-      <Section title="Item Information">
+
+      {/* Stock at a glance */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[
+          {
+            label: 'Current stock',
+            value: item.stockDisplay,
+            hint:
+              item.quantity <= 0 ? 'Out of stock' : item.quantity < item.threshold ? 'Low stock — reorder' : 'In stock',
+            tone:
+              item.quantity <= 0
+                ? 'border-red-200 bg-red-50 text-red-700'
+                : item.quantity < item.threshold
+                  ? 'border-amber-200 bg-amber-50 text-amber-700'
+                  : 'border-emerald-200 bg-emerald-50 text-emerald-700',
+          },
+          { label: 'Minimum', value: quantityDisplay(item.minQuantity, item), hint: 'Least to keep in stock' },
+          { label: 'Reorder at', value: quantityDisplay(item.threshold, item), hint: 'Shows as Low Stock below this' },
+          {
+            label: 'Maximum',
+            value: item.maxQuantity ? quantityDisplay(item.maxQuantity, item) : 'No maximum',
+            hint: 'Most to hold',
+          },
+        ].map((tile) => (
+          <div
+            key={tile.label}
+            className={`rounded-2xl border p-4 ${tile.tone ?? 'border-gray-200 bg-white text-gray-500'}`}
+          >
+            <p className="text-xs font-semibold">{tile.label}</p>
+            <p className="mt-1 text-lg font-bold text-gray-900">{tile.value}</p>
+            <p className="text-[11px]">{tile.hint}</p>
+          </div>
+        ))}
+      </div>
+
+      <Section title="Item details">
         <dl className="grid gap-4 sm:grid-cols-3">
           {[
             ['Category', activeCategory?.name ?? '—'],
             ['Status', item.isActive ? 'Active' : 'Inactive'],
             ['Package', `${item.packQuantity} ${item.packUnit} per ${item.packType}`],
-            ['Current Stock', item.stockDisplay],
-            ['Minimum', quantityDisplay(item.minQuantity, item)],
-            ['Threshold', quantityDisplay(item.threshold, item)],
-            ['Maximum', item.maxQuantity ? quantityDisplay(item.maxQuantity, item) : 'No maximum'],
             ...(activeCategory?.fieldDefinitions ?? []).map((f) => [
               f.fieldLabel,
               String(item.customFields.find((v) => v.fieldDefinitionId === f.id)?.value ?? '—'),
@@ -397,12 +462,12 @@ export function ItemDetail({
           ))}
         </dl>
       </Section>
-      <Section title="Assigned Vendors">
+      <Section title="Assigned Suppliers">
         <DataTable
           data={item.suppliers}
           getRowId={(r) => r.id}
           columns={[
-            { accessorKey: 'name', header: 'Vendor' },
+            { accessorKey: 'name', header: 'Supplier' },
             { accessorKey: 'contactPerson', header: 'Contact Person' },
             { accessorKey: 'phone', header: 'Phone' },
             { accessorKey: 'email', header: 'Email' },
@@ -468,7 +533,7 @@ function ItemSettings({
             </div>
             <div>
               <DialogTitle className="text-lg font-bold text-gray-900">
-                Manage {mode === 'suppliers' ? 'Vendors' : 'Thresholds'} — {item.name}
+                Manage {mode === 'suppliers' ? 'Suppliers' : 'Thresholds'} — {item.name}
               </DialogTitle>
               <DialogDescription className="text-xs text-gray-500 mt-0.5">
                 Changes apply to the selected property.
@@ -503,6 +568,7 @@ function ItemSettings({
                       className="flex min-w-0 items-center gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50/50 hover:bg-gray-100/50 cursor-pointer transition"
                     >
                       <Checkbox
+                        className={brandCheckbox}
                         checked={supplierIds.includes(s.id)}
                         onCheckedChange={(checked) =>
                           setSupplierIds((current) =>
