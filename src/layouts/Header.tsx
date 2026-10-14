@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Bell, Building2, ChevronDown, LogOut, Menu, Settings, Shield, User } from 'lucide-react'
+import { Building2, ChevronDown, LogOut, Menu, Settings, Shield, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocationContext, type PropertyLocationItem } from '@/hooks/useLocation'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -148,15 +149,12 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
             )}
           </div>
 
-          {/* Bell Icon */}
-          <button
-            type="button"
-            className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm border border-white/30 shadow-lg text-gray-700 transition-transform hover:scale-105 cursor-pointer"
-            title="Notifications"
-          >
-            <Bell className="h-5 w-5 text-gray-700" />
-            <span className="absolute top-2 right-2 size-2 rounded-full bg-rose-500 ring-2 ring-white" />
-          </button>
+          <NotificationBell
+            onOpen={() => {
+              setShowLocationDropdown(false)
+              setShowProfileDropdown(false)
+            }}
+          />
 
           {/* User Avatar */}
           <div className="relative" ref={profileDropdownRef}>

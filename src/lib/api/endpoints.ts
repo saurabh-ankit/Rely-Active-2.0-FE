@@ -386,6 +386,14 @@ export const API_ENDPOINTS = {
     responses: `${BASE_URL}/location/:locationId/feedback-forms/:id/responses`,
   },
 
+  notifications: {
+    list: `${BASE_URL}/notifications`,
+    unreadCount: `${BASE_URL}/notifications/unread-count`,
+    markRead: (id: string) => `${BASE_URL}/notifications/${id}/read`,
+    markAllRead: `${BASE_URL}/notifications/read-all`,
+    archive: (id: string) => `${BASE_URL}/notifications/${id}/archive`,
+  },
+
   // Shift & Roster Management
   shiftRoster: {
     listShifts: `${BASE_URL}/location/:locationId/shifts`,
