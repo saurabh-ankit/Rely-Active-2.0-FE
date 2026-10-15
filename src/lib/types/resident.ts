@@ -25,6 +25,9 @@ export interface ResidentFamilyMember {
   username?: string | null
   password?: string
   email?: string | null
+  /** The member's own care package ('' / null = none) and its start date (YYYY-MM-DD). */
+  carePackageId?: string | null
+  carePackageStartDate?: string | null
 }
 
 export interface ResidentItem {
@@ -85,6 +88,8 @@ export interface ResidentItem {
   carePackageId?: string | null
   packageSubscriptions?: Array<{
     id: string
+    /** Set when the subscription is a family member's own care package. */
+    familyMemberId?: string | null
     carePackageId: string
     status: string
     startDate: string
@@ -392,6 +397,8 @@ export interface CreateResidentPayload {
   rentAmount?: number | null
   payRentToCompany?: boolean
   carePackageId?: string | null
+  /** First day of the care package (YYYY-MM-DD); used when the package is new or changed. */
+  carePackageStartDate?: string | null
   familyMembers?: ResidentFamilyMember[]
   taskSchedules?: Array<{
     taskId: string

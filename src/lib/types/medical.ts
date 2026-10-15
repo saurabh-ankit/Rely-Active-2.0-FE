@@ -139,6 +139,9 @@ export interface AdditionalTaskItem {
 }
 
 export interface PackageSubscriptionResponse {
+  /** Set when this is a family member's own care package. */
+  familyMemberId?: string | null
+  familyMember?: { id: string; firstName: string; lastName?: string | null; relation?: string | null } | null
   id: string
   residentId: string
   carePackageId: string
@@ -336,6 +339,8 @@ export interface CareTaskAssignmentSlot {
 export interface GroupedCareTaskAssignment {
   groupKey: string
   residentId: string
+  /** Set when the task is for a family member of the resident. */
+  familyMember?: { id: string; name: string; relation: string | null } | null
   resident?: CareTaskAssignment['resident']
   taskId: string
   task?: CareTaskAssignment['task']
@@ -363,6 +368,8 @@ export interface GroupedCareTaskAssignment {
 export type CompletionStatus = 'COMPLETED' | 'CANCELLED'
 
 export interface ResidentCareTaskCompletion {
+  /** Set when the completed task was a family member's. */
+  familyMember?: { id: string; firstName: string; lastName?: string | null; relation?: string | null } | null
   id: string
   residentCareTaskAssignmentId: string
   residentId: string
@@ -464,3 +471,6 @@ export interface CareTaskCompletionsListResponse {
     totalPages: number
   }
 }
+
+/** How a lab test was paid at the lab (a paid test is not billed on the flat invoice). */
+export type LabPaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'CHEQUE' | 'UPI' | 'NEFT' | 'RTGS' | 'CARD' | 'OTHER'

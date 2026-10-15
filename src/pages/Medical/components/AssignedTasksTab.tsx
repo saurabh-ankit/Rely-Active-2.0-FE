@@ -555,9 +555,13 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                 ) : (
                   completions.map((completion) => {
                     const taskName = completion.task?.careTaskName || 'Care Task'
-                    const resName =
+                    const residentOnly =
                       `${completion.resident?.firstName || ''} ${completion.resident?.lastName || ''}`.trim() ||
                       'Resident'
+                    // A family member's task shows their name (and whose family they are).
+                    const resName = completion.familyMember
+                      ? `${`${completion.familyMember.firstName} ${completion.familyMember.lastName || ''}`.trim()} (${completion.familyMember.relation || 'Family member'} of ${residentOnly})`
+                      : residentOnly
                     const nurseUser = completion.completedByUser
                     const nurseName =
                       `${nurseUser?.profile?.firstName || ''} ${nurseUser?.profile?.lastName || ''}`.trim() ||
@@ -710,8 +714,12 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                   </tr>
                 ) : (
                   displayedGroupedAssignments.map((group, groupIndex) => {
-                    const resName =
+                    const residentOnly =
                       `${group.resident?.firstName || ''} ${group.resident?.lastName || ''}`.trim() || 'Resident'
+                    // A family member's task shows their name (and whose family they are).
+                    const resName = group.familyMember
+                      ? `${group.familyMember.name} (${group.familyMember.relation || 'Family member'} of ${residentOnly})`
+                      : residentOnly
                     const taskName = group.task?.careTaskName || 'Care Task'
                     const isPackageTask =
                       group.source === 'PACKAGE' ||

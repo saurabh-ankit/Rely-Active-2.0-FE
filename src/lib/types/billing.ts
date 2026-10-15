@@ -1,370 +1,343 @@
-export type BillingMode = 'INDIVIDUAL' | 'UNIT_CONSOLIDATED'
-export type BillingAccountStatus = 'ACTIVE' | 'SUSPENDED' | 'CLOSED'
-export type BillingCycle = 'MONTHLY' | 'QUARTERLY' | 'ANNUAL'
+// Flat billing (ported from Rely Assist). An invoice is computed from the source modules
+// for a date range and saved as a snapshot of service lines.
 
-export type BillingPartyType = 'RESIDENT' | 'FAMILY_MEMBER' | 'GUARDIAN' | 'ORGANIZATION' | 'OTHER'
-export type BillingPartyRole = 'PRIMARY_PAYER' | 'SECONDARY_PAYER' | 'AUTHORIZED_CONTACT'
+export type BillingMode = 'MONTHLY' | 'CUSTOM'
 
-export type SubscriptionStatus = 'ACTIVE' | 'PAUSED' | 'CANCELLED' | 'COMPLETED'
-export type ProrationPolicy = 'DAILY' | 'FULL_MONTH' | 'NO_PRORATION'
-
-export type BillingEventSourceModule =
-  'FNB' | 'CARE' | 'TRANSPORT' | 'ACTIVITY' | 'INVENTORY' | 'HOUSEKEEPING' | 'MANUAL' | 'SYSTEM'
-export type BillingEventStatus = 'PENDING' | 'INVOICED' | 'CANCELLED'
-
-export type InvoiceType = 'INVOICE' | 'CREDIT_NOTE' | 'DEBIT_NOTE'
 export type InvoiceStatus =
-  'DRAFT' | 'PREVIEW' | 'FINALIZED' | 'SENT' | 'PARTIALLY_PAID' | 'PAID' | 'CANCELLED' | 'OVERDUE'
-export type InvoiceLineType = 'SUBSCRIPTION' | 'USAGE' | 'DISCOUNT' | 'TAX' | 'ADJUSTMENT'
+  'DRAFT' | 'PENDING' | 'PAID' | 'PARTIALLY_PAID' | 'CANCELLED' | 'OVERDUE' | 'OBSOLETE' | 'CARRY_FORWARDED'
 
-export type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'CHEQUE' | 'UPI' | 'NEFT' | 'RTGS' | 'CARD' | 'OTHER'
-export type PaymentStatus = 'PENDING' | 'CONFIRMED' | 'FAILED' | 'REVERSED'
+export type BillingServiceType =
+  | 'RENT'
+  | 'CARE_PACKAGE'
+  | 'FOOD_PACKAGE'
+  | 'FOOD_ORDER'
+  | 'ADDITIONAL_TASK'
+  | 'DOCTOR_CONSULTATION'
+  | 'LAB_TEST'
+  | 'INVENTORY_ITEM'
+  | 'EVENT_FEE'
+  | 'VENUE_BOOKING'
+  | 'MAINTENANCE'
+  | 'MISCELLANEOUS_AS_SERVICE'
+  | 'MISCELLANEOUS_AT_BILLING'
+  | 'CARRY_FORWARD'
 
-export interface PaymentAllocationItem {
-  invoiceId: string
-  amount: number
+export type PaymentMethod = 'CASH' | 'UPI' | 'CHEQUE' | 'CARD' | 'NET_BANKING' | 'OTHER'
+
+export interface BillingPagination {
+  total: number
+  page: number
+  limit: number
+  totalPages: number
 }
 
-export interface PaymentAllocation {
+export interface BillTo {
+  residentId: string | null
+  name: string
+  phone: string | null
+  email: string | null
+  unitNumber: string
+}
+
+/** A line on the invoice screen before it is saved. */
+export interface PreviewService {
   id: string
-  paymentId: string
-  invoiceId: string
-  amount: number
-  createdAt: string
-  invoice?: Partial<Invoice>
-}
-
-export interface Payment {
-  id: string
-  paymentNumber: string
-  billingAccountId: string
-  amount: number
-  paymentDate: string
-  paymentMethod: PaymentMethod
-  transactionReference?: string | null
-  bankName?: string | null
-  chequeNumber?: string | null
-  status: PaymentStatus
-  notes?: string | null
-  performedBy?: string | null
-  createdAt: string
-  updatedAt: string
-  allocations?: PaymentAllocation[]
-}
-
-export interface RecordPaymentPayload {
-  billingAccountId: string
-  amount: number
-  paymentDate: string
-  paymentMethod: PaymentMethod
-  transactionReference?: string | null
-  bankName?: string | null
-  chequeNumber?: string | null
-  notes?: string | null
-  allocations: PaymentAllocationItem[]
-}
-
-export interface RecordPaymentResponse {
-  payment: Payment
-  allocations: PaymentAllocation[]
-  updatedInvoices: Invoice[]
-}
-
-export type BillingRunType = 'SCHEDULED' | 'MANUAL' | 'PREVIEW'
-export type BillingRunStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED'
-
-export type LedgerEntryType = 'INVOICE' | 'PAYMENT' | 'CREDIT_NOTE' | 'DEBIT_NOTE' | 'CREDIT_APPLIED' | 'REFUND'
-
-export interface BillingParty {
-  id: string
-  billingAccountId: string
-  partyType: BillingPartyType
-  residentId?: string | null
-  familyMemberId?: string | null
-  partyName: string
-  partyEmail?: string | null
-  partyPhone?: string | null
-  partyAddress?: string | null
-  partyGstin?: string | null
-  role: BillingPartyRole
-  isDefault: boolean
-  isActive: boolean
-}
-
-export interface BillingAccount {
-  id: string
-  accountNumber: string
-  unitId: string
-  propertyId: string
-  companyId: string
-  primaryResidentId?: string | null
-  accountName: string
-  billingMode: BillingMode
-  status: BillingAccountStatus
-  billingCycle: BillingCycle
-  billingDay: number
-  currency: string
-  creditBalance: number
-  notes?: string | null
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
-  unit?: {
-    id: string
-    unit_number: string
-    unit_type?: string
-  }
-  primaryResident?: {
-    id: string
-    firstName: string
-    lastName: string
-    email?: string
-    phone?: string
-  }
-  parties?: BillingParty[]
-  property?: {
-    id?: string
-    name?: string
-  }
-}
-
-export interface BillingSubscription {
-  id: string
-  billingAccountId: string
-  unitId: string
-  productId: string
-  description?: string | null
+  serviceType: BillingServiceType
+  name: string
+  description: string
   quantity: number
-  unitPrice: number
-  billingFrequency: BillingCycle
-  prorationPolicy: ProrationPolicy
+  price: number
+  total: number
+  residentId: string | null
+  /** Who used it: the resident or a family member, by name. */
+  consumerType: 'RESIDENT' | 'FAMILY_MEMBER' | null
+  consumerName: string | null
+  serviceStartDate: string
+  serviceEndDate: string
+  date: string
+  isAdjustment: boolean
+}
+
+export interface PendingInvoiceSummary {
+  id: string
+  invoiceNumber: string
   startDate: string
-  endDate?: string | null
-  status: SubscriptionStatus
-  pauseStart?: string | null
-  pauseEnd?: string | null
-  isActive: boolean
-  product?: {
-    id: string
-    productCode: string
-    productName: string
-    category: string
-  }
+  endDate: string
+  total: number
+  paidAmount: number
+  balance: number
+  status: InvoiceStatus
+  /** Pending (nothing paid): carried into the new invoice automatically. */
+  carryForward: boolean
 }
 
-export interface BillingEvent {
-  id: string
-  billingAccountId: string
+export interface InvoicePreview {
   unitId: string
-  residentId: string
+  unitNumber: string
   propertyId: string
-  sourceModule: BillingEventSourceModule
-  sourceType: string
-  chargeType: string
-  description: string
-  quantity: number
-  unitPrice: number
-  amount: number
-  serviceDate: string
-  occurredAt: string
-  status: BillingEventStatus
-  invoiceId?: string | null
-  attachments?: Array<{ name: string; url: string; contentType?: string; size?: number }> | null
-  resident?: {
+  billingMode: BillingMode
+  startDate: string
+  endDate: string
+  services: PreviewService[]
+  subtotal: number
+  total: number
+  currency: string
+  billTo: BillTo
+  residents: { id: string; name: string; residentType: string; isResiding: boolean; phone: string | null }[]
+  familyMembers: {
     id: string
-    firstName: string
-    lastName: string
-  }
-  unit?: {
-    id: string
-    unit_number: string
-  }
+    name: string
+    relation: string
+    phone: string | null
+    isResiding: boolean
+    residentId: string
+  }[]
+  /** First move-in day of the flat's billed residents; the first bill starts here. */
+  movedInDate: string | null
+  /** Days the rent / package lines cover, and the days the service lines were used on. */
+  recurringPeriod: { from: string; to: string }
+  /** Null for a first bill: no previous month to bill services for. */
+  servicesPeriod: { from: string; to: string } | null
+  /** GST applied on the total after discount (CGST + SGST). */
+  tax: { gstEnabled: boolean; rate: number; cgstRate: number; sgstRate: number }
+  nextBillableStartDate: string
+  pendingInvoices: PendingInvoiceSummary[]
+  overlappingInvoice: { id: string; invoiceNumber: string; startDate: string; endDate: string } | null
 }
 
-export interface InvoiceLine {
+export interface InvoiceServiceLine {
   id: string
-  invoiceId: string
-  subscriptionId?: string | null
-  billingEventId?: string | null
-  productId?: string | null
-  lineType: InvoiceLineType
-  chargeType: string
-  description: string
-  serviceDate?: string | null
-  consumedByResidentId?: string | null
+  serviceType: BillingServiceType
+  name: string
+  description: string | null
   quantity: number
-  unitPrice: number
-  subtotal: number
-  discountAmount: number
-  taxableAmount: number
-  taxRate: number
-  taxAmount: number
-  totalAmount: number
-  sortOrder: number
-  consumedByResident?: {
-    id: string
-    firstName: string
-    lastName: string
-  }
+  price: number
+  total: number
+  residentId: string | null
+  /** Who used it: the resident or a family member, by name. */
+  consumerType: 'RESIDENT' | 'FAMILY_MEMBER' | null
+  consumerName: string | null
+  sourceId: string | null
+  serviceStartDate: string | null
+  serviceEndDate: string | null
+  isAdjustment: boolean
+}
+
+/** Where part of a payment went: the paid invoice's own charges, or an older invoice carried into it. */
+export interface ReceiptAppliedTo {
+  invoiceId: string
+  invoiceNumber: string | null
+  startDate: string | null
+  endDate: string | null
+  status: InvoiceStatus | null
+  carried: boolean
+  amount: number
+}
+
+/** An older invoice carried into this one and how much of it is paid so far. */
+export interface CarriedInInvoice {
+  invoiceId: string
+  invoiceNumber: string | null
+  startDate: string | null
+  endDate: string | null
+  status: InvoiceStatus | null
+  carriedAmount: number
+  paidAmount: number
+}
+
+export interface InvoiceReceiptSummary {
+  id: string
+  receiptNumber: string
+  paidAmount: number
+  paymentMethod: PaymentMethod
+  paymentReference: string | null
+  createdAt: string
+  invoiceStatus: InvoiceStatus | null
+  /** Invoice total, paid before this payment, and still owed after it. */
+  invoiceTotal: number | null
+  paidBefore: number | null
+  invoiceRemainingBalance: number | null
+  appliedTo: ReceiptAppliedTo[]
+  pdfUrl: string | null
 }
 
 export interface Invoice {
   id: string
   invoiceNumber: string
-  billingAccountId: string
   unitId: string
-  residentId?: string | null
+  unitNumber: string | null
   propertyId: string
-  companyId: string
-  invoiceType: InvoiceType
-  referenceInvoiceId?: string | null
-  billToName: string
-  billToEmail?: string | null
-  billToPhone?: string | null
-  billToAddress?: string | null
-  billToGstin?: string | null
-  periodStart: string
-  periodEnd: string
-  issueDate: string
-  dueDate: string
+  startDate: string
+  endDate: string
   subtotal: number
-  discountTotal: number
-  discountNote?: string | null
-  taxableAmount: number
-  taxTotal: number
-  roundingAdjustment: number
-  grandTotal: number
-  amountPaid: number
-  amountDue: number
-  status: InvoiceStatus
-  finalizedAt?: string | null
-  paidAt?: string | null
+  tax: number
+  discount: number
+  discountPercentage: number | null
+  discountAmount: number | null
+  discountReason: string | null
+  /** GST on (subtotal − discount); null when GST was off. */
+  gst: {
+    gstNumber: string | null
+    rate: number
+    cgstRate: number
+    sgstRate: number
+    taxable: number
+    cgst: number
+    sgst: number
+  } | null
+  /** Older invoices' balances carried into this one (outside discount and GST). */
+  carriedForwardAmount: number
+  total: number
+  discountedAmount: number
+  /** Still owed; 0 once paid or carried into a newer invoice. */
+  remainingBalance: number
   currency: string
-  pdfUrl?: string | null
+  status: InvoiceStatus
+  billingMode: BillingMode
+  dueDate: string | null
+  paidAmount: number
+  paymentMethod: PaymentMethod | null
+  paymentReference: string | null
+  notes: string | null
+  billTo: BillTo | null
+  /** Set when this invoice's balance was carried into a newer invoice. */
+  carriedForwardTo: { invoiceId: string; invoiceNumber: string; amount: number; paidAmount: number } | null
+  carriedIn: CarriedInInvoice[]
   createdAt: string
   updatedAt: string
-  lines?: InvoiceLine[]
-  billingAccount?: BillingAccount
-  unit?: {
+  pdfUrl: string | null
+  services: InvoiceServiceLine[]
+  miscellaneousItems: {
     id: string
-    unit_number: string
-  }
-  property?: {
-    id?: string
-    name?: string
-  }
+    name: string
+    description: string | null
+    quantity: number
+    price: number
+    total: number
+  }[]
+  receipts: InvoiceReceiptSummary[]
 }
 
-export interface BillingLedgerEntry {
+export interface ReceiptListItem {
   id: string
-  billingAccountId: string
-  unitId: string
-  entryType: LedgerEntryType
-  referenceType: string
-  referenceId: string
-  debitAmount: number
-  creditAmount: number
-  runningBalance: number
-  description: string
-  entryDate: string
-  createdAt: string
+  receiptId: string
+  receiptNumber: string
+  pdfUrl: string | null
+  paidAmount: number
+  paymentMethod: PaymentMethod
+  paymentReference: string | null
+  notes: string | null
+  receiptCreatedAt: string
+  imageUrl: string | null
+  handedOverTo: { id: string; firstName: string; lastName: string } | null
+  invoiceStatus: InvoiceStatus | null
+  invoiceTotal: number | null
+  paidBefore: number | null
+  invoiceRemainingBalance: number | null
+  appliedTo: ReceiptAppliedTo[]
+  invoiceId: string
+  invoiceNumber: string | null
+  startDate: string | null
+  endDate: string | null
+  status: InvoiceStatus | null
+  discountedAmount: number | null
+  invoicePaidAmount: number | null
 }
 
-export interface BillingLedgerStatement {
-  accountId: string
-  creditBalance: number
-  entries: BillingLedgerEntry[]
-}
+/** Where a flat stands for the selected month. */
+export type MonthBillingStatus =
+  'NOT_MOVED_IN' | 'MOVED_OUT' | 'NOT_BILLED' | 'PENDING' | 'PARTIALLY_PAID' | 'OVERDUE' | 'PAID' | 'CARRIED_FORWARD'
 
-export interface BillingRun {
+export interface BillingUnit {
   id: string
-  propertyId: string
-  companyId: string
-  billingPeriodStart: string
-  billingPeriodEnd: string
-  runType: BillingRunType
-  status: BillingRunStatus
-  totalAccounts: number
-  successfulInvoices: number
-  failedInvoices: number
-  totalAmount: number
-  startedAt?: string | null
-  completedAt?: string | null
-  runBy?: string | null
-  createdAt: string
-}
-
-export interface UnitBillingSummary {
-  unitId: string
-  id?: string
   unitNumber: string
-  unitType: string
-  occupancyStatus: string
-  floorNumber?: number
-  blockName?: string
-  residents: Array<{
-    id: string
-    name: string
-    phone?: string
-    email?: string
-    relationship: string
-    isPrimary: boolean
-  }>
-  primaryResident: {
-    id: string
-    name: string
-    phone?: string
-    email?: string
-    relationship: string
-  } | null
-  folio: {
-    id: string
-    accountNumber: string
-    accountName: string
-    billingMode: string
-    status: string
-    creditBalance: number
-  } | null
-  primaryPayer: {
-    id: string
-    name: string
-    email?: string
-    phone?: string
-    role: string
-  } | null
-  financialMetrics: {
-    totalInvoiced: number
-    totalOutstanding: number
-    activeSubscriptionsCount: number
-    invoicesCount: number
-    pendingEventsCount?: number
+  blockName: string | null
+  floorNumber: number | null
+  residents: { id: string; name: string; residentType: string; isResiding: boolean; phone: string | null }[]
+  movedInDate: string | null
+  movedOutDate: string | null
+  month: {
+    status: MonthBillingStatus
+    invoices: { id: string; invoiceNumber: string; startDate: string; endDate: string; status: InvoiceStatus }[]
+    billed: number
+    paid: number
+    balance: number
+    partlyBilled: boolean
   }
+  lastBilledUntil: string | null
+  outstanding: number
 }
 
-export interface UnitBilling360 {
-  unit: {
-    id: string
-    unitNumber: string
-    unitType: string
-    occupancyStatus: string
-    floorNumber?: number
-    blockName?: string
-  }
-  occupants: Array<{
-    id: string
-    name: string
-    email?: string
-    phone?: string
-    relationship: string
-    isPrimary: boolean
-    photoUrl?: string
-  }>
-  folio: BillingAccount | null
-  subscriptions: BillingSubscription[]
-  invoices: Invoice[]
-  pendingEvents: BillingEvent[]
-  ledger: {
-    creditBalance: number
-    entries: BillingLedgerEntry[]
-  }
+export interface BillingUnitsResponse {
+  month: string
+  earliestMonth: string
+  units: BillingUnit[]
+  summary: { counts: Record<MonthBillingStatus, number>; billed: number; collected: number; outstanding: number }
+  pagination: BillingPagination
+}
+
+export interface MiscellaneousServiceInput {
+  id?: string
+  name: string
+  description?: string | null
+  quantity: number
+  price: number
+  isCarryForward?: boolean
+  originalInvoiceId?: string | null
+}
+
+export interface SaveInvoicePayload {
+  billingMode: BillingMode
+  startDate?: string
+  endDate?: string
+  selectedServices: string[]
+  miscellaneousServices?: MiscellaneousServiceInput[]
+  carriedForwardInvoiceIds?: string[]
+  discountType?: 'percentage' | 'amount' | null
+  discountValue?: number | null
+  discountReason?: string | null
+  dueDate?: string | null
+  notes?: string | null
+}
+
+export interface RecordPaymentPayload {
+  paidAmount: number
+  paymentMethod: PaymentMethod
+  paymentReference?: string
+  notes?: string
+  handedOverTo?: string
+  imageUrl?: string
+}
+
+export interface UnitMiscItem {
+  id: string
+  unitId: string
+  residentId: string | null
+  name: string
+  description: string | null
+  quantity: number
+  price: number
+  total: number
+  serviceDate: string
+  attachmentUrl: string | null
+  billedOnInvoice: string | null
+}
+
+export interface CreateMiscItemPayload {
+  unitId: string
+  residentId?: string | null
+  name: string
+  description?: string | null
+  quantity: number
+  price: number
+  serviceDate: string
+  attachmentUrl?: string | null
+}
+
+export interface TaxSettings {
+  gstEnabled: boolean
+  defaultGstRate: number
+  cgstRate: number
+  sgstRate: number
+  companyGstNumber: string
 }

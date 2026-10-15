@@ -162,9 +162,14 @@ export const ResidentPersonalDetailsTab: React.FC<ResidentPersonalDetailsTabProp
             icon={Utensils}
             title="Food plan"
             action={
-              canUpdateResident ? (
+              primarySub ? (
+                // An assigned plan is changed from Food & Beverage, not from the resident profile.
+                <span className="text-[11px] text-gray-500">
+                  Change in <b className="text-gray-700">Food &amp; Beverage → Property Packages &amp; Pricing</b>
+                </span>
+              ) : canUpdateResident ? (
                 <Button variant="secondary" className="h-8 rounded-xl text-xs" onClick={onAssignFoodPackage}>
-                  {primarySub ? 'Change plan' : 'Assign plan'}
+                  Assign plan
                 </Button>
               ) : null
             }
