@@ -63,6 +63,8 @@ export const API_ENDPOINTS = {
     allergies: (residentId: string) => `${BASE_URL}/residents/${residentId}/allergies`,
     allergy: (residentId: string, id: string) => `${BASE_URL}/residents/${residentId}/allergies/${id}`,
     documents: (residentId: string) => `${BASE_URL}/residents/${residentId}/documents`,
+    nokContacts: (residentId: string) => `${BASE_URL}/residents/${residentId}/nok-contacts`,
+    nokContact: (residentId: string, id: string) => `${BASE_URL}/residents/${residentId}/nok-contacts/${id}`,
     timeline: (residentId: string) => `${BASE_URL}/residents/${residentId}/timeline`,
   },
 

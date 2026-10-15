@@ -17,6 +17,7 @@ import type {
   ResidentMedicationItem,
   ResidentMedicationPayload,
   ResidentMedicinesParams,
+  ResidentNokContact,
   ResidentTimelineParams,
   ResidentVitalItem,
   ResidentVitalPayload,
@@ -354,6 +355,38 @@ export const createResidentDocumentAPI = async (
   return response.data
 }
 
+type ResidentNokContactMutationResponse = { success: boolean; message?: string; data?: ResidentNokContact }
+
+export const getResidentNokContactsAPI = async (residentId: string): Promise<ResidentNokContact[]> => {
+  const response = await api.get(API_ENDPOINTS.resident.nokContacts(residentId))
+  return response.data?.data || response.data
+}
+
+export const createResidentNokContactAPI = async (
+  residentId: string,
+  data: FormData,
+): Promise<ResidentNokContactMutationResponse> => {
+  const response = await api.post(API_ENDPOINTS.resident.nokContacts(residentId), data, { timeout: 60_000 })
+  return response.data
+}
+
+export const updateResidentNokContactAPI = async (
+  residentId: string,
+  id: string,
+  data: FormData,
+): Promise<ResidentNokContactMutationResponse> => {
+  const response = await api.put(API_ENDPOINTS.resident.nokContact(residentId, id), data, { timeout: 60_000 })
+  return response.data
+}
+
+export const deleteResidentNokContactAPI = async (
+  residentId: string,
+  id: string,
+): Promise<ResidentNokContactMutationResponse> => {
+  const response = await api.delete(API_ENDPOINTS.resident.nokContact(residentId, id))
+  return response.data
+}
+
 export const getResidentTimelineAPI = async (
   residentId: string,
   params: ResidentTimelineParams = {},
@@ -395,6 +428,10 @@ export const residentService = {
   deleteResidentAllergy: deleteResidentAllergyAPI,
   getResidentDocuments: getResidentDocumentsAPI,
   createResidentDocument: createResidentDocumentAPI,
+  getResidentNokContacts: getResidentNokContactsAPI,
+  createResidentNokContact: createResidentNokContactAPI,
+  updateResidentNokContact: updateResidentNokContactAPI,
+  deleteResidentNokContact: deleteResidentNokContactAPI,
   getResidentTimeline: getResidentTimelineAPI,
 }
 

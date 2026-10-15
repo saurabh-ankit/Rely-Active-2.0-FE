@@ -195,6 +195,20 @@ export interface ResidentDocumentItem {
   createdAt: string
 }
 
+export interface ResidentNokContact {
+  id: string
+  residentId: string
+  fullName: string
+  relationship: string | null
+  phone: string
+  alternatePhone: string | null
+  email: string | null
+  address: string | null
+  photoUrl: string | null
+  createdAt: string
+  updatedAt?: string
+}
+
 export type DoctorNoteFileType = 'IMAGE' | 'PDF' | 'AUDIO'
 export type DiagnosisCondition = 'CRITICAL' | 'STABLE' | 'RECOVERING' | 'GOOD'
 

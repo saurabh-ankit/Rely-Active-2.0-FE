@@ -15,6 +15,7 @@ import type {
   ResidentLabReportItem,
   ResidentMedicationPayload,
   ResidentMedicinesParams,
+  ResidentNokContact,
   ResidentTimelineParams,
   ResidentTimelineResponse,
   ResidentVitalPayload,
@@ -32,6 +33,7 @@ export const RESIDENT_KEYS = {
   clinical: (residentId?: string) => ['residents', 'clinical', residentId] as const,
   labReports: (residentId?: string) => ['residents', 'lab-reports', residentId] as const,
   documents: (residentId?: string) => ['residents', 'documents', residentId] as const,
+  nokContacts: (residentId?: string) => ['residents', 'nok-contacts', residentId] as const,
   medicines: (residentId?: string, params?: ResidentMedicinesParams) =>
     ['residents', 'medicines', residentId, params] as const,
   timeline: (residentId?: string, params?: ResidentTimelineParams) =>
@@ -90,6 +92,51 @@ export const useCreateResidentDocumentMutation = (residentId: string) => {
       toast.error(error?.response?.data?.message || error?.message || 'Failed to upload document'),
   })
 }
+
+export const useResidentNokContactsQuery = (residentId?: string, enabled = true) => {
+  return useQuery<ResidentNokContact[]>({
+    queryKey: RESIDENT_KEYS.nokContacts(residentId),
+    queryFn: () => residentService.getResidentNokContacts(residentId!),
+    enabled: enabled && !!residentId,
+  })
+}
+
+const useResidentNokContactMutation = <TVariables>(
+  residentId: string,
+  mutationFn: (variables: TVariables) => Promise<{ message?: string }>,
+  messages: { success: string; error: string },
+) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn,
+    onSuccess: (data) => {
+      void queryClient.invalidateQueries({ queryKey: RESIDENT_KEYS.nokContacts(residentId) })
+      toast.success(data?.message || messages.success)
+    },
+    onError: (error: ApiError) => toast.error(error?.response?.data?.message || error?.message || messages.error),
+  })
+}
+
+export const useCreateResidentNokContactMutation = (residentId: string) =>
+  useResidentNokContactMutation(
+    residentId,
+    (data: FormData) => residentService.createResidentNokContact(residentId, data),
+    { success: 'NOK contact added successfully', error: 'Failed to add NOK contact' },
+  )
+
+export const useUpdateResidentNokContactMutation = (residentId: string) =>
+  useResidentNokContactMutation(
+    residentId,
+    ({ id, payload }: { id: string; payload: FormData }) =>
+      residentService.updateResidentNokContact(residentId, id, payload),
+    { success: 'NOK contact updated successfully', error: 'Failed to update NOK contact' },
+  )
+
+export const useDeleteResidentNokContactMutation = (residentId: string) =>
+  useResidentNokContactMutation(residentId, (id: string) => residentService.deleteResidentNokContact(residentId, id), {
+    success: 'NOK contact deleted successfully',
+    error: 'Failed to delete NOK contact',
+  })
 
 export const useUpdateResidentConditionMutation = (residentId: string) => {
   const queryClient = useQueryClient()

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { InfoList, Panel } from '@/components/common/DetailPanel'
 import { cn, getFileUrl } from '@/lib/utils'
 import { unitLocationLabel } from '@/utils/unitLabel'
+import ResidentNokPanel from './ResidentNokPanel'
 
 export interface FnbSubscriptionItem {
   id: string
@@ -241,6 +242,8 @@ export const ResidentPersonalDetailsTab: React.FC<ResidentPersonalDetailsTabProp
             </ul>
           )}
         </Panel>
+
+        <ResidentNokPanel residentId={resident.id} canUpdateResident={canUpdateResident} />
       </div>
 
       <div className="space-y-5">
