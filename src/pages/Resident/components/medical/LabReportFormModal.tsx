@@ -14,7 +14,7 @@ import {
   useCreateResidentLabReportMutation,
   useUpdateResidentLabReportMutation,
 } from '@/hooks/react-query/resident'
-import type { PaymentMethod } from '@/lib/types/billing'
+import type { LabPaymentMethod } from '@/lib/types/medical'
 import type { LabReportSeverity, ResidentLabReportItem } from '@/lib/types/resident'
 import { getFileUrl } from '@/lib/utils'
 import { LAB_REPORT_SEVERITY_LABELS, PAYMENT_METHOD_LABELS } from './clinicalConstants'
@@ -25,7 +25,7 @@ const ACCEPTED_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'imag
 const NO_PAYMENT_METHOD = 'none'
 
 const SEVERITIES = Object.keys(LAB_REPORT_SEVERITY_LABELS) as LabReportSeverity[]
-const PAYMENT_METHODS = Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]
+const PAYMENT_METHODS = Object.keys(PAYMENT_METHOD_LABELS) as LabPaymentMethod[]
 
 const labReportSchema = z.object({
   labTestSettingId: z.string().min(1, 'Select a lab test'),

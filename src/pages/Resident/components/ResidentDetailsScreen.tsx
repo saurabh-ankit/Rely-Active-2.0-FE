@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { format, isValid, parseISO } from 'date-fns'
-import { ArrowLeft, CalendarDays, Edit, HeartPulse, Home, Phone, RefreshCw, User, Users, Utensils } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Edit, HeartPulse, Home, Phone, RefreshCw, User, Users } from 'lucide-react'
 import type { ResidentItem } from '@/lib/types'
 import { residentService } from '@/lib/services/residentService'
-import { ResidentFnbPackageModal } from './ResidentFnbPackageModal'
 import { AssignCareTaskDialog } from '@/components/common/AssignCareTaskDialog'
 import { AssignCareTeamDialog } from '@/components/common/AssignCareTeamDialog'
 import { Button } from '@/components/ui/button'
@@ -37,7 +36,6 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   const [resident, setResident] = useState<ResidentItem | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
-  const [isFnbModalOpen, setIsFnbModalOpen] = useState<boolean>(false)
   const [isCareTaskModalOpen, setIsCareTaskModalOpen] = useState<boolean>(false)
   const [isCareTeamModalOpen, setIsCareTeamModalOpen] = useState<boolean>(false)
   const [chosenTab, setActiveTab] = useState<ResidentDetailTab>('personal')
@@ -241,16 +239,6 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
                   canUpdate={canUpdateResident}
                 />
               )}
-              {canUpdateResident && resident.isResiding && (
-                <Button
-                  variant="secondary"
-                  icon={<Utensils className="h-4 w-4" />}
-                  onClick={() => setIsFnbModalOpen(true)}
-                  className="rounded-xl"
-                >
-                  Food Plan
-                </Button>
-              )}
               {canUpdateResident && (
                 <Button
                   variant="primary"
@@ -353,7 +341,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
           fnbSubscriptions={fnbSubscriptions}
           getSlotDisplayName={getSlotDisplayName}
           canUpdateResident={canUpdateResident}
-          onAssignFoodPackage={() => setIsFnbModalOpen(true)}
+          onAssignFoodPackage={() => navigate(editUrl)}
         />
       )}
 
@@ -363,24 +351,6 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
           canUpdateResident={medicalAccess.canUpdate}
           onAssignCareTeam={() => setIsCareTeamModalOpen(true)}
           onAssignCareTask={() => setIsCareTaskModalOpen(true)}
-        />
-      )}
-
-      {/* F&B Package Modal */}
-      {resident && (
-        <ResidentFnbPackageModal
-          isOpen={isFnbModalOpen}
-          onClose={() => {
-            setIsFnbModalOpen(false)
-            if (resident.id) {
-              void fetchFnbSubscriptions(resident.id)
-            }
-          }}
-          residentId={resident.id}
-          locId={resident.locId || (resident as unknown as Record<string, string>).loc_id || ''}
-          isResiding={resident.isResiding}
-          residentName={fullName}
-          familyMembers={familyMembers}
         />
       )}
 

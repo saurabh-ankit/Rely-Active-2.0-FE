@@ -441,27 +441,24 @@ export const API_ENDPOINTS = {
     deleteArea: `${BASE_URL}/location/:locationId/shift-roster/area/delete/:areaId`,
   },
 
-  // Billing & Revenue Management
+  // Flat billing (Rely Assist model)
   billing: {
-    unitsSummary: `${BASE_URL}/billing/units-summary`,
-    unit360: (unitId: string) => `${BASE_URL}/billing/units/${unitId}/360`,
-    accounts: `${BASE_URL}/billing/accounts`,
-    accountById: (id: string) => `${BASE_URL}/billing/accounts/${id}`,
-    accountLedger: (id: string) => `${BASE_URL}/billing/accounts/${id}/ledger`,
-    accountSubscriptions: (id: string) => `${BASE_URL}/billing/accounts/${id}/subscriptions`,
-    accountPendingEvents: (id: string) => `${BASE_URL}/billing/accounts/${id}/events/pending`,
-    invoices: `${BASE_URL}/billing/invoices`,
-    invoiceById: (id: string) => `${BASE_URL}/billing/invoices/${id}`,
-    previewInvoice: `${BASE_URL}/billing/invoices/preview`,
-    generateInvoice: `${BASE_URL}/billing/invoices/generate`,
-    events: `${BASE_URL}/billing/events`,
-    cancelEvent: (id: string) => `${BASE_URL}/billing/events/${id}/cancel`,
-    updateEvent: (id: string) => `${BASE_URL}/billing/events/${id}`,
-    eventAttachments: (id: string) => `${BASE_URL}/billing/events/${id}/attachments`,
-    runs: `${BASE_URL}/billing/runs`,
+    units: `${BASE_URL}/billing/units`,
+    invoiceData: (unitId: string) => `${BASE_URL}/billing/invoice/${unitId}`,
+    unbilledServices: (unitId: string) => `${BASE_URL}/billing/unbilled-services/${unitId}`,
+    createInvoice: (unitId: string) => `${BASE_URL}/billing/invoice/${unitId}`,
+    updateInvoice: (invoiceId: string) => `${BASE_URL}/billing/invoice/${invoiceId}`,
+    invoices: (unitId: string) => `${BASE_URL}/billing/invoices/${unitId}`,
+    invoiceDetail: (invoiceId: string) => `${BASE_URL}/billing/invoice-detail/${invoiceId}`,
+    receipts: (unitId: string) => `${BASE_URL}/billing/receipts/${unitId}`,
+    recordPayment: (invoiceId: string) => `${BASE_URL}/billing/invoice/${invoiceId}/record-payment`,
+    document: (invoiceId: string, type: 'INVOICE' | 'RECEIPT') =>
+      `${BASE_URL}/billing/invoice/${invoiceId}/download/${type}`,
+    attachments: `${BASE_URL}/billing/attachments`,
+    miscItems: (unitId: string) => `${BASE_URL}/billing/misc-items/${unitId}`,
+    createMiscItem: `${BASE_URL}/billing/misc-items`,
+    deleteMiscItem: (itemId: string) => `${BASE_URL}/billing/misc-items/${itemId}`,
     taxSettings: `${BASE_URL}/billing/settings/tax`,
-    payments: `${BASE_URL}/billing/payments`,
-    accountPayments: (id: string) => `${BASE_URL}/billing/accounts/${id}/payments`,
   },
 
   // Medical Management Endpoints (Care Tasks & Care Packages)

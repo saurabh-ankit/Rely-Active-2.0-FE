@@ -205,6 +205,8 @@ export interface Ticket {
   property?: TicketPropertyRef | null
   unit?: TicketUnitRef | null
   resident?: TicketResidentRef | null
+  /** Set when a family member raised the ticket from the resident app. */
+  familyMember?: { id: string; firstName: string; lastName?: string | null; relation?: string | null } | null
   department?: TicketDepartmentRef | null
   jobCategory?: TicketJobCategoryRef | null
   categoryObj?: TicketCategoryMaster | null

@@ -1,195 +1,186 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { useLocationContext } from '@/hooks/useLocation'
 import {
-  type BatchRunPayload,
-  type CreateBillingEventPayload,
-  type GenerateInvoicePayload,
-  type InvoicePreviewPayload,
-  type TaxSettings,
-  cancelBillingEventAPI,
-  createBillingEventAPI,
-  updateBillingEventAPI,
-  uploadBillingEventAttachmentAPI,
-  generateInvoiceAPI,
-  getAccountLedgerStatementAPI,
-  getAccountPaymentsAPI,
-  getAccountPendingEventsAPI,
-  getAccountSubscriptionsAPI,
-  getBillingAccountByIdAPI,
-  getBillingAccountsAPI,
-  getBillingRunsAPI,
-  getInvoiceByIdAPI,
-  getInvoicesAPI,
+  createInvoiceAPI,
+  createMiscItemAPI,
+  deleteMiscItemAPI,
+  getBillingUnitsAPI,
+  getInvoiceDataAPI,
+  getMiscItemsAPI,
   getTaxSettingsAPI,
-  getUnitBilling360API,
-  getUnitsBillingSummaryAPI,
-  previewInvoiceAPI,
+  getUnbilledServicesAPI,
+  getUnitInvoicesAPI,
+  getUnitReceiptsAPI,
   recordPaymentAPI,
-  triggerBatchRunAPI,
+  updateInvoiceAPI,
   updateTaxSettingsAPI,
 } from '@/lib/services/billingService'
-import type { RecordPaymentPayload } from '@/lib/types/billing'
+import type {
+  BillingMode,
+  CreateMiscItemPayload,
+  MonthBillingStatus,
+  RecordPaymentPayload,
+  SaveInvoicePayload,
+  TaxSettings,
+} from '@/lib/types/billing'
 
 type ApiError = { response?: { data?: { message?: string } }; message?: string }
+export const apiErrorMessage = (error: unknown, fallback: string) =>
+  (error as ApiError)?.response?.data?.message || (error as ApiError)?.message || fallback
 
-export const useGetBillingAccounts = (params?: {
-  propertyId?: string
-  unitId?: string
-  status?: string
-  search?: string
-  page?: number
-  limit?: number
-  enabled?: boolean
+export const BILLING_KEYS = {
+  units: (locationId: string | null, params: Record<string, unknown>) =>
+    ['billing', 'units', locationId, params] as const,
+  unit: (unitId: string) => ['billing', 'unit', unitId] as const,
+  preview: (unitId: string, mode: BillingMode, startDate?: string, endDate?: string, editing?: string) =>
+    ['billing', 'unit', unitId, 'preview', mode, startDate ?? '', endDate ?? '', editing ?? ''] as const,
+  invoices: (unitId: string, page: number) => ['billing', 'unit', unitId, 'invoices', page] as const,
+  receipts: (unitId: string, page: number, limit: number) =>
+    ['billing', 'unit', unitId, 'receipts', page, limit] as const,
+  unbilled: (unitId: string, startDate: string, endDate: string) =>
+    ['billing', 'unit', unitId, 'unbilled', startDate, endDate] as const,
+  misc: (unitId: string) => ['billing', 'unit', unitId, 'misc'] as const,
+}
+
+export const useBillingUnits = (params: {
+  search: string
+  page: number
+  limit: number
+  month: string
+  status?: MonthBillingStatus
 }) => {
-  const { enabled = true, ...queryParams } = params || {}
+  const { selectedLocationId } = useLocationContext()
   return useQuery({
-    queryKey: ['billing-accounts', queryParams],
-    queryFn: () => getBillingAccountsAPI(queryParams),
-    enabled,
-    staleTime: 30_000,
+    queryKey: BILLING_KEYS.units(selectedLocationId, params),
+    queryFn: () => getBillingUnitsAPI(selectedLocationId as string, params),
+    enabled: !!selectedLocationId,
+    placeholderData: (prev) => prev,
   })
 }
 
-export const useGetBillingAccountById = (id: string, enabled = true) => {
-  return useQuery({
-    queryKey: ['billing-account', id],
-    queryFn: () => getBillingAccountByIdAPI(id),
-    enabled: enabled && !!id,
-  })
-}
-
-export const useGetAccountLedger = (
-  accountId: string,
-  params?: { startDate?: string; endDate?: string },
+export const useInvoicePreview = (
+  unitId: string,
+  params: { billingMode: BillingMode; startDate?: string; endDate?: string; editingInvoiceId?: string },
   enabled = true,
 ) => {
+  const { selectedLocationId } = useLocationContext()
   return useQuery({
-    queryKey: ['billing-account-ledger', accountId, params],
-    queryFn: () => getAccountLedgerStatementAPI(accountId, params),
-    enabled: enabled && !!accountId,
+    queryKey: BILLING_KEYS.preview(
+      unitId,
+      params.billingMode,
+      params.startDate,
+      params.endDate,
+      params.editingInvoiceId,
+    ),
+    queryFn: () => getInvoiceDataAPI(selectedLocationId, unitId, params),
+    enabled: !!unitId && enabled,
+    retry: false,
   })
 }
 
-export const useGetAccountSubscriptions = (accountId: string, enabled = true) => {
+export const useUnitInvoices = (unitId: string, page = 1) => {
+  const { selectedLocationId } = useLocationContext()
   return useQuery({
-    queryKey: ['billing-account-subscriptions', accountId],
-    queryFn: () => getAccountSubscriptionsAPI(accountId),
-    enabled: enabled && !!accountId,
+    queryKey: BILLING_KEYS.invoices(unitId, page),
+    queryFn: () => getUnitInvoicesAPI(selectedLocationId, unitId, page),
+    enabled: !!unitId,
+    placeholderData: (prev) => prev,
   })
 }
 
-export const useGetAccountPendingEvents = (accountId: string, enabled = true) => {
+export const useUnitReceipts = (unitId: string, page = 1, limit = 20) => {
+  const { selectedLocationId } = useLocationContext()
   return useQuery({
-    queryKey: ['billing-account-pending-events', accountId],
-    queryFn: () => getAccountPendingEventsAPI(accountId),
-    enabled: enabled && !!accountId,
+    queryKey: BILLING_KEYS.receipts(unitId, page, limit),
+    queryFn: () => getUnitReceiptsAPI(selectedLocationId, unitId, page, limit),
+    enabled: !!unitId,
+    placeholderData: (prev) => prev,
   })
 }
 
-export const useGetInvoices = (params?: {
-  propertyId?: string
-  billingAccountId?: string
-  status?: string
-  page?: number
-  limit?: number
-  enabled?: boolean
-}) => {
-  const { enabled = true, ...queryParams } = params || {}
+export const useUnbilledServices = (unitId: string, startDate: string, endDate: string) => {
+  const { selectedLocationId } = useLocationContext()
   return useQuery({
-    queryKey: ['billing-invoices', queryParams],
-    queryFn: () => getInvoicesAPI(queryParams),
-    enabled,
-    staleTime: 30_000,
+    queryKey: BILLING_KEYS.unbilled(unitId, startDate, endDate),
+    queryFn: () => getUnbilledServicesAPI(selectedLocationId, unitId, { startDate, endDate }),
+    enabled: !!unitId && !!startDate && !!endDate && startDate <= endDate,
   })
 }
 
-export const useGetInvoiceById = (id: string, enabled = true) => {
+export const useUnitMiscItems = (unitId: string) => {
+  const { selectedLocationId } = useLocationContext()
   return useQuery({
-    queryKey: ['billing-invoice', id],
-    queryFn: () => getInvoiceByIdAPI(id),
-    enabled: enabled && !!id,
+    queryKey: BILLING_KEYS.misc(unitId),
+    queryFn: () => getMiscItemsAPI(selectedLocationId, unitId),
+    enabled: !!unitId,
   })
 }
 
-export const usePreviewInvoice = () => {
-  return useMutation({
-    mutationFn: (payload: InvoicePreviewPayload) => previewInvoiceAPI(payload),
-    onError: (error: ApiError) => {
-      toast.error(error?.response?.data?.message || error?.message || 'Failed to preview invoice')
-    },
-  })
-}
-
-export const useGenerateInvoice = () => {
+/** Everything about a flat's billing goes stale together after a write. */
+const useInvalidateUnit = () => {
   const queryClient = useQueryClient()
+  return (unitId: string) => {
+    queryClient.invalidateQueries({ queryKey: BILLING_KEYS.unit(unitId) })
+    queryClient.invalidateQueries({ queryKey: ['billing', 'units'] })
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+  }
+}
+
+export const useSaveInvoice = (unitId: string) => {
+  const { selectedLocationId } = useLocationContext()
+  const invalidate = useInvalidateUnit()
   return useMutation({
-    mutationFn: (payload: GenerateInvoicePayload) => generateInvoiceAPI(payload),
+    mutationFn: ({ invoiceId, payload }: { invoiceId?: string; payload: SaveInvoicePayload }) =>
+      invoiceId
+        ? updateInvoiceAPI(selectedLocationId, invoiceId, payload)
+        : createInvoiceAPI(selectedLocationId, unitId, payload),
+    onSuccess: () => invalidate(unitId),
+    onError: (error) => toast.error(apiErrorMessage(error, 'Could not save the invoice')),
+  })
+}
+
+export const useRecordPayment = (unitId: string) => {
+  const { selectedLocationId } = useLocationContext()
+  const invalidate = useInvalidateUnit()
+  return useMutation({
+    mutationFn: ({ invoiceId, payload }: { invoiceId: string; payload: RecordPaymentPayload }) =>
+      recordPaymentAPI(selectedLocationId, invoiceId, payload),
+    onSuccess: (res) => {
+      toast.success(`Payment recorded – receipt ${res.data.receiptNumber}`)
+      invalidate(unitId)
+    },
+    onError: (error) => toast.error(apiErrorMessage(error, 'Could not record the payment')),
+  })
+}
+
+export const useCreateMiscItem = (unitId: string) => {
+  const { selectedLocationId } = useLocationContext()
+  const invalidate = useInvalidateUnit()
+  return useMutation({
+    mutationFn: (payload: CreateMiscItemPayload) => createMiscItemAPI(selectedLocationId, payload),
     onSuccess: () => {
-      toast.success('Invoice generated & posted to ledger successfully!')
-      queryClient.invalidateQueries({ queryKey: ['billing-invoices'] })
-      queryClient.invalidateQueries({ queryKey: ['billing-accounts'] })
-      queryClient.invalidateQueries({ queryKey: ['billing-account-ledger'] })
-      queryClient.invalidateQueries({ queryKey: ['billing-units-summary'] })
-      queryClient.invalidateQueries({ queryKey: ['billing-unit-360'] })
+      toast.success('Charge added – it will appear on the next invoice')
+      invalidate(unitId)
     },
-    onError: (error: ApiError) => {
-      toast.error(error?.response?.data?.message || error?.message || 'Failed to generate invoice')
-    },
+    onError: (error) => toast.error(apiErrorMessage(error, 'Could not add the charge')),
   })
 }
 
-export const useGetBillingRuns = (params?: {
-  propertyId?: string
-  page?: number
-  limit?: number
-  enabled?: boolean
-}) => {
-  const { enabled = true, ...queryParams } = params || {}
-  return useQuery({
-    queryKey: ['billing-runs', queryParams],
-    queryFn: () => getBillingRunsAPI(queryParams),
-    enabled,
-  })
-}
-
-export const useTriggerBatchRun = () => {
-  const queryClient = useQueryClient()
+export const useDeleteMiscItem = (unitId: string) => {
+  const { selectedLocationId } = useLocationContext()
+  const invalidate = useInvalidateUnit()
   return useMutation({
-    mutationFn: (payload: BatchRunPayload) => triggerBatchRunAPI(payload),
-    onSuccess: (data) => {
-      toast.success(
-        `Batch run completed! Processed: ${data.data.successfulInvoices} invoices. Total: ₹${Number(data.data.totalAmount).toLocaleString('en-IN')}`,
-      )
-      queryClient.invalidateQueries({ queryKey: ['billing-runs'] })
-      queryClient.invalidateQueries({ queryKey: ['billing-invoices'] })
-      queryClient.invalidateQueries({ queryKey: ['billing-accounts'] })
+    mutationFn: (itemId: string) => deleteMiscItemAPI(selectedLocationId, itemId),
+    onSuccess: () => {
+      toast.success('Charge removed')
+      invalidate(unitId)
     },
-    onError: (error: ApiError) => {
-      toast.error(error?.response?.data?.message || error?.message || 'Batch billing run failed')
-    },
+    onError: (error) => toast.error(apiErrorMessage(error, 'Could not remove the charge')),
   })
 }
 
-// ── 4. FLAT-CENTRIC DIRECTORY & 360° FOLIO ──────────────────────────────────
-export const useGetUnitsBillingSummary = (propertyId?: string, enabled = true) => {
-  return useQuery({
-    queryKey: ['billing-units-summary', propertyId],
-    queryFn: () => getUnitsBillingSummaryAPI(propertyId),
-    enabled,
-    staleTime: 15_000,
-  })
-}
-
-export const useGetUnitBilling360 = (unitId: string | null, enabled = true) => {
-  return useQuery({
-    queryKey: ['billing-unit-360', unitId],
-    queryFn: () => getUnitBilling360API(unitId!),
-    enabled: enabled && !!unitId,
-    staleTime: 15_000,
-  })
-}
-
-// ── 5. GLOBAL GST / TAX SETTINGS ───────────────────────────────────────────
+// ── Global GST / tax settings ───────────────────────────────────────────────
 export const useGetTaxSettings = (enabled = true) => {
   return useQuery({
     queryKey: ['billing-tax-settings'],
@@ -207,108 +198,6 @@ export const useUpdateTaxSettings = () => {
       toast.success(data.message || 'Tax & GST settings updated successfully')
       queryClient.invalidateQueries({ queryKey: ['billing-tax-settings'] })
     },
-    onError: (error: ApiError) => {
-      toast.error(error?.response?.data?.message || error?.message || 'Failed to update tax settings')
-    },
-  })
-}
-
-// ── 6. BILLING USAGE & MISCELLANEOUS EVENTS ───────────────────────────────
-export const useCreateBillingEvent = (unitId?: string) => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (payload: CreateBillingEventPayload) => createBillingEventAPI(payload),
-    onSuccess: () => {
-      toast.success('Miscellaneous charge added successfully!')
-      if (unitId) {
-        queryClient.invalidateQueries({ queryKey: ['billing-unit-360', unitId] })
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['billing-unit-360'] })
-      }
-      queryClient.invalidateQueries({ queryKey: ['billing-units-summary'] })
-      queryClient.invalidateQueries({ queryKey: ['billing-accounts'] })
-      queryClient.invalidateQueries({ queryKey: ['billing-account-pending-events'] })
-    },
-    onError: (error: ApiError) => {
-      toast.error(error?.response?.data?.message || error?.message || 'Failed to add miscellaneous charge')
-    },
-  })
-}
-
-export const useCancelBillingEvent = (unitId?: string) => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => cancelBillingEventAPI(id, reason),
-    onSuccess: () => {
-      toast.success('Billing event cancelled successfully')
-      if (unitId) {
-        queryClient.invalidateQueries({ queryKey: ['billing-unit-360', unitId] })
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['billing-unit-360'] })
-      }
-      queryClient.invalidateQueries({ queryKey: ['billing-units-summary'] })
-      queryClient.invalidateQueries({ queryKey: ['billing-accounts'] })
-      queryClient.invalidateQueries({ queryKey: ['billing-account-pending-events'] })
-    },
-    onError: (error: ApiError) => {
-      toast.error(error?.response?.data?.message || error?.message || 'Failed to cancel billing event')
-    },
-  })
-}
-
-export const useUpdateBillingEvent = (unitId?: string) => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: Partial<CreateBillingEventPayload> }) =>
-      updateBillingEventAPI(id, payload),
-    onSuccess: () => {
-      toast.success('Miscellaneous charge updated')
-      queryClient.invalidateQueries({ queryKey: unitId ? ['billing-unit-360', unitId] : ['billing-unit-360'] })
-    },
-    onError: (error: ApiError) => toast.error(error?.response?.data?.message || 'Failed to update charge'),
-  })
-}
-
-export const useUploadBillingEventAttachment = (unitId?: string) => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, file }: { id: string; file: File }) => uploadBillingEventAttachmentAPI(id, file),
-    onSuccess: () => {
-      toast.success('Bill uploaded successfully')
-      queryClient.invalidateQueries({ queryKey: unitId ? ['billing-unit-360', unitId] : ['billing-unit-360'] })
-    },
-    onError: (error: ApiError) => toast.error(error?.response?.data?.message || 'Failed to upload bill'),
-  })
-}
-
-// ── 7. PAYMENTS & COLLECTIONS ──────────────────────────────────────────────
-export const useRecordPayment = (unitId?: string) => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (payload: RecordPaymentPayload) => recordPaymentAPI(payload),
-    onSuccess: (data) => {
-      toast.success(data?.message || 'Payment recorded successfully!')
-      if (unitId) {
-        queryClient.invalidateQueries({ queryKey: ['billing-unit-360', unitId] })
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['billing-unit-360'] })
-      }
-      queryClient.invalidateQueries({ queryKey: ['billing-units-summary'] })
-      queryClient.invalidateQueries({ queryKey: ['billing-accounts'] })
-      queryClient.invalidateQueries({ queryKey: ['billing-invoices'] })
-      queryClient.invalidateQueries({ queryKey: ['billing-account-ledger'] })
-      queryClient.invalidateQueries({ queryKey: ['billing-account-payments'] })
-    },
-    onError: (error: ApiError) => {
-      toast.error(error?.response?.data?.message || error?.message || 'Failed to record payment')
-    },
-  })
-}
-
-export const useGetAccountPayments = (accountId: string, enabled = true) => {
-  return useQuery({
-    queryKey: ['billing-account-payments', accountId],
-    queryFn: () => getAccountPaymentsAPI(accountId),
-    enabled: enabled && !!accountId,
+    onError: (error) => toast.error(apiErrorMessage(error, 'Failed to update tax settings')),
   })
 }

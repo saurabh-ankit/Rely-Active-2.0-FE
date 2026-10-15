@@ -1,6 +1,6 @@
 import { MedicationMealTiming, MedicationRoute } from '@/lib/constants/medication'
 import type { DiagnosisCondition, LabReportSeverity, MedicationTimeOfDay } from '@/lib/types/resident'
-import type { PaymentMethod } from '@/lib/types/billing'
+import type { LabPaymentMethod } from '@/lib/types/medical'
 
 export const TIME_OF_DAY_LABELS: Record<MedicationTimeOfDay, string> = {
   morning: 'Morning',
@@ -59,7 +59,7 @@ export const LAB_REPORT_SEVERITY_LABELS: Record<LabReportSeverity, string> = {
   severe: 'Severe',
 }
 
-export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+export const PAYMENT_METHOD_LABELS: Record<LabPaymentMethod, string> = {
   CASH: 'Cash',
   BANK_TRANSFER: 'Bank Transfer',
   CHEQUE: 'Cheque',

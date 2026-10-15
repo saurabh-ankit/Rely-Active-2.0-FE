@@ -322,6 +322,12 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                                     <div className="font-bold text-gray-900">
                                       {sub.carePackage?.name || sub.carePackage?.packageName || 'Unnamed Package'}
                                     </div>
+                                    {sub.familyMember && (
+                                      <span className="mt-1 inline-block rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-semibold text-purple-700">
+                                        For {`${sub.familyMember.firstName} ${sub.familyMember.lastName || ''}`.trim()}
+                                        {sub.familyMember.relation ? ` · ${sub.familyMember.relation}` : ''}
+                                      </span>
+                                    )}
                                     <div className="text-[11px] text-gray-500 mt-0.5">
                                       ₹
                                       {Number(

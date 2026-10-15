@@ -32,6 +32,7 @@ import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { getDepartmentManagerType } from '@/utils/departmentManager'
 import type { Ticket, TicketCategoryMaster, TicketFeedback, TicketPriority, TicketStatus } from '@/lib/types'
+import { cn } from '@/lib/utils'
 import { CreateTicketModal } from './components/CreateTicketModal'
 import { SelectPersonDrawer } from './components/SelectPersonDrawer'
 import { AddInvoiceModal } from './components/AddInvoiceModal'
@@ -94,6 +95,40 @@ function toUrlList(value: any): string[] {
   return value
     .map((item) => (typeof item === 'string' ? item : item?.url || item?.location || ''))
     .filter((url: string) => typeof url === 'string' && url.trim().length > 0)
+}
+
+const fullName = (p?: { firstName?: string | null; lastName?: string | null } | null) =>
+  `${p?.firstName ?? ''} ${p?.lastName ?? ''}`.trim()
+
+/** Who raised the ticket: the family member or resident by name (from the app), else the staff member. */
+function RaisedBy({ ticket }: { ticket: Ticket }) {
+  const member = fullName(ticket.familyMember)
+  const staff = ticket.raisedBy || userDisplayName(ticket.raisedByUser)
+  const resident = fullName(ticket.resident)
+  const [name, tag] = member
+    ? [member, `Family member${ticket.familyMember?.relation ? ` · ${ticket.familyMember.relation}` : ''}`]
+    : staff
+      ? [staff, 'Staff']
+      : [resident || 'Resident', resident ? 'Resident' : null]
+  return (
+    <span className="flex items-center gap-2">
+      <span className="font-bold text-gray-900">{name}</span>
+      {tag && (
+        <span
+          className={cn(
+            'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+            tag === 'Staff'
+              ? 'bg-gray-100 text-gray-600'
+              : tag === 'Resident'
+                ? 'bg-sky-50 text-sky-700'
+                : 'bg-purple-50 text-purple-700',
+          )}
+        >
+          {tag}
+        </span>
+      )}
+    </span>
+  )
 }
 
 function userDisplayName(
@@ -1147,9 +1182,7 @@ export default function TicketsPage() {
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-gray-700" />
                     <span className="text-gray-500 font-semibold">Raised By :</span>
-                    <span className="font-bold text-gray-900">
-                      {selectedTicket.raisedBy || userDisplayName(selectedTicket.raisedByUser) || 'Resident'}
-                    </span>
+                    <RaisedBy ticket={selectedTicket} />
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -1792,9 +1825,7 @@ export default function TicketsPage() {
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-gray-700" />
                     <span className="text-gray-500 font-semibold">Raised By :</span>
-                    <span className="font-bold text-gray-900">
-                      {selectedTicket.raisedBy || userDisplayName(selectedTicket.raisedByUser) || 'Resident'}
-                    </span>
+                    <RaisedBy ticket={selectedTicket} />
                   </div>
 
                   <div className="flex items-center gap-2">
