@@ -26,6 +26,12 @@ function timeAgo(value?: string | null): string {
   return formatDistanceToNow(parsed, { addSuffix: true })
 }
 
+/** When a notification happened, for newest-first ordering (0 if unknown). */
+function notificationTime(item: NotificationItem): number {
+  const parsed = new Date(item.event?.occurredAt || item.createdAt || '').getTime()
+  return Number.isNaN(parsed) ? 0 : parsed
+}
+
 function severityClass(severity?: string | null): string {
   if (severity === 'CRITICAL') return 'border-rose-200 bg-rose-50'
   if (severity === 'WARNING') return 'border-amber-200 bg-amber-50'
@@ -44,8 +50,13 @@ export function NotificationBell({ onOpen }: NotificationBellProps) {
   const archiveMutation = useArchiveNotificationMutation()
 
   const unreadCount = unreadCountQuery.data?.data.unreadCount ?? 0
+  // Newest on top: the API already sorts this way; sorting again keeps the order right
+  // even if items arrive out of order. The sort is stable, so ties keep the API order.
   const notifications = useMemo(
-    () => notificationsQuery.data?.data.notifications ?? [],
+    () =>
+      [...(notificationsQuery.data?.data.notifications ?? [])].sort(
+        (a, b) => notificationTime(b) - notificationTime(a),
+      ),
     [notificationsQuery.data?.data.notifications],
   )
 
