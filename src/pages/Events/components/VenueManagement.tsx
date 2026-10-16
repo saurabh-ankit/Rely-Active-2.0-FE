@@ -321,7 +321,16 @@ const VenueManagement: React.FC<VenueManagementProps> = ({ open, onOpenChange })
               </EventsPermission>
             </div>
 
-            <DataTable columns={columns} data={venues} pageSize={pagination.pageSize} />
+            <DataTable
+              columns={columns}
+              data={venues}
+              manualPagination
+              pageSize={pagination.pageSize}
+              pageIndex={pagination.pageIndex}
+              pageCount={venuesData?.data?.pagination?.totalPages ?? 1}
+              totalCount={venuesData?.data?.pagination?.total ?? venues.length}
+              onPageChange={(pageIndex) => setPagination((p) => ({ ...p, pageIndex }))}
+            />
           </div>
         </DialogContent>
       </Dialog>

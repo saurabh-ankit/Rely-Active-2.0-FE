@@ -29,7 +29,7 @@ import {
 } from '@/hooks/react-query/events'
 import type { Event, EventRequest } from '@/lib/services/eventService'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
-import { ArrowLeft, Calendar, List, MapPin, Plus, Trash2, Users } from 'lucide-react'
+import { ArrowLeft, Calendar, List, MapPin, Pencil, Plus, Trash2, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { formatDisplayDate } from '@/lib/utils/dateUtils'
@@ -138,6 +138,7 @@ const EventsListPage = ({ embedded = false, enabled = true }: EventsListPageProp
     limit: pagination.pageSize,
     search: searchTerm || undefined,
     eventType: eventTypeFilter !== 'all' ? (eventTypeFilter as Event['eventType']) : undefined,
+    sortBy: 'schedule',
   })
 
   const { data: requestsData, isLoading: isLoadingRequests } = useListEventRequests(
@@ -261,11 +262,31 @@ const EventsListPage = ({ embedded = false, enabled = true }: EventsListPageProp
       accessorKey: 'eventType',
       header: 'Type',
       cell: ({ row }) => {
-        const eventType = row.getValue('eventType') as string
-        const label = eventType === 'regular' ? 'Regular' : 'Special'
-        return (
-          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium capitalize">
-            {label}
+        // Regular: attendance is marked. Special: one-time, attendance marked. Resident event: from a resident's request.
+        const isSpecial = (row.getValue('eventType') as string) === 'special'
+        if (row.original.fromResidentRequest) {
+          return (
+            <span
+              className="whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
+              title="Confirmed from a resident's request"
+            >
+              Resident event
+            </span>
+          )
+        }
+        return isSpecial ? (
+          <span
+            className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800"
+            title="Special event (one-time)"
+          >
+            Special
+          </span>
+        ) : (
+          <span
+            className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800"
+            title="Regular event (attendance is marked)"
+          >
+            Regular
           </span>
         )
       },
@@ -361,26 +382,38 @@ const EventsListPage = ({ embedded = false, enabled = true }: EventsListPageProp
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-1.5">
           <EventsPermission action="update">
-            <Button variant="outline" size="sm" onClick={() => setEditEventId(row.original.id)}>
-              Edit
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 text-[#2a517c]"
+              title="Edit event"
+              aria-label="Edit event"
+              onClick={() => setEditEventId(row.original.id)}
+            >
+              <Pencil className="h-4 w-4" />
             </Button>
           </EventsPermission>
-          {row.original.allowReservation && (
+          {(row.original.allowReservation || !row.original.fromResidentRequest) && (
             <Button
               variant="default"
-              size="sm"
+              size="icon"
+              className="h-8 w-8"
+              title={row.original.allowReservation ? 'Registrations' : 'Attendance'}
+              aria-label={row.original.allowReservation ? 'Registrations' : 'Attendance'}
               onClick={() => navigate(`/admin/events/${row.original.id}/registrations`)}
             >
-              Registrations
+              <Users className="h-4 w-4" />
             </Button>
           )}
           <EventsPermission action="delete">
             <Button
               variant="outline"
-              size="sm"
-              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              size="icon"
+              className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              title="Delete event"
+              aria-label="Delete event"
               onClick={() => setEventToDelete(row.original)}
             >
               <Trash2 className="h-4 w-4" />
@@ -661,7 +694,12 @@ const EventsListPage = ({ embedded = false, enabled = true }: EventsListPageProp
                       columns={requestColumns}
                       data={eventRequests}
                       isLoading={isLoadingRequests}
+                      manualPagination
                       pageSize={requestPagination.pageSize}
+                      pageIndex={requestPagination.pageIndex}
+                      pageCount={requestsData?.data?.pagination?.totalPages ?? 1}
+                      totalCount={requestsData?.data?.pagination?.total ?? eventRequests.length}
+                      onPageChange={(pageIndex) => setRequestPagination((p) => ({ ...p, pageIndex }))}
                     />
                   )}
                 </CardContent>
@@ -694,8 +732,9 @@ const EventsListPage = ({ embedded = false, enabled = true }: EventsListPageProp
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Types</SelectItem>
-                          <SelectItem value="regular">Regular Event</SelectItem>
-                          <SelectItem value="special">Special Event</SelectItem>
+                          <SelectItem value="regular">Regular</SelectItem>
+                          <SelectItem value="special">Special</SelectItem>
+                          <SelectItem value="resident">Resident event</SelectItem>
                         </SelectContent>
                       </Select>
                       <div className="w-[100%]">
@@ -713,7 +752,18 @@ const EventsListPage = ({ embedded = false, enabled = true }: EventsListPageProp
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <DataTable columns={columns} data={events} isLoading={isLoading} pageSize={pagination.pageSize} />
+                  <DataTable
+                    columns={columns}
+                    data={events}
+                    isLoading={isLoading}
+                    onRowClick={(event) => navigate(`/admin/events/${event.id}/registrations`)}
+                    manualPagination
+                    pageSize={pagination.pageSize}
+                    pageIndex={pagination.pageIndex}
+                    pageCount={eventsData?.data?.pagination?.totalPages ?? 1}
+                    totalCount={eventsData?.data?.pagination?.total ?? events.length}
+                    onPageChange={(pageIndex) => setPagination((p) => ({ ...p, pageIndex }))}
+                  />
                 </CardContent>
               </Card>
             ),

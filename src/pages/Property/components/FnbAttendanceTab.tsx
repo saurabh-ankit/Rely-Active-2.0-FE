@@ -45,6 +45,19 @@ interface SlotResult {
   status: SlotStatus
   covered: boolean
   time?: string | undefined
+  /** Attendance staff member who marked it. */
+  by?: string | undefined
+}
+
+/** Name of the staff member who marked an attendance record (from the members API). */
+const markerName = (att: unknown): string | undefined => {
+  const a = att as {
+    created_by_user?: { firstName?: string; lastName?: string } | null
+    creator?: { username?: string; profile?: { firstName?: string; lastName?: string } | null } | null
+  } | null
+  const p = a?.created_by_user ?? a?.creator?.profile
+  const name = `${p?.firstName ?? ''} ${p?.lastName ?? ''}`.trim() || a?.creator?.username || ''
+  return name || undefined
 }
 
 /** YYYY-MM-DD in the browser's timezone (toISOString would give the UTC date). */
@@ -94,13 +107,14 @@ const SlotChip = ({ result, showLabel }: { result: SlotResult; showLabel: boolea
         'inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] font-semibold whitespace-nowrap',
         meta.chip,
       )}
-      title={`${result.slot.label}: ${meta.label}${result.time ? ` at ${result.time}` : ''} · ${
+      title={`${result.slot.label}: ${meta.label}${result.time ? ` at ${result.time}` : ''}${result.by ? ` by ${result.by}` : ''} · ${
         result.covered ? 'Covered by package' : 'Extra meal (not in package)'
       }`}
     >
       <Icon className={cn('h-3.5 w-3.5 shrink-0', meta.iconClass)} />
       {showLabel ? result.slot.label : meta.label}
       {result.time && <span className="font-medium opacity-70">{result.time}</span>}
+      {result.by && <span className="font-medium opacity-70">· by {result.by}</span>}
       {!result.covered && (
         <span className="rounded bg-amber-100 px-1 text-[9px] font-bold uppercase tracking-wide text-amber-800">
           Extra
@@ -332,7 +346,10 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
 
   // Helper to check attendance status for a specific meal slot
   const isSlotAttendedForMember = useCallback(
-    (member: FnbFoodAttendanceMember, slotKey: string): { attended: boolean; isCrossed: boolean; time?: string } => {
+    (
+      member: FnbFoodAttendanceMember,
+      slotKey: string,
+    ): { attended: boolean; isCrossed: boolean; time?: string; by?: string } => {
       const normTarget = slotKey.toLowerCase().replace(/\s+/g, '_')
       const isCrossed = isSlotTimeCrossed(slotKey)
       const list = member.attendances || []
@@ -371,7 +388,7 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
           const timeStr = timeVal
             ? new Date(timeVal).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             : undefined
-          return { attended: true, isCrossed, time: timeStr }
+          return { attended: true, isCrossed, time: timeStr, by: markerName(matched) }
         }
       }
       if (member.attendance) {
@@ -407,7 +424,7 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
             const timeStr = timeVal
               ? new Date(timeVal).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
               : undefined
-            return { attended: true, isCrossed, time: timeStr }
+            return { attended: true, isCrossed, time: timeStr, by: markerName(member.attendance) }
           }
         }
       }
@@ -437,12 +454,13 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
   const getSlotResults = useCallback(
     (member: FnbFoodAttendanceMember): SlotResult[] =>
       slotsInScope.map((slot) => {
-        const { attended, isCrossed, time } = isSlotAttendedForMember(member, slot.key)
+        const { attended, isCrossed, time, by } = isSlotAttendedForMember(member, slot.key)
         return {
           slot,
           status: attended ? 'attended' : isCrossed ? 'missed' : 'upcoming',
           covered: isSlotCoveredInPackage(member, slot.key),
           time,
+          by,
         }
       }),
     [slotsInScope, isSlotAttendedForMember, isSlotCoveredInPackage],
