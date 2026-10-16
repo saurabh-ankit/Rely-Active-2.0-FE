@@ -20,6 +20,8 @@ import { useGetAssetStats } from '@/hooks/react-query/assetManagement'
 import StatCard from './components/StatCard'
 import StatsGrid from './components/StatsGrid'
 import { PageHeader } from '@/components/common/PageHeader'
+import { useResourceAccess } from '@/hooks/useResourceAccess'
+import { RESOURCE } from '@/lib/permissions/resourceKeys'
 
 // Dynamic imports for better code splitting
 const AssetCategories = lazy(() => import('./components/AssetCategories'))
@@ -31,7 +33,19 @@ const AssetMaintenance = lazy(() => import('./components/AssetMaintenance'))
 const AssetCompliance = lazy(() => import('./components/AssetCompliance'))
 
 const AssetManagementPage = () => {
-  const [activeTab, setActiveTab] = useState('overview')
+  const [chosenTab, setActiveTab] = useState('overview')
+  // Each tab is an Asset sub-module; users only see the tabs they can view.
+  const tabAccess: Record<string, boolean> = {
+    overview: useResourceAccess(RESOURCE.ASSET_ASSETS).canView,
+    categories: useResourceAccess(RESOURCE.ASSET_CATEGORIES).canView,
+    vendors: useResourceAccess(RESOURCE.ASSET_VENDORS).canView,
+    items: useResourceAccess(RESOURCE.ASSET_ITEMS).canView,
+    assignments: useResourceAccess(RESOURCE.ASSET_ASSIGNMENTS).canView,
+    maintenance: useResourceAccess(RESOURCE.ASSET_MAINTENANCE).canView,
+    compliance: useResourceAccess(RESOURCE.ASSET_COMPLIANCE).canView,
+  }
+  const firstAllowed = Object.keys(tabAccess).find((t) => tabAccess[t])
+  const activeTab = tabAccess[chosenTab] ? chosenTab : (firstAllowed ?? chosenTab)
 
   const { data: statsData, isLoading: statsLoading } = useGetAssetStats()
   const stats = statsData?.data || {
@@ -217,8 +231,16 @@ const AssetManagementPage = () => {
                 </Suspense>
               ),
             },
-          ]}
+          ].filter((tab) => tabAccess[tab.value])}
         />
+        {!firstAllowed && (
+          <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center">
+            <p className="text-sm font-semibold text-gray-600">
+              You don&apos;t have access to any Asset sections here.
+            </p>
+            <p className="mt-1 text-xs text-gray-400">Ask a super admin to grant access in Module Permissions.</p>
+          </div>
+        )}
       </PermissionGuard>
     </div>
   )

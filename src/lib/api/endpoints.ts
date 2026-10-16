@@ -30,6 +30,7 @@ export const API_ENDPOINTS = {
   property: {
     getAll: `${BASE_URL}/property`,
     getById: (id: string) => `${BASE_URL}/property/${id}`,
+    unitPicker: (id: string) => `${BASE_URL}/property/${id}/unit-picker`,
     create: `${BASE_URL}/property`,
     update: (id: string) => `${BASE_URL}/property/${id}`,
     delete: (id: string) => `${BASE_URL}/property/${id}`,
@@ -47,6 +48,24 @@ export const API_ENDPOINTS = {
     careTeam: (residentId: string) => `${BASE_URL}/residents/${residentId}/care-team`,
     removeCareTeamMember: (residentId: string, memberId: string) =>
       `${BASE_URL}/residents/${residentId}/care-team/${memberId}`,
+    clinical: (residentId: string) => `${BASE_URL}/residents/${residentId}/clinical`,
+    condition: (residentId: string) => `${BASE_URL}/residents/${residentId}/condition`,
+    labReports: (residentId: string) => `${BASE_URL}/residents/${residentId}/lab-reports`,
+    labReport: (residentId: string, id: string) => `${BASE_URL}/residents/${residentId}/lab-reports/${id}`,
+    medicines: (residentId: string) => `${BASE_URL}/residents/${residentId}/medicines`,
+    medications: (residentId: string) => `${BASE_URL}/residents/${residentId}/medications`,
+    medication: (residentId: string, id: string) => `${BASE_URL}/residents/${residentId}/medications/${id}`,
+    insulin: (residentId: string) => `${BASE_URL}/residents/${residentId}/insulin`,
+    insulinItem: (residentId: string, id: string) => `${BASE_URL}/residents/${residentId}/insulin/${id}`,
+    medicationAdministrations: (residentId: string) => `${BASE_URL}/residents/${residentId}/medication-administrations`,
+    vitals: (residentId: string) => `${BASE_URL}/residents/${residentId}/vitals`,
+    vital: (residentId: string, id: string) => `${BASE_URL}/residents/${residentId}/vitals/${id}`,
+    allergies: (residentId: string) => `${BASE_URL}/residents/${residentId}/allergies`,
+    allergy: (residentId: string, id: string) => `${BASE_URL}/residents/${residentId}/allergies/${id}`,
+    documents: (residentId: string) => `${BASE_URL}/residents/${residentId}/documents`,
+    nokContacts: (residentId: string) => `${BASE_URL}/residents/${residentId}/nok-contacts`,
+    nokContact: (residentId: string, id: string) => `${BASE_URL}/residents/${residentId}/nok-contacts/${id}`,
+    timeline: (residentId: string) => `${BASE_URL}/residents/${residentId}/timeline`,
   },
 
   dashboard: {
@@ -79,6 +98,9 @@ export const API_ENDPOINTS = {
     updateProperties: (id: string) => `${BASE_URL}/users/${id}/properties`,
     updatePermissions: (id: string) => `${BASE_URL}/users/${id}/permissions`,
     getAccessibleProperties: `${BASE_URL}/users/accessible-properties`,
+    activitySummary: (id: string) => `${BASE_URL}/users/${id}/activity/summary`,
+    activityRecords: (id: string) => `${BASE_URL}/users/${id}/activity/records`,
+    activityWorkLog: (id: string) => `${BASE_URL}/users/${id}/activity/work-log`,
   },
 
   rbac: {
@@ -408,6 +430,7 @@ export const API_ENDPOINTS = {
     createEmployeeShift: `${BASE_URL}/location/:locationId/employee-shifts`,
     bulkCreateEmployeeShifts: `${BASE_URL}/location/:locationId/employee-shifts/bulk`,
     deleteEmployeeShift: `${BASE_URL}/location/:locationId/employee-shifts/:employeeShiftId`,
+    updateEmployeeShift: `${BASE_URL}/location/:locationId/employee-shifts/:employeeShiftId`,
 
     listShiftEmployeeDates: `${BASE_URL}/location/:locationId/shift-employee-dates`,
     createShiftEmployeeDate: `${BASE_URL}/location/:locationId/shift-employee-dates`,
@@ -428,27 +451,24 @@ export const API_ENDPOINTS = {
     deleteArea: `${BASE_URL}/location/:locationId/shift-roster/area/delete/:areaId`,
   },
 
-  // Billing & Revenue Management
+  // Flat billing (Rely Assist model)
   billing: {
-    unitsSummary: `${BASE_URL}/billing/units-summary`,
-    unit360: (unitId: string) => `${BASE_URL}/billing/units/${unitId}/360`,
-    accounts: `${BASE_URL}/billing/accounts`,
-    accountById: (id: string) => `${BASE_URL}/billing/accounts/${id}`,
-    accountLedger: (id: string) => `${BASE_URL}/billing/accounts/${id}/ledger`,
-    accountSubscriptions: (id: string) => `${BASE_URL}/billing/accounts/${id}/subscriptions`,
-    accountPendingEvents: (id: string) => `${BASE_URL}/billing/accounts/${id}/events/pending`,
-    invoices: `${BASE_URL}/billing/invoices`,
-    invoiceById: (id: string) => `${BASE_URL}/billing/invoices/${id}`,
-    previewInvoice: `${BASE_URL}/billing/invoices/preview`,
-    generateInvoice: `${BASE_URL}/billing/invoices/generate`,
-    events: `${BASE_URL}/billing/events`,
-    cancelEvent: (id: string) => `${BASE_URL}/billing/events/${id}/cancel`,
-    updateEvent: (id: string) => `${BASE_URL}/billing/events/${id}`,
-    eventAttachments: (id: string) => `${BASE_URL}/billing/events/${id}/attachments`,
-    runs: `${BASE_URL}/billing/runs`,
+    units: `${BASE_URL}/billing/units`,
+    invoiceData: (unitId: string) => `${BASE_URL}/billing/invoice/${unitId}`,
+    unbilledServices: (unitId: string) => `${BASE_URL}/billing/unbilled-services/${unitId}`,
+    createInvoice: (unitId: string) => `${BASE_URL}/billing/invoice/${unitId}`,
+    updateInvoice: (invoiceId: string) => `${BASE_URL}/billing/invoice/${invoiceId}`,
+    invoices: (unitId: string) => `${BASE_URL}/billing/invoices/${unitId}`,
+    invoiceDetail: (invoiceId: string) => `${BASE_URL}/billing/invoice-detail/${invoiceId}`,
+    receipts: (unitId: string) => `${BASE_URL}/billing/receipts/${unitId}`,
+    recordPayment: (invoiceId: string) => `${BASE_URL}/billing/invoice/${invoiceId}/record-payment`,
+    document: (invoiceId: string, type: 'INVOICE' | 'RECEIPT') =>
+      `${BASE_URL}/billing/invoice/${invoiceId}/download/${type}`,
+    attachments: `${BASE_URL}/billing/attachments`,
+    miscItems: (unitId: string) => `${BASE_URL}/billing/misc-items/${unitId}`,
+    createMiscItem: `${BASE_URL}/billing/misc-items`,
+    deleteMiscItem: (itemId: string) => `${BASE_URL}/billing/misc-items/${itemId}`,
     taxSettings: `${BASE_URL}/billing/settings/tax`,
-    payments: `${BASE_URL}/billing/payments`,
-    accountPayments: (id: string) => `${BASE_URL}/billing/accounts/${id}/payments`,
   },
 
   // Medical Management Endpoints (Care Tasks & Care Packages)

@@ -1,19 +1,21 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { format, isValid, parseISO } from 'date-fns'
-import { ArrowLeft, CalendarDays, Edit, HeartPulse, Home, Phone, RefreshCw, User, Users, Utensils } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Edit, HeartPulse, Home, Phone, RefreshCw, User, Users } from 'lucide-react'
 import type { ResidentItem } from '@/lib/types'
 import { residentService } from '@/lib/services/residentService'
-import { ResidentFnbPackageModal } from './ResidentFnbPackageModal'
-import { useLocationContext } from '@/hooks/useLocation'
 import { AssignCareTaskDialog } from '@/components/common/AssignCareTaskDialog'
 import { AssignCareTeamDialog } from '@/components/common/AssignCareTeamDialog'
 import { Button } from '@/components/ui/button'
 import { HeroFact, NotAdded } from '@/components/common/DetailPanel'
 import { cn, getFileUrl } from '@/lib/utils'
 import { fnbService } from '@/lib/services/fnbService'
+import { useResidentClinicalQuery } from '@/hooks/react-query/resident'
 import { ResidentPersonalDetailsTab, type FnbSubscriptionItem } from './ResidentPersonalDetailsTab'
 import { ResidentMedicalTab } from './ResidentMedicalTab'
+import { ResidentConditionMenu } from './medical/ResidentConditionMenu'
+import { useResourceAccess } from '@/hooks/useResourceAccess'
+import { RESOURCE } from '@/lib/permissions/resourceKeys'
 
 export interface ResidentDetailsScreenProps {
   isGlobalMode?: boolean
@@ -24,16 +26,30 @@ type ResidentDetailTab = 'personal' | 'medical'
 export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ isGlobalMode = false }) => {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  const { hasResourcePermission } = useLocationContext()
-  const canUpdateResident = hasResourcePermission('RESIDENT', 'update')
+  // The two tabs are Resident sections with their own access.
+  const profileAccess = useResourceAccess(RESOURCE.RESIDENT_DIRECTORY)
+  const medicalAccess = useResourceAccess(RESOURCE.RESIDENT_MEDICAL)
+  const canUpdateResident = profileAccess.canUpdate
+  const clinicalQuery = useResidentClinicalQuery(id)
+  const currentCondition = clinicalQuery.data?.currentCondition ?? null
 
   const [resident, setResident] = useState<ResidentItem | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
-  const [isFnbModalOpen, setIsFnbModalOpen] = useState<boolean>(false)
   const [isCareTaskModalOpen, setIsCareTaskModalOpen] = useState<boolean>(false)
   const [isCareTeamModalOpen, setIsCareTeamModalOpen] = useState<boolean>(false)
-  const [activeTab, setActiveTab] = useState<ResidentDetailTab>('personal')
+  const [chosenTab, setActiveTab] = useState<ResidentDetailTab>('personal')
+  const tabAccess: Record<ResidentDetailTab, boolean> = {
+    personal: profileAccess.canView,
+    medical: medicalAccess.canView,
+  }
+  const activeTab: ResidentDetailTab | null = tabAccess[chosenTab]
+    ? chosenTab
+    : tabAccess.personal
+      ? 'personal'
+      : tabAccess.medical
+        ? 'medical'
+        : null
 
   const [fnbSubscriptions, setFnbSubscriptions] = useState<FnbSubscriptionItem[]>([])
   const [globalMealSlots, setGlobalMealSlots] = useState<Array<{ id: string; name: string; code?: string }>>([])
@@ -214,26 +230,25 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
             </div>
           </div>
 
-          {canUpdateResident && (
-            <div className="flex shrink-0 flex-wrap gap-2">
-              {resident.isResiding && (
+          {(canUpdateResident || currentCondition) && (
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {clinicalQuery.isSuccess && (
+                <ResidentConditionMenu
+                  residentId={resident.id}
+                  currentCondition={currentCondition}
+                  canUpdate={canUpdateResident}
+                />
+              )}
+              {canUpdateResident && (
                 <Button
-                  variant="secondary"
-                  icon={<Utensils className="h-4 w-4" />}
-                  onClick={() => setIsFnbModalOpen(true)}
+                  variant="primary"
+                  icon={<Edit className="h-4 w-4" />}
+                  onClick={() => navigate(editUrl)}
                   className="rounded-xl"
                 >
-                  Food Plan
+                  Edit Profile
                 </Button>
               )}
-              <Button
-                variant="primary"
-                icon={<Edit className="h-4 w-4" />}
-                onClick={() => navigate(editUrl)}
-                className="rounded-xl"
-              >
-                Edit Profile
-              </Button>
             </div>
           )}
         </div>
@@ -290,25 +305,35 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
 
       {/* Tab bar */}
       <div className="flex border-b border-gray-200 space-x-6 text-sm font-semibold text-gray-500 overflow-x-auto">
-        <button
-          type="button"
-          onClick={() => setActiveTab('personal')}
-          className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-            activeTab === 'personal' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
-          }`}
-        >
-          <User className="w-4 h-4" /> Profile
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('medical')}
-          className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-            activeTab === 'medical' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
-          }`}
-        >
-          <HeartPulse className="w-4 h-4 text-rose-500" /> Medical
-        </button>
+        {tabAccess.personal && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('personal')}
+            className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
+              activeTab === 'personal' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
+            }`}
+          >
+            <User className="w-4 h-4" /> Profile
+          </button>
+        )}
+        {tabAccess.medical && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('medical')}
+            className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
+              activeTab === 'medical' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
+            }`}
+          >
+            <HeartPulse className="w-4 h-4 text-rose-500" /> Medical
+          </button>
+        )}
       </div>
+
+      {!activeTab && (
+        <div className="rounded-2xl border border-gray-100 bg-white p-10 text-center text-sm text-gray-500">
+          You don&apos;t have access to this resident&apos;s Profile or Medical sections.
+        </div>
+      )}
 
       {activeTab === 'personal' && (
         <ResidentPersonalDetailsTab
@@ -316,34 +341,16 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
           fnbSubscriptions={fnbSubscriptions}
           getSlotDisplayName={getSlotDisplayName}
           canUpdateResident={canUpdateResident}
-          onAssignFoodPackage={() => setIsFnbModalOpen(true)}
+          onAssignFoodPackage={() => navigate(editUrl)}
         />
       )}
 
       {activeTab === 'medical' && (
         <ResidentMedicalTab
           resident={resident}
-          canUpdateResident={canUpdateResident}
+          canUpdateResident={medicalAccess.canUpdate}
           onAssignCareTeam={() => setIsCareTeamModalOpen(true)}
           onAssignCareTask={() => setIsCareTaskModalOpen(true)}
-        />
-      )}
-
-      {/* F&B Package Modal */}
-      {resident && (
-        <ResidentFnbPackageModal
-          isOpen={isFnbModalOpen}
-          onClose={() => {
-            setIsFnbModalOpen(false)
-            if (resident.id) {
-              void fetchFnbSubscriptions(resident.id)
-            }
-          }}
-          residentId={resident.id}
-          locId={resident.locId || (resident as unknown as Record<string, string>).loc_id || ''}
-          isResiding={resident.isResiding}
-          residentName={fullName}
-          familyMembers={familyMembers}
         />
       )}
 

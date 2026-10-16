@@ -1,8 +1,17 @@
-import React from 'react'
-import { HeartPulse, Users } from 'lucide-react'
+import React, { useState } from 'react'
+import { Activity, AlertTriangle, FileText, FlaskConical, HeartPulse, History, Pill, Stethoscope } from 'lucide-react'
 import type { ResidentItem } from '@/lib/types'
-import { Button } from '@/components/ui/button'
-import { AssignedTasksTab } from '@/pages/Medical/components/AssignedTasksTab'
+import { ResponsiveTabs, type TabItem } from '@/components/common/ResponsiveTabs'
+import { useResidentClinicalQuery, useResidentLabReportsQuery } from '@/hooks/react-query/resident'
+import { MedicationsTab } from './medical/MedicationsTab'
+import { VitalsTab } from './medical/VitalsTab'
+import { CareTaskTab } from './medical/CareTaskTab'
+import { LabReportsTab } from './medical/LabReportsTab'
+import { AllergiesTab } from './medical/AllergiesTab'
+import { TimelineTab } from './medical/TimelineTab'
+import { DoctorSuggestionsTab } from './medical/DoctorSuggestionsTab'
+import { DocumentsTab } from './medical/DocumentsTab'
+import { ClinicalErrorBanner } from './medical/ClinicalShared'
 
 export interface ResidentMedicalTabProps {
   resident: ResidentItem
@@ -11,6 +20,9 @@ export interface ResidentMedicalTabProps {
   onAssignCareTask: () => void
 }
 
+type MedicalSubTab =
+  'medication' | 'vitals' | 'care-task' | 'lab-reports' | 'allergies' | 'timeline' | 'doctor-suggestions' | 'documents'
+
 export const ResidentMedicalTab: React.FC<ResidentMedicalTabProps> = ({
   resident,
   canUpdateResident,
@@ -18,50 +30,137 @@ export const ResidentMedicalTab: React.FC<ResidentMedicalTabProps> = ({
   onAssignCareTask,
 }) => {
   const propertyId = resident.locId || (resident as unknown as Record<string, string>).loc_id || null
+  const [activeSubTab, setActiveSubTab] = useState<MedicalSubTab>('medication')
+
+  const clinicalQuery = useResidentClinicalQuery(resident.id)
+  const labReportsQuery = useResidentLabReportsQuery(resident.id)
+
+  const clinical = clinicalQuery.data
+  const isClinicalLoading = clinicalQuery.isLoading
+  const clinicalError = clinicalQuery.isError ? (
+    <ClinicalErrorBanner message="Failed to load clinical records for this resident." />
+  ) : null
+
+  const tabs: TabItem[] = [
+    {
+      value: 'medication',
+      label: 'Medication',
+      shortLabel: 'Meds',
+      icon: Pill,
+      content: (
+        <>
+          {clinicalError}
+          <MedicationsTab
+            residentId={resident.id}
+            canUpdateResident={canUpdateResident}
+            medications={clinical?.medications ?? []}
+            insulin={clinical?.insulin ?? []}
+            isLoading={isClinicalLoading}
+          />
+        </>
+      ),
+    },
+    {
+      value: 'vitals',
+      label: 'Vitals',
+      shortLabel: 'Vitals',
+      icon: Activity,
+      content: (
+        <>
+          {clinicalError}
+          <VitalsTab
+            residentId={resident.id}
+            canUpdateResident={canUpdateResident}
+            vitals={clinical?.vitals ?? []}
+            isLoading={isClinicalLoading}
+          />
+        </>
+      ),
+    },
+    {
+      value: 'care-task',
+      label: 'Care Task',
+      shortLabel: 'Tasks',
+      icon: HeartPulse,
+      content: (
+        <CareTaskTab
+          resident={resident}
+          propertyId={propertyId}
+          canUpdateResident={canUpdateResident}
+          onAssignCareTeam={onAssignCareTeam}
+          onAssignCareTask={onAssignCareTask}
+        />
+      ),
+    },
+    {
+      value: 'lab-reports',
+      label: 'Lab Reports',
+      shortLabel: 'Labs',
+      icon: FlaskConical,
+      content: (
+        <>
+          {labReportsQuery.isError && <ClinicalErrorBanner message="Failed to load lab reports for this resident." />}
+          <LabReportsTab
+            residentId={resident.id}
+            canUpdateResident={canUpdateResident}
+            reports={labReportsQuery.data ?? []}
+            isLoading={labReportsQuery.isLoading}
+          />
+        </>
+      ),
+    },
+    {
+      value: 'allergies',
+      label: 'Allergies',
+      shortLabel: 'Allergies',
+      icon: AlertTriangle,
+      content: (
+        <>
+          {clinicalError}
+          <AllergiesTab
+            residentId={resident.id}
+            canUpdateResident={canUpdateResident}
+            allergies={clinical?.allergies ?? []}
+            isLoading={isClinicalLoading}
+          />
+        </>
+      ),
+    },
+    {
+      value: 'timeline',
+      label: 'Timeline',
+      shortLabel: 'Timeline',
+      icon: History,
+      content: <TimelineTab residentId={resident.id} minDate={resident.moveInDate} />,
+    },
+    {
+      value: 'doctor-suggestions',
+      label: 'Doctor Notes',
+      shortLabel: 'Doctor',
+      icon: Stethoscope,
+      content: (
+        <>
+          {clinicalError}
+          <DoctorSuggestionsTab doctorNotes={clinical?.doctorNotes ?? []} isLoading={isClinicalLoading} />
+        </>
+      ),
+    },
+    {
+      value: 'documents',
+      label: 'Documents',
+      shortLabel: 'Docs',
+      icon: FileText,
+      content: <DocumentsTab residentId={resident.id} canUpdateResident={canUpdateResident} />,
+    },
+  ]
 
   return (
-    <div className="space-y-6">
-      {canUpdateResident && resident.isResiding && (
-        <div className="flex items-center justify-end gap-3 flex-wrap">
-          <Button
-            variant="secondary"
-            icon={<Users className="w-4 h-4 text-rose-500" />}
-            onClick={onAssignCareTeam}
-            className="rounded-xl"
-          >
-            Assign Care Team
-          </Button>
-          <Button
-            variant="secondary"
-            icon={<HeartPulse className="w-4 h-4 text-rose-500" />}
-            onClick={onAssignCareTask}
-            className="rounded-xl"
-          >
-            Assign Care Task
-          </Button>
-        </div>
-      )}
-
-      {resident.isResiding ? (
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4">
-          <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
-            <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <HeartPulse className="w-5 h-5 text-rose-500" />
-              Assigned Care Tasks & Clinical Care
-            </h2>
-          </div>
-
-          <AssignedTasksTab forcedResidentId={resident.id} forcedPropertyId={propertyId} isCompact={true} />
-        </div>
-      ) : (
-        <div className="rounded-3xl border border-dashed border-gray-200 bg-slate-50/80 p-10 text-center shadow-xs">
-          <HeartPulse className="w-8 h-8 text-rose-300 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-gray-600">
-            Clinical care and care-team assignment are available only for physically residing residents.
-          </p>
-        </div>
-      )}
-    </div>
+    <ResponsiveTabs
+      tabs={tabs}
+      value={activeSubTab}
+      onValueChange={(value) => setActiveSubTab(value as MedicalSubTab)}
+      className="space-y-6"
+    />
   )
 }
 

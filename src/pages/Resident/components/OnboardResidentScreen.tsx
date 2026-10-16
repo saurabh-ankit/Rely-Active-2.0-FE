@@ -24,6 +24,16 @@ import { getPropertyByIdAPI } from '@/lib/services/propertyService'
 import { useCarePackagesQuery } from '@/hooks/react-query/medical'
 import type { CarePackage } from '@/lib/types/medical'
 import { getCareTaskAssignmentsAPI } from '@/lib/services/medicalService'
+import api from '@/lib/api/axios'
+import {
+  OnboardFoodPackages,
+  type ExistingFoodPackage,
+  type FoodPackageChoice,
+  type FoodPackagePerson,
+} from './OnboardFoodPackages'
+import { useQuery } from '@tanstack/react-query'
+import { FamilyCarePackages, type FamilyCareRow } from './FamilyCarePackages'
+import { AssignedPackage } from './AssignedPackage'
 import type { PropertyUnit } from '@/pages/Property/types'
 import { useLocationContext } from '@/hooks/useLocation'
 import { z } from 'zod'
@@ -31,6 +41,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/common/PageHeader'
 import { cn, getFileUrl } from '@/lib/utils'
+import { floorLabel, isHiddenFloor } from '@/utils/unitLabel'
 
 import { notifyError, notifySuccess } from '@/utils/toast'
 import type { FieldErrors } from 'react-hook-form'
@@ -41,6 +52,18 @@ import {
 } from '@/components/common/PackageTaskSchedulesConfig'
 
 /** One numbered step of the form: a white card with a short title and hint. */
+/** Today as YYYY-MM-DD in local time. */
+const localToday = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** Start date of the resident's active care package subscription, if any. */
+const currentCareStart = (r: ResidentItem) => {
+  const sub = (r.packageSubscriptions || []).find((s) => s.status === 'ACTIVE' && !s.isPrevious && !s.familyMemberId)
+  return sub?.startDate ? String(sub.startDate).slice(0, 10) : ''
+}
+
 function StepCard({
   step,
   title,
@@ -215,6 +238,8 @@ function extractApiErrorMessage(err: unknown, defaultFallback: string): string {
 const familyMemberSchema = z.object({
   id: z.string().optional(),
   residentId: z.string().optional(),
+  carePackageId: z.string().optional().or(z.literal('')),
+  carePackageStartDate: z.string().optional().or(z.literal('')),
   firstName: z
     .string()
     .trim()
@@ -323,6 +348,7 @@ const residentFormSchema = z.object({
     .refine((val) => !val || (!isNaN(Number(val)) && Number(val) >= 0), 'Rent amount must be a non-negative number'),
   payRentToCompany: z.boolean().default(false),
   carePackageId: z.string().optional().or(z.literal('')),
+  carePackageStartDate: z.string().optional().or(z.literal('')),
   familyMembers: z.array(familyMemberSchema).default([]),
 })
 
@@ -338,17 +364,47 @@ interface FloorOption {
   floor_name: string
   blockName?: string
   label: string
+  /** Hidden floor of an entity without floors (villas, plots…): never shown, picked automatically. */
+  hidden: boolean
 }
 
 interface BlockOption {
   id: string
   block_name: string
+  /** The entity (Apartment, Villa…) this block belongs to; hidden blocks stand in for skipped levels. */
+  entityId?: string | null
+  is_virtual?: boolean
   floors: Array<{
     id: string
     floor_number: number
     floor_name?: string | null
+    floor_type?: string | null
+    is_virtual?: boolean
     units?: UnitWithOccupancy[]
   }>
+}
+
+const toFloorOptions = (block: BlockOption): FloorOption[] =>
+  block.floors
+    .map((f) => {
+      const label = floorLabel(f) ?? 'All units'
+      return {
+        id: f.id,
+        floor_number: f.floor_number,
+        floor_name: label,
+        blockName: block.block_name || '',
+        label,
+        hidden: isHiddenFloor(f),
+      }
+    })
+    .sort((a, b) => a.floor_number - b.floor_number)
+
+/** An entity of the property and the levels it uses, e.g. Villa → ['unit'] labelled "Villa". */
+interface EntityOption {
+  key: string
+  name: string
+  levels: Array<'block' | 'floor' | 'unit'>
+  labels: Partial<Record<'block' | 'floor' | 'unit', string>>
 }
 
 interface OnboardResidentScreenProps {
@@ -368,6 +424,8 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
   const backUrl = isGlobal ? '/global-settings/residents' : '/admin/residents'
 
   const [blocks, setBlocks] = useState<BlockOption[]>([])
+  const [entityOptions, setEntityOptions] = useState<EntityOption[]>([])
+  const [selectedEntityKey, setSelectedEntityKey] = useState<string>('')
   const [selectedBlockId, setSelectedBlockId] = useState<string>('')
   const [units, setUnits] = useState<UnitWithOccupancy[]>([])
   const [floors, setFloors] = useState<FloorOption[]>([])
@@ -413,6 +471,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
       rentAmount: '',
       payRentToCompany: false,
       carePackageId: '',
+      carePackageStartDate: localToday(),
       familyMembers: [],
     },
   })
@@ -451,8 +510,107 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
   const watchedUnitId = useWatch({ control, name: 'unitId' })
   const watchedPayRentToCompany = useWatch({ control, name: 'payRentToCompany' })
   const watchedCarePackageId = useWatch({ control, name: 'carePackageId' })
+  // Edit mode: the care package the resident has now, which keeps its own start date.
+  const [originalCare, setOriginalCare] = useState<{ packageId: string; startDate: string } | null>(null)
+  const keepsCurrentCare = !!originalCare && watchedCarePackageId === originalCare.packageId
+  // Edit mode: each family member's current care package, by family member id.
+  const [originalFamilyCare, setOriginalFamilyCare] = useState<
+    Record<string, { packageId: string; startDate: string }>
+  >({})
+  const pickCarePackage = (packageId: string) => {
+    setValue('carePackageId', packageId, { shouldValidate: true })
+    setValue(
+      'carePackageStartDate',
+      originalCare && packageId === originalCare.packageId ? originalCare.startDate : localToday(),
+    )
+  }
 
   const isResidingEffective = watchedResidentType === 'TENANT' ? true : Boolean(watchedIsResiding)
+
+  // Food package per person, keyed 'PRIMARY', the family member's id, or (new member) the row's field id.
+  const [foodChoices, setFoodChoices] = useState<Record<string, FoodPackageChoice | undefined>>({})
+  const memberKey = (idx: number) => watchedFamilyMembers?.[idx]?.id || familyMemberFields[idx]?.id || `row-${idx}`
+
+  // Edit mode: the packages the resident and family members have now.
+  const { data: currentFoodSubs } = useQuery({
+    queryKey: ['fnb', 'resident-package', editResidentId],
+    queryFn: async () => {
+      const res = await api.get(`/fnb/resident-package/${editResidentId}`)
+      return (res.data?.data || []) as {
+        familyMemberId?: string | null
+        propertyPackageId: string
+        startDate: string
+        diningType?: string | null
+        deliveryCharge?: number | string | null
+      }[]
+    },
+    enabled: isEditMode && !!editResidentId,
+  })
+  const existingFood = useMemo(() => {
+    const map: Record<string, ExistingFoodPackage> = {}
+    for (const s of currentFoodSubs ?? []) {
+      map[s.familyMemberId || 'PRIMARY'] = {
+        propertyPackageId: s.propertyPackageId,
+        startDate: String(s.startDate).slice(0, 10),
+      }
+    }
+    return map
+  }, [currentFoodSubs])
+  // Start the form from the current packages once they load.
+  const [foodPrefilled, setFoodPrefilled] = useState(false)
+  if (currentFoodSubs && !foodPrefilled) {
+    setFoodPrefilled(true)
+    const initial: Record<string, FoodPackageChoice> = {}
+    for (const s of currentFoodSubs) {
+      initial[s.familyMemberId || 'PRIMARY'] = {
+        propertyPackageId: s.propertyPackageId,
+        startDate: String(s.startDate).slice(0, 10),
+      }
+    }
+    setFoodChoices(initial)
+  }
+  const watchedFirstName = useWatch({ control, name: 'firstName' })
+  const watchedLastName = useWatch({ control, name: 'lastName' })
+  // Care package per family member (stored on each familyMembers row of the form).
+  const familyCareRows: FamilyCareRow[] = familyMemberFields.map((field, idx) => {
+    const fm = watchedFamilyMembers?.[idx]
+    return {
+      index: idx,
+      key: field.id,
+      name: `${fm?.firstName || ''} ${fm?.lastName || ''}`.trim() || `Family member ${idx + 1}`,
+      tag: fm?.relation ? `Family member · ${fm.relation}` : 'Family member',
+      carePackageId: fm?.carePackageId || '',
+      startDate: fm?.carePackageStartDate || '',
+      current: (fm?.id && originalFamilyCare[fm.id]) || null,
+    }
+  })
+  const pickFamilyCarePackage = (idx: number, packageId: string) => {
+    const current = familyCareRows[idx]?.current
+    setValue(`familyMembers.${idx}.carePackageId`, packageId)
+    setValue(
+      `familyMembers.${idx}.carePackageStartDate`,
+      current && current.packageId === packageId ? current.startDate : localToday(),
+    )
+  }
+
+  const foodPeople = useMemo<FoodPackagePerson[]>(
+    () => [
+      {
+        key: 'PRIMARY',
+        name: `${watchedFirstName || ''} ${watchedLastName || ''}`.trim() || 'Resident',
+        tag: 'Resident',
+      },
+      ...familyMemberFields.map((field, idx) => {
+        const fm = watchedFamilyMembers?.[idx]
+        return {
+          key: fm?.id || field.id,
+          name: `${fm?.firstName || ''} ${fm?.lastName || ''}`.trim() || `Family member ${idx + 1}`,
+          tag: fm?.relation ? `Family member · ${fm.relation}` : 'Family member',
+        }
+      }),
+    ],
+    [watchedFirstName, watchedLastName, familyMemberFields, watchedFamilyMembers],
+  )
 
   useEffect(() => {
     if (!isResidingEffective) {
@@ -687,13 +845,27 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
         if (!isMounted) return
         setExistingResidents(resList)
 
+        setEntityOptions(
+          (propDetails.entities || []).map((e) => ({
+            key: e.id ?? '',
+            name: e.name,
+            levels: e.levels,
+            labels: e.level_labels ?? {},
+          })),
+        )
+
         const loadedBlocks: BlockOption[] = (propDetails.blocks || []).map((b) => ({
           id: b.id,
           block_name: b.block_name,
+          entityId: b.entityId ?? null,
+          is_virtual: Boolean(b.is_virtual),
           floors: (b.floors || []).map((f) => ({
             id: f.id,
             floor_number: f.floor_number,
             floor_name: f.floor_name || (f.floor_number === 1 ? 'Ground Floor' : `Floor ${f.floor_number}`),
+            // Needed to spot the hidden floor of entities without floors (villas…).
+            floor_type: f.floor_type ?? null,
+            is_virtual: Boolean(f.is_virtual),
             units: (f.units || []).map((u) => {
               const computedOccupancy = getOccupancyStatusForUnit(u.id, resList)
               return {
@@ -720,8 +892,22 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
         if (isEditMode && editResidentId) {
           const targetRes = resList.find((r) => r.id === editResidentId)
           if (targetRes) {
+            const familyCare: Record<string, { packageId: string; startDate: string }> = {}
+            for (const sub of targetRes.packageSubscriptions || []) {
+              if (sub.familyMemberId && sub.status === 'ACTIVE' && !sub.isPrevious) {
+                familyCare[sub.familyMemberId] = {
+                  packageId: sub.carePackageId,
+                  startDate: String(sub.startDate).slice(0, 10),
+                }
+              }
+            }
+            setOriginalFamilyCare(familyCare)
             if (targetRes.carePackageId) {
               setValue('carePackageId', targetRes.carePackageId)
+              setOriginalCare({
+                packageId: targetRes.carePackageId,
+                startDate: currentCareStart(targetRes) || localToday(),
+              })
             }
             const targetUnit = allUnits.find((u) => u.id === targetRes.unitId)
             if (targetUnit) {
@@ -738,16 +924,9 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
               }
 
               if (targetBlock && targetFloor) {
+                setSelectedEntityKey(targetBlock.entityId ?? '')
                 setSelectedBlockId(targetBlock.id)
-                const blockFloorOptions: FloorOption[] = targetBlock.floors
-                  .map((f) => ({
-                    id: f.id,
-                    floor_number: f.floor_number,
-                    floor_name: f.floor_name || (f.floor_number === 1 ? 'Ground Floor' : `Floor ${f.floor_number}`),
-                    blockName: targetBlock?.block_name || '',
-                    label: f.floor_name || (f.floor_number === 1 ? 'Ground Floor' : `Floor ${f.floor_number}`),
-                  }))
-                  .sort((a, b) => a.floor_number - b.floor_number)
+                const blockFloorOptions = toFloorOptions(targetBlock)
 
                 setFloors(blockFloorOptions)
                 setSelectedFloorId(targetFloor.id)
@@ -784,8 +963,11 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                 targetRes.rentAmount !== undefined && targetRes.rentAmount !== null ? String(targetRes.rentAmount) : '',
               payRentToCompany: targetRes.payRentToCompany ?? false,
               carePackageId: targetRes.carePackageId || '',
+              carePackageStartDate: currentCareStart(targetRes) || localToday(),
               familyMembers: (targetRes.familyMembers || []).map((fm) => ({
                 id: fm.id,
+                carePackageId: familyCare[fm.id || '']?.packageId || '',
+                carePackageStartDate: familyCare[fm.id || '']?.startDate || localToday(),
                 residentId: fm.residentId,
                 firstName: fm.firstName,
                 lastName: fm.lastName || '',
@@ -804,17 +986,10 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
           }
         } else if (loadedBlocks.length > 0) {
           const firstBlock = loadedBlocks[0]
+          setSelectedEntityKey(firstBlock.entityId ?? '')
           setSelectedBlockId(firstBlock.id)
 
-          const blockFloorOptions: FloorOption[] = firstBlock.floors
-            .map((f) => ({
-              id: f.id,
-              floor_number: f.floor_number,
-              floor_name: f.floor_name || (f.floor_number === 1 ? 'Ground Floor' : `Floor ${f.floor_number}`),
-              blockName: firstBlock.block_name || '',
-              label: f.floor_name || (f.floor_number === 1 ? 'Ground Floor' : `Floor ${f.floor_number}`),
-            }))
-            .sort((a, b) => a.floor_number - b.floor_number)
+          const blockFloorOptions = toFloorOptions(firstBlock)
 
           setFloors(blockFloorOptions)
 
@@ -844,26 +1019,37 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
     }
   }, [selectedLocationId, isEditMode, editResidentId, setValue, resetForm])
 
+  /** Picking an entity narrows the blocks to it and skips the levels it doesn't use. */
+  const handleEntityChange = (key: string) => {
+    setSelectedEntityKey(key)
+    const entity = entityOptions.find((e) => e.key === key)
+    const entityBlocks = blocks.filter((b) => (b.entityId ?? '') === key)
+    if (entity && !entity.levels.includes('block') && entityBlocks[0]) {
+      // No block level (villas, or floor → unit): use its hidden block straight away.
+      handleBlockChange(entityBlocks[0].id)
+      return
+    }
+    setSelectedBlockId('')
+    setFloors([])
+    setSelectedFloorId('')
+    setValue('unitId', '')
+  }
+
   const handleBlockChange = (blockId: string) => {
     setSelectedBlockId(blockId)
     const targetBlock = blocks.find((b) => b.id === blockId)
 
-    if (targetBlock) {
-      const blockFloorOptions: FloorOption[] = targetBlock.floors
-        .map((f) => ({
-          id: f.id,
-          floor_number: f.floor_number,
-          floor_name: f.floor_name || (f.floor_number === 1 ? 'Ground Floor' : `Floor ${f.floor_number}`),
-          blockName: targetBlock.block_name || '',
-          label: f.floor_name || (f.floor_number === 1 ? 'Ground Floor' : `Floor ${f.floor_number}`),
-        }))
-        .sort((a, b) => a.floor_number - b.floor_number)
+    const blockFloorOptions = targetBlock ? toFloorOptions(targetBlock) : []
+    setFloors(blockFloorOptions)
 
-      setFloors(blockFloorOptions)
-    } else {
-      setFloors([])
+    // Villas…: the type has no floor level (its only floor is hidden), so go straight to the unit.
+    const blockEntity = entityOptions.find((e) => e.key === (targetBlock?.entityId ?? ''))
+    const typeHasNoFloors = blockEntity ? !blockEntity.levels.includes('floor') : false
+    const onlyFloor = blockFloorOptions.length === 1 ? blockFloorOptions[0] : undefined
+    if (onlyFloor && (onlyFloor.hidden || typeHasNoFloors)) {
+      handleFloorChange(onlyFloor.id)
+      return
     }
-
     setSelectedFloorId('')
     setValue('unitId', '')
   }
@@ -905,9 +1091,80 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
     notifyError('Validation Error', desc)
   }
 
+  /**
+   * Saves the food packages picked for the resident and family members. On edit, a person whose
+   * package was removed is sent with no package, which ends their current one.
+   */
+  const saveFoodPackages = async (created: ResidentItem, values: ResidentFormValues) => {
+    const createdMembers = created.familyMembers || []
+    const used = new Set<string>()
+    // Match each submitted family member to the one the server created (same name and relation).
+    const memberIdFor = (idx: number) => {
+      const fm = values.familyMembers?.[idx]
+      if (fm?.id) return fm.id
+      const match =
+        createdMembers.find(
+          (c) =>
+            !used.has(c.id) &&
+            c.firstName === fm?.firstName &&
+            (c.lastName || '') === (fm?.lastName || '') &&
+            (c.relation || '') === (fm?.relation || ''),
+        ) ?? createdMembers.filter((c) => !used.has(c.id))[0]
+      if (match) used.add(match.id)
+      return match?.id ?? null
+    }
+    const people = [
+      { key: 'PRIMARY', familyMemberId: null as string | null },
+      ...familyMemberFields.map((_, idx) => ({ key: memberKey(idx), familyMemberId: memberIdFor(idx) })),
+    ]
+    const subscriptions = people.flatMap(({ key, familyMemberId }) => {
+      if (key !== 'PRIMARY' && !familyMemberId) return []
+      const choice = foodChoices[key]
+      if (!choice) return existingFood[key] ? [{ familyMemberId, propertyPackageId: null }] : []
+      return [
+        {
+          familyMemberId,
+          propertyPackageId: choice.propertyPackageId,
+          startDate: choice.startDate,
+          // Food packages are dine-in only.
+          diningType: 'dine_in',
+          deliveryCharge: 0,
+        },
+      ]
+    })
+    if (!subscriptions.length) return
+    try {
+      await api.post('/fnb/resident-package', { residentId: created.id, subscriptions })
+    } catch (err) {
+      notifyError(
+        'Food Packages Not Saved',
+        `${extractApiErrorMessage(err, 'Could not save the food packages')}. Open Edit resident to try again.`,
+      )
+    }
+  }
+
   const onSubmit = async (values: ResidentFormValues) => {
     setFormError(null)
     setFormSuccess(null)
+    if (values.carePackageId && !keepsCurrentCare && !values.carePackageStartDate) {
+      notifyError('Validation Error', 'Pick a start date for the care package.')
+      return
+    }
+    if (
+      (values.familyMembers || []).some(
+        (fm) =>
+          fm.carePackageId &&
+          !fm.carePackageStartDate &&
+          (!fm.id || originalFamilyCare[fm.id]?.packageId !== fm.carePackageId),
+      )
+    ) {
+      notifyError('Validation Error', "Pick a start date for each family member's care package.")
+      return
+    }
+    if (Object.values(foodChoices).some((c) => c && !c.startDate)) {
+      notifyError('Validation Error', 'Pick a start date for each food package.')
+      return
+    }
 
     setIsSubmitting(true)
 
@@ -928,27 +1185,39 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
           : null,
       payRentToCompany: values.residentType === 'TENANT' ? Boolean(values.payRentToCompany) : false,
       carePackageId: effectiveIsResiding ? values.carePackageId || null : null,
+      carePackageStartDate:
+        effectiveIsResiding && values.carePackageId && !keepsCurrentCare ? values.carePackageStartDate || null : null,
       taskSchedules:
-        effectiveIsResiding && values.carePackageId && formattedTaskSchedules.length > 0
+        effectiveIsResiding && values.carePackageId && !keepsCurrentCare && formattedTaskSchedules.length > 0
           ? formattedTaskSchedules
           : undefined,
-      familyMembers: (values.familyMembers || []).map((fm) => ({
-        ...fm,
-        isResiding: effectiveIsResiding,
-      })),
+      familyMembers: (values.familyMembers || []).map((fm) => {
+        const current = fm.id ? originalFamilyCare[fm.id] : undefined
+        const carePackageId = effectiveIsResiding ? fm.carePackageId || null : null
+        return {
+          ...fm,
+          isResiding: effectiveIsResiding,
+          carePackageId,
+          // An unchanged package keeps its own start date.
+          carePackageStartDate:
+            carePackageId && current?.packageId !== carePackageId ? fm.carePackageStartDate || null : null,
+        }
+      }),
     }
 
     try {
       if (isEditMode && editResidentId) {
-        await residentService.updateResident(editResidentId, payload)
+        const updated = await residentService.updateResident(editResidentId, payload)
+        if (effectiveIsResiding) await saveFoodPackages(updated, values)
         const msg = 'Resident details updated successfully!'
         setFormSuccess(msg)
         notifySuccess('Resident Profile Updated', msg)
       } else {
-        await residentService.createResident(payload)
+        const created = await residentService.createResident(payload)
         const msg = 'Resident onboarded successfully!'
         setFormSuccess(msg)
         notifySuccess('Resident Onboarded Successfully', msg)
+        if (effectiveIsResiding) await saveFoodPackages(created, values)
       }
       setTimeout(() => {
         navigate(backUrl)
@@ -978,6 +1247,23 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
     }
     return true
   })
+
+  // Entities without floors only have one hidden floor, so the Floor step is skipped.
+  const activeEntity =
+    entityOptions.find((e) => e.key === selectedEntityKey) ??
+    (entityOptions.length === 1 ? entityOptions[0] : undefined)
+  const showEntityPicker = entityOptions.length > 1
+  const showBlockPicker = activeEntity ? activeEntity.levels.includes('block') : true
+  const floorsHidden =
+    (activeEntity ? !activeEntity.levels.includes('floor') : false) ||
+    (floors.length > 0 && floors.every((f) => f.hidden))
+  const blockWord = activeEntity?.labels.block?.trim() || 'Block'
+  const unitWord = activeEntity?.labels.unit?.trim() || 'Flat'
+  // Only this entity's own (visible) blocks.
+  const blockChoices = blocks
+    .filter((b) => !b.is_virtual && (!showEntityPicker || (b.entityId ?? '') === selectedEntityKey))
+    .sort((a, b) => a.block_name.localeCompare(b.block_name, undefined, { numeric: true }))
+  const pickerCount = [showEntityPicker, showBlockPicker, !floorsHidden, true].filter(Boolean).length
 
   // Filter units for the selected floor
   const filteredFloorUnits = availableUnits.filter((u) => u.floorId === selectedFloorId)
@@ -1139,61 +1425,95 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
             </div>
           </StepCard>
 
-          <StepCard step={2} title="Which flat?" hint="Pick the block, then the floor, then the flat.">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs">
-              {/* Block Selection */}
-              <div>
-                <label htmlFor="select-block" className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Block <span className="text-red-500 font-bold">*</span>
-                </label>
-                <select
-                  id="select-block"
-                  value={selectedBlockId}
-                  onChange={(e) => handleBlockChange(e.target.value)}
-                  className={selectClass}
-                >
-                  <option value="">Select Block...</option>
-                  {blocks.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.block_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <StepCard step={2} title="Which home?" hint="Pick the type, then where it is, then the flat or villa.">
+            <div
+              className={cn(
+                'grid grid-cols-1 gap-5 text-xs',
+                pickerCount === 4 ? 'md:grid-cols-4' : pickerCount === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2',
+              )}
+            >
+              {/* Entity (Apartment, Villa…) — only when the property has more than one */}
+              {showEntityPicker && (
+                <div>
+                  <label htmlFor="select-entity" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Type <span className="text-red-500 font-bold">*</span>
+                  </label>
+                  <select
+                    id="select-entity"
+                    value={selectedEntityKey}
+                    onChange={(e) => handleEntityChange(e.target.value)}
+                    className={selectClass}
+                  >
+                    <option value="">Select…</option>
+                    {entityOptions.map((e) => (
+                      <option key={e.key} value={e.key}>
+                        {e.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
-              {/* Floor Selection */}
-              <div>
-                <label htmlFor="select-floor" className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Floor <span className="text-red-500 font-bold">*</span>
-                </label>
-                <select
-                  id="select-floor"
-                  value={selectedFloorId}
-                  disabled={!selectedBlockId}
-                  onChange={(e) => handleFloorChange(e.target.value)}
-                  className={selectClass}
-                >
-                  {!selectedBlockId ? (
-                    <option value="">Select Block first...</option>
-                  ) : floors.length === 0 ? (
-                    <option value="">No floors in this block</option>
-                  ) : (
-                    <>
-                      <option value="">Select Floor...</option>
-                      {floors.map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.label}
-                        </option>
-                      ))}
-                    </>
-                  )}
-                </select>
-              </div>
+              {/* Block (named by the entity, e.g. Tower) — skipped for entities without blocks */}
+              {showBlockPicker && (
+                <div>
+                  <label htmlFor="select-block" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    {blockWord} <span className="text-red-500 font-bold">*</span>
+                  </label>
+                  <select
+                    id="select-block"
+                    value={selectedBlockId}
+                    disabled={showEntityPicker && !selectedEntityKey}
+                    onChange={(e) => handleBlockChange(e.target.value)}
+                    className={selectClass}
+                  >
+                    <option value="">
+                      {showEntityPicker && !selectedEntityKey ? 'Select a type first…' : 'Select…'}
+                    </option>
+                    {blockChoices.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.block_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Floor Selection (not shown for villas, plots… which have no floors) */}
+              {!floorsHidden && (
+                <div>
+                  <label htmlFor="select-floor" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Floor <span className="text-red-500 font-bold">*</span>
+                  </label>
+                  <select
+                    id="select-floor"
+                    value={selectedFloorId}
+                    disabled={!selectedBlockId}
+                    onChange={(e) => handleFloorChange(e.target.value)}
+                    className={selectClass}
+                  >
+                    {!selectedBlockId ? (
+                      <option value="">Select Block first...</option>
+                    ) : floors.length === 0 ? (
+                      <option value="">No floors in this block</option>
+                    ) : (
+                      <>
+                        <option value="">Select Floor...</option>
+                        {floors.map((f) => (
+                          <option key={f.id} value={f.id}>
+                            {f.label}
+                          </option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                </div>
+              )}
 
               {/* Unit Selection */}
               <div>
                 <label htmlFor="select-unit" className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Flat <span className="text-red-500 font-bold">*</span>
+                  {unitWord} <span className="text-red-500 font-bold">*</span>
                 </label>
                 <select
                   id="select-unit"
@@ -1204,12 +1524,18 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                   } disabled:bg-gray-100 disabled:opacity-70`}
                 >
                   {!selectedFloorId ? (
-                    <option value="">Select Floor first...</option>
+                    <option value="">
+                      {!floorsHidden
+                        ? 'Select Floor first...'
+                        : showBlockPicker
+                          ? `Select a ${blockWord.toLowerCase()} first…`
+                          : 'Select a type first…'}
+                    </option>
                   ) : filteredFloorUnits.length === 0 ? (
-                    <option value="">No flats available on this floor</option>
+                    <option value="">No {unitWord.toLowerCase()}s available</option>
                   ) : (
                     <>
-                      <option value="">Select Flat...</option>
+                      <option value="">Select {unitWord}…</option>
                       {filteredFloorUnits.map((u) => {
                         const isOccupied = checkIsUnitOccupied(u)
                         const isDisabled = isOccupied && (!isEditMode || u.id !== watchedUnitId)
@@ -1842,7 +2168,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
             <StepCard
               step={watchedResidentType === 'TENANT' ? 6 : 5}
               title="Care package"
-              hint="Optional. Wellness and clinical tasks bundled for the resident."
+              hint="Optional. Wellness and clinical tasks bundled for the resident, and for each family member below."
             >
               <div className="space-y-5">
                 {isLoadingPackages ? (
@@ -1854,12 +2180,22 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                   <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-xs text-gray-500 text-center">
                     No care packages set up yet. Add them in Settings → Packages.
                   </div>
+                ) : originalCare ? (
+                  <AssignedPackage
+                    name={carePackages.find((pkg) => pkg.id === originalCare.packageId)?.packageName || 'Care package'}
+                    detail={(() => {
+                      const pkg = carePackages.find((p) => p.id === originalCare.packageId)
+                      const day = originalCare.startDate
+                      return `${pkg ? `₹${Number(pkg.packageCost).toLocaleString('en-IN')} · ${pkg.duration} · ` : ''}since ${day.slice(8, 10)}/${day.slice(5, 7)}/${day.slice(0, 4)}`
+                    })()}
+                    manageIn="Medical → Package Subscriptions"
+                  />
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {/* Option for No Package */}
                     <button
                       type="button"
-                      onClick={() => setValue('carePackageId', '', { shouldValidate: true })}
+                      onClick={() => pickCarePackage('')}
                       className={cn(
                         'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full',
                         !watchedCarePackageId
@@ -1888,7 +2224,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                         <button
                           key={pkg.id}
                           type="button"
-                          onClick={() => setValue('carePackageId', pkg.id, { shouldValidate: true })}
+                          onClick={() => pickCarePackage(pkg.id)}
                           className={cn(
                             'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full',
                             isSelected
@@ -1942,8 +2278,40 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                   </div>
                 )}
 
+                {watchedCarePackageId && !originalCare && (
+                  <div className="flex flex-wrap items-end gap-3 border-t border-gray-100 pt-4">
+                    <label className="block text-xs">
+                      <span className="mb-1 block font-semibold text-gray-700">
+                        Package start date <span className="text-rose-600">*</span>
+                      </span>
+                      <input
+                        type="date"
+                        {...register('carePackageStartDate')}
+                        disabled={keepsCurrentCare}
+                        className="h-9 rounded-lg border border-gray-200 px-3 text-xs focus:border-[#005390] focus:outline-none disabled:bg-gray-50 disabled:text-gray-500"
+                      />
+                    </label>
+                    <p className="pb-2 text-[11px] text-gray-500">
+                      {keepsCurrentCare
+                        ? 'Current package – its start date stays as it is.'
+                        : originalCare?.packageId
+                          ? 'The current package ends today; the new one is billed from this date.'
+                          : 'The package is billed from this date.'}
+                    </p>
+                  </div>
+                )}
+
+                {carePackages.length > 0 && (
+                  <FamilyCarePackages
+                    packages={carePackages}
+                    rows={familyCareRows}
+                    onPick={pickFamilyCarePackage}
+                    onStartDate={(idx, day) => setValue(`familyMembers.${idx}.carePackageStartDate`, day)}
+                  />
+                )}
+
                 {/* Package Tasks Frequency & Times Schedule Configuration */}
-                {selectedOnboardPackage && onboardPackageTasks.length > 0 && (
+                {selectedOnboardPackage && !originalCare && onboardPackageTasks.length > 0 && (
                   <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
                     <PackageTaskSchedulesConfig
                       tasks={onboardPackageTasks}
@@ -1956,8 +2324,24 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
             </StepCard>
           )}
 
+          {isResidingEffective && (
+            <StepCard
+              step={(watchedResidentType === 'TENANT' ? 6 : 5) + 1}
+              title="Food package"
+              hint="Optional. A monthly meal plan for the resident and each family member."
+            >
+              <OnboardFoodPackages
+                locId={selectedLocationId || ''}
+                people={foodPeople}
+                value={foodChoices}
+                onChange={setFoodChoices}
+                existing={existingFood}
+              />
+            </StepCard>
+          )}
+
           <StepCard
-            step={(watchedResidentType === 'TENANT' ? 6 : 5) + (isResidingEffective ? 1 : 0)}
+            step={(watchedResidentType === 'TENANT' ? 6 : 5) + (isResidingEffective ? 2 : 0)}
             title="App login"
             hint="Used to sign in to the resident app."
           >

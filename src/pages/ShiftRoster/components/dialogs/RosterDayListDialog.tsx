@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { RosterCalendarEvent } from './RosterDetailDialog'
+import { groupRostersByShift } from '../../utils'
 
 const statusColor: Record<string, string> = {
   upcoming: 'bg-blue-100 text-blue-800',
@@ -46,41 +47,47 @@ const RosterDayListDialog = ({ open, onOpenChange, date, events, onSelectEvent }
           <p className="text-sm text-gray-500 py-6 text-center">No rosters for this day.</p>
         ) : (
           <div className="space-y-3">
-            {events.map((event) => (
-              <button
-                key={event.id}
-                type="button"
-                onClick={() => onSelectEvent(event)}
-                className="w-full text-left rounded-md border border-gray-200 overflow-hidden hover:border-[#2a517c]/40 hover:shadow-sm transition-colors"
-              >
-                <div className="bg-[#2a517c] px-3 py-1.5 flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-white truncate uppercase tracking-wide">
-                    {event.shiftName}
+            {/* Each shift once, with everyone on it listed below. */}
+            {groupRostersByShift(events).map((group) => (
+              <section key={group.key} className="overflow-hidden rounded-md border border-gray-200">
+                <div className="flex items-center justify-between gap-2 bg-[#2a517c] px-3 py-2">
+                  <span className="truncate text-sm font-bold uppercase tracking-wide text-white">
+                    {group.shiftName}
                   </span>
-                  <span className="text-[11px] text-white/90 font-semibold shrink-0">
-                    {event.slotTimeRange || event.shiftTime}
-                  </span>
+                  <span className="shrink-0 text-xs font-semibold tabular-nums text-white/90">{group.time}</span>
                 </div>
-                <div className="bg-gray-50 px-3 py-2.5 flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="font-semibold text-[#1e3a5a] truncate">{event.employeeName}</div>
-                    {event.departmentName && (
-                      <div className="text-[11px] font-medium text-gray-500 uppercase tracking-wider mt-0.5">
-                        {event.departmentName}
-                      </div>
-                    )}
-                    {(event.locationLabel || event.areaName) && (
-                      <div className="text-xs text-gray-500 mt-1 truncate">{event.locationLabel || event.areaName}</div>
-                    )}
-                  </div>
-                  <Badge
-                    variant="secondary"
-                    className={`shrink-0 ${statusColor[event.status] || 'bg-gray-100 text-gray-700'}`}
-                  >
-                    {formatStatus(event.status)}
-                  </Badge>
-                </div>
-              </button>
+                <ul className="divide-y divide-gray-100">
+                  {group.events.map((event) => (
+                    <li key={event.id}>
+                      <button
+                        type="button"
+                        onClick={() => onSelectEvent(event)}
+                        className="flex w-full items-start justify-between gap-2 bg-gray-50 px-3 py-2.5 text-left transition-colors hover:bg-[#2a517c]/5"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate font-semibold text-[#1e3a5a]">{event.employeeName}</div>
+                          {event.departmentName && (
+                            <div className="mt-0.5 text-[11px] font-medium uppercase tracking-wider text-gray-500">
+                              {event.departmentName}
+                            </div>
+                          )}
+                          {(event.locationLabel || event.areaName) && (
+                            <div className="mt-1 truncate text-xs text-gray-500">
+                              {event.locationLabel || event.areaName}
+                            </div>
+                          )}
+                        </div>
+                        <Badge
+                          variant="secondary"
+                          className={`shrink-0 ${statusColor[event.status] || 'bg-gray-100 text-gray-700'}`}
+                        >
+                          {formatStatus(event.status)}
+                        </Badge>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ))}
           </div>
         )}

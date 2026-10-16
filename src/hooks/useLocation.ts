@@ -5,6 +5,7 @@ import { getUserAccessiblePropertiesAPI } from '@/lib/services/userService'
 import { ACTIVE_PROP_ID_KEY, type PropertyLocationItem, useLocationStore } from '@/lib/stores/locationStore'
 import { notifySuccess } from '@/utils/toast'
 import { getDepartmentManagerType } from '@/utils/departmentManager'
+import { SUB_MODULES } from '@/lib/permissions/resourceKeys'
 
 export type { PropertyLocationItem }
 
@@ -140,16 +141,28 @@ export const useLocation = () => {
         return true
       }
 
+      // Department staff get their department's module and all its sub-modules
+      // (mirrored on the backend in services/permission.service.ts).
+      const moduleKey = resourceKey.split('.')[0]
       const managerType = getDepartmentManagerType(user)
       if (managerType) {
-        if ((managerType === 'RNM' || managerType === 'CON') && resourceKey === 'TICKETS') return true
-        if (managerType === 'FNB' && resourceKey === 'FNB') return true
-        if (managerType === 'EVENTS' && resourceKey === 'EVENTS') return true
-        if (managerType === 'GNS' && resourceKey === 'GNS') return true
-        if (managerType === 'HOUSEKEEPING' && (resourceKey === 'ROSTER' || resourceKey === 'EMPLOYEE')) return true
+        if ((managerType === 'RNM' || managerType === 'CON') && moduleKey === 'TICKETS') return true
+        if (managerType === 'FNB' && moduleKey === 'FNB') return true
+        if (managerType === 'EVENTS' && moduleKey === 'EVENTS') return true
+        if (managerType === 'GNS' && moduleKey === 'GNS') return true
+        if (managerType === 'HOUSEKEEPING' && (moduleKey === 'ROSTER' || moduleKey === 'EMPLOYEE')) return true
       }
 
-      return locationPermissions.some((p) => p.resourceKey === resourceKey && p.permission === permission)
+      const has = (key: string, action: string) =>
+        locationPermissions.some((p) => p.resourceKey === key && p.permission === action)
+      if (!has(resourceKey, permission)) return false
+      // Viewing a module that has sections needs View on at least one of them: a module
+      // whose sections are all "None" is closed (mirrored in the backend permission service).
+      const sections = SUB_MODULES[resourceKey]
+      if (permission === 'view' && sections?.length && !sections.some((k) => has(k, 'view'))) return false
+      // A sub-module (e.g. FNB.ORDERS) also needs View on its module.
+      const at = resourceKey.lastIndexOf('.')
+      return at === -1 || has(resourceKey.slice(0, at), 'view')
     },
     [user, locationPermissions],
   )

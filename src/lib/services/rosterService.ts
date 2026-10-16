@@ -18,6 +18,7 @@ import type {
   ShiftV2,
   SwapShiftDatesPayload,
   UpdateShiftPayload,
+  WeekDay,
 } from '@/lib/types/roster'
 
 export type {
@@ -118,6 +119,26 @@ export const deleteEmployeeShiftAPI = async (locationId: string, employeeShiftId
   return response.data as ApiResponse
 }
 
+/** Fields of a roster that can be changed before it starts. */
+export interface UpdateEmployeeShiftPayload {
+  shiftId?: string
+  startDate?: string
+  endDate?: string
+  workingDays?: WeekDay[]
+  slotTimeRange?: string | null
+  notes?: string | null
+}
+
+export const updateEmployeeShiftAPI = async (
+  locationId: string,
+  employeeShiftId: string,
+  data: UpdateEmployeeShiftPayload,
+) => {
+  const url = formatUrl(API_ENDPOINTS.shiftRoster.updateEmployeeShift, locationId, { employeeShiftId })
+  const response = await api.put(url, data)
+  return response.data as ApiResponse<EmployeeShiftAssignment>
+}
+
 export const bulkDeleteShiftEmployeeDatesAPI = async (locationId: string, dateIds: string[]) => {
   const url = formatUrl(API_ENDPOINTS.shiftRoster.bulkDeleteShiftEmployeeDates, locationId)
   const response = await api.delete(url, { data: { ids: dateIds } })
@@ -133,6 +154,11 @@ export const listShiftEmployeeDatesAPI = async (
     date?: string
     status?: string
     includeDeleted?: string
+    /** One employee's own dates plus dates they cover. */
+    employeeId?: string
+    /** Inclusive yyyy-MM-dd range. */
+    from?: string
+    to?: string
   },
 ) => {
   const url = formatUrl(API_ENDPOINTS.shiftRoster.listShiftEmployeeDates, locationId)

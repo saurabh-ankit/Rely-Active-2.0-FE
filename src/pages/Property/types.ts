@@ -1,8 +1,24 @@
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
 export type PropertyType = 'apartment' | 'villa' | 'duplex' | 'triplex'
+/** Entities use the same kinds as properties. */
+export type EntityType = PropertyType
+export type StructureLevel = 'block' | 'floor' | 'unit'
+export type LevelLabels = Partial<Record<StructureLevel, string>>
 export type AreaUnit = 'sqft' | 'sqmt' | 'acres'
-export type UnitType = '1BHK' | '2BHK' | '3BHK' | '4BHK' | 'studio' | 'penthouse' | 'shop' | 'office'
+export type UnitType =
+  | '1BHK'
+  | '2BHK'
+  | '3BHK'
+  | '4BHK'
+  | '5BHK'
+  | 'studio'
+  | 'penthouse'
+  | 'shop'
+  | 'office'
+  | 'villa'
+  | 'duplex'
+  | 'triplex'
 export type UnitFacing = 'north' | 'south' | 'east' | 'west' | 'northeast' | 'northwest' | 'southeast' | 'southwest'
 export type UnitStatus = 'available' | 'booked' | 'sold' | 'on_hold'
 
@@ -25,6 +41,8 @@ export interface BHKTemplateVariant {
 export interface UnitInput {
   id?: string
   unit_number: string
+  /** Read-only: who lives here, as returned by GET /property/:id (not saved from the form). */
+  residents?: Array<{ isDeleted?: boolean; status?: string | null }>
   unit_type: UnitType
   position?: number | null
   direction?: string | null
@@ -38,6 +56,8 @@ export interface UnitInput {
   price?: number | null
   price_per_sqft?: number | null
   status: UnitStatus
+  /** Type-specific details, e.g. { plot_area, storeys }. */
+  attributes?: Record<string, unknown> | null
 }
 
 export interface FloorInput {
@@ -61,12 +81,39 @@ export interface BlockInput {
   bhk_templates?: BHKTemplateVariant[] | null
   description?: string | null
   floors?: FloorInput[]
+  /** Used by block → unit entities (no floors). */
+  units?: UnitInput[]
+  // Villa / duplex / triplex groups: settings that generate `total_units` units.
+  plot_area?: number | null
+  carpet_area?: number | null
+  /** e.g. "G+1" */
+  configuration?: string | null
+  asset_form?: string | null
+  bhk_type?: UnitType | null
+  total_units?: number | null
+}
+
+/**
+ * One group of units inside a property. Its `levels` decide the nesting:
+ * block→floor→unit uses `blocks[].floors[].units`, block→unit `blocks[].units`,
+ * floor→unit `floors[].units`, and unit-only `units`.
+ */
+export interface EntityInput {
+  id?: string | null
+  entity_type: EntityType
+  name: string
+  levels: StructureLevel[]
+  level_labels?: LevelLabels | null
+  settings?: Record<string, unknown> | null
+  sort_order?: number
+  blocks?: BlockInput[]
+  floors?: FloorInput[]
+  units?: UnitInput[]
 }
 
 export interface CreatePropertyPayload {
   companyId: string
   property_name: string
-  property_type: PropertyType
   description?: string | null
   street?: string | null
   city: string
@@ -77,7 +124,9 @@ export interface CreatePropertyPayload {
   area_unit?: AreaUnit | null
   amenities?: string[] | null
   launch_date?: string | null
+  property_types?: PropertyType[]
   blocks?: BlockInput[]
+  entities?: EntityInput[]
 }
 
 // ─── Response types ───────────────────────────────────────────────────────────
@@ -96,6 +145,7 @@ export interface PropertyUnit {
   price_per_sqft: number | null
   status: UnitStatus
   occupancyStatus?: string | null
+  attributes?: Record<string, unknown> | null
   isActive: boolean
   isDeleted: boolean
   createdAt: string
@@ -109,6 +159,8 @@ export interface PropertyFloor {
   floor_name: string | null
   floor_type?: string | null
   is_sellable?: boolean
+  /** Hidden floor of an entity that doesn't use floors. */
+  is_virtual?: boolean
   description: string | null
   isActive: boolean
   isDeleted: boolean
@@ -120,6 +172,9 @@ export interface PropertyFloor {
 export interface PropertyBlock {
   id: string
   propertyId: string
+  entityId?: string | null
+  /** Hidden block of an entity that doesn't use blocks. */
+  is_virtual?: boolean
   block_name: string
   total_floors: number | null
   units_per_floor: number | null
@@ -135,7 +190,8 @@ export interface Property {
   id: string
   companyId: string
   property_name: string
-  property_type: PropertyType
+  /** Every kind of entity the property contains, e.g. ['apartment', 'villa']. */
+  property_types?: PropertyType[] | null
   description: string | null
   street: string | null
   city: string
@@ -151,6 +207,23 @@ export interface Property {
   createdAt: string
   updatedAt: string
   blocks?: PropertyBlock[]
+  entities?: EntityInput[]
+}
+
+/** One unit from GET /property/:id/unit-picker, with a readable label. */
+export interface UnitOption {
+  id: string
+  unit_number: string
+  unit_type: string
+  occupancyStatus: string
+  /** e.g. "Towers · Tower A · Floor 2 · A-21"; hidden levels are left out. */
+  label: string
+  entityId: string | null
+  entityName: string
+  blockId: string | null
+  blockName: string | null
+  floorId: string | null
+  floorLabel: string | null
 }
 
 // ─── Label maps ───────────────────────────────────────────────────────────────
@@ -161,6 +234,10 @@ export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
   duplex: 'Duplex',
   triplex: 'Triplex',
 }
+
+/** "Apartment · Villa" — every kind of entity the property contains. */
+export const formatPropertyTypes = (property: Pick<Property, 'property_types'>) =>
+  (property.property_types ?? []).map((t) => PROPERTY_TYPE_LABELS[t] ?? t).join(' · ')
 
 export const UNIT_STATUS_COLORS: Record<UnitStatus, string> = {
   available: 'bg-emerald-50 text-emerald-700 border-emerald-200',

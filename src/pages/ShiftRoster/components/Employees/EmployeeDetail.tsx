@@ -42,6 +42,7 @@ import {
   useListShiftEmployeeDates,
   useUnmarkDayOff,
 } from '@/hooks/react-query/roster'
+import { floorLabel } from '@/utils/unitLabel'
 
 const ROSTER_PAGE_SIZE = 9
 const ALL_STATUS = 'all'
@@ -71,9 +72,8 @@ const buildLocationLabel = (assignment?: EmployeeShiftAssignment | null): string
   if (assignment.area?.areaName) return assignment.area.areaName
   const parts: string[] = []
   if (assignment.block?.block_name) parts.push(assignment.block.block_name)
-  if (assignment.floor) {
-    parts.push(assignment.floor.floor_name || `Floor ${assignment.floor.floor_number}`)
-  }
+  const floorText = floorLabel(assignment.floor)
+  if (floorText) parts.push(floorText)
   if (assignment.unit?.unit_number) parts.push(assignment.unit.unit_number)
   else if (assignment.floorId && !assignment.unitId) parts.push('Entire floor')
   else if (assignment.blockId && !assignment.floorId) parts.push('Entire block')
@@ -174,7 +174,6 @@ const EmployeeDetail = () => {
     )
   }, [datesData, employeeId, employee, assignmentById, departments, locationId])
 
-  const [confirmId, setConfirmId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false)
   const [detailEvent, setDetailEvent] = useState<RosterCalendarEvent | null>(null)
@@ -188,7 +187,6 @@ const EmployeeDetail = () => {
     setPageIndex(0)
     setStatusFilter('today')
     setSelectedIds([])
-    setConfirmId(null)
   }
 
   const isLoading = assignmentsLoading || datesLoading
@@ -217,7 +215,6 @@ const EmployeeDetail = () => {
     setStatusFilter(value)
     setPageIndex(0)
     setSelectedIds([])
-    setConfirmId(null)
   }
 
   const pagedEvents = useMemo(() => {
@@ -255,19 +252,6 @@ const EmployeeDetail = () => {
       return
     }
 
-    if (action === 'remove') {
-      const dateId = event.shiftEmployeeDateId
-      if (!dateId) return
-      if (confirmId === dateId) {
-        await bulkDeleteDates.mutateAsync([dateId])
-        setConfirmId(null)
-        setSelectedIds((prev) => prev.filter((id) => id !== dateId))
-      } else {
-        setConfirmId(dateId)
-      }
-      return
-    }
-
     if (action === 'day_off' && event.status === 'day_off' && event.shiftEmployeeDateId) {
       await unmarkDayOff.mutateAsync(event.shiftEmployeeDateId)
       return
@@ -289,7 +273,6 @@ const EmployeeDetail = () => {
       onSuccess: () => {
         setSelectedIds([])
         setIsBulkDeleteOpen(false)
-        setConfirmId(null)
       },
     })
   }
@@ -323,31 +306,102 @@ const EmployeeDetail = () => {
                 <h2 className="truncate text-xl font-semibold tracking-tight text-slate-900">
                   {employee ? getUserDisplayName(employee) : 'Employee'}
                 </h2>
-                <p className="mt-0.5 truncate text-sm text-slate-500">{employee?.email || employeeId}</p>
-                {employee ? (
-                  <p className="mt-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[#2a517c]/80">
-                    {getUserDepartmentName(employee, departments || [], locationId) ||
-                      getUserRoleCodes(employee)[0] ||
-                      'Staff'}
-                  </p>
-                ) : null}
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
+                  {employee ? (
+                    <span className="rounded-full bg-[#2a517c]/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#2a517c]">
+                      {getUserDepartmentName(employee, departments || [], locationId) ||
+                        getUserRoleCodes(employee)[0] ||
+                        'Staff'}
+                    </span>
+                  ) : null}
+                  <span className="truncate">{employee?.email || employeeId}</span>
+                  {(employee?.phone || employee?.profile?.phone) && (
+                    <span className="tabular-nums">{employee?.phone || employee?.profile?.phone}</span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-center sm:min-w-[110px]">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Rosters</p>
-            <p className="text-2xl font-semibold tabular-nums text-[#2a517c]">{rosterEvents.length}</p>
+          {/* The roster at a glance; each figure opens that filter. */}
+          <div className="grid grid-cols-4 gap-2 sm:min-w-[400px]">
+            {(
+              [
+                ['today', 'Today', 'text-[#005390]'],
+                ['upcoming', 'Upcoming', 'text-sky-700'],
+                ['completed', 'Completed', 'text-emerald-700'],
+                ['day_off', 'Days off', 'text-violet-700'],
+              ] as const
+            ).map(([value, label, tone]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => handleStatusFilterChange(value)}
+                className={cn(
+                  'cursor-pointer rounded-xl border px-3 py-2 text-center transition-colors',
+                  statusFilter === value
+                    ? 'border-[#005390] bg-[#005390]/5'
+                    : 'border-slate-200 bg-slate-50 hover:border-slate-300',
+                )}
+              >
+                <p className={cn('text-xl font-semibold tabular-nums', tone)}>{filterCounts[value] ?? 0}</p>
+                <p className="text-[11px] font-medium text-slate-500">{label}</p>
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
       <div className="pb-4">
-        {/* Status filters: Today first and highlighted */}
-        <div className="mb-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Filter rosters">
-          {ROSTER_STATUS_FILTERS.map((opt) => {
-            const active = statusFilter === opt.value
-            const count = filterCounts[opt.value] ?? 0
-            if (opt.value === 'today') {
+        <div className="mb-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+          <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-slate-900">Assigned rosters</h3>
+              <p className="text-xs text-slate-500">
+                {rosterEvents.length} shift{rosterEvents.length === 1 ? '' : 's'} in total · click a card for details,
+                swap, cover or day off
+              </p>
+            </div>
+          </div>
+          {/* Status filters: Today first and highlighted */}
+          <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Filter rosters">
+            {ROSTER_STATUS_FILTERS.map((opt) => {
+              const active = statusFilter === opt.value
+              const count = filterCounts[opt.value] ?? 0
+              if (opt.value === 'today') {
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => handleStatusFilterChange(opt.value)}
+                    className={cn(
+                      'flex shrink-0 items-center gap-2.5 rounded-xl border-2 px-4 py-2 text-left transition-all cursor-pointer',
+                      active
+                        ? 'border-[#005390] bg-[#005390] text-white shadow-md shadow-[#005390]/25'
+                        : 'border-[#005390]/30 bg-[#005390]/5 text-[#005390] hover:border-[#005390]/60',
+                    )}
+                  >
+                    <CalendarCheck className="h-5 w-5 shrink-0" />
+                    <span className="leading-tight">
+                      <span className="block text-sm font-bold">Today</span>
+                      <span
+                        className={cn('block text-[11px] font-medium', active ? 'text-white/80' : 'text-[#005390]/70')}
+                      >
+                        {format(new Date(), 'EEE, dd MMM')}
+                      </span>
+                    </span>
+                    <span
+                      className={cn(
+                        'ml-1 rounded-full px-2 py-0.5 text-xs font-bold',
+                        active ? 'bg-white text-[#005390]' : 'bg-[#005390] text-white',
+                      )}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                )
+              }
               return (
                 <button
                   key={opt.value}
@@ -356,58 +410,21 @@ const EmployeeDetail = () => {
                   aria-selected={active}
                   onClick={() => handleStatusFilterChange(opt.value)}
                   className={cn(
-                    'flex shrink-0 items-center gap-2.5 rounded-xl border-2 px-4 py-2 text-left transition-all cursor-pointer',
+                    'flex shrink-0 items-center gap-1.5 self-center rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer',
                     active
-                      ? 'border-[#005390] bg-[#005390] text-white shadow-md shadow-[#005390]/25'
-                      : 'border-[#005390]/30 bg-[#005390]/5 text-[#005390] hover:border-[#005390]/60',
+                      ? 'border-[#005390] bg-[#005390]/10 text-[#005390]'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-900',
                   )}
                 >
-                  <CalendarCheck className="h-5 w-5 shrink-0" />
-                  <span className="leading-tight">
-                    <span className="block text-sm font-bold">Today</span>
-                    <span
-                      className={cn('block text-[11px] font-medium', active ? 'text-white/80' : 'text-[#005390]/70')}
-                    >
-                      {format(new Date(), 'EEE, dd MMM')}
-                    </span>
-                  </span>
-                  <span
-                    className={cn(
-                      'ml-1 rounded-full px-2 py-0.5 text-xs font-bold',
-                      active ? 'bg-white text-[#005390]' : 'bg-[#005390] text-white',
-                    )}
-                  >
-                    {count}
-                  </span>
+                  {opt.label}
+                  <span className={cn('text-[11px]', active ? 'text-[#005390]/80' : 'text-gray-400')}>{count}</span>
                 </button>
               )
-            }
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => handleStatusFilterChange(opt.value)}
-                className={cn(
-                  'flex shrink-0 items-center gap-1.5 self-center rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer',
-                  active
-                    ? 'border-[#005390] bg-[#005390]/10 text-[#005390]'
-                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-900',
-                )}
-              >
-                {opt.label}
-                <span className={cn('text-[11px]', active ? 'text-[#005390]/80' : 'text-gray-400')}>{count}</span>
-              </button>
-            )
-          })}
+            })}
+          </div>
         </div>
 
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h3 className="text-base font-semibold text-slate-900">Assigned rosters</h3>
-            <p className="text-sm text-slate-500">Shift coverage for this employee</p>
-          </div>
+        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <RosterPermission action="delete">
               <div className="flex items-center gap-2">
@@ -421,17 +438,19 @@ const EmployeeDetail = () => {
                     <span>Select page</span>
                   </div>
                 )}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-9 rounded-lg border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                  disabled={selectedIds.length === 0 || bulkDeleteDates.isPending}
-                  onClick={() => setIsBulkDeleteOpen(true)}
-                >
-                  <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                  Delete selected{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}
-                </Button>
+                {selectedIds.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 rounded-lg border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                    disabled={bulkDeleteDates.isPending}
+                    onClick={() => setIsBulkDeleteOpen(true)}
+                  >
+                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                    Delete selected ({selectedIds.length})
+                  </Button>
+                )}
               </div>
             </RosterPermission>
           </div>
@@ -491,8 +510,6 @@ const EmployeeDetail = () => {
                     onSelectChange={(checked) => {
                       if (event.shiftEmployeeDateId) toggleSelectOne(event.shiftEmployeeDateId, checked)
                     }}
-                    removePending={bulkDeleteDates.isPending && confirmId === event.shiftEmployeeDateId}
-                    removeLabel={confirmId === event.shiftEmployeeDateId ? 'Confirm remove' : 'Remove'}
                     onAction={(action) => handleCardAction(event, action)}
                   />
                 </div>
@@ -574,9 +591,6 @@ const EmployeeDetail = () => {
               </Pagination>
             </div>
           </>
-        )}
-        {confirmId && (
-          <p className="mt-3 text-xs text-red-600">Click the × again on the same card to confirm removal.</p>
         )}
       </div>
 

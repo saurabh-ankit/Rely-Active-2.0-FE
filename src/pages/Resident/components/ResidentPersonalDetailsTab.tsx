@@ -5,6 +5,8 @@ import type { ResidentItem } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { InfoList, Panel } from '@/components/common/DetailPanel'
 import { cn, getFileUrl } from '@/lib/utils'
+import { unitLocationLabel } from '@/utils/unitLabel'
+import ResidentNokPanel from './ResidentNokPanel'
 
 export interface FnbSubscriptionItem {
   id: string
@@ -136,10 +138,6 @@ export const ResidentPersonalDetailsTab: React.FC<ResidentPersonalDetailsTabProp
   onAssignFoodPackage,
 }) => {
   const unit = resident.unit
-  const floor = unit?.floor
-  const floorNum = floor?.floor_number
-  const floorLabel =
-    floor?.floor_name || (floorNum ? (floorNum === 1 ? 'Ground Floor' : `Floor ${floorNum}`) : 'Main Level')
   const propertyName = resident.property?.property_name || resident.property?.name || null
   const familyMembers = resident.familyMembers || []
   const primarySub = fnbSubscriptions.find((s) => !s.familyMemberId && (!s.familyMember || !s.familyMember.id))
@@ -152,7 +150,7 @@ export const ResidentPersonalDetailsTab: React.FC<ResidentPersonalDetailsTabProp
           <InfoList
             rows={[
               ['Property', propertyName],
-              ['Flat', unit?.unit_number ? `Unit ${unit.unit_number} · ${floorLabel}` : null],
+              ['Flat', unit?.unit_number ? unitLocationLabel(unit) : null],
               ['Layout', unit?.unit_type || null],
               ['Flat occupancy', humanize(unit?.occupancyStatus)],
               ['Moved in', formatDate(resident.moveInDate)],
@@ -165,9 +163,14 @@ export const ResidentPersonalDetailsTab: React.FC<ResidentPersonalDetailsTabProp
             icon={Utensils}
             title="Food plan"
             action={
-              canUpdateResident ? (
+              primarySub ? (
+                // An assigned plan is changed from Food & Beverage, not from the resident profile.
+                <span className="text-[11px] text-gray-500">
+                  Change in <b className="text-gray-700">Food &amp; Beverage → Property Packages &amp; Pricing</b>
+                </span>
+              ) : canUpdateResident ? (
                 <Button variant="secondary" className="h-8 rounded-xl text-xs" onClick={onAssignFoodPackage}>
-                  {primarySub ? 'Change plan' : 'Assign plan'}
+                  Assign plan
                 </Button>
               ) : null
             }
@@ -244,6 +247,8 @@ export const ResidentPersonalDetailsTab: React.FC<ResidentPersonalDetailsTabProp
             </ul>
           )}
         </Panel>
+
+        <ResidentNokPanel residentId={resident.id} canUpdateResident={canUpdateResident} />
       </div>
 
       <div className="space-y-5">

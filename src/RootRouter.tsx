@@ -9,6 +9,7 @@ import GlobalSettingsPage from '@/pages/GlobalSettings'
 import LoginPage from '@/pages/Login'
 import PropertyPage from '@/pages/Property'
 import CreatePropertyPage from '@/pages/Property/CreatePropertyPage'
+import PropertyDetailsPage from '@/pages/Property/PropertyDetailsPage'
 import ResidentPage, { ResidentBillingPage } from '@/pages/Resident'
 import SectionPage from '@/pages/SectionPage'
 import SetupPage from '@/pages/Setup'
@@ -56,6 +57,7 @@ export default function RootRouter() {
         <Route path="property" element={<PropertyPage />} />
         <Route path="property/create" element={<CreatePropertyPage />} />
         <Route path="property/edit/:id" element={<CreatePropertyPage />} />
+        <Route path="property/:id" element={<PropertyDetailsPage />} />
         <Route
           path="global-settings/inventory/*"
           element={
@@ -294,7 +296,7 @@ export default function RootRouter() {
         <Route
           path="admin/employees"
           element={
-            <ProtectedRoute resourceKey="EMPLOYEE" action="view">
+            <ProtectedRoute resourceKey="EMPLOYEE.DIRECTORY" action="view">
               <EmployeeDirectoryPage initialView="list" />
             </ProtectedRoute>
           }
@@ -302,7 +304,7 @@ export default function RootRouter() {
         <Route
           path="admin/employees/create"
           element={
-            <ProtectedRoute resourceKey="EMPLOYEE" action="create">
+            <ProtectedRoute resourceKey="EMPLOYEE.DIRECTORY" action="create">
               <EmployeeDirectoryPage initialView="create" />
             </ProtectedRoute>
           }
@@ -310,7 +312,7 @@ export default function RootRouter() {
         <Route
           path="admin/employees/edit/:id"
           element={
-            <ProtectedRoute resourceKey="EMPLOYEE" action="update">
+            <ProtectedRoute resourceKey="EMPLOYEE.DIRECTORY" action="update">
               <EmployeeDirectoryPage initialView="edit" />
             </ProtectedRoute>
           }

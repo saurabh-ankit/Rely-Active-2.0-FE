@@ -12,6 +12,7 @@ import { InventoryPage, FormSection, InventoryLoading, InventoryLoadError } from
 import { FormActions, FormInput, RootError } from './FormControls'
 import { categoryPath, useInventoryNavigation } from './navigation'
 import { setInventoryFormError } from './formErrors'
+import { Gauge } from 'lucide-react'
 
 export function ItemThresholdsPage() {
   const { itemId = '', categoryId = '' } = useParams()
@@ -95,7 +96,8 @@ export function ItemThresholdsEditor({
         >
           <fieldset disabled={mutation.isPending} className="flex min-w-0 flex-col gap-6">
             <FormSection
-              title="Thresholds by Location"
+              icon={Gauge}
+              title="Stock levels by location"
               description="Only assigned locations are editable. Changes here do not change thresholds at other locations."
             >
               <DataTable

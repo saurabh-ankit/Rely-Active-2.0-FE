@@ -1,6 +1,12 @@
 import api from '@/lib/api/axios'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import type { CreateUserPayload, UpdateUserPayload, UserItem } from '@/lib/types'
+import type {
+  EmployeeActivityParams,
+  EmployeeActivityRecordsPage,
+  EmployeeActivitySummary,
+  WorkLogPage,
+} from '@/lib/types/employeeActivity'
 
 export const getUsersAPI = async (locationId?: string | null, search?: string): Promise<UserItem[]> => {
   const params: Record<string, string> = {}
@@ -52,6 +58,32 @@ export const updateUserAPI = async (id: string, payload: UpdateUserPayload): Pro
 export const getUserAccessiblePropertiesAPI = async (): Promise<Array<{ id: string; property_name: string }>> => {
   const response = await api.get(API_ENDPOINTS.user.getAccessibleProperties)
   return response.data?.data || response.data
+}
+
+const activityQuery = ({ locId, ...rest }: EmployeeActivityParams) => ({
+  ...rest,
+  ...(locId ? { locationId: locId } : {}),
+})
+
+export const getEmployeeActivitySummaryAPI = async (
+  id: string,
+  params: EmployeeActivityParams,
+): Promise<EmployeeActivitySummary> => {
+  const response = await api.get(API_ENDPOINTS.user.activitySummary(id), { params: activityQuery(params) })
+  return response.data?.data
+}
+
+export const getEmployeeActivityRecordsAPI = async (
+  id: string,
+  params: EmployeeActivityParams,
+): Promise<EmployeeActivityRecordsPage> => {
+  const response = await api.get(API_ENDPOINTS.user.activityRecords(id), { params: activityQuery(params) })
+  return response.data?.data
+}
+
+export const getEmployeeWorkLogAPI = async (id: string, params: EmployeeActivityParams): Promise<WorkLogPage> => {
+  const response = await api.get(API_ENDPOINTS.user.activityWorkLog(id), { params: activityQuery(params) })
+  return response.data?.data
 }
 
 export const updateUserPropertiesAPI = async (userId: string, propertyIds: string[]) => {

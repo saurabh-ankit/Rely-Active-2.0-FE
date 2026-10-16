@@ -3,8 +3,27 @@ import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import type {
   CreateResidentPayload,
   GetResidentsParams,
+  LocationMedicineOption,
+  MedicationAdministrationItem,
+  MedicationAdministrationsParams,
+  ResidentAllergyItem,
+  ResidentAllergyPayload,
+  ResidentClinicalData,
+  ResidentClinicalMutationResponse,
+  ResidentCurrentCondition,
+  ResidentDocumentItem,
   ResidentItem,
+  ResidentLabReportItem,
+  ResidentMedicationItem,
+  ResidentMedicationPayload,
+  ResidentMedicinesParams,
+  ResidentNokContact,
+  ResidentTimelineParams,
+  ResidentVitalItem,
+  ResidentVitalPayload,
+  ResidentTimelineResponse,
   UnitResidentsPayload,
+  UpdateResidentConditionPayload,
 } from '@/lib/types/resident'
 
 // ── Care Team types (local, shared between service + hooks) ───────────────────
@@ -162,6 +181,220 @@ export const removeCareTeamMemberAPI = async (residentId: string, memberId: stri
   await api.delete(API_ENDPOINTS.resident.removeCareTeamMember(residentId, memberId))
 }
 
+// ── Clinical chart API functions ──────────────────────────────────────────────
+
+export const getResidentClinicalAPI = async (residentId: string): Promise<ResidentClinicalData> => {
+  const response = await api.get(API_ENDPOINTS.resident.clinical(residentId))
+  return response.data?.data || response.data
+}
+
+export const updateResidentConditionAPI = async (
+  residentId: string,
+  payload: UpdateResidentConditionPayload,
+): Promise<{ success: boolean; message?: string; data: ResidentCurrentCondition | null }> => {
+  const response = await api.post(API_ENDPOINTS.resident.condition(residentId), payload)
+  return response.data
+}
+
+export const getResidentLabReportsAPI = async (residentId: string): Promise<ResidentLabReportItem[]> => {
+  const response = await api.get(API_ENDPOINTS.resident.labReports(residentId))
+  return response.data?.data || response.data
+}
+
+export const createResidentLabReportAPI = async (
+  residentId: string,
+  data: FormData,
+): Promise<ResidentClinicalMutationResponse<ResidentLabReportItem>> => {
+  const response = await api.post(API_ENDPOINTS.resident.labReports(residentId), data, { timeout: 60_000 })
+  return response.data
+}
+
+export const updateResidentLabReportAPI = async (
+  residentId: string,
+  id: string,
+  data: FormData,
+): Promise<ResidentClinicalMutationResponse<ResidentLabReportItem>> => {
+  const response = await api.put(API_ENDPOINTS.resident.labReport(residentId, id), data, { timeout: 60_000 })
+  return response.data
+}
+
+export const deleteResidentLabReportAPI = async (
+  residentId: string,
+  id: string,
+): Promise<ResidentClinicalMutationResponse> => {
+  const response = await api.delete(API_ENDPOINTS.resident.labReport(residentId, id))
+  return response.data
+}
+
+export const getResidentMedicinesAPI = async (
+  residentId: string,
+  params: ResidentMedicinesParams = {},
+): Promise<LocationMedicineOption[]> => {
+  const response = await api.get(API_ENDPOINTS.resident.medicines(residentId), { params })
+  return response.data?.data?.medicines || []
+}
+
+export const createResidentMedicationAPI = async (
+  residentId: string,
+  payload: ResidentMedicationPayload,
+): Promise<ResidentClinicalMutationResponse<ResidentMedicationItem>> => {
+  const response = await api.post(API_ENDPOINTS.resident.medications(residentId), payload)
+  return response.data
+}
+
+export const updateResidentMedicationAPI = async (
+  residentId: string,
+  id: string,
+  payload: Partial<ResidentMedicationPayload>,
+): Promise<ResidentClinicalMutationResponse<ResidentMedicationItem>> => {
+  const response = await api.put(API_ENDPOINTS.resident.medication(residentId, id), payload)
+  return response.data
+}
+
+export const deleteResidentMedicationAPI = async (
+  residentId: string,
+  id: string,
+): Promise<ResidentClinicalMutationResponse> => {
+  const response = await api.delete(API_ENDPOINTS.resident.medication(residentId, id))
+  return response.data
+}
+
+export const createResidentInsulinAPI = async (
+  residentId: string,
+  payload: ResidentMedicationPayload,
+): Promise<ResidentClinicalMutationResponse<ResidentMedicationItem>> => {
+  const response = await api.post(API_ENDPOINTS.resident.insulin(residentId), payload)
+  return response.data
+}
+
+export const updateResidentInsulinAPI = async (
+  residentId: string,
+  id: string,
+  payload: Partial<ResidentMedicationPayload>,
+): Promise<ResidentClinicalMutationResponse<ResidentMedicationItem>> => {
+  const response = await api.put(API_ENDPOINTS.resident.insulinItem(residentId, id), payload)
+  return response.data
+}
+
+export const deleteResidentInsulinAPI = async (
+  residentId: string,
+  id: string,
+): Promise<ResidentClinicalMutationResponse> => {
+  const response = await api.delete(API_ENDPOINTS.resident.insulinItem(residentId, id))
+  return response.data
+}
+
+export const getResidentMedicationAdministrationsAPI = async (
+  residentId: string,
+  params: MedicationAdministrationsParams = {},
+): Promise<MedicationAdministrationItem[]> => {
+  const response = await api.get(API_ENDPOINTS.resident.medicationAdministrations(residentId), { params })
+  return response.data?.data || []
+}
+
+export const createResidentVitalAPI = async (
+  residentId: string,
+  payload: ResidentVitalPayload,
+): Promise<ResidentClinicalMutationResponse<ResidentVitalItem>> => {
+  const response = await api.post(API_ENDPOINTS.resident.vitals(residentId), payload)
+  return response.data
+}
+
+export const updateResidentVitalAPI = async (
+  residentId: string,
+  id: string,
+  payload: Partial<ResidentVitalPayload>,
+): Promise<ResidentClinicalMutationResponse<ResidentVitalItem>> => {
+  const response = await api.put(API_ENDPOINTS.resident.vital(residentId, id), payload)
+  return response.data
+}
+
+export const deleteResidentVitalAPI = async (
+  residentId: string,
+  id: string,
+): Promise<ResidentClinicalMutationResponse> => {
+  const response = await api.delete(API_ENDPOINTS.resident.vital(residentId, id))
+  return response.data
+}
+
+export const createResidentAllergyAPI = async (
+  residentId: string,
+  payload: ResidentAllergyPayload,
+): Promise<ResidentClinicalMutationResponse<ResidentAllergyItem>> => {
+  const response = await api.post(API_ENDPOINTS.resident.allergies(residentId), payload)
+  return response.data
+}
+
+export const updateResidentAllergyAPI = async (
+  residentId: string,
+  id: string,
+  payload: Partial<ResidentAllergyPayload>,
+): Promise<ResidentClinicalMutationResponse<ResidentAllergyItem>> => {
+  const response = await api.put(API_ENDPOINTS.resident.allergy(residentId, id), payload)
+  return response.data
+}
+
+export const deleteResidentAllergyAPI = async (
+  residentId: string,
+  id: string,
+): Promise<ResidentClinicalMutationResponse> => {
+  const response = await api.delete(API_ENDPOINTS.resident.allergy(residentId, id))
+  return response.data
+}
+
+export const getResidentDocumentsAPI = async (residentId: string): Promise<ResidentDocumentItem[]> => {
+  const response = await api.get(API_ENDPOINTS.resident.documents(residentId))
+  return response.data?.data || response.data
+}
+
+export const createResidentDocumentAPI = async (
+  residentId: string,
+  data: FormData,
+): Promise<{ success: boolean; message?: string; data: ResidentDocumentItem }> => {
+  const response = await api.post(API_ENDPOINTS.resident.documents(residentId), data, { timeout: 60_000 })
+  return response.data
+}
+
+type ResidentNokContactMutationResponse = { success: boolean; message?: string; data?: ResidentNokContact }
+
+export const getResidentNokContactsAPI = async (residentId: string): Promise<ResidentNokContact[]> => {
+  const response = await api.get(API_ENDPOINTS.resident.nokContacts(residentId))
+  return response.data?.data || response.data
+}
+
+export const createResidentNokContactAPI = async (
+  residentId: string,
+  data: FormData,
+): Promise<ResidentNokContactMutationResponse> => {
+  const response = await api.post(API_ENDPOINTS.resident.nokContacts(residentId), data, { timeout: 60_000 })
+  return response.data
+}
+
+export const updateResidentNokContactAPI = async (
+  residentId: string,
+  id: string,
+  data: FormData,
+): Promise<ResidentNokContactMutationResponse> => {
+  const response = await api.put(API_ENDPOINTS.resident.nokContact(residentId, id), data, { timeout: 60_000 })
+  return response.data
+}
+
+export const deleteResidentNokContactAPI = async (
+  residentId: string,
+  id: string,
+): Promise<ResidentNokContactMutationResponse> => {
+  const response = await api.delete(API_ENDPOINTS.resident.nokContact(residentId, id))
+  return response.data
+}
+
+export const getResidentTimelineAPI = async (
+  residentId: string,
+  params: ResidentTimelineParams = {},
+): Promise<ResidentTimelineResponse> => {
+  const response = await api.get(API_ENDPOINTS.resident.timeline(residentId), { params })
+  return response.data?.data || response.data
+}
+
 export const residentService = {
   createResident: createResidentAPI,
   getResidents: getResidentsAPI,
@@ -173,6 +406,33 @@ export const residentService = {
   getCareTeam: getCareTeamAPI,
   assignCareTeamMember: assignCareTeamMemberAPI,
   removeCareTeamMember: removeCareTeamMemberAPI,
+  getResidentClinical: getResidentClinicalAPI,
+  updateResidentCondition: updateResidentConditionAPI,
+  getResidentLabReports: getResidentLabReportsAPI,
+  createResidentLabReport: createResidentLabReportAPI,
+  updateResidentLabReport: updateResidentLabReportAPI,
+  deleteResidentLabReport: deleteResidentLabReportAPI,
+  getResidentMedicines: getResidentMedicinesAPI,
+  createResidentMedication: createResidentMedicationAPI,
+  updateResidentMedication: updateResidentMedicationAPI,
+  deleteResidentMedication: deleteResidentMedicationAPI,
+  createResidentInsulin: createResidentInsulinAPI,
+  updateResidentInsulin: updateResidentInsulinAPI,
+  deleteResidentInsulin: deleteResidentInsulinAPI,
+  getResidentMedicationAdministrations: getResidentMedicationAdministrationsAPI,
+  createResidentVital: createResidentVitalAPI,
+  updateResidentVital: updateResidentVitalAPI,
+  deleteResidentVital: deleteResidentVitalAPI,
+  createResidentAllergy: createResidentAllergyAPI,
+  updateResidentAllergy: updateResidentAllergyAPI,
+  deleteResidentAllergy: deleteResidentAllergyAPI,
+  getResidentDocuments: getResidentDocumentsAPI,
+  createResidentDocument: createResidentDocumentAPI,
+  getResidentNokContacts: getResidentNokContactsAPI,
+  createResidentNokContact: createResidentNokContactAPI,
+  updateResidentNokContact: updateResidentNokContactAPI,
+  deleteResidentNokContact: deleteResidentNokContactAPI,
+  getResidentTimeline: getResidentTimelineAPI,
 }
 
 export default residentService

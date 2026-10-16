@@ -33,6 +33,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
+import { floorLabel, isHiddenFloor } from '@/utils/unitLabel'
 
 interface GlobalPackage {
   id: string
@@ -393,9 +394,7 @@ export function FnbPropertySettingsScreen({
         const unitNum = res.unit.unit_number || 'A-11'
         const blockName = res.unit.floor?.block?.block_name || 'Tower A'
         const floorObj = res.unit.floor
-        const floorName =
-          floorObj?.floor_name ||
-          (floorObj?.floor_number !== undefined ? `Floor ${floorObj.floor_number}` : 'Ground Floor')
+        const floorName = isHiddenFloor(floorObj) ? '' : floorLabel(floorObj) || 'Ground Floor'
         const primaryName = `${res.firstName} ${res.lastName || ''}`.trim()
 
         if (!map.has(unitId)) {
@@ -782,7 +781,7 @@ export function FnbPropertySettingsScreen({
                                 <span>Flat {grp.unitNumber}</span>
                               </div>
                               <div className="text-[11px] text-gray-500 font-medium mt-0.5">
-                                {grp.blockName} • {grp.floorName}
+                                {[grp.blockName, grp.floorName].filter(Boolean).join(' • ')}
                               </div>
                             </td>
                             <td className="py-4 px-4">
@@ -1280,14 +1279,10 @@ export function FnbPropertySettingsScreen({
                                             const targetRes = sub.resident || sub.familyMember?.resident
                                             const blockName = targetRes?.unit?.floor?.block?.block_name
                                             const floorObj = targetRes?.unit?.floor
-                                            const floorStr =
-                                              floorObj?.floor_name ||
-                                              (floorObj?.floor_number !== undefined
-                                                ? `Floor ${floorObj.floor_number}`
-                                                : 'Floor')
+                                            const floorStr = floorLabel(floorObj)
                                             const unitNum = targetRes?.unit?.unit_number
                                             const unitDisplay = unitNum
-                                              ? `${blockName ? `${blockName} - ` : ''}${floorStr} - Flat ${unitNum}`
+                                              ? [blockName, floorStr, unitNum].filter(Boolean).join(' - ')
                                               : 'Unit -'
 
                                             const isPaused = sub.status === 'paused' || sub.status === 'PAUSED'

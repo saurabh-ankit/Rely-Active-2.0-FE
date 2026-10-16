@@ -51,8 +51,12 @@ export interface DepartmentItem {
 
 export interface ResourceItem {
   id: string
+  /** Module key (e.g. `FNB`) or sub-module key (e.g. `FNB.ORDERS`). */
   key: string
   name: string
   description?: string | null
-  isActive: boolean
+  isActive?: boolean
+  sortOrder?: number
+  /** Parent module key for a sub-module; null for a module. */
+  parentKey?: string | null
 }

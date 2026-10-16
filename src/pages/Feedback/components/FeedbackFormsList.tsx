@@ -10,7 +10,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { useLocation } from '@/hooks/useLocation'
 import { useDeleteFeedbackForm, useFeedbackForms } from '@/hooks/react-query/feedback'
 import type { FeedbackAudience, FeedbackForm, FeedbackFormStatusFilter } from '@/lib/types/feedback'
-import ConfirmDialog from './ConfirmDialog'
+import ConfirmDialog from '@/components/common/ConfirmDialog'
 import FormStatusBadge from './FormStatusBadge'
 import SendFormDialog from './SendFormDialog'
 
