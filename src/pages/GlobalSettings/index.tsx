@@ -12,6 +12,7 @@ import {
   Package,
   Receipt,
   ShieldCheck,
+  Sparkles,
   Stethoscope,
   UserCheck,
   Utensils,
@@ -33,6 +34,7 @@ import { LabTestsTab } from './components/LabTestsTab'
 import { TasksTab } from './components/TasksTab'
 import { PackagesTab } from './components/PackagesTab'
 import { GstTaxSettingsTab } from './components/GstTaxSettingsTab'
+import { AmenitiesTab } from './components/AmenitiesTab'
 import { PageHeader } from '@/components/common/PageHeader'
 
 interface SettingItem {
@@ -72,6 +74,13 @@ const SETTING_GROUPS: SettingGroup[] = [
         description: 'Properties, their blocks, floors and units, and location tokens.',
         link: '/property',
         icon: Home,
+      },
+      {
+        id: 'amenities',
+        name: 'Amenities Catalog',
+        description: 'Global amenities used by properties.',
+        link: '/global-settings/amenities',
+        icon: Sparkles,
       },
     ],
   },
@@ -271,6 +280,7 @@ interface GlobalSettingsPageProps {
     | 'tasks'
     | 'packages'
     | 'gst-tax'
+    | 'amenities'
 }
 
 export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSettingsPageProps) {
@@ -453,6 +463,21 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
         </button>
         <GstTaxSettingsTab />
+      </div>
+    )
+  }
+
+  if (activeView === 'amenities') {
+    return (
+      <div className="space-y-6 pb-10">
+        <button
+          type="button"
+          onClick={() => navigate('/global-settings')}
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+        </button>
+        <AmenitiesTab />
       </div>
     )
   }

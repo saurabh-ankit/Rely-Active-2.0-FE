@@ -22,6 +22,28 @@ export type UnitType =
 export type UnitFacing = 'north' | 'south' | 'east' | 'west' | 'northeast' | 'northwest' | 'southeast' | 'southwest'
 export type UnitStatus = 'available' | 'booked' | 'sold' | 'on_hold'
 
+export interface AmenitySlotSettings {
+  availableFrom?: string | null
+  availableTo?: string | null
+  slotDurationMinutes?: number | null
+}
+
+export interface PropertyAmenityInput {
+  amenityId: string
+  slotBookable?: boolean
+  settings?: AmenitySlotSettings | Record<string, unknown> | null
+}
+
+export interface PropertyAmenity {
+  id: string
+  amenityId: string
+  name: string
+  description: string | null
+  slotBookable: boolean
+  settings?: AmenitySlotSettings | Record<string, unknown> | null
+  isActive: boolean
+}
+
 // ─── Request / Form types ─────────────────────────────────────────────────────
 
 export interface BHKVariantPosition {
@@ -123,6 +145,7 @@ export interface CreatePropertyPayload {
   total_area?: number | null
   area_unit?: AreaUnit | null
   amenities?: string[] | null
+  propertyAmenities?: PropertyAmenityInput[] | null
   launch_date?: string | null
   property_types?: PropertyType[]
   blocks?: BlockInput[]
@@ -201,6 +224,7 @@ export interface Property {
   total_area: number | null
   area_unit: AreaUnit | null
   amenities: string[] | null
+  propertyAmenities?: PropertyAmenity[] | null
   launch_date: string | null
   isActive: boolean
   isDeleted: boolean

@@ -98,7 +98,12 @@ export const isDepartmentManagerAllowedRoute = (user: UserAuthData | null | unde
   if (!managerType) return true // SuperAdmin or un-restricted users have access to all routes
 
   // Common allowed paths for all users
-  if (pathname === '/profile' || pathname.startsWith('/profile') || pathname.startsWith('/settings')) {
+  if (
+    pathname === '/profile' ||
+    pathname.startsWith('/profile') ||
+    pathname.startsWith('/settings') ||
+    pathname.startsWith('/admin/amenities')
+  ) {
     return true
   }
 

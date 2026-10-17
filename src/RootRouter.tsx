@@ -26,6 +26,7 @@ import BillingManagementPage from '@/pages/BillingManagement'
 import SettingsPage from '@/pages/Settings'
 import MedicalPage from '@/pages/Medical'
 import AppointmentBookingsPage from '@/pages/Medical/components/appointments/AppointmentBookings'
+import AmenitiesPage from '@/pages/Amenities'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
 const InventoryPage = lazy(() => import('@/pages/Inventory'))
@@ -171,6 +172,14 @@ export default function RootRouter() {
           }
         />
         <Route
+          path="global-settings/amenities"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="amenities" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="global-settings/residents/edit/:id"
           element={
             <ProtectedRoute requireSuperAdmin>
@@ -290,6 +299,14 @@ export default function RootRouter() {
           element={
             <ProtectedRoute resourceKey="RESIDENT" action="view">
               <ResidentBillingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/amenities"
+          element={
+            <ProtectedRoute>
+              <AmenitiesPage />
             </ProtectedRoute>
           }
         />

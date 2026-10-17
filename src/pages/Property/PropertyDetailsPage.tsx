@@ -65,6 +65,7 @@ const formatPrice = (value: number | string | null | undefined) => {
 }
 
 const fullName = (r: UnitResident) => `${r.firstName ?? ''} ${r.lastName ?? ''}`.trim() || 'Resident'
+const TIME_24_HOUR_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/
 
 const formatDate = (value?: string | null) => {
   if (!value) return null
@@ -72,6 +73,15 @@ const formatDate = (value?: string | null) => {
   return Number.isNaN(date.getTime())
     ? null
     : date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+const amenityTimeWindow = (settings: unknown): string | null => {
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return null
+  const source = settings as Record<string, unknown>
+  const from = typeof source.availableFrom === 'string' ? source.availableFrom.trim() : ''
+  const to = typeof source.availableTo === 'string' ? source.availableTo.trim() : ''
+  if (!TIME_24_HOUR_REGEX.test(from) || !TIME_24_HOUR_REGEX.test(to)) return null
+  return `${from} - ${to}`
 }
 
 /**
@@ -467,7 +477,27 @@ export default function PropertyDetailsPage() {
           <h3 className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-700">
             <Layers className="h-4 w-4 text-[#005390]" /> Amenities
           </h3>
-          {property.amenities?.length ? (
+          {property.propertyAmenities?.length ? (
+            <div className="flex flex-wrap gap-1.5">
+              {property.propertyAmenities.map((item) => {
+                const timeWindow = amenityTimeWindow(item.settings)
+                return (
+                  <span
+                    key={item.amenityId}
+                    className="inline-flex items-center gap-1 rounded-full bg-[#005390]/10 px-2.5 py-0.5 text-xs font-medium text-[#005390]"
+                  >
+                    {item.name}
+                    <span className="text-[10px] font-semibold text-[#005390]/70">
+                      {item.slotBookable ? 'Slot' : 'Non-slot'}
+                    </span>
+                    {timeWindow ? (
+                      <span className="text-[10px] font-semibold text-[#005390]/70">{timeWindow}</span>
+                    ) : null}
+                  </span>
+                )
+              })}
+            </div>
+          ) : property.amenities?.length ? (
             <div className="flex flex-wrap gap-1.5">
               {property.amenities.map((a) => (
                 <span key={a} className="rounded-full bg-[#005390]/10 px-2.5 py-0.5 text-xs font-medium text-[#005390]">

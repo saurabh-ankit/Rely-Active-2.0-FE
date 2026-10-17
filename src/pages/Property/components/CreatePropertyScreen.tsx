@@ -32,6 +32,7 @@ import {
 } from './structure/entityPresets'
 import { Button } from '@/components/ui/button'
 import { createPropertyAPI, getPropertyByIdAPI, updatePropertyAPI } from '@/lib/services/propertyService'
+import { getAmenitiesAPI, type Amenity } from '@/lib/services/amenityService'
 import { CommonProgressBar, type ProgressBarStep } from '@/components/common/CommonProgressBar'
 import { notifyError } from '@/utils/toast'
 import { z } from 'zod'
@@ -51,7 +52,7 @@ export const propertyDetailsSchema = z.object({
       message: 'Total area must be a positive number',
     }),
   area_unit: z.enum(['sqft', 'sqmt', 'acres']),
-  amenities: z.array(z.string()).optional(),
+  amenities: z.any().optional(),
 })
 
 export const propertyAddressSchema = z.object({
@@ -74,6 +75,7 @@ export type PropertyDetailsFormValues = z.infer<typeof propertyDetailsSchema>
 export type PropertyAddressFormValues = z.infer<typeof propertyAddressSchema>
 export type FullPropertyFormValues = z.infer<typeof fullPropertySchema>
 import type {
+  AmenitySlotSettings,
   AreaUnit,
   BHKTemplateVariant,
   BlockInput,
@@ -101,7 +103,33 @@ const VIEW_FACING_OPTIONS = [
   'Open View',
 ]
 const FLOOR_TYPE_OPTIONS = ['GROUND_FLOOR', 'FLOOR', 'STILT', 'BASEMENT', 'PENTHOUSE']
-const SUGGESTED_AMENITIES = ['Swimming Pool', 'Gym', 'Clubhouse', '24/7 Security']
+const TIME_24_HOUR_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/
+
+interface SelectedAmenity {
+  amenityId: string | null
+  name: string
+  slotBookable: boolean
+  availableFrom?: string
+  availableTo?: string
+}
+
+const toTimeMinutes = (value: string) => {
+  const [hours, minutes] = value.split(':').map((part) => Number(part))
+  return hours * 60 + minutes
+}
+
+const extractAmenitySlotSettings = (settings: unknown): AmenitySlotSettings | null => {
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return null
+  const source = settings as Record<string, unknown>
+  const availableFrom = typeof source.availableFrom === 'string' ? source.availableFrom.trim() : ''
+  const availableTo = typeof source.availableTo === 'string' ? source.availableTo.trim() : ''
+  const normalized: AmenitySlotSettings = {}
+
+  if (TIME_24_HOUR_REGEX.test(availableFrom)) normalized.availableFrom = availableFrom
+  if (TIME_24_HOUR_REGEX.test(availableTo)) normalized.availableTo = availableTo
+
+  return normalized.availableFrom || normalized.availableTo ? normalized : null
+}
 
 // ─── Step progress config ───────────────────────────────────────────────────
 const STEPS: ProgressBarStep[] = [
@@ -236,8 +264,9 @@ export default function CreatePropertyScreen({
   const [description, setDescription] = useState('')
   const [totalArea, setTotalArea] = useState('')
   const [areaUnit, setAreaUnit] = useState<AreaUnit>('sqft')
-  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
-  const [customAmenityInput, setCustomAmenityInput] = useState('')
+  const [selectedAmenities, setSelectedAmenities] = useState<SelectedAmenity[]>([])
+  const [amenityCatalog, setAmenityCatalog] = useState<Amenity[]>([])
+  const [amenitySearch, setAmenitySearch] = useState('')
 
   // Step 2 – Address
   const [street, setStreet] = useState('')
@@ -266,12 +295,28 @@ export default function CreatePropertyScreen({
   const [expandedAssignVariantIndex, setExpandedAssignVariantIndex] = useState<number | null>(null)
   const [previewGenerated, setPreviewGenerated] = useState(false)
 
+  React.useEffect(() => {
+    let mounted = true
+    getAmenitiesAPI({ isActive: true })
+      .then((list) => {
+        if (!mounted) return
+        setAmenityCatalog(Array.isArray(list) ? list : [])
+      })
+      .catch(() => {
+        if (mounted) setAmenityCatalog([])
+      })
+    return () => {
+      mounted = false
+    }
+  }, [])
+
   // Fetch property details if editing
   React.useEffect(() => {
     if (!editPropertyId) return
     getPropertyByIdAPI(editPropertyId)
       .then((p) => {
         if (p) {
+          const amenitiesByName = new Map(amenityCatalog.map((amenity) => [amenity.name.trim().toLowerCase(), amenity]))
           setPropertyName(p.property_name || '')
           setPropertyTypes(p.property_types?.length ? p.property_types : ['apartment'])
           setDescription(p.description || '')
@@ -282,7 +327,33 @@ export default function CreatePropertyScreen({
           setCountry(p.country || 'India')
           setTotalArea(p.total_area ? String(p.total_area) : '')
           setAreaUnit(p.area_unit || 'sqft')
-          setSelectedAmenities(p.amenities || [])
+          if (p.propertyAmenities?.length) {
+            setSelectedAmenities(
+              p.propertyAmenities.map((item) => {
+                const slotSettings = extractAmenitySlotSettings(item.settings)
+                return {
+                  amenityId: item.amenityId,
+                  name: item.name,
+                  slotBookable: item.slotBookable,
+                  availableFrom: slotSettings?.availableFrom || '',
+                  availableTo: slotSettings?.availableTo || '',
+                }
+              }),
+            )
+          } else {
+            setSelectedAmenities(
+              (p.amenities || []).map((name) => {
+                const catalogItem = amenitiesByName.get(name.trim().toLowerCase())
+                return {
+                  amenityId: catalogItem?.id || null,
+                  name,
+                  slotBookable: false,
+                  availableFrom: '',
+                  availableTo: '',
+                }
+              }),
+            )
+          }
           if (p.entities && p.entities.length > 0) {
             setEntities(p.entities.map(normalizeEntity))
             setActiveEntityIndex(0)
@@ -292,7 +363,7 @@ export default function CreatePropertyScreen({
         }
       })
       .catch(() => {})
-  }, [editPropertyId])
+  }, [editPropertyId, amenityCatalog])
 
   const unitNumberCounts = React.useMemo(() => {
     const counts = new Map<string, number>()
@@ -563,24 +634,98 @@ export default function CreatePropertyScreen({
     setPreviewGenerated(true)
   }
 
-  const toggleAmenity = (amenity: string) => {
-    if (selectedAmenities.includes(amenity)) {
-      setSelectedAmenities(selectedAmenities.filter((a) => a !== amenity))
-    } else {
-      setSelectedAmenities([...selectedAmenities, amenity])
-    }
+  const toggleAmenity = (amenity: Amenity) => {
+    setSelectedAmenities((prev) => {
+      const existingById = prev.find((item) => item.amenityId === amenity.id)
+      if (existingById) {
+        return prev.filter((item) => item.amenityId !== amenity.id)
+      }
+      const byNameIndex = prev.findIndex((item) => item.name.trim().toLowerCase() === amenity.name.trim().toLowerCase())
+      if (byNameIndex >= 0) {
+        const next = [...prev]
+        const current = next[byNameIndex]
+        if (!current) return prev
+        next[byNameIndex] = {
+          amenityId: amenity.id,
+          name: amenity.name,
+          slotBookable: current.slotBookable,
+          availableFrom: current.availableFrom || '',
+          availableTo: current.availableTo || '',
+        }
+        return next
+      }
+      return [
+        ...prev,
+        {
+          amenityId: amenity.id,
+          name: amenity.name,
+          slotBookable: false,
+          availableFrom: '',
+          availableTo: '',
+        },
+      ]
+    })
   }
 
-  const addCustomAmenity = () => {
-    const trimmed = customAmenityInput.trim()
-    if (trimmed && !selectedAmenities.includes(trimmed)) {
-      setSelectedAmenities([...selectedAmenities, trimmed])
-      setCustomAmenityInput('')
-    }
+  const removeAmenity = (amenity: SelectedAmenity) => {
+    setSelectedAmenities((prev) =>
+      prev.filter((item) =>
+        amenity.amenityId
+          ? item.amenityId !== amenity.amenityId
+          : item.name.trim().toLowerCase() !== amenity.name.trim().toLowerCase(),
+      ),
+    )
+  }
+
+  const toggleAmenitySlotBookable = (amenity: SelectedAmenity) => {
+    setSelectedAmenities((prev) =>
+      prev.map((item) => {
+        const same = amenity.amenityId
+          ? item.amenityId === amenity.amenityId
+          : item.name.trim().toLowerCase() === amenity.name.trim().toLowerCase()
+        return same ? { ...item, slotBookable: !item.slotBookable } : item
+      }),
+    )
+  }
+
+  const updateAmenityAvailability = (
+    amenity: SelectedAmenity,
+    field: 'availableFrom' | 'availableTo',
+    value: string,
+  ) => {
+    setSelectedAmenities((prev) =>
+      prev.map((item) => {
+        const same = amenity.amenityId
+          ? item.amenityId === amenity.amenityId
+          : item.name.trim().toLowerCase() === amenity.name.trim().toLowerCase()
+        return same ? { ...item, [field]: value } : item
+      }),
+    )
   }
 
   const validateStep = (): boolean => {
     if (step === 1) {
+      for (const amenity of selectedAmenities) {
+        const from = (amenity.availableFrom || '').trim()
+        const to = (amenity.availableTo || '').trim()
+        if (!from && !to) continue
+
+        if (!from || !to) {
+          setError(`${amenity.name}: set both Available From and Available To, or leave both empty`)
+          return false
+        }
+
+        if (!TIME_24_HOUR_REGEX.test(from) || !TIME_24_HOUR_REGEX.test(to)) {
+          setError(`${amenity.name}: time must be in HH:mm format`)
+          return false
+        }
+
+        if (toTimeMinutes(from) >= toTimeMinutes(to)) {
+          setError(`${amenity.name}: Available To must be later than Available From`)
+          return false
+        }
+      }
+
       const res = propertyDetailsSchema.safeParse({
         property_name: propertyName,
         property_types: propertyTypes,
@@ -764,7 +909,32 @@ export default function CreatePropertyScreen({
         country: country || 'India',
         total_area: totalArea ? Number(totalArea) : null,
         area_unit: areaUnit,
-        amenities: selectedAmenities.length > 0 ? selectedAmenities : null,
+        amenities: selectedAmenities.length > 0 ? selectedAmenities.map((item) => item.name) : null,
+        ...(selectedAmenities.length === 0 || selectedAmenities.some((item) => !!item.amenityId)
+          ? {
+              propertyAmenities: selectedAmenities
+                .filter((item) => !!item.amenityId)
+                .map((item) => {
+                  const availableFrom = (item.availableFrom || '').trim()
+                  const availableTo = (item.availableTo || '').trim()
+                  const hasWindow =
+                    TIME_24_HOUR_REGEX.test(availableFrom) &&
+                    TIME_24_HOUR_REGEX.test(availableTo) &&
+                    toTimeMinutes(availableFrom) < toTimeMinutes(availableTo)
+
+                  return {
+                    amenityId: item.amenityId as string,
+                    slotBookable: item.slotBookable,
+                    settings: hasWindow
+                      ? {
+                          availableFrom,
+                          availableTo,
+                        }
+                      : null,
+                  }
+                }),
+            }
+          : {}),
         entities: entitiesPayload,
       }
 
@@ -781,6 +951,15 @@ export default function CreatePropertyScreen({
       setIsSubmitting(false)
     }
   }
+
+  const selectedAmenityIds = new Set(selectedAmenities.map((item) => item.amenityId).filter((id): id is string => !!id))
+  const filteredAmenityCatalog = amenityCatalog
+    .filter((item) => {
+      const term = amenitySearch.trim().toLowerCase()
+      if (!term) return true
+      return item.name.toLowerCase().includes(term) || (item.description || '').toLowerCase().includes(term)
+    })
+    .slice(0, 120)
 
   return (
     <div className="space-y-6">
@@ -878,73 +1057,129 @@ export default function CreatePropertyScreen({
 
             <div className="space-y-2">
               <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider block">
-                Amenities Suggestions
+                Amenities Catalog
               </div>
+              <p className="text-[11px] text-gray-500">
+                Pick amenities from global settings, choose slot-bookable if needed, and set optional availability
+                timings for each amenity.
+              </p>
+
               {selectedAmenities.length > 0 && (
-                <div className="flex flex-wrap gap-2 p-3 rounded-xl border border-[#005390]/20 bg-[#005390]/10 mb-2">
-                  {selectedAmenities.map((amenity) => (
-                    <span
-                      key={amenity}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-[#005390] text-white text-xs font-medium px-3 py-1 shadow-sm"
-                    >
-                      {amenity}
-                      <button
-                        type="button"
-                        onClick={() => toggleAmenity(amenity)}
-                        className="hover:bg-[#004274] rounded-full p-0.5"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
+                <div className="space-y-2 rounded-xl border border-[#005390]/20 bg-[#005390]/10 p-3">
+                  {selectedAmenities.map((amenity) => {
+                    const amenityKey = `${amenity.amenityId || 'legacy'}-${amenity.name}`
+                    const inputIdBase = amenityKey.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+                    const availableFromId = `${inputIdBase}-available-from`
+                    const availableToId = `${inputIdBase}-available-to`
+
+                    return (
+                      <div key={amenityKey} className="rounded-xl border border-[#005390]/15 bg-white/80 p-2.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#005390] text-white text-xs font-medium px-3 py-1 shadow-sm">
+                            {amenity.name}
+                            {amenity.amenityId ? null : <span className="text-[10px] text-white/75">Legacy</span>}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => toggleAmenitySlotBookable(amenity)}
+                              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold border transition-colors ${
+                                amenity.slotBookable
+                                  ? 'border-[#005390]/30 bg-[#005390]/10 text-[#005390]'
+                                  : 'border-gray-300 bg-white text-gray-600'
+                              }`}
+                            >
+                              {amenity.slotBookable ? 'Slot-bookable' : 'Non-slot'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeAmenity(amenity)}
+                              className="hover:bg-[#004274] text-white rounded-full p-1"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          <div>
+                            <label
+                              htmlFor={availableFromId}
+                              className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-gray-600"
+                            >
+                              Available From (Optional)
+                            </label>
+                            <input
+                              id={availableFromId}
+                              type="time"
+                              value={amenity.availableFrom || ''}
+                              onChange={(event) =>
+                                updateAmenityAvailability(amenity, 'availableFrom', event.target.value)
+                              }
+                              className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 outline-none focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20"
+                            />
+                          </div>
+                          <div>
+                            <label
+                              htmlFor={availableToId}
+                              className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-gray-600"
+                            >
+                              Available To (Optional)
+                            </label>
+                            <input
+                              id={availableToId}
+                              type="time"
+                              value={amenity.availableTo || ''}
+                              onChange={(event) =>
+                                updateAmenityAvailability(amenity, 'availableTo', event.target.value)
+                              }
+                              className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 outline-none focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               )}
-              <div className="flex flex-wrap gap-2 pt-1">
-                {SUGGESTED_AMENITIES.map((suggestion) => {
-                  const isSelected = selectedAmenities.includes(suggestion)
-                  return (
-                    <button
-                      type="button"
-                      key={suggestion}
-                      onClick={() => toggleAmenity(suggestion)}
-                      className={`inline-flex items-center gap-1.5 rounded-xl text-xs font-medium px-3.5 py-2 border transition-all ${
-                        isSelected
-                          ? 'bg-[#005390]/10 border-[#005390]/30 text-[#005390] font-semibold shadow-xs'
-                          : 'bg-white border-gray-200 text-gray-600 hover:border-[#005390]/30 hover:bg-[#005390]/10'
-                      }`}
-                    >
-                      {isSelected ? (
-                        <Check className="h-3.5 w-3.5 text-[#005390]" />
-                      ) : (
-                        <Plus className="h-3.5 w-3.5 text-gray-400" />
-                      )}
-                      {suggestion}
-                    </button>
-                  )
-                })}
-              </div>
-              <div className="flex gap-2 pt-1">
-                <input
-                  type="text"
-                  placeholder="Add custom amenity..."
-                  value={customAmenityInput}
-                  onChange={(e) => setCustomAmenityInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      addCustomAmenity()
-                    }
-                  }}
-                  className="flex-1 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs text-gray-900 outline-none focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={addCustomAmenity}
-                  className="rounded-xl text-xs px-4 py-2 border-gray-200 hover:bg-[#005390]/10 hover:text-[#005390]"
-                >
-                  Add
-                </Button>
+
+              <input
+                type="text"
+                placeholder="Search amenities by name or description"
+                value={amenitySearch}
+                onChange={(e) => setAmenitySearch(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs text-gray-900 outline-none focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20"
+              />
+
+              <div className="flex flex-wrap gap-2 pt-1 max-h-40 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 p-2">
+                {filteredAmenityCatalog.length === 0 ? (
+                  <p className="px-2 py-1 text-[11px] text-gray-500">
+                    No amenities found. Create one in Global Settings.
+                  </p>
+                ) : (
+                  filteredAmenityCatalog.map((item) => {
+                    const isSelected = selectedAmenityIds.has(item.id)
+                    return (
+                      <button
+                        type="button"
+                        key={item.id}
+                        onClick={() => toggleAmenity(item)}
+                        className={`inline-flex items-center gap-1.5 rounded-xl text-xs font-medium px-3.5 py-2 border transition-all ${
+                          isSelected
+                            ? 'bg-[#005390]/10 border-[#005390]/30 text-[#005390] font-semibold shadow-xs'
+                            : 'bg-white border-gray-200 text-gray-600 hover:border-[#005390]/30 hover:bg-[#005390]/10'
+                        }`}
+                      >
+                        {isSelected ? (
+                          <Check className="h-3.5 w-3.5 text-[#005390]" />
+                        ) : (
+                          <Plus className="h-3.5 w-3.5 text-gray-400" />
+                        )}
+                        {item.name}
+                      </button>
+                    )
+                  })
+                )}
               </div>
             </div>
 
