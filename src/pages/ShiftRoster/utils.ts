@@ -232,8 +232,11 @@ export const parseLocalYmd = (ymd: string): Date => {
   return new Date(y!, (m ?? 1) - 1, d ?? 1)
 }
 
+/** YYYY-MM-DD from a YYYY-MM-DD or ISO datetime string (time part ignored). */
+export const toDateKey = (value: string): string => String(value).split('T')[0]!
+
 /** Local date from a YYYY-MM-DD or ISO datetime string (time part ignored). */
-export const parseLocalDate = (dateStr: string): Date => parseLocalYmd(dateStr.split('T')[0]!)
+export const parseLocalDate = (dateStr: string): Date => parseLocalYmd(toDateKey(dateStr))
 
 /** Area name, else block · floor · unit label for a roster assignment. */
 export const buildLocationLabel = (assignment: EmployeeShiftAssignment): string | null => {
@@ -301,19 +304,28 @@ export const buildDateRange = (start: Date, days: number): Date[] =>
   Array.from({ length: days }, (_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i))
 
 const LEAVE_LABELS: Record<string, string> = {
-  week_off: 'Day off',
+  week_off: 'Week Off',
   sick: 'Sick leave',
   casual: 'Casual leave',
   planned: 'Planned leave',
   holiday: 'Holiday',
 }
 
+const getProfileWeekOffSet = (assignment: EmployeeShiftAssignment): Set<string> => {
+  const raw = assignment.employee?.profile?.weekOffDays || assignment.employee?.profile?.week_off_days || []
+  return new Set(raw.map((d) => String(d).toLowerCase()))
+}
+
 /**
  * Expand assignments into a per-employee, per-day grid of shifts (by name).
- * Days outside the roster's working days are simply not rostered (left empty) —
- * the system stores those as week_off rows, but they are not days off. Only a
- * day_off on an actual working day (marked off / on leave) becomes OFF; deleted
- * overrides drop the day.
+ *
+ * OFF cells are only for:
+ * - Employee profile weekOffDays (days the employee is unavailable), and
+ * - Explicit day_off leave (manual mark-off / sick / etc. on a rostered day).
+ *
+ * BE auto-stores day_off + week_off fillers for assignment non-working days;
+ * those are "not rostered" (—), not weekly offs — same rule as the month calendar.
+ * Deleted overrides drop the day.
  */
 export const buildRosterGridData = ({
   assignments,
@@ -332,7 +344,7 @@ export const buildRosterGridData = ({
 
   const overrideMap = new Map<string, ShiftEmployeeDate>()
   for (const sd of shiftDates) {
-    const key = `${sd.employeeShiftAssignmentId}_${sd.date}`
+    const key = `${sd.employeeShiftAssignmentId}_${toDateKey(sd.date)}`
     const existing = overrideMap.get(key)
     if (existing && !existing.isDeleted && sd.isDeleted) continue
     overrideMap.set(key, sd)
@@ -371,6 +383,7 @@ export const buildRosterGridData = ({
     }
 
     const workingDays = Array.isArray(assignment.workingDays) ? assignment.workingDays : []
+    const profileWeekOffs = getProfileWeekOffSet(assignment)
     const start = parseLocalDate(assignment.startDate)
     const end = parseLocalDate(assignment.endDate)
 
@@ -381,22 +394,46 @@ export const buildRosterGridData = ({
 
       const dayName = WEEKDAY_BY_INDEX[d.getDay()]
       const isWorkingDay = workingDays.length === 0 || (!!dayName && workingDays.includes(dayName))
-      if (!isWorkingDay) continue
+      const isProfileWeekOff = !!dayName && profileWeekOffs.has(dayName)
 
-      const isOff = override?.status === 'day_off'
+      // BE filler for assignment non-working days — not a real week off / leave.
+      const isAutoWeekOffFiller =
+        override?.status === 'day_off' && (override.leaveType === 'week_off' || !override.leaveType) && !isWorkingDay
+
+      const isExplicitLeave = override?.status === 'day_off' && !isAutoWeekOffFiller
 
       const empCells = (shiftMap[employeeId] ??= {})
       const current = empCells[dateStr] ?? []
 
-      if (isOff) {
-        if (current.length === 0) {
-          const leave = (override?.leaveType && LEAVE_LABELS[override.leaveType]) || 'Day off'
-          current.push({ label: ROSTER_GRID_OFF_LABEL, shiftId, shiftName: leave, shiftTime: '', isOff: true })
+      if (isProfileWeekOff || isExplicitLeave) {
+        const leave =
+          (override?.leaveType && LEAVE_LABELS[override.leaveType]) ||
+          (isProfileWeekOff ? LEAVE_LABELS.week_off : 'Day off')
+        const offEntry: RosterGridEntry = {
+          label: ROSTER_GRID_OFF_LABEL,
+          shiftId,
+          shiftName: leave,
+          shiftTime: '',
+          isOff: true,
         }
-        empCells[dateStr] = current
+
+        if (isExplicitLeave) {
+          // Explicit leave wins for this employee/date over any prior shift cells.
+          empCells[dateStr] = [offEntry]
+          continue
+        }
+
+        // Profile week off: only when the cell has no active shifts yet.
+        if (getActiveGridEntries(current).length === 0 && !isGridCellOff(current)) {
+          empCells[dateStr] = [offEntry]
+        }
         continue
       }
 
+      // Not rostered on this weekday (and not a profile week off).
+      if (!isWorkingDay) continue
+
+      // Active shift replaces profile week-off placeholders from other assignments.
       const active = getActiveGridEntries(current)
       if (!active.some((e) => e.shiftId === shiftId)) {
         active.push({ label, shiftId, shiftName, shiftTime, isOff: false })

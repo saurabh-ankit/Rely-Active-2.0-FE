@@ -15,6 +15,7 @@ import {
   groupRostersByShift,
   parseLocalDate,
   resolveLifecycleRosterStatus,
+  toDateKey,
   todayYmdLocal,
 } from '../../utils'
 import { RosterPermission } from '../RosterPermission'
@@ -108,7 +109,7 @@ const RosterCalendar = () => {
 
     const overrideMap = new Map<string, ShiftEmployeeDate>()
     for (const sd of shiftDates) {
-      const key = `${sd.employeeShiftAssignmentId}_${sd.date}`
+      const key = `${sd.employeeShiftAssignmentId}_${toDateKey(sd.date)}`
       // A day deleted and later re-added has both rows; the active one wins.
       const existing = overrideMap.get(key)
       if (existing && !existing.isDeleted && sd.isDeleted) continue
@@ -224,7 +225,7 @@ const RosterCalendar = () => {
           employee: assignment.employee || sd.shiftAssignment?.employee,
           shift: assignment.shift || sd.shiftAssignment?.shift,
         },
-        sd.date,
+        toDateKey(sd.date),
         sd,
       )
     }
