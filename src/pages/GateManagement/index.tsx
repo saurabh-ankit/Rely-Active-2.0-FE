@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback } from 'react'
+import { format, isValid } from 'date-fns'
 import {
   Users,
   CheckCircle2,
@@ -58,6 +59,20 @@ const APPROVER_BADGES: Record<string, { label: string; cls: string }> = {
   STAFF: { label: 'Staff', cls: 'bg-sky-50 text-sky-700 border-sky-200' },
 }
 
+const formatDateTime = (dateStr?: string | Date | null) => {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (!isValid(d)) return ''
+  return format(d, 'dd/MM/yyyy, h:mm:ss a')
+}
+
+const formatDate = (dateStr?: string | Date | null) => {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (!isValid(d)) return ''
+  return format(d, 'dd/MM/yyyy')
+}
+
 /** Who approved (or rejected) the entry, what kind of person they are, and when. */
 const ApprovedByCell = ({ entry }: { entry: GateEntry }) => {
   // A pre-approved pass is approved by the resident who raised it (see Raised By); only a
@@ -83,7 +98,7 @@ const ApprovedByCell = ({ entry }: { entry: GateEntry }) => {
         {entry.status === 'Rejected' && <span className="text-[10px] font-bold text-red-600">Rejected</span>}
       </div>
       {entry.approvedAt && (
-        <p className="text-[11px] text-gray-500 whitespace-nowrap">{new Date(entry.approvedAt).toLocaleString()}</p>
+        <p className="text-[11px] text-gray-500 whitespace-nowrap">{formatDateTime(entry.approvedAt)}</p>
       )}
     </div>
   )
@@ -113,7 +128,7 @@ const RaisedByCell = ({ entry }: { entry: GateEntry }) => {
       {entry.createdAt && (
         <p className="text-[11px] text-gray-500 whitespace-nowrap">
           {/* A pre-approval was raised when the resident made the pass, not when the visitor arrived. */}
-          {new Date(entry.preapproved?.createdAt || entry.createdAt).toLocaleString()}
+          {formatDateTime(entry.preapproved?.createdAt || entry.createdAt)}
         </p>
       )}
     </div>
@@ -327,6 +342,7 @@ export default function GateManagementPage() {
 
           <input
             type="date"
+            lang="en-IN"
             value={dateFilter}
             onChange={(e) => {
               setDateFilter(e.target.value)
@@ -571,7 +587,7 @@ export default function GateManagementPage() {
                       <td className="py-4 px-2 text-xs text-gray-600 font-medium">
                         {entry.createdAt && (
                           <div className="text-blue-600 mb-1 font-semibold whitespace-nowrap">
-                            Entry: {new Date(entry.createdAt).toLocaleString()}
+                            Entry: {formatDateTime(entry.createdAt)}
                           </div>
                         )}
                         {entry.clockedInAt ? `In: ${new Date(entry.clockedInAt).toLocaleTimeString()}` : '-'}
@@ -747,13 +763,13 @@ export default function GateManagementPage() {
                             <span className="font-semibold text-gray-500">
                               {preapproved.scheduleType === 'FREQUENT' ? 'Start Date:' : 'Date:'}
                             </span>{' '}
-                            {new Date(preapproved.startDate).toLocaleDateString()}
+                            {formatDate(preapproved.startDate)}
                           </div>
                         )}
                         {preapproved.endDate && preapproved.scheduleType === 'FREQUENT' && (
                           <div>
                             <span className="font-semibold text-gray-500">End Date:</span>{' '}
-                            {new Date(preapproved.endDate).toLocaleDateString()}
+                            {formatDate(preapproved.endDate)}
                           </div>
                         )}
                         {preapproved.startTime && (
