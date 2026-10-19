@@ -2386,10 +2386,11 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
               className="bg-[#005390] hover:bg-[#003d6b] text-white rounded-xl shadow-md shadow-[#005390]/20 font-semibold"
             >
               {isSubmitting ? (
-                <span className="inline-flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  {isEditMode ? 'Saving…' : 'Onboarding…'}
-                </span>
+                isEditMode ? (
+                  'Saving…'
+                ) : (
+                  'Onboarding…'
+                )
               ) : (
                 <span className="inline-flex items-center gap-2">
                   <Plus className="w-4 h-4" />
