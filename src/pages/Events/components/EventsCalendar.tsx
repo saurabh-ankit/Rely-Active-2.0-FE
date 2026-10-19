@@ -24,6 +24,31 @@ const formatTime = (value: string) =>
   new Date(value).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 
 /** Colour-coded chip for an event inside a calendar cell. */
+/** Regular (attendance marked), Special (one-time, attendance marked) or Resident event (from a request). */
+type EventKind = 'regular' | 'special' | 'resident'
+const eventKind = (e: Event): EventKind =>
+  e.fromResidentRequest ? 'resident' : e.eventType === 'regular' ? 'regular' : 'special'
+const KIND_META: Record<EventKind, { label: string; badge: string; dot: string; chip: string }> = {
+  regular: {
+    label: 'Regular',
+    badge: 'bg-blue-50 text-blue-700 border border-blue-200',
+    dot: 'bg-[#005390]',
+    chip: 'border-l-[#005390] bg-[#005390]/8 text-[#005390] hover:bg-[#005390]/15',
+  },
+  special: {
+    label: 'Special',
+    badge: 'bg-purple-50 text-purple-700 border border-purple-200',
+    dot: 'bg-purple-500',
+    chip: 'border-l-purple-500 bg-purple-50 text-purple-800 hover:bg-purple-100',
+  },
+  resident: {
+    label: 'Resident event',
+    badge: 'bg-amber-50 text-amber-800 border border-amber-200',
+    dot: 'bg-amber-500',
+    chip: 'border-l-amber-500 bg-amber-50 text-amber-800 hover:bg-amber-100',
+  },
+}
+
 const EventChip = ({
   event,
   day,
@@ -35,7 +60,7 @@ const EventChip = ({
   clickable: boolean
   onOpen: () => void
 }) => {
-  const special = event.eventType !== 'regular'
+  const kind = KIND_META[eventKind(event)]
   // Multi-day events only show the start time on their first day
   const startsToday = isSameDay(new Date(event.startDate), day)
   return (
@@ -48,9 +73,7 @@ const EventChip = ({
       }}
       className={cn(
         'flex w-full items-center gap-1.5 truncate rounded-md border-l-[3px] px-1.5 py-1 text-left text-[11px] font-semibold leading-tight transition-colors',
-        special
-          ? 'border-l-purple-500 bg-purple-50 text-purple-800 hover:bg-purple-100'
-          : 'border-l-[#005390] bg-[#005390]/8 text-[#005390] hover:bg-[#005390]/15',
+        kind.chip,
         clickable ? 'cursor-pointer' : 'cursor-default',
       )}
     >
@@ -482,6 +505,10 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
               <span className="h-2.5 w-2.5 rounded-full bg-purple-500" />
               Special
             </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+              Resident event
+            </span>
           </div>
           <div className="flex rounded-xl border border-gray-200 bg-gray-50 p-0.5">
             {VIEW_MODES.map((mode) => (
@@ -650,13 +677,9 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                                     })}
                                   </span>
                                   <span
-                                    className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                                      event.eventType === 'regular'
-                                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                        : 'bg-purple-50 text-purple-700 border border-purple-200'
-                                    }`}
+                                    className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${KIND_META[eventKind(event)].badge}`}
                                   >
-                                    {event.eventType === 'regular' ? 'Regular' : 'Special'}
+                                    {KIND_META[eventKind(event)].label}
                                   </span>
                                 </div>
 
@@ -700,7 +723,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                                 </Button>
                               </EventsPermission>
 
-                              {event.allowReservation && (
+                              {(event.allowReservation || !event.fromResidentRequest) && (
                                 <Button
                                   size="sm"
                                   onClick={(e) => {
@@ -709,7 +732,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                                   }}
                                   className="h-9 px-4 rounded-xl text-xs font-semibold bg-[#005390] text-white hover:bg-[#004273] shadow-xs transition-colors"
                                 >
-                                  View Registrations
+                                  {event.allowReservation ? 'View Registrations' : 'View Attendance'}
                                 </Button>
                               )}
                             </div>
@@ -785,13 +808,9 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                                   })}
                                 </span>
                                 <span
-                                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                                    event.eventType === 'regular'
-                                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                      : 'bg-purple-50 text-purple-700 border border-purple-200'
-                                  }`}
+                                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${KIND_META[eventKind(event)].badge}`}
                                 >
-                                  {event.eventType === 'regular' ? 'Regular' : 'Special'}
+                                  {KIND_META[eventKind(event)].label}
                                 </span>
                               </div>
 
@@ -835,7 +854,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                               </Button>
                             </EventsPermission>
 
-                            {event.allowReservation && (
+                            {(event.allowReservation || !event.fromResidentRequest) && (
                               <Button
                                 size="sm"
                                 onClick={(e) => {
@@ -844,7 +863,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                                 }}
                                 className="h-9 px-4 rounded-xl text-xs font-semibold bg-[#005390] text-white hover:bg-[#004273] shadow-xs transition-colors"
                               >
-                                View Registrations
+                                {event.allowReservation ? 'View Registrations' : 'View Attendance'}
                               </Button>
                             )}
                           </div>
@@ -959,10 +978,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                       {dateEvents.slice(0, 3).map((event) => (
                         <span
                           key={event.id}
-                          className={cn(
-                            'h-1.5 w-1.5 rounded-full',
-                            event.eventType === 'regular' ? 'bg-[#005390]' : 'bg-purple-500',
-                          )}
+                          className={cn('h-1.5 w-1.5 rounded-full', KIND_META[eventKind(event)].dot)}
                         />
                       ))}
                     </div>
@@ -1011,8 +1027,10 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                     )}
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium capitalize">
-                          {event.eventType === 'regular' ? 'Regular' : 'Special'}
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs font-medium ${KIND_META[eventKind(event)].badge}`}
+                        >
+                          {KIND_META[eventKind(event)].label}
                         </span>
                         {event.frequencyType && (
                           <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium capitalize">
@@ -1075,7 +1093,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                             Edit Event
                           </Button>
                         </EventsPermission>
-                        {event.allowReservation && (
+                        {(event.allowReservation || !event.fromResidentRequest) && (
                           <Button
                             size="sm"
                             variant="default"
@@ -1085,7 +1103,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                               setEventsPopupDate(null)
                             }}
                           >
-                            View Registrations
+                            {event.allowReservation ? 'View Registrations' : 'View Attendance'}
                           </Button>
                         )}
                       </div>

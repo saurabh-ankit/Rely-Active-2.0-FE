@@ -90,7 +90,10 @@ export type UpdateEventRequest = Partial<CreateEventRequest>
 
 export interface Event {
   id: string
+  /** regular = created by staff; special = resident request, or marked special by a super admin. */
   eventType: EventType
+  /** Confirmed from a resident's request: always special, type cannot be changed. */
+  fromResidentRequest?: boolean
   title: string
   description?: string
   startDate: string
@@ -171,6 +174,31 @@ export interface EventRegistration {
   cancelledAt?: string | null
   cancellationReason?: string | null
   attendedAt?: string | null
+  /** Attendance staff member who marked Attended / No-show. */
+  attendanceMarkedBy?: string | null
+  /** Set when the attendee was a family member of the resident (walk-in). */
+  familyMember?: {
+    id: string
+    name: string
+    relation: string | null
+    phone?: string | null
+    email?: string | null
+  } | null
+  /** People living in the resident's household: the resident plus residing family members. */
+  householdSize?: number
+  /** Everyone the reservation covers, with when each came and who marked them. */
+  people?: {
+    familyMemberId: string | null
+    name: string
+    relation: string | null
+    attended: boolean
+    markedAt: string | null
+    markedBy: string | null
+  }[]
+  /** The resident's flat, e.g. "B-21". */
+  unitNumber?: string | null
+  /** People who came under a reservation, marked one by one in the L3 app. */
+  attendees?: { familyMemberId: string | null; name: string; relation: string | null; markedAt: string }[]
   notes?: string | null
   patient: Patient
   event?: {

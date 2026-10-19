@@ -1,6 +1,10 @@
 export interface LoginPayload {
   username: string
   password: string
+  fcmToken?: string
+  deviceId?: string
+  platform?: 'WEB' | 'ANDROID' | 'IOS'
+  appVersion?: string
 }
 
 export interface UserProfileData {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import { getMeAPI, loginAPI } from '@/lib/services/authService'
+import { unregisterWebPushTokenSafe } from '@/lib/services/webPushService'
 import { TOKEN_KEY, useUserStore } from '@/lib/stores/userStore'
 import type { LoginPayload, UserAuthData } from '@/lib/types'
 
@@ -39,8 +40,11 @@ export const useAuth = () => {
   }
 
   const logout = useCallback(() => {
+    if (token) {
+      void unregisterWebPushTokenSafe(token)
+    }
     storeLogout()
-  }, [storeLogout])
+  }, [storeLogout, token])
 
   const isSuperAdmin =
     Boolean(user?.isSuperAdmin) ||

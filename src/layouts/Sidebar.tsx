@@ -10,6 +10,7 @@ import {
   ReceiptIndianRupee,
   Settings,
   ShieldCheck,
+  Sparkles,
   Stethoscope,
   User,
   Utensils,
@@ -90,6 +91,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       resourceKey: 'RESIDENT',
     },
     {
+      icon: <Sparkles className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
+      label: 'Amenities',
+      href: '/admin/amenities',
+    },
+    {
       icon: <HandHeart className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
       label: 'Employee',
       href: '/admin/employees',
@@ -158,6 +164,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
 
   const filteredItems = sidebarItems.filter((item) => {
     if (managerType) {
+      if (item.href === '/admin/amenities') return true
       switch (managerType) {
         case 'RNM':
         case 'CON':

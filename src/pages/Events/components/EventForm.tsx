@@ -14,6 +14,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/useAuth'
 import {
   useCreateEvent,
   useDeleteEvent,
@@ -32,8 +33,6 @@ import {
   ImagePlus,
   IndianRupee,
   MapPin,
-  Repeat,
-  Sparkles,
   Ticket,
   Trash2,
   Upload,
@@ -87,11 +86,6 @@ const FormSection = ({
   </section>
 )
 
-const EVENT_TYPE_OPTIONS: { value: EventType; label: string; hint: string; icon: LucideIcon }[] = [
-  { value: 'regular', label: 'Regular Event', hint: 'Repeats daily, weekly, monthly or yearly', icon: Repeat },
-  { value: 'special', label: 'Special Event', hint: 'A one-time occasion', icon: Sparkles },
-]
-
 const eventTypeSchema = z.enum(['regular', 'special'])
 const frequencyTypeSchema = z.enum(['once', 'daily', 'weekly', 'monthly', 'yearly', 'custom'])
 
@@ -141,8 +135,9 @@ interface EventFormValidationContext extends EventScheduleContext {
   venueServices: AddOnService[]
 }
 
-const isRegularRecurring = (eventType?: EventType, frequencyType?: FrequencyType) =>
-  eventType === 'regular' && !!frequencyType && frequencyType !== 'once'
+/** Whether the event repeats. The type only says who it is for (regular = staff, special = resident request). */
+const isRegularRecurring = (_eventType?: EventType, frequencyType?: FrequencyType) =>
+  !!frequencyType && frequencyType !== 'once'
 
 function validateEventSchedule(values: EventFormValues, ctx: EventScheduleContext): string | null {
   const isRecurring = isRegularRecurring(values.eventType, values.frequencyType)
@@ -197,22 +192,6 @@ function createEventFormSchema(getContext: () => EventFormValidationContext) {
   return eventFormBaseSchema.superRefine((data, refineCtx) => {
     const ctx = getContext()
     const isRecurring = isRegularRecurring(data.eventType, data.frequencyType)
-
-    if (data.eventType === 'special' && data.frequencyType !== 'once') {
-      refineCtx.addIssue({
-        code: 'custom',
-        message: 'Special events must have frequency type "once"',
-        path: ['frequencyType'],
-      })
-    }
-
-    if (data.eventType === 'regular' && data.frequencyType === 'once') {
-      refineCtx.addIssue({
-        code: 'custom',
-        message: 'Regular events cannot have frequency type "once"',
-        path: ['frequencyType'],
-      })
-    }
 
     if (!data.startDate) {
       refineCtx.addIssue({
@@ -345,7 +324,8 @@ function createEventFormSchema(getContext: () => EventFormValidationContext) {
 }
 
 const eventFormDefaultValues: EventFormValues = {
-  eventType: 'special',
+  // Events created here are regular; special events come from residents' requests.
+  eventType: 'regular',
   title: '',
   description: '',
   startDate: '',
@@ -393,6 +373,7 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
   const isEditMode = !!eventId
 
   const { data: eventData } = useGetEventById(eventId || '', isEditMode)
+  const { isSuperAdmin } = useAuth()
   const { data: venuesData } = useListVenues()
   const createEventMutation = useCreateEvent()
   const updateEventMutation = useUpdateEvent()
@@ -746,22 +727,6 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
     }
   }, [eventForm.sameScheduleForAllDates, sameScheduleStartTime, sameScheduleEndTime, occurrenceDates])
 
-  const handleEventTypeChange = (value: EventType) => {
-    if (value === 'special') {
-      setValue('eventType', value)
-      setValue('frequencyType', 'once')
-      setValue('recurrenceDaysOfWeek', [])
-      setValue('recurrenceDayOfMonth', undefined)
-      setValue('recurrenceMonth', undefined)
-      setValue('sameScheduleForAllDates', false)
-    } else {
-      setValue('eventType', value)
-      setValue('frequencyType', eventForm.frequencyType === 'once' ? 'daily' : eventForm.frequencyType)
-    }
-    setRecurrenceDatePicker('')
-    setScheduleTimes({})
-  }
-
   const handleRecurrenceDateChange = (value: string) => {
     setRecurrenceDatePicker(value)
     if (!value) return
@@ -905,7 +870,7 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
     }
 
     const formData = new FormData()
-    formData.append('eventType', values.eventType || 'special')
+    formData.append('eventType', values.eventType || 'regular')
     formData.append('title', values.title)
     formData.append('description', values.description || '')
     formData.append('venueId', values.venueId)
@@ -1005,15 +970,24 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
 
   const isPending = createEventMutation.isPending || updateEventMutation.isPending
 
-  const frequencyOptions: { value: FrequencyType; label: string }[] =
-    eventForm.eventType === 'special'
-      ? [{ value: 'once', label: 'Once' }]
-      : [
-          { value: 'daily', label: 'Daily' },
-          { value: 'weekly', label: 'Weekly' },
-          { value: 'monthly', label: 'Monthly' },
-          { value: 'yearly', label: 'Yearly' },
-        ]
+  // Events from a resident's request stay special and one-time.
+  const fromResidentRequest = Boolean(
+    isEditMode && (event as { fromResidentRequest?: boolean } | null)?.fromResidentRequest,
+  )
+  // Only a super admin chooses the type; everyone else creates regular events.
+  const canChooseType = isSuperAdmin && !fromResidentRequest
+
+  // Special events (and resident events) happen once.
+  const onceOnly = fromResidentRequest || eventForm.eventType === 'special'
+  const frequencyOptions: { value: FrequencyType; label: string }[] = onceOnly
+    ? [{ value: 'once', label: 'Once' }]
+    : [
+        { value: 'once', label: 'Once' },
+        { value: 'daily', label: 'Daily' },
+        { value: 'weekly', label: 'Weekly' },
+        { value: 'monthly', label: 'Monthly' },
+        { value: 'yearly', label: 'Yearly' },
+      ]
 
   const formFields = (
     <form onSubmit={handleSubmit(onSubmit, onInvalid)} noValidate className="flex min-h-0 flex-1 flex-col">
@@ -1028,47 +1002,61 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
           title="Event details"
           description="What kind of event is this and what is it about?"
         >
-          <div>
-            <Label className="mb-1.5">Event Type *</Label>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {EVENT_TYPE_OPTIONS.map(({ value, label, hint, icon: TypeIcon }) => {
-                const active = eventForm.eventType === value
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => handleEventTypeChange(value)}
-                    className={cn(
-                      'flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition-colors',
-                      active
-                        ? value === 'special'
-                          ? 'border-purple-400 bg-purple-50 ring-2 ring-purple-400/20'
-                          : 'border-[#005390] bg-[#005390]/5 ring-2 ring-[#005390]/20'
-                        : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50',
-                    )}
-                  >
-                    <span
+          {canChooseType ? (
+            <div>
+              <Label className="mb-1.5">Event Type *</Label>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {(
+                  [
+                    ['regular', 'Regular', 'Attendance is marked by Attendance staff'],
+                    ['special', 'Special', 'Happens once · attendance is marked'],
+                  ] as const
+                ).map(([value, label, hint]) => {
+                  const active = eventForm.eventType === value
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => {
+                        setValue('eventType', value)
+                        if (value === 'special' && eventForm.frequencyType !== 'once') {
+                          // A special event happens once: drop any repeat settings.
+                          setValue('frequencyType', 'once')
+                          setValue('recurrenceDaysOfWeek', [])
+                          setValue('recurrenceDayOfMonth', undefined)
+                          setValue('recurrenceMonth', undefined)
+                          setValue('sameScheduleForAllDates', false)
+                          setRecurrenceDatePicker('')
+                          setScheduleTimes({})
+                        }
+                      }}
                       className={cn(
-                        'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
+                        'flex cursor-pointer flex-col rounded-xl border p-3 text-left transition-colors',
                         active
                           ? value === 'special'
-                            ? 'bg-purple-500 text-white'
-                            : 'bg-[#005390] text-white'
-                          : 'bg-gray-100 text-gray-500',
+                            ? 'border-purple-400 bg-purple-50 ring-2 ring-purple-400/20'
+                            : 'border-[#005390] bg-[#005390]/5 ring-2 ring-[#005390]/20'
+                          : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50',
                       )}
                     >
-                      <TypeIcon className="h-4 w-4" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-sm font-semibold text-gray-900">{label}</span>
-                      <span className="block text-xs text-gray-500">{hint}</span>
-                    </span>
-                  </button>
-                )
-              })}
+                      <span className="text-sm font-semibold text-gray-900">{label}</span>
+                      <span className="text-xs text-gray-500">{hint}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            eventForm.eventType === 'special' && (
+              <p className="rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 text-xs text-purple-800">
+                <span className="font-semibold">Special event</span> ·{' '}
+                {fromResidentRequest
+                  ? "confirmed from a resident's request."
+                  : 'happens once; attendance is marked by Attendance staff.'}
+              </p>
+            )
+          )}
 
           <div>
             <Label className="mb-1.5">Event Title *</Label>
@@ -1104,9 +1092,10 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
         >
           <div>
             <Label className="mb-1.5">Frequency *</Label>
-            {eventForm.eventType === 'special' ? (
+            {onceOnly ? (
               <p className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500">
-                Special events happen <span className="font-semibold text-gray-700">once</span>.
+                {fromResidentRequest ? 'This event was requested by a resident and happens' : 'Special events happen'}{' '}
+                <span className="font-semibold text-gray-700">once</span>.
               </p>
             ) : (
               <Controller
@@ -1146,7 +1135,7 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
             )}
           </div>
 
-          {eventForm.frequencyType === 'weekly' && eventForm.eventType === 'regular' && (
+          {eventForm.frequencyType === 'weekly' && (
             <div className="space-y-2">
               <Label className="mb-1.5">Select Days *</Label>
               <Combobox
@@ -1202,17 +1191,16 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
             </div>
           )}
 
-          {(eventForm.frequencyType === 'monthly' || eventForm.frequencyType === 'yearly') &&
-            eventForm.eventType === 'regular' && (
-              <div>
-                <Label className="mb-1.5">Select Date *</Label>
-                <Input
-                  type="date"
-                  value={recurrenceDatePicker}
-                  onChange={(e) => handleRecurrenceDateChange(e.target.value)}
-                />
-              </div>
-            )}
+          {(eventForm.frequencyType === 'monthly' || eventForm.frequencyType === 'yearly') && (
+            <div>
+              <Label className="mb-1.5">Select Date *</Label>
+              <Input
+                type="date"
+                value={recurrenceDatePicker}
+                onChange={(e) => handleRecurrenceDateChange(e.target.value)}
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>

@@ -31,6 +31,7 @@ export const API_ENDPOINTS = {
     getAll: `${BASE_URL}/property`,
     getById: (id: string) => `${BASE_URL}/property/${id}`,
     unitPicker: (id: string) => `${BASE_URL}/property/${id}/unit-picker`,
+    amenities: (id: string) => `${BASE_URL}/property/${id}/amenities`,
     create: `${BASE_URL}/property`,
     update: (id: string) => `${BASE_URL}/property/${id}`,
     delete: (id: string) => `${BASE_URL}/property/${id}`,
@@ -351,6 +352,24 @@ export const API_ENDPOINTS = {
     doctorSpecializations: (userId: string) => `${BASE_URL}/specializations/doctors/${userId}`,
   },
 
+  amenities: {
+    list: `${BASE_URL}/amenities`,
+    create: `${BASE_URL}/amenities`,
+    getById: (id: string) => `${BASE_URL}/amenities/${id}`,
+    update: (id: string) => `${BASE_URL}/amenities/${id}`,
+    updateStatus: (id: string) => `${BASE_URL}/amenities/${id}/status`,
+    delete: (id: string) => `${BASE_URL}/amenities/${id}`,
+  },
+
+  amenitySlots: {
+    slotConfig: `${BASE_URL}/location/:locationId/amenities/:amenityId/slot-config`,
+    slots: `${BASE_URL}/location/:locationId/amenities/:amenityId/slots`,
+    bookings: `${BASE_URL}/location/:locationId/amenities/:amenityId/bookings`,
+    booking: `${BASE_URL}/location/:locationId/amenities/:amenityId/bookings/:bookingId`,
+    blocks: `${BASE_URL}/location/:locationId/amenities/:amenityId/blocks`,
+    block: `${BASE_URL}/location/:locationId/amenities/:amenityId/blocks/:blockId`,
+  },
+
   vitalSettings: {
     list: `${BASE_URL}/vital-settings`,
     create: `${BASE_URL}/vital-settings`,
@@ -406,6 +425,16 @@ export const API_ENDPOINTS = {
     detail: `${BASE_URL}/location/:locationId/feedback-forms/:id`,
     send: `${BASE_URL}/location/:locationId/feedback-forms/:id/send`,
     responses: `${BASE_URL}/location/:locationId/feedback-forms/:id/responses`,
+  },
+
+  notifications: {
+    list: `${BASE_URL}/notifications`,
+    unreadCount: `${BASE_URL}/notifications/unread-count`,
+    registerDevice: `${BASE_URL}/notifications/devices/register`,
+    unregisterDevice: `${BASE_URL}/notifications/devices/unregister`,
+    markRead: (id: string) => `${BASE_URL}/notifications/${id}/read`,
+    markAllRead: `${BASE_URL}/notifications/read-all`,
+    archive: (id: string) => `${BASE_URL}/notifications/${id}/archive`,
   },
 
   // Shift & Roster Management
