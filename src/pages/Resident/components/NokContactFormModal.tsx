@@ -17,10 +17,21 @@ const ACCEPTED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const PHONE_REGEX = /^[6-9]\d{9}$/
 const PHONE_MESSAGE = 'Must be a 10-digit number starting with 6, 7, 8, or 9'
 const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/
+const NAME_REGEX = /^[a-zA-Z\s]+$/
 
 const nokSchema = z.object({
-  fullName: z.string().trim().min(1, 'Full name is required').max(150, 'Full name must be 150 characters or fewer'),
-  relationship: z.string().trim().max(50, 'Relationship must be 50 characters or fewer'),
+  fullName: z
+    .string()
+    .trim()
+    .min(1, 'Full name is required')
+    .min(2, 'Full name must be at least 2 characters')
+    .max(150, 'Full name must be 150 characters or fewer')
+    .regex(NAME_REGEX, 'Full name cannot contain numbers or special characters'),
+  relationship: z
+    .string()
+    .trim()
+    .max(50, 'Relationship must be 50 characters or fewer')
+    .refine((v) => !v || NAME_REGEX.test(v), 'Relationship cannot contain numbers or special characters'),
   phone: z.string().trim().min(1, 'Phone is required').regex(PHONE_REGEX, PHONE_MESSAGE),
   alternatePhone: z
     .string()
