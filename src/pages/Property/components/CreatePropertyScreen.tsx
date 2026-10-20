@@ -57,8 +57,19 @@ export const propertyDetailsSchema = z.object({
 
 export const propertyAddressSchema = z.object({
   street: z.string().optional(),
-  city: z.string().trim().min(1, 'City is required'),
-  state: z.string().trim().min(1, 'State is required'),
+  city: z
+    .string()
+    .trim()
+    .min(1, 'City is required')
+    .regex(/^[a-zA-Z\s]+$/, 'City can only contain letters and spaces'),
+  state: z
+    .string()
+    .trim()
+    .min(1, 'State is required')
+    .refine((val) => !/\d/.test(val), {
+      message: 'State cannot contain digits',
+    })
+    .regex(/^[a-zA-Z\s]+$/, 'State can only contain letters and spaces'),
   pincode: z
     .string()
     .trim()
