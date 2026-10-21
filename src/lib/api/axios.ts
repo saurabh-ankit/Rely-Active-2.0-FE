@@ -1,5 +1,8 @@
 import axios from 'axios'
 import { BASE_URL } from '@/lib/api/endpoints'
+import { useUserStore } from '@/lib/stores/userStore'
+import { useLocationStore } from '@/lib/stores/locationStore'
+import { clearAppSession } from '@/lib/utils/session'
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -18,8 +21,8 @@ export const authApi = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('rely_auth_token')
-  const locationId = localStorage.getItem('rely_active_property_id')
+  const token = useUserStore.getState().token
+  const locationId = useLocationStore.getState().selectedLocationId
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
@@ -46,19 +49,15 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error?.response?.status === 401) {
-      localStorage.removeItem('rely_auth_token')
-      localStorage.removeItem('rely-active-user-storage')
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-        window.location.href = '/login'
-      }
+      clearAppSession({ redirectToLogin: true })
     }
     return Promise.reject(error)
   },
 )
 
 export const getAuthHeaders = (): Record<string, string> => {
-  const token = localStorage.getItem('rely_auth_token')
-  const locationId = localStorage.getItem('rely_active_property_id')
+  const token = useUserStore.getState().token
+  const locationId = useLocationStore.getState().selectedLocationId
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',

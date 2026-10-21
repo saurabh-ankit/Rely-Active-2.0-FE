@@ -2,7 +2,7 @@ import { useCallback, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { getUserLocationPermissionsAPI } from '@/lib/services/rbacService'
 import { getUserAccessiblePropertiesAPI } from '@/lib/services/userService'
-import { ACTIVE_PROP_ID_KEY, type PropertyLocationItem, useLocationStore } from '@/lib/stores/locationStore'
+import { type PropertyLocationItem, useLocationStore } from '@/lib/stores/locationStore'
 import { notifySuccess } from '@/utils/toast'
 import { getDepartmentManagerType } from '@/utils/departmentManager'
 import { SUB_MODULES } from '@/lib/permissions/resourceKeys'
@@ -63,8 +63,8 @@ export const useLocation = () => {
         setAccessibleLocations(locations)
         fetchedLocationsUserId = user.id
 
-        const savedLocId = localStorage.getItem(ACTIVE_PROP_ID_KEY)
-        const savedLoc = locations.find((l) => l.id === savedLocId)
+        const currentSelectedId = useLocationStore.getState().selectedLocationId
+        const savedLoc = locations.find((l) => l.id === currentSelectedId)
 
         if (savedLoc) {
           setSelectedLocation(savedLoc.id, savedLoc.property_name)

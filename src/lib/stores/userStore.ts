@@ -27,7 +27,6 @@ export const useUserStore = create<UserState>()(
       isLoading: true,
 
       setAuth: (token, user) => {
-        localStorage.setItem(TOKEN_KEY, token)
         set({ token, user, isAuthenticated: true, isLoading: false })
       },
 
@@ -36,18 +35,12 @@ export const useUserStore = create<UserState>()(
       },
 
       setToken: (token) => {
-        if (token) {
-          localStorage.setItem(TOKEN_KEY, token)
-        } else {
-          localStorage.removeItem(TOKEN_KEY)
-        }
         set({ token, isAuthenticated: Boolean(token) })
       },
 
       setIsLoading: (isLoading) => set({ isLoading }),
 
       logout: () => {
-        localStorage.removeItem(TOKEN_KEY)
         set({ token: null, user: null, isAuthenticated: false, isLoading: false })
       },
     }),
