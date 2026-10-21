@@ -9,7 +9,7 @@ import { FnbPropertySettingsScreen } from '../Property/components/FnbPropertySet
 import { FnbDishesMasterTab } from '../GlobalSettings/components/FnbDishesMasterTab'
 import { FnbResidentOrdersTab } from '../Property/components/FnbResidentOrdersTab'
 import { FnbAttendanceTab } from '../Property/components/FnbAttendanceTab'
-import { Button } from '@/components/ui/button'
+import { ResponsiveTabs, type TabItem } from '@/components/common/ResponsiveTabs'
 import { PageHeader } from '@/components/common/PageHeader'
 
 type FnbTab = 'planner' | 'packages' | 'dishes' | 'meal-slots' | 'resident-orders' | 'attendance'
@@ -45,6 +45,27 @@ export default function FnbManagementPage() {
   // The chosen tab, or the first one the user may see (permissions can change with the property).
   const activeTab = chosenTab && access[chosenTab] ? chosenTab : (visibleTabs[0]?.value ?? null)
 
+  const tabContentMap: Record<FnbTab, React.ReactNode> = {
+    planner: selectedLocationId ? <FnbMenuPlannerScreen locId={selectedLocationId} /> : null,
+    attendance: selectedLocationId ? <FnbAttendanceTab locId={selectedLocationId} /> : null,
+    packages: selectedLocationId ? (
+      <FnbPropertySettingsScreen locId={selectedLocationId} initialViewMode="unit" hideSubHeader={false} />
+    ) : null,
+    dishes: selectedLocationId ? <FnbDishesMasterTab locId={selectedLocationId} isLocationMode={true} /> : null,
+    'meal-slots': selectedLocationId ? (
+      <FnbPropertySettingsScreen locId={selectedLocationId} initialViewMode="meal-slots" hideSubHeader={true} />
+    ) : null,
+    'resident-orders': selectedLocationId ? <FnbResidentOrdersTab locId={selectedLocationId} /> : null,
+  }
+
+  const tabs: TabItem[] = visibleTabs.map((tab) => ({
+    value: tab.value,
+    label: tab.label,
+    shortLabel: tab.label.split(' ')[0],
+    icon: tab.icon,
+    content: tabContentMap[tab.value],
+  }))
+
   return (
     <div className="space-y-6 pb-12">
       <PageHeader
@@ -52,25 +73,6 @@ export default function FnbManagementPage() {
         title="Food & Beverage (F&B) Management"
         description="Manage food packages, dish catalogues, flexible daily menus, meal slots & timings, resident meal orders, and dine-in attendance."
       />
-
-      {/* Tabs */}
-      <div className="flex border-b border-gray-200 space-x-6 text-sm font-semibold text-gray-500 overflow-x-auto">
-        {visibleTabs.map((tab) => (
-          <Button
-            key={tab.value}
-            type="button"
-            variant="ghost"
-            onClick={() => setActiveTab(tab.value)}
-            className={`h-auto p-0 pb-3 border-b-2 rounded-none flex items-center gap-2 transition-colors cursor-pointer shrink-0 hover:bg-transparent ${
-              activeTab === tab.value
-                ? 'border-[#005390] text-[#005390]'
-                : 'border-transparent text-gray-500 hover:text-gray-800'
-            }`}
-          >
-            <tab.icon className={`w-4 h-4 ${tab.iconClass ?? ''}`} /> {tab.label}
-          </Button>
-        ))}
-      </div>
 
       {/* Tab Contents */}
       {!activeTab ? (
@@ -84,18 +86,12 @@ export default function FnbManagementPage() {
           Please select a location from the top header to view location-wise F&B management.
         </div>
       ) : (
-        <>
-          {activeTab === 'planner' && <FnbMenuPlannerScreen locId={selectedLocationId} />}
-          {activeTab === 'attendance' && <FnbAttendanceTab locId={selectedLocationId} />}
-          {activeTab === 'packages' && (
-            <FnbPropertySettingsScreen locId={selectedLocationId} initialViewMode="unit" hideSubHeader={false} />
-          )}
-          {activeTab === 'dishes' && <FnbDishesMasterTab locId={selectedLocationId} isLocationMode={true} />}
-          {activeTab === 'meal-slots' && (
-            <FnbPropertySettingsScreen locId={selectedLocationId} initialViewMode="meal-slots" hideSubHeader={true} />
-          )}
-          {activeTab === 'resident-orders' && <FnbResidentOrdersTab locId={selectedLocationId} />}
-        </>
+        <ResponsiveTabs
+          value={activeTab}
+          onValueChange={(val) => setActiveTab(val as FnbTab)}
+          tabs={tabs}
+          className="w-full"
+        />
       )}
     </div>
   )

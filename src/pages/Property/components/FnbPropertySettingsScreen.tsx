@@ -25,6 +25,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Pagination,
   PaginationContent,
@@ -1507,32 +1508,28 @@ export function FnbPropertySettingsScreen({
             </div>
 
             {/* Sub-Tabs: Regular Meal Slots vs Special Meal Slots */}
-            <div className="inline-flex items-center p-1 bg-gray-100 rounded-xl border border-gray-200 shrink-0">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setMealSlotsSubTab('regular')}
-                className={`px-3.5 py-1.5 h-auto rounded-lg text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  mealSlotsSubTab === 'regular'
-                    ? 'bg-[#005390] text-white shadow-2xs'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <Utensils className="w-3.5 h-3.5" /> Regular Meal Slots
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setMealSlotsSubTab('special')}
-                className={`px-3.5 py-1.5 h-auto rounded-lg text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  mealSlotsSubTab === 'special'
-                    ? 'bg-[#005390] text-white shadow-2xs'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Special Meal Slots
-              </Button>
-            </div>
+            <Tabs
+              value={mealSlotsSubTab}
+              onValueChange={(val) => setMealSlotsSubTab(val as 'regular' | 'special')}
+              className="shrink-0 gap-0"
+            >
+              <div className="rounded-2xl bg-card text-card-foreground/70 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100/80 inline-flex">
+                <TabsList className="inline-flex items-center gap-1.5 bg-transparent p-0 h-auto">
+                  <TabsTrigger
+                    value="regular"
+                    className="flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-4 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                  >
+                    <Utensils className="w-3.5 h-3.5 shrink-0" /> Regular Meal Slots
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="special"
+                    className="flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-4 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-400" /> Special Meal Slots
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+            </Tabs>
           </div>
 
           {/* Sub-Tab 1: Regular Meal Slots */}

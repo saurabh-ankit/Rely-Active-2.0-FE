@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog,
   DialogContent,
@@ -402,31 +403,29 @@ export default function GateManagementPage() {
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-        <div className="grid grid-cols-2 border-b border-gray-200 text-center font-bold text-xs">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setActiveTab('ENTRIES')}
-            className={`py-3.5 h-auto rounded-none transition-colors cursor-pointer border-b-2 font-bold ${
-              activeTab === 'ENTRIES'
-                ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white border-[#005390]'
-                : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900 border-transparent'
-            }`}
+        <div className="p-3 border-b border-gray-100 bg-gray-50/50">
+          <Tabs
+            value={activeTab}
+            onValueChange={(val) => setActiveTab(val as 'ENTRIES' | 'INVITES')}
+            className="w-full gap-0"
           >
-            Entry Logs
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setActiveTab('INVITES')}
-            className={`py-3.5 h-auto rounded-none transition-colors cursor-pointer border-b-2 font-bold ${
-              activeTab === 'INVITES'
-                ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white border-[#005390]'
-                : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900 border-transparent'
-            }`}
-          >
-            Pre-Approved (by Resident)
-          </Button>
+            <div className="rounded-2xl bg-card text-card-foreground/70 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100/80 inline-flex">
+              <TabsList className="inline-flex items-center gap-1.5 bg-transparent p-0 h-auto">
+                <TabsTrigger
+                  value="ENTRIES"
+                  className="flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-4 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                >
+                  Entry Logs
+                </TabsTrigger>
+                <TabsTrigger
+                  value="INVITES"
+                  className="flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-4 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                >
+                  Pre-Approved (by Resident)
+                </TabsTrigger>
+              </TabsList>
+            </div>
+          </Tabs>
         </div>
 
         <div className="p-6 overflow-x-auto">

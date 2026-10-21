@@ -7,6 +7,7 @@ import { residentService } from '@/lib/services/residentService'
 import { AssignCareTaskDialog } from '@/components/common/AssignCareTaskDialog'
 import { AssignCareTeamDialog } from '@/components/common/AssignCareTeamDialog'
 import { Button } from '@/components/ui/button'
+import { ResponsiveTabs, type TabItem } from '@/components/common/ResponsiveTabs'
 import { HeroFact, NotAdded } from '@/components/common/DetailPanel'
 import { cn, getFileUrl } from '@/lib/utils'
 import { fnbService } from '@/lib/services/fnbService'
@@ -307,61 +308,60 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
       </div>
 
       {/* Tab bar */}
-      <div className="flex border-b border-gray-200 space-x-6 text-sm font-semibold text-gray-500 overflow-x-auto">
-        {tabAccess.personal && (
-          <Button
-            variant="ghost"
-            type="button"
-            onClick={() => setActiveTab('personal')}
-            className={`p-0 h-auto rounded-none pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 font-semibold text-sm hover:bg-transparent ${
-              activeTab === 'personal'
-                ? 'border-[#005390] text-[#005390]'
-                : 'border-transparent text-gray-500 hover:text-gray-800'
-            }`}
-          >
-            <User className="w-4 h-4" /> Profile
-          </Button>
-        )}
-        {tabAccess.medical && (
-          <Button
-            variant="ghost"
-            type="button"
-            onClick={() => setActiveTab('medical')}
-            className={`p-0 h-auto rounded-none pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 font-semibold text-sm hover:bg-transparent ${
-              activeTab === 'medical'
-                ? 'border-[#005390] text-[#005390]'
-                : 'border-transparent text-gray-500 hover:text-gray-800'
-            }`}
-          >
-            <HeartPulse className="w-4 h-4 text-rose-500" /> Medical
-          </Button>
-        )}
-      </div>
+      {(() => {
+        const detailTabs: TabItem[] = [
+          ...(tabAccess.personal
+            ? [
+                {
+                  value: 'personal',
+                  label: 'Profile',
+                  shortLabel: 'Profile',
+                  icon: User,
+                  content: (
+                    <ResidentPersonalDetailsTab
+                      resident={resident}
+                      fnbSubscriptions={fnbSubscriptions}
+                      getSlotDisplayName={getSlotDisplayName}
+                      canUpdateResident={canUpdateResident}
+                      onAssignFoodPackage={() => navigate(editUrl)}
+                    />
+                  ),
+                },
+              ]
+            : []),
+          ...(tabAccess.medical
+            ? [
+                {
+                  value: 'medical',
+                  label: 'Medical',
+                  shortLabel: 'Medical',
+                  icon: HeartPulse,
+                  content: (
+                    <ResidentMedicalTab
+                      resident={resident}
+                      canUpdateResident={medicalAccess.canUpdate}
+                      onAssignCareTeam={() => setIsCareTeamModalOpen(true)}
+                      onAssignCareTask={() => setIsCareTaskModalOpen(true)}
+                    />
+                  ),
+                },
+              ]
+            : []),
+        ]
 
-      {!activeTab && (
-        <div className="rounded-2xl border border-gray-100 bg-white p-10 text-center text-sm text-gray-500">
-          You don&apos;t have access to this resident&apos;s Profile or Medical sections.
-        </div>
-      )}
-
-      {activeTab === 'personal' && (
-        <ResidentPersonalDetailsTab
-          resident={resident}
-          fnbSubscriptions={fnbSubscriptions}
-          getSlotDisplayName={getSlotDisplayName}
-          canUpdateResident={canUpdateResident}
-          onAssignFoodPackage={() => navigate(editUrl)}
-        />
-      )}
-
-      {activeTab === 'medical' && (
-        <ResidentMedicalTab
-          resident={resident}
-          canUpdateResident={medicalAccess.canUpdate}
-          onAssignCareTeam={() => setIsCareTeamModalOpen(true)}
-          onAssignCareTask={() => setIsCareTaskModalOpen(true)}
-        />
-      )}
+        return detailTabs.length > 0 ? (
+          <ResponsiveTabs
+            value={activeTab || undefined}
+            onValueChange={(val) => setActiveTab(val as ResidentDetailTab)}
+            tabs={detailTabs}
+            className="w-full"
+          />
+        ) : (
+          <div className="rounded-2xl border border-gray-100 bg-white p-10 text-center text-sm text-gray-500">
+            You don&apos;t have access to this resident&apos;s Profile or Medical sections.
+          </div>
+        )
+      })()}
 
       {/* Assign Care Task Modal */}
       {resident && (

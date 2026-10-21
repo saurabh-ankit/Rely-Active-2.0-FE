@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDashboardStatsQuery } from '@/hooks/react-query/dashboard'
 import { useLocation } from '@/hooks/useLocation'
 import { cn } from '@/lib/utils'
@@ -88,25 +89,24 @@ export default function DashboardPage() {
       )}
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
-        <div className="no-scrollbar flex w-full overflow-x-auto gap-2 rounded-[20px] border border-white/60 bg-[#dce0e4] p-1.5 shadow-inner md:flex-1">
-          {TABS.map(({ value, label, icon: Icon }) => (
-            <Button
-              key={value}
-              type="button"
-              variant="ghost"
-              onClick={() => setActiveTab(value)}
-              className={cn(
-                'h-auto flex items-center justify-center gap-2 rounded-xl px-6 py-2.5 text-xs font-bold whitespace-nowrap transition-all cursor-pointer',
-                activeTab === value
-                  ? 'bg-[#005390] text-white shadow-md hover:bg-[#005390] hover:text-white'
-                  : 'text-[#5c6370] hover:text-slate-900 hover:bg-white/40',
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              <span>{label}</span>
-            </Button>
-          ))}
-        </div>
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as Tab)} className="md:flex-1 w-full gap-0">
+          <div className="rounded-2xl bg-card text-card-foreground/70 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100/80">
+            <div className="patient-tabs-scrollbar w-full overflow-x-auto overflow-y-hidden px-1 py-1">
+              <TabsList className="inline-flex w-max min-w-full h-auto gap-2 justify-start bg-transparent p-0">
+                {TABS.map(({ value, label, icon: Icon }) => (
+                  <TabsTrigger
+                    key={value}
+                    value={value}
+                    className="flex h-10 items-center justify-center gap-2.5 whitespace-nowrap rounded-xl px-6 text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-md focus-visible:!ring-0 transition-all cursor-pointer"
+                  >
+                    <Icon className="size-4.5 shrink-0" />
+                    <span>{label}</span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+          </div>
+        </Tabs>
         <Button
           type="button"
           variant="outline"

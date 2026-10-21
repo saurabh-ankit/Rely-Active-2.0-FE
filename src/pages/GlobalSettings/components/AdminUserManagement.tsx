@@ -1835,3 +1835,5 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
     </div>
   )
 }
+
+export default AdminUserManagement

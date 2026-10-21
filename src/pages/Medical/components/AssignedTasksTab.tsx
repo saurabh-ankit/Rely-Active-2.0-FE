@@ -24,6 +24,7 @@ import { CompleteCareTaskDialog } from '@/components/common/CompleteCareTaskDial
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn, formatDisplayDate, formatDisplayDateTime } from '@/lib/utils'
 
 const getBillingLabel = (type?: string) => {
@@ -414,57 +415,47 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
 
       {/* ── Tabs Navigation Bar ───────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-3 dark:border-gray-800">
-        <div className="inline-flex items-center gap-1 rounded-2xl bg-slate-100/90 p-1.5 dark:bg-slate-800/70">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setActiveTab('PENDING')}
-            className={cn(
-              'h-auto flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer',
-              activeTab === 'PENDING'
-                ? 'bg-white text-amber-700 shadow-xs dark:bg-slate-900 dark:text-amber-400 hover:bg-white hover:text-amber-700'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-400 dark:hover:text-white dark:hover:bg-slate-700',
-            )}
-          >
-            <Clock className="size-3.5" />
-            <span>Pending Tasks</span>
-            <span
-              className={cn(
-                'rounded-full px-2 py-0.5 text-[10px] font-extrabold',
-                activeTab === 'PENDING'
-                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                  : 'bg-gray-200/80 text-gray-700 dark:bg-slate-700 dark:text-gray-300',
-              )}
-            >
-              {pendingCount}
-            </span>
-          </Button>
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as AssignedTasksTabType)} className="gap-0">
+          <div className="rounded-2xl bg-card text-card-foreground/70 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100/80">
+            <TabsList className="inline-flex w-max min-w-full h-auto gap-2 justify-start bg-transparent p-0">
+              <TabsTrigger
+                value="PENDING"
+                className="flex h-10 items-center justify-center gap-2.5 whitespace-nowrap rounded-xl px-6 text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-md focus-visible:!ring-0 transition-all cursor-pointer"
+              >
+                <Clock className="size-4.5 shrink-0" />
+                <span>Pending Tasks</span>
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[10px] font-extrabold',
+                    activeTab === 'PENDING'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-gray-200/80 text-gray-700 dark:bg-slate-700 dark:text-gray-300',
+                  )}
+                >
+                  {pendingCount}
+                </span>
+              </TabsTrigger>
 
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setActiveTab('COMPLETED')}
-            className={cn(
-              'h-auto flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer',
-              activeTab === 'COMPLETED'
-                ? 'bg-white text-emerald-700 shadow-xs dark:bg-slate-900 dark:text-emerald-400 hover:bg-white hover:text-emerald-700'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-400 dark:hover:text-white dark:hover:bg-slate-700',
-            )}
-          >
-            <CheckCircle2 className="size-3.5" />
-            <span>Completed Tasks</span>
-            <span
-              className={cn(
-                'rounded-full px-2 py-0.5 text-[10px] font-extrabold',
-                activeTab === 'COMPLETED'
-                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                  : 'bg-gray-200/80 text-gray-700 dark:bg-slate-700 dark:text-gray-300',
-              )}
-            >
-              {completedCount}
-            </span>
-          </Button>
-        </div>
+              <TabsTrigger
+                value="COMPLETED"
+                className="flex h-10 items-center justify-center gap-2.5 whitespace-nowrap rounded-xl px-6 text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-md focus-visible:!ring-0 transition-all cursor-pointer"
+              >
+                <CheckCircle2 className="size-4.5 shrink-0" />
+                <span>Completed Tasks</span>
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[10px] font-extrabold',
+                    activeTab === 'COMPLETED'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-gray-200/80 text-gray-700 dark:bg-slate-700 dark:text-gray-300',
+                  )}
+                >
+                  {completedCount}
+                </span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </Tabs>
 
         {/* Assign Button */}
         <Button

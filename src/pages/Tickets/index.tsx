@@ -40,6 +40,7 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 interface ParsedCompletion {
   notes: string | null
@@ -762,59 +763,41 @@ export default function TicketsPage() {
         {/* Left Column: Tickets Queue List (4 cols) */}
         <div className="lg:col-span-4 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-13rem)] min-h-[520px]">
           {/* Tab Filter Header with Primary Brand Blue */}
-          <div className="grid grid-cols-4 border-b border-gray-200 text-center font-bold text-[11px]">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setActiveTab('OPEN')}
-              className={cn(
-                'py-3.5 h-auto rounded-none transition-colors cursor-pointer border-b-2 font-bold text-[11px]',
-                activeTab === 'OPEN'
-                  ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white border-[#005390]'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900 border-transparent',
-              )}
+          <div className="p-2 border-b border-gray-100 bg-gray-50/50">
+            <Tabs
+              value={activeTab}
+              onValueChange={(val) => setActiveTab(val as 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED')}
+              className="w-full gap-0"
             >
-              Open
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setActiveTab('IN_PROGRESS')}
-              className={cn(
-                'py-3.5 h-auto rounded-none transition-colors cursor-pointer border-b-2 font-bold text-[11px]',
-                activeTab === 'IN_PROGRESS'
-                  ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white border-[#005390]'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900 border-transparent',
-              )}
-            >
-              In Progress
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setActiveTab('COMPLETED')}
-              className={cn(
-                'py-3.5 h-auto rounded-none transition-colors cursor-pointer border-b-2 font-bold text-[11px]',
-                activeTab === 'COMPLETED'
-                  ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white border-[#005390]'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900 border-transparent',
-              )}
-            >
-              Completed
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setActiveTab('CLOSED')}
-              className={cn(
-                'py-3.5 h-auto rounded-none transition-colors cursor-pointer border-b-2 font-bold text-[11px]',
-                activeTab === 'CLOSED'
-                  ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white border-[#005390]'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900 border-transparent',
-              )}
-            >
-              Closed
-            </Button>
+              <div className="rounded-2xl bg-card text-card-foreground/70 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100/80">
+                <TabsList className="grid grid-cols-4 w-full h-auto p-0 bg-transparent gap-1">
+                  <TabsTrigger
+                    value="OPEN"
+                    className="flex h-8 items-center justify-center rounded-xl px-2 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                  >
+                    Open
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="IN_PROGRESS"
+                    className="flex h-8 items-center justify-center rounded-xl px-2 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                  >
+                    In Progress
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="COMPLETED"
+                    className="flex h-8 items-center justify-center rounded-xl px-2 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                  >
+                    Completed
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="CLOSED"
+                    className="flex h-8 items-center justify-center rounded-xl px-2 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                  >
+                    Closed
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+            </Tabs>
           </div>
 
           {/* Tickets Scroll List */}

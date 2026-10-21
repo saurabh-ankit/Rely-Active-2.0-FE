@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Loader2, Search, UserRound, X } from 'lucide
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getResidentsAPI } from '@/lib/services/residentService'
 import {
   blockAmenitySlotAPI,
@@ -904,35 +905,32 @@ export function SlotManagerDrawer({
         <SheetHeader className="border-b border-gray-200 pb-3">
           <SheetTitle>{amenity?.name || 'Amenity'}</SheetTitle>
           <SheetDescription>Manage slots and bookings for this amenity.</SheetDescription>
-          <div className="mt-2 flex gap-2">
-            <Button
-              variant="ghost"
-              type="button"
-              className={`rounded-full px-3 py-1.5 h-auto text-xs font-semibold ${
-                activeTab === 'bookings'
-                  ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-              onClick={() => {
-                setActiveTab('bookings')
-                if (amenity) void loadSlots(amenity.id, selectedDateYmd)
-              }}
-            >
-              Bookings
-            </Button>
-            <Button
-              variant="ghost"
-              type="button"
-              className={`rounded-full px-3 py-1.5 h-auto text-xs font-semibold ${
-                activeTab === 'setup'
-                  ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-              onClick={() => setActiveTab('setup')}
-            >
-              Slot setup
-            </Button>
-          </div>
+          <Tabs
+            value={activeTab}
+            onValueChange={(val) => {
+              const nextTab = val as SlotTab
+              setActiveTab(nextTab)
+              if (nextTab === 'bookings' && amenity) void loadSlots(amenity.id, selectedDateYmd)
+            }}
+            className="mt-2"
+          >
+            <div className="rounded-2xl bg-card text-card-foreground/70 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100 inline-flex">
+              <TabsList className="inline-flex items-center gap-1.5 bg-transparent p-0 h-auto">
+                <TabsTrigger
+                  value="bookings"
+                  className="flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-4 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                >
+                  Bookings
+                </TabsTrigger>
+                <TabsTrigger
+                  value="setup"
+                  className="flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-4 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                >
+                  Slot setup
+                </TabsTrigger>
+              </TabsList>
+            </div>
+          </Tabs>
         </SheetHeader>
 
         <div className="relative min-h-0 flex-1 overflow-hidden">
