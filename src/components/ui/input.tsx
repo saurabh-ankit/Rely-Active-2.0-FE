@@ -14,6 +14,7 @@ export interface InputProps extends React.ComponentProps<'input'> {
   required?: boolean
   icon?: React.ReactNode
   rows?: number
+  wrapperClassName?: string
 }
 
 function Input({
@@ -26,6 +27,7 @@ function Input({
   icon,
   id,
   rows = 3,
+  wrapperClassName,
   ...props
 }: InputProps) {
   const [showPassword, setShowPassword] = React.useState(false)
@@ -40,7 +42,7 @@ function Input({
   const isRequired = required || hasAsteriskInLabel
   const cleanLabel = label ? label.replace(/\s*\*/g, '').trim() : undefined
 
-  if (!cleanLabel && !error && !icon && !isPasswordField) {
+  if (!cleanLabel && !error && !icon) {
     if (isTextarea) {
       return (
         <Textarea
@@ -59,7 +61,7 @@ function Input({
     return (
       <InputPrimitive
         id={inputId}
-        type={computedType}
+        type={type}
         data-slot="input"
         className={cn(
           'h-9 w-full min-w-0 rounded-xl border border-gray-200 bg-transparent px-3.5 py-1 text-xs transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-xs file:font-medium file:text-foreground placeholder:text-muted-foreground focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-red-500 aria-invalid:ring-2 aria-invalid:ring-red-500/20',
@@ -72,7 +74,7 @@ function Input({
   }
 
   return (
-    <div className={cn('w-full', className)}>
+    <div className={cn('w-full', wrapperClassName)}>
       {cleanLabel && (
         <Label htmlFor={inputId} className="block text-xs font-semibold text-gray-700 mb-1.5">
           {cleanLabel} {isRequired && <span className="text-red-500 font-bold">*</span>}
