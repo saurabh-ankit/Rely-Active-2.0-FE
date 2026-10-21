@@ -436,13 +436,14 @@ const EventsListPage = ({ embedded = false, enabled = true }: EventsListPageProp
       accessorKey: 'title',
       header: 'Event Title',
       cell: ({ row }) => (
-        <button
+        <Button
+          variant="ghost"
           type="button"
-          className="text-left font-semibold text-gray-900 hover:text-[#2a517c] cursor-pointer"
+          className="text-left font-semibold text-gray-900 hover:text-[#2a517c] hover:bg-transparent cursor-pointer p-0 h-auto"
           onClick={() => setSelectedRequest(row.original)}
         >
           {row.original.title}
-        </button>
+        </Button>
       ),
     },
     {

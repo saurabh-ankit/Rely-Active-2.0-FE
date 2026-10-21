@@ -4,6 +4,7 @@ import { Activity, AlertCircle, Edit2, Plus, Trash2, Upload } from 'lucide-react
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import {
   createVitalSettingAPI,
@@ -433,22 +434,28 @@ export function VitalsTab() {
         header: () => <div className="text-right">Actions</div>,
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => handleOpenEdit(row.original)}
               className="p-2 rounded-lg text-[#005390] hover:bg-blue-50 transition-colors cursor-pointer"
               title="Edit vital"
+              aria-label="Edit vital"
             >
               <Edit2 className="w-4 h-4" />
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => handleDelete(row.original)}
               className="p-2 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
               title="Delete vital"
+              aria-label="Delete vital"
             >
               <Trash2 className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         ),
       },
@@ -469,13 +476,13 @@ export function VitalsTab() {
             {vitals.length > 0 ? ` ${vitals.length} vital${vitals.length === 1 ? '' : 's'} configured.` : ''}
           </p>
         </div>
-        <button
+        <Button
           type="button"
           onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#005390] hover:bg-[#004070] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 h-auto bg-[#005390] hover:bg-[#004070] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Add New Vital
-        </button>
+        </Button>
       </div>
 
       <DataTable
@@ -514,13 +521,14 @@ export function VitalsTab() {
                     Vital Name *
                   </label>
                   {!editing && (
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
                       onClick={() => setShowPredefined((v) => !v)}
-                      className="text-[11px] font-bold text-[#005390] hover:underline cursor-pointer"
+                      className="text-[11px] font-bold text-[#005390] hover:underline cursor-pointer p-0 h-auto hover:bg-transparent"
                     >
                       {showPredefined ? 'Hide Predefined' : 'Choose Predefined'}
-                    </button>
+                    </Button>
                   )}
                 </div>
                 <Input
@@ -534,18 +542,19 @@ export function VitalsTab() {
                 {showPredefined && availablePredefined.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2 max-h-32 overflow-y-auto">
                     {availablePredefined.map((preset) => (
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         key={preset.name}
                         onClick={() => handleSelectPredefined(preset)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
+                        className={`px-3 py-1.5 h-auto rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
                           formData.name === preset.name
-                            ? 'bg-[#005390] border-[#005390] text-white'
+                            ? 'bg-[#005390] border-[#005390] text-white hover:bg-[#005390]'
                             : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-[#005390] hover:text-[#005390]'
                         }`}
                       >
                         {preset.name}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 )}
@@ -570,13 +579,14 @@ export function VitalsTab() {
                     className="w-14 h-14 rounded-lg object-cover border border-gray-200 bg-white"
                   />
                   <div>
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
                       onClick={() => fileInputRef.current?.click()}
-                      className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:border-[#005390] hover:text-[#005390] transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-2 px-3 py-2 h-auto bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:border-[#005390] hover:text-[#005390] transition-colors cursor-pointer"
                     >
                       <Upload className="w-3.5 h-3.5" /> Upload Image
-                    </button>
+                    </Button>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -607,18 +617,19 @@ export function VitalsTab() {
                 <p className="block text-xs font-semibold text-gray-700 mb-1.5">Input Type</p>
                 <div className="inline-flex rounded-xl border border-gray-200 p-1 bg-gray-50">
                   {(['single', 'composite'] as VitalInputType[]).map((type) => (
-                    <button
+                    <Button
                       key={type}
                       type="button"
+                      variant="ghost"
                       onClick={() => setFormData((prev) => ({ ...prev, inputType: type }))}
-                      className={`px-4 py-2 rounded-lg text-xs font-bold capitalize transition-colors cursor-pointer ${
+                      className={`px-4 py-2 h-auto rounded-lg text-xs font-bold capitalize transition-colors cursor-pointer ${
                         formData.inputType === type
-                          ? 'bg-[#005390] text-white shadow-sm'
+                          ? 'bg-[#005390] text-white shadow-sm hover:bg-[#005390]'
                           : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
                       {type}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -649,20 +660,21 @@ export function VitalsTab() {
               </div>
 
               <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-5">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 text-xs font-bold text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+                  className="px-4 py-2.5 h-auto text-xs font-bold text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#005390] hover:bg-[#004070] disabled:opacity-60 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 h-auto bg-[#005390] hover:bg-[#004070] disabled:opacity-60 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
                 >
                   {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create Vital'}
-                </button>
+                </Button>
               </div>
             </form>
           </DialogContent>

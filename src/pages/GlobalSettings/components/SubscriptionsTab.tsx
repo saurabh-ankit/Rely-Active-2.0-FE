@@ -242,10 +242,11 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                 className="rounded-3xl border border-white/60 bg-white/90 shadow-lg backdrop-blur-xl overflow-hidden transition-all duration-200"
               >
                 {/* Resident Header Accordion Row */}
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => toggleResidentAccordion(residentId)}
-                  className="w-full flex items-center justify-between p-4 sm:p-5 bg-gray-50/70 hover:bg-gray-100/80 transition-colors text-left cursor-pointer border-b border-gray-100"
+                  className="w-full h-auto flex items-center justify-between p-4 sm:p-5 bg-gray-50/70 hover:bg-gray-100/80 transition-colors text-left cursor-pointer border-b border-gray-100 rounded-none whitespace-normal"
                 >
                   <div className="flex items-center gap-3.5">
                     <div className="flex size-7 items-center justify-center text-gray-500 transition-transform">
@@ -273,7 +274,7 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                       </div>
                     </div>
                   </div>
-                </button>
+                </Button>
 
                 {/* Subscriptions Table Inside Accordion */}
                 {isResidentExpanded && (
@@ -304,17 +305,20 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                                 <tr className="hover:bg-gray-50/80 transition-colors">
                                   {/* Expand Chevron */}
                                   <td className="py-3 px-3 text-center">
-                                    <button
+                                    <Button
                                       type="button"
+                                      variant="ghost"
+                                      size="icon-xs"
+                                      aria-label={isRowExpanded ? 'Collapse row details' : 'Expand row details'}
                                       onClick={() => toggleRowExpand(sub.id)}
-                                      className="size-7 inline-flex items-center justify-center rounded-lg hover:bg-gray-200/60 text-gray-500 cursor-pointer"
+                                      className="size-7 inline-flex items-center justify-center rounded-lg hover:bg-gray-200/60 text-gray-500 cursor-pointer p-0"
                                     >
                                       {isRowExpanded ? (
                                         <ChevronDown className="w-4 h-4" />
                                       ) : (
                                         <ChevronRight className="w-4 h-4" />
                                       )}
-                                    </button>
+                                    </Button>
                                   </td>
 
                                   {/* Package Name & Cost */}
@@ -516,10 +520,11 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
 
                     {/* Additional Tasks Done Section Matching Screenshot 2 */}
                     <div className="border border-orange-200 rounded-2xl overflow-hidden bg-orange-50/40 shadow-2xs">
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         onClick={() => toggleAdditionalTasks(residentId)}
-                        className="w-full flex items-center justify-between p-3.5 sm:p-4 bg-orange-50/90 hover:bg-orange-100/70 transition-colors text-left cursor-pointer"
+                        className="w-full h-auto flex items-center justify-between p-3.5 sm:p-4 bg-orange-50/90 hover:bg-orange-100/70 transition-colors text-left cursor-pointer rounded-none whitespace-normal"
                       >
                         <div className="flex items-center gap-2">
                           <AlertCircle className="h-4 w-4 text-orange-600 shrink-0" />
@@ -539,7 +544,7 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                         ) : (
                           <ChevronRight className="h-4 w-4 text-gray-500" />
                         )}
-                      </button>
+                      </Button>
 
                       {isAddTasksExpanded && (
                         <div className="p-3 sm:p-4 space-y-3 bg-white border-t border-orange-100">

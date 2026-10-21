@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import {
   createAmenityAPI,
@@ -182,18 +183,19 @@ export function AmenitiesTab() {
         accessorKey: 'isActive',
         header: 'Status',
         cell: ({ row }) => (
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => handleToggleStatus(row.original)}
-            className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors cursor-pointer ${
+            className={`px-2.5 py-1 h-auto rounded-full text-[11px] font-bold transition-colors cursor-pointer ${
               row.original.isActive
-                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-700'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-500'
             }`}
             title={row.original.isActive ? 'Click to deactivate' : 'Click to activate'}
           >
             {row.original.isActive ? 'Active' : 'Inactive'}
-          </button>
+          </Button>
         ),
       },
       {
@@ -201,22 +203,28 @@ export function AmenitiesTab() {
         header: () => <div className="text-right">Actions</div>,
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => handleOpenEdit(row.original)}
               className="p-2 rounded-lg text-[#005390] hover:bg-blue-50 transition-colors cursor-pointer"
               title="Edit amenity"
+              aria-label="Edit amenity"
             >
               <Edit2 className="w-4 h-4" />
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => handleDelete(row.original)}
               className="p-2 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
               title="Delete amenity"
+              aria-label="Delete amenity"
             >
               <Trash2 className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         ),
       },
@@ -234,13 +242,13 @@ export function AmenitiesTab() {
           placeholder="Search amenities by name or description"
           className="sm:max-w-sm"
         />
-        <button
+        <Button
           type="button"
           onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#005390] px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#004274]"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#005390] px-4 py-2 h-auto text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#004274] cursor-pointer"
         >
           <Plus className="h-4 w-4" /> Add Amenity
-        </button>
+        </Button>
       </div>
 
       <DataTable columns={columns} data={filtered} isLoading={loading} pageSize={10} />
@@ -301,34 +309,36 @@ export function AmenitiesTab() {
                   <p className="text-[11px] font-bold uppercase tracking-wider text-gray-600">Quick suggestions</p>
                   <div className="flex flex-wrap gap-2">
                     {availableSuggestions.map((item) => (
-                      <button
+                      <Button
                         key={item}
                         type="button"
+                        variant="ghost"
                         onClick={() => setValue('name', item, { shouldValidate: true })}
-                        className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-semibold text-gray-700 hover:border-[#005390]/30 hover:bg-[#005390]/10 hover:text-[#005390]"
+                        className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 h-auto text-[11px] font-semibold text-gray-700 hover:border-[#005390]/30 hover:bg-[#005390]/10 hover:text-[#005390] cursor-pointer"
                       >
                         {item}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
               )}
 
               <div className="flex items-center justify-end gap-2 border-t border-gray-100 pt-3">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setIsModalOpen(false)}
-                  className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                  className="rounded-lg border border-gray-200 px-3 py-2 h-auto text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={saving}
-                  className="rounded-lg bg-[#005390] px-4 py-2 text-xs font-bold text-white hover:bg-[#004274] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-lg bg-[#005390] px-4 py-2 h-auto text-xs font-bold text-white hover:bg-[#004274] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
                 >
                   {saving ? 'Saving...' : editing ? 'Update Amenity' : 'Create Amenity'}
-                </button>
+                </Button>
               </div>
             </form>
           </DialogContent>

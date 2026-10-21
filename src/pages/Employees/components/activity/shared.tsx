@@ -1,6 +1,7 @@
 import type React from 'react'
 import { ChevronLeft, ChevronRight, Flag, Inbox, RefreshCw } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { RANGE_PRESETS, humanize, statusLabel, type DateRange } from './utils'
 
@@ -19,19 +20,20 @@ export const RangeFilter = ({ value, onChange }: { value: DateRange; onChange: (
     <div className="flex flex-wrap items-center gap-2">
       <div className="inline-flex rounded-xl border border-gray-200 bg-slate-50 p-0.5 dark:border-gray-700 dark:bg-slate-800">
         {RANGE_PRESETS.map((p) => (
-          <button
+          <Button
             key={p.key}
             type="button"
+            variant="ghost"
             onClick={() => onChange(p.range())}
             className={cn(
-              'cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
+              'h-auto cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-transparent',
               activePreset === p.key
                 ? 'bg-white text-[#005390] shadow-xs dark:bg-slate-900'
                 : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200',
             )}
           >
             {p.label}
-          </button>
+          </Button>
         ))}
       </div>
       <div className="flex items-center gap-1.5">
@@ -156,16 +158,17 @@ export const FilterChips = ({
     {options.map((o) => {
       const active = o.value === value
       return (
-        <button
+        <Button
           key={o.value || 'all'}
           type="button"
+          variant="ghost"
           role="tab"
           aria-selected={active}
           onClick={() => onChange(o.value)}
           className={cn(
-            'inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-colors',
+            'h-auto inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-colors',
             active
-              ? 'border-[#005390] bg-[#005390] text-white'
+              ? 'border-[#005390] bg-[#005390] text-white hover:bg-[#005390] hover:text-white'
               : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-900 dark:border-gray-700 dark:bg-slate-900 dark:text-gray-300',
           )}
         >
@@ -180,7 +183,7 @@ export const FilterChips = ({
               {o.count}
             </span>
           )}
-        </button>
+        </Button>
       )
     })}
   </div>
@@ -213,32 +216,34 @@ export const Pager = ({
   onChange: (page: number) => void
 }) => {
   if (totalPages <= 1) return null
-  const btn =
-    'inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700'
   return (
     <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-gray-800">
       <span>
         Page {page} of {totalPages} · {total} records
       </span>
       <div className="flex gap-1.5">
-        <button
+        <Button
           type="button"
-          className={btn}
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 rounded-lg border-gray-200 text-gray-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700"
           disabled={page <= 1}
           onClick={() => onChange(page - 1)}
           aria-label="Previous page"
         >
           <ChevronLeft className="h-4 w-4" />
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className={btn}
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 rounded-lg border-gray-200 text-gray-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700"
           disabled={page >= totalPages}
           onClick={() => onChange(page + 1)}
           aria-label="Next page"
         >
           <ChevronRight className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
     </div>
   )

@@ -135,14 +135,15 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   if (isLoading) {
     return (
       <div className="w-full space-y-6 pb-12">
-        <button
+        <Button
+          variant="ghost"
           type="button"
           onClick={() => navigate(backUrl)}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+          className="p-0 h-auto inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] hover:bg-transparent transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />{' '}
           {isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}
-        </button>
+        </Button>
         <div className="rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-400 shadow-xl backdrop-blur-xl">
           <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#005390]" />
           Loading resident profile & family details...
@@ -154,14 +155,15 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   if (error || !resident) {
     return (
       <div className="w-full space-y-6 pb-12">
-        <button
+        <Button
+          variant="ghost"
           type="button"
           onClick={() => navigate(backUrl)}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+          className="p-0 h-auto inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] hover:bg-transparent transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />{' '}
           {isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}
-        </button>
+        </Button>
         <div className="rounded-3xl bg-rose-50 border border-rose-200 p-8 text-center text-xs text-rose-700 font-bold shadow-xs">
           {error || 'Resident profile not found.'}
         </div>
@@ -175,14 +177,15 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   return (
     <div className="w-full space-y-6 pb-16">
       {/* Top Back Navigation */}
-      <button
+      <Button
+        variant="ghost"
         type="button"
         onClick={() => navigate(backUrl)}
-        className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+        className="p-0 h-auto inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] hover:bg-transparent transition-colors cursor-pointer"
       >
         <ArrowLeft className="w-4 h-4" />{' '}
         {isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}
-      </button>
+      </Button>
 
       {/* Summary: who they are, where they live, and the main actions */}
       <div className="rounded-2xl border border-gray-100 bg-white shadow-2xs dark:border-gray-800 dark:bg-slate-900">
@@ -306,26 +309,32 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
       {/* Tab bar */}
       <div className="flex border-b border-gray-200 space-x-6 text-sm font-semibold text-gray-500 overflow-x-auto">
         {tabAccess.personal && (
-          <button
+          <Button
+            variant="ghost"
             type="button"
             onClick={() => setActiveTab('personal')}
-            className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-              activeTab === 'personal' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
+            className={`p-0 h-auto rounded-none pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 font-semibold text-sm hover:bg-transparent ${
+              activeTab === 'personal'
+                ? 'border-[#005390] text-[#005390]'
+                : 'border-transparent text-gray-500 hover:text-gray-800'
             }`}
           >
             <User className="w-4 h-4" /> Profile
-          </button>
+          </Button>
         )}
         {tabAccess.medical && (
-          <button
+          <Button
+            variant="ghost"
             type="button"
             onClick={() => setActiveTab('medical')}
-            className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-              activeTab === 'medical' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
+            className={`p-0 h-auto rounded-none pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 font-semibold text-sm hover:bg-transparent ${
+              activeTab === 'medical'
+                ? 'border-[#005390] text-[#005390]'
+                : 'border-transparent text-gray-500 hover:text-gray-800'
             }`}
           >
             <HeartPulse className="w-4 h-4 text-rose-500" /> Medical
-          </button>
+          </Button>
         )}
       </div>
 

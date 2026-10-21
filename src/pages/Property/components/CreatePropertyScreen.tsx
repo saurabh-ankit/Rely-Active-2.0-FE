@@ -1028,22 +1028,24 @@ export default function CreatePropertyScreen({
                   const isSelected = propertyTypes.includes(t)
                   const Icon = ENTITY_PRESETS[t].icon
                   return (
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
                       key={t}
                       aria-pressed={isSelected}
                       onClick={() =>
                         setPropertyTypes((prev) => (isSelected ? prev.filter((x) => x !== t) : [...prev, t]))
                       }
-                      className={`inline-flex items-center gap-1.5 rounded-xl text-xs font-semibold px-4 py-2 border transition-all ${
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-xl text-xs font-semibold px-4 py-2 border transition-all h-auto',
                         isSelected
-                          ? 'bg-[#005390] border-[#005390] text-white shadow-sm'
-                          : 'bg-white border-gray-200 text-gray-700 hover:border-[#005390]/40 hover:bg-[#005390]/10'
-                      }`}
+                          ? 'bg-[#005390] border-[#005390] text-white shadow-sm hover:bg-[#005390] hover:text-white'
+                          : 'bg-white border-gray-200 text-gray-700 hover:border-[#005390]/40 hover:bg-[#005390]/10',
+                      )}
                     >
                       {isSelected ? <Check className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5 text-gray-400" />}
                       {ENTITY_PRESETS[t].label}
-                    </button>
+                    </Button>
                   )
                 })}
               </div>
@@ -1091,24 +1093,30 @@ export default function CreatePropertyScreen({
                             {amenity.amenityId ? null : <span className="text-[10px] text-white/75">Legacy</span>}
                           </span>
                           <div className="flex items-center gap-2">
-                            <button
+                            <Button
                               type="button"
+                              variant="outline"
+                              size="sm"
                               onClick={() => toggleAmenitySlotBookable(amenity)}
-                              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold border transition-colors ${
+                              className={cn(
+                                'rounded-full px-2.5 py-1 text-[11px] font-semibold border transition-colors h-auto',
                                 amenity.slotBookable
                                   ? 'border-[#005390]/30 bg-[#005390]/10 text-[#005390]'
-                                  : 'border-gray-300 bg-white text-gray-600'
-                              }`}
+                                  : 'border-gray-300 bg-white text-gray-600',
+                              )}
                             >
                               {amenity.slotBookable ? 'Slot-bookable' : 'Non-slot'}
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               type="button"
+                              variant="ghost"
+                              size="icon-xs"
+                              aria-label={`Remove ${amenity.name}`}
                               onClick={() => removeAmenity(amenity)}
-                              className="hover:bg-[#004274] text-white rounded-full p-1"
+                              className="hover:bg-[#004274] bg-[#005390] text-white rounded-full p-1 h-6 w-6"
                             >
                               <X className="h-3 w-3" />
-                            </button>
+                            </Button>
                           </div>
                         </div>
 
@@ -1171,15 +1179,17 @@ export default function CreatePropertyScreen({
                   filteredAmenityCatalog.map((item) => {
                     const isSelected = selectedAmenityIds.has(item.id)
                     return (
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         key={item.id}
                         onClick={() => toggleAmenity(item)}
-                        className={`inline-flex items-center gap-1.5 rounded-xl text-xs font-medium px-3.5 py-2 border transition-all ${
+                        className={cn(
+                          'inline-flex items-center gap-1.5 rounded-xl text-xs font-medium px-3.5 py-2 border transition-all h-auto',
                           isSelected
-                            ? 'bg-[#005390]/10 border-[#005390]/30 text-[#005390] font-semibold shadow-xs'
-                            : 'bg-white border-gray-200 text-gray-600 hover:border-[#005390]/30 hover:bg-[#005390]/10'
-                        }`}
+                            ? 'bg-[#005390]/10 border-[#005390]/30 text-[#005390] font-semibold shadow-xs hover:bg-[#005390]/15 hover:text-[#005390]'
+                            : 'bg-white border-gray-200 text-gray-600 hover:border-[#005390]/30 hover:bg-[#005390]/10',
+                        )}
                       >
                         {isSelected ? (
                           <Check className="h-3.5 w-3.5 text-[#005390]" />
@@ -1187,7 +1197,7 @@ export default function CreatePropertyScreen({
                           <Plus className="h-3.5 w-3.5 text-gray-400" />
                         )}
                         {item.name}
-                      </button>
+                      </Button>
                     )
                   })
                 )}
@@ -1268,13 +1278,14 @@ export default function CreatePropertyScreen({
                   return (
                     <div key={entity.id ?? `new-${eIdx}`} className="space-y-1">
                       <div className="group/entity flex items-center gap-1">
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
                           onClick={() => selectEntity(eIdx)}
                           className={cn(
-                            'min-w-0 flex-1 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all cursor-pointer',
+                            'min-w-0 flex-1 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all cursor-pointer h-auto',
                             isActive
-                              ? 'bg-blue-50 border border-blue-200 text-blue-700 shadow-xs'
+                              ? 'bg-blue-50 border border-blue-200 text-blue-700 shadow-xs hover:bg-blue-50 hover:text-blue-700'
                               : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100',
                           )}
                         >
@@ -1286,10 +1297,12 @@ export default function CreatePropertyScreen({
                             {countUnits(entity)} {levelLabel(entity, 'unit').toLowerCase()}
                             {countUnits(entity) === 1 ? '' : 's'}
                           </span>
-                        </button>
+                        </Button>
                         {entities.length > 1 && (
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="icon-xs"
                             aria-label={`Delete ${entity.name}`}
                             title={
                               occupiedInEntity(entity).length
@@ -1298,10 +1311,10 @@ export default function CreatePropertyScreen({
                             }
                             disabled={occupiedInEntity(entity).length > 0}
                             onClick={() => removeEntity(eIdx)}
-                            className="shrink-0 cursor-pointer rounded-lg p-1.5 text-gray-300 opacity-0 transition hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover/entity:opacity-100 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300"
+                            className="shrink-0 cursor-pointer rounded-lg p-1.5 text-gray-300 opacity-0 transition hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover/entity:opacity-100 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300 h-auto"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          </Button>
                         )}
                       </div>
 
@@ -1310,11 +1323,12 @@ export default function CreatePropertyScreen({
                           <ul className="max-h-72 space-y-0.5 overflow-y-auto">
                             {(entity.units ?? []).map((unit, uIdx) => (
                               <li key={unit.id ?? `h-${uIdx}`} className="group/block flex items-center gap-0.5">
-                                <button
+                                <Button
                                   type="button"
+                                  variant="ghost"
                                   onClick={() => setActiveBlockIndex(uIdx)}
                                   className={cn(
-                                    'flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1 text-left text-[11px] hover:bg-white',
+                                    'flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1 text-left text-[11px] hover:bg-white h-auto font-normal',
                                     uIdx === activeBlockIndex
                                       ? 'bg-white font-semibold text-blue-700 shadow-xs'
                                       : 'text-gray-600',
@@ -1327,10 +1341,12 @@ export default function CreatePropertyScreen({
                                   <span className="shrink-0 text-[10px] font-semibold text-gray-400">
                                     {unit.unit_type}
                                   </span>
-                                </button>
+                                </Button>
                                 {(entity.units?.length ?? 0) > 1 && (
-                                  <button
+                                  <Button
                                     type="button"
+                                    variant="ghost"
+                                    size="icon-xs"
                                     aria-label={`Delete ${unit.unit_number}`}
                                     title={
                                       isUnitOccupied(unit)
@@ -1339,10 +1355,10 @@ export default function CreatePropertyScreen({
                                     }
                                     disabled={isUnitOccupied(unit)}
                                     onClick={() => removeHome(uIdx)}
-                                    className="shrink-0 cursor-pointer rounded-md p-1 text-gray-300 opacity-0 transition hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover/block:opacity-100 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300"
+                                    className="shrink-0 cursor-pointer rounded-md p-1 text-gray-300 opacity-0 transition hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover/block:opacity-100 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300 h-auto"
                                   >
                                     <Trash2 className="h-3 w-3" />
-                                  </button>
+                                  </Button>
                                 )}
                               </li>
                             ))}
@@ -1364,22 +1380,27 @@ export default function CreatePropertyScreen({
                               : (child.units?.length ?? 0)
                             return (
                               <div key={cIdx} className="group/block flex items-center gap-0.5">
-                                <button
+                                <Button
                                   type="button"
+                                  variant="ghost"
                                   disabled={!selectable}
                                   onClick={() => setActiveBlockIndex(cIdx)}
                                   className={cn(
-                                    'flex min-w-0 flex-1 items-center justify-between rounded-lg px-2 py-1 text-left text-[11px]',
+                                    'flex min-w-0 flex-1 items-center justify-between rounded-lg px-2 py-1 text-left text-[11px] h-auto font-normal',
                                     selected ? 'bg-white font-semibold text-blue-700 shadow-xs' : 'text-gray-600',
-                                    selectable ? 'cursor-pointer hover:bg-white' : 'cursor-default',
+                                    selectable
+                                      ? 'cursor-pointer hover:bg-white'
+                                      : 'cursor-default hover:bg-transparent',
                                   )}
                                 >
                                   <span className="truncate">{name}</span>
                                   <span className="text-[10px] text-gray-400 font-semibold">{count}</span>
-                                </button>
+                                </Button>
                                 {selectable && children.length > 1 && (
-                                  <button
+                                  <Button
                                     type="button"
+                                    variant="ghost"
+                                    size="icon-xs"
                                     aria-label={`Delete ${name}`}
                                     title={
                                       'block_name' in child && occupiedInBlock(child as BlockInput).length
@@ -1388,10 +1409,10 @@ export default function CreatePropertyScreen({
                                     }
                                     disabled={'block_name' in child && occupiedInBlock(child as BlockInput).length > 0}
                                     onClick={() => removeBlock(cIdx)}
-                                    className="shrink-0 cursor-pointer rounded-md p-1 text-gray-300 opacity-0 transition hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover/block:opacity-100 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300"
+                                    className="shrink-0 cursor-pointer rounded-md p-1 text-gray-300 opacity-0 transition hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover/block:opacity-100 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300 h-auto"
                                   >
                                     <Trash2 className="h-3 w-3" />
-                                  </button>
+                                  </Button>
                                 )}
                               </div>
                             )
@@ -1564,21 +1585,23 @@ export default function CreatePropertyScreen({
                           (activeBlock.bhk_templates || []).length >= (activeBlock.units_per_floor || 3)
 
                         return (
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
                             key={bhkType}
                             disabled={isLimitReached}
                             onClick={() => addBHKTemplateVariant(bhkType)}
-                            className={`rounded-xl px-4 py-2 text-xs font-semibold border transition-all ${
+                            className={cn(
+                              'rounded-xl px-4 py-2 text-xs font-semibold border transition-all h-auto',
                               variantsCount > 0
-                                ? 'bg-[#005390] border-[#005390] text-white shadow-xs'
+                                ? 'bg-[#005390] border-[#005390] text-white shadow-xs hover:bg-[#005390] hover:text-white'
                                 : isLimitReached
                                   ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60'
-                                  : 'bg-white border-gray-200 text-gray-700 hover:border-[#005390]/40 hover:bg-blue-50/30'
-                            }`}
+                                  : 'bg-white border-gray-200 text-gray-700 hover:border-[#005390]/40 hover:bg-blue-50/30',
+                            )}
                           >
                             {bhkType} {variantsCount > 0 && `(${variantsCount})`}
-                          </button>
+                          </Button>
                         )
                       })}
                     </div>
@@ -1656,13 +1679,16 @@ export default function CreatePropertyScreen({
                                       </Button>
                                     </td>
                                     <td className="p-3 text-right">
-                                      <button
+                                      <Button
                                         type="button"
+                                        variant="ghost"
+                                        size="icon-xs"
+                                        aria-label={`Remove ${variant.type} variant`}
                                         onClick={() => removeBHKTemplateVariant(vIdx)}
-                                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors h-auto"
                                       >
                                         <Trash2 className="h-4 w-4" />
-                                      </button>
+                                      </Button>
                                     </td>
                                   </tr>
 

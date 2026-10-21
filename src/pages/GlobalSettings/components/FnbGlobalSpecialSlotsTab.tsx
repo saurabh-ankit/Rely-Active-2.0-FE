@@ -364,22 +364,24 @@ export default function FnbGlobalSpecialSlotsTab() {
               <div className="space-y-2 pt-2 border-t border-gray-100">
                 <div className="flex items-center justify-between">
                   <span className="block text-xs font-bold text-gray-700">Assign to Properties</span>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={toggleAllProperties}
-                    className="text-xs text-[#005390] font-bold hover:underline cursor-pointer"
+                    className="text-xs text-[#005390] font-bold hover:underline cursor-pointer p-0 h-auto hover:bg-transparent"
                   >
                     {isAllPropsSelected ? 'Deselect All' : 'Select All'}
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                   {propertyAssignments.map((pa) => (
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
                       key={pa.locId}
                       onClick={() => togglePropertyAssignment(pa.locId)}
-                      className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
+                      className={`w-full flex items-center justify-between p-2.5 h-auto rounded-xl border text-xs cursor-pointer transition-all ${
                         pa.enabled
                           ? 'bg-blue-50/70 border-blue-200 text-[#005390] font-bold'
                           : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300'
@@ -394,7 +396,7 @@ export default function FnbGlobalSpecialSlotsTab() {
                       ) : (
                         <Square className="w-4 h-4 text-gray-300" />
                       )}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>

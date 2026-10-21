@@ -620,18 +620,19 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
                     {editingAsset && editingAsset.warrantyDocumentUrl && !formData.warrantyDocumentUrl && (
                       <div className="flex items-center justify-between text-xs text-amber-700 bg-amber-50 p-1.5 rounded border border-amber-200">
                         <span>Current file marked for deletion (will be removed when updated)</span>
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
                           onClick={() => {
                             setFormData((prev) => ({
                               ...prev,
                               warrantyDocumentUrl: editingAsset.warrantyDocumentUrl || '',
                             }))
                           }}
-                          className="text-amber-800 underline font-medium hover:text-amber-900 ml-2 flex-shrink-0"
+                          className="h-auto p-0 text-amber-800 underline font-medium hover:text-amber-900 ml-2 shrink-0 hover:bg-transparent"
                         >
                           Undo
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </div>

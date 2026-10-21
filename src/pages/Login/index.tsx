@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Lock, LogIn, User } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
 import { getCompaniesAPI } from '@/lib/services/companyService'
 import { notifyError, notifySuccess } from '@/utils/toast'
@@ -113,26 +114,29 @@ export default function LoginPage() {
                 className="w-full rounded-xl border border-gray-300/80 bg-[#e4e6e9] py-2.5 pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-500/70 focus:border-[#71849a] focus:bg-[#eaecf0] focus:outline-none focus:ring-2 focus:ring-[#71849a]/30"
               />
               <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500/80" />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-xs"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500/80 hover:text-slate-800 transition-colors"
+                className="absolute right-2 top-1/2 h-7 w-7 -translate-y-1/2 text-slate-500/80 hover:text-slate-800 hover:bg-transparent transition-colors p-0"
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
+              </Button>
             </div>
           </div>
 
           {/* Sign In Button */}
           <div className="pt-2">
-            <button
+            <Button
               type="submit"
               disabled={isLoading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#005390] hover:bg-[#004274] py-2.5 text-sm font-semibold text-white shadow-md transition-all active:scale-[0.99] disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#005390] hover:bg-[#004274] py-2.5 h-10 text-sm font-semibold text-white shadow-md transition-all active:scale-[0.99] disabled:opacity-50"
             >
               <LogIn className="h-4 w-4" />
               {isLoading ? 'Signing In...' : 'Sign In'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

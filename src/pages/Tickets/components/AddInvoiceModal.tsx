@@ -4,6 +4,7 @@ import apiClient from '@/lib/api/axios'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import type { Ticket } from '@/lib/types'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   isOpen: boolean
@@ -171,17 +172,20 @@ export function AddInvoiceModal({ isOpen, onClose, ticket, locationId, onSuccess
 
             {/* Footer CTA */}
             <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-3">
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={onClose}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl cursor-pointer"
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl border-none cursor-pointer"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
+                size="sm"
                 disabled={isSubmitting}
-                className="px-5 py-2 bg-[#f28e53] hover:bg-[#e07b40] text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
+                className="px-5 bg-[#f28e53] hover:bg-[#e07b40] text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
               >
                 {isSubmitting ? (
                   'Saving...'
@@ -190,7 +194,7 @@ export function AddInvoiceModal({ isOpen, onClose, ticket, locationId, onSuccess
                     <Check className="w-4 h-4" /> Save Invoice
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </form>
         </DialogContent>

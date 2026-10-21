@@ -97,10 +97,11 @@ function UnitHover({ unit, className, children }: { unit: ViewUnit; className: s
     <HoverCard>
       <HoverCardTrigger
         render={
-          <button
+          <Button
             type="button"
+            variant="ghost"
             aria-label={`${unit.unit_number} details`}
-            className={cn(className, 'cursor-pointer')}
+            className={cn(className, 'cursor-pointer h-auto p-0 font-normal hover:bg-transparent')}
           />
         }
       >

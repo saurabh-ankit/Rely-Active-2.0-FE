@@ -152,13 +152,14 @@ export function ReceiptsList({ unitId }: { unitId: string }) {
                 )}
               >
                 {/* Invoice header */}
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   aria-expanded={open}
                   onClick={() => toggle(g.invoiceId)}
                   className={cn(
-                    'grid w-full grid-cols-[auto_1fr_auto] items-center gap-4 px-4 py-3.5 text-left transition-colors hover:bg-gray-50/70 md:grid-cols-[auto_1.4fr_1fr_1.3fr_auto]',
-                    open && 'bg-[#2b4f7e]/[0.03]',
+                    'h-auto rounded-none grid w-full grid-cols-[auto_1fr_auto] items-center gap-4 px-4 py-3.5 text-left transition-colors hover:bg-gray-50/70 md:grid-cols-[auto_1.4fr_1fr_1.3fr_auto] whitespace-normal font-normal',
+                    open && 'bg-[#2b4f7e]/[0.03] hover:bg-[#2b4f7e]/[0.03]',
                   )}
                 >
                   {open ? (
@@ -206,7 +207,7 @@ export function ReceiptsList({ unitId }: { unitId: string }) {
                       <p className="font-bold text-emerald-600">Settled</p>
                     )}
                   </div>
-                </button>
+                </Button>
 
                 {/* Payments on this invoice */}
                 {open && (

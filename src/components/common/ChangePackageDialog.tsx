@@ -240,12 +240,13 @@ export const ChangePackageDialog: React.FC<ChangePackageDialogProps> = ({
             ) : (
               <div className="relative">
                 {/* Searchable Trigger Button */}
-                <button
+                <Button
+                  variant="outline"
                   type="button"
                   id="new-package-select"
                   onClick={() => setIsDropdownOpen((prev) => !prev)}
                   className={cn(
-                    'w-full h-11 px-3.5 py-2 text-xs rounded-xl border bg-white dark:bg-slate-800 text-left flex items-center justify-between transition-all cursor-pointer shadow-2xs',
+                    'w-full h-11 px-3.5 py-2 text-xs rounded-xl border bg-white dark:bg-slate-800 text-left flex items-center justify-between transition-all cursor-pointer shadow-2xs font-normal',
                     isDropdownOpen
                       ? 'border-[#005390] ring-2 ring-[#005390]/20'
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600',
@@ -296,7 +297,7 @@ export const ChangePackageDialog: React.FC<ChangePackageDialogProps> = ({
                       )}
                     />
                   </div>
-                </button>
+                </Button>
 
                 {/* Dropdown Menu with Search Input */}
                 {isDropdownOpen && (
@@ -314,13 +315,16 @@ export const ChangePackageDialog: React.FC<ChangePackageDialogProps> = ({
                           className="w-full rounded-xl border border-gray-200 bg-white py-2 pr-8 pl-9 text-xs text-gray-900 placeholder:text-gray-400 focus:border-[#005390] focus:outline-none focus:ring-1 focus:ring-[#005390] dark:border-gray-700 dark:bg-slate-800 dark:text-white"
                         />
                         {searchQuery && (
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
                             type="button"
+                            aria-label="Clear search"
                             onClick={() => setSearchQuery('')}
                             className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
                           >
                             <X className="size-3.5" />
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -340,14 +344,15 @@ export const ChangePackageDialog: React.FC<ChangePackageDialogProps> = ({
                         filteredPackages.map((pkg) => {
                           const isSelected = pkg.id === selectedPackageId
                           return (
-                            <button
+                            <Button
+                              variant="ghost"
                               key={pkg.id}
                               type="button"
                               onClick={() => handleSelectPackage(pkg)}
                               className={cn(
-                                'w-full px-3 py-2.5 rounded-xl text-left flex items-center justify-between gap-3 transition-colors cursor-pointer',
+                                'w-full px-3 py-2.5 h-auto rounded-xl text-left flex items-center justify-between gap-3 transition-colors cursor-pointer font-normal whitespace-normal',
                                 isSelected
-                                  ? 'bg-blue-50/80 text-[#005390] dark:bg-blue-950/50 dark:text-blue-300 font-semibold'
+                                  ? 'bg-blue-50/80 text-[#005390] dark:bg-blue-950/50 dark:text-blue-300 font-semibold hover:bg-blue-50/80 hover:text-[#005390]'
                                   : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-gray-700 dark:text-gray-300',
                               )}
                             >
@@ -366,7 +371,7 @@ export const ChangePackageDialog: React.FC<ChangePackageDialogProps> = ({
                                 </span>
                                 {isSelected && <Check className="size-4 text-[#005390] dark:text-blue-400" />}
                               </div>
-                            </button>
+                            </Button>
                           )
                         })
                       )}

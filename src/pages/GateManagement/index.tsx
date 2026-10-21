@@ -393,28 +393,30 @@ export default function GateManagementPage() {
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
         <div className="grid grid-cols-2 border-b border-gray-200 text-center font-bold text-xs">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => setActiveTab('ENTRIES')}
-            className={`py-3.5 transition-colors cursor-pointer border-b-2 font-bold ${
+            className={`py-3.5 h-auto rounded-none transition-colors cursor-pointer border-b-2 font-bold ${
               activeTab === 'ENTRIES'
-                ? 'bg-[#005390] text-white border-[#005390]'
-                : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-transparent'
+                ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white border-[#005390]'
+                : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900 border-transparent'
             }`}
           >
             Entry Logs
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => setActiveTab('INVITES')}
-            className={`py-3.5 transition-colors cursor-pointer border-b-2 font-bold ${
+            className={`py-3.5 h-auto rounded-none transition-colors cursor-pointer border-b-2 font-bold ${
               activeTab === 'INVITES'
-                ? 'bg-[#005390] text-white border-[#005390]'
-                : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-transparent'
+                ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white border-[#005390]'
+                : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900 border-transparent'
             }`}
           >
             Pre-Approved (by Resident)
-          </button>
+          </Button>
         </div>
 
         <div className="p-6 overflow-x-auto">
@@ -612,41 +614,55 @@ export default function GateManagementPage() {
                       <td className="py-4 px-2">
                         {canUpdateGNS && entry.status === 'PendingApproval' && (
                           <div className="flex gap-2">
-                            <button
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
                               onClick={() => handleUpdateStatus(entry, 'Approved')}
-                              className="p-1.5 bg-emerald-50 text-emerald-600 rounded-md hover:bg-emerald-100"
+                              className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700"
                               title="Approve"
                             >
                               <CheckCircle2 className="w-4 h-4" />
-                            </button>
-                            <button
+                              <span className="sr-only">Approve</span>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
                               onClick={() => handleUpdateStatus(entry, 'Rejected')}
-                              className="p-1.5 bg-red-50 text-red-600 rounded-md hover:bg-red-100"
+                              className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700"
                               title="Reject"
                             >
                               <Ban className="w-4 h-4" />
-                            </button>
+                              <span className="sr-only">Reject</span>
+                            </Button>
                           </div>
                         )}
                         {canUpdateGNS && entry.status === 'Inside' && (
                           <div className="flex flex-col gap-2 items-start">
-                            <button
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
                               onClick={() => initiateForceCheckout(entry)}
-                              className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-md border border-gray-300 w-full"
+                              className="text-xs h-7 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold border-gray-300 w-full"
                             >
                               Force Checkout
-                            </button>
+                            </Button>
                             {entry.visitorType === 'Office' && (
-                              <button
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
                                 onClick={() => {
                                   setSelectedEntry(entry)
                                   setItems([{ itemName: '', quantity: 1 }])
                                   setIsItemModalOpen(true)
                                 }}
-                                className="text-xs px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold rounded-md border border-blue-200 w-full whitespace-nowrap"
+                                className="text-xs h-7 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold border-blue-200 w-full whitespace-nowrap"
                               >
                                 + Add Items
-                              </button>
+                              </Button>
                             )}
                           </div>
                         )}
@@ -847,28 +863,34 @@ export default function GateManagementPage() {
             {activeTab === 'ENTRIES' ? entriesTotalPages : preapprovedTotalPages}
           </span>
           <div className="flex gap-2">
-            <button
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               disabled={activeTab === 'ENTRIES' ? entriesPage === 1 : preapprovedPage === 1}
               onClick={() =>
                 activeTab === 'ENTRIES'
                   ? setEntriesPage((p) => Math.max(1, p - 1))
                   : setPreapprovedPage((p) => Math.max(1, p - 1))
               }
-              className="px-3 py-1.5 border border-gray-300 bg-white rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-50 font-semibold"
+              className="border-gray-300 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 font-semibold"
             >
               Previous
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               disabled={
                 activeTab === 'ENTRIES' ? entriesPage >= entriesTotalPages : preapprovedPage >= preapprovedTotalPages
               }
               onClick={() =>
                 activeTab === 'ENTRIES' ? setEntriesPage((p) => p + 1) : setPreapprovedPage((p) => p + 1)
               }
-              className="px-3 py-1.5 border border-gray-300 bg-white rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-50 font-semibold"
+              className="border-gray-300 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 font-semibold"
             >
               Next
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -950,14 +972,15 @@ export default function GateManagementPage() {
               {photoViewerData.photos.length > 1 && (
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10 bg-black/60 px-3 py-1.5 rounded-full backdrop-blur-md">
                   {photoViewerData.photos.map((_, idx) => (
-                    <button
+                    <Button
                       key={idx}
                       type="button"
+                      variant="ghost"
                       onClick={(e) => {
                         e.stopPropagation()
                         setPhotoViewerData((prev) => (prev ? { ...prev, currentIndex: idx } : null))
                       }}
-                      className={`h-2 rounded-full transition-all ${
+                      className={`h-2 min-w-0 p-0 rounded-full transition-all hover:bg-transparent ${
                         idx === photoViewerData.currentIndex ? 'bg-white w-4' : 'bg-white/50 hover:bg-white/80 w-2'
                       }`}
                       aria-label={`Go to photo ${idx + 1}`}

@@ -177,15 +177,17 @@ const NokContactFormModal = ({ open, onOpenChange, residentId, item }: NokContac
                       alt="NOK profile"
                       className="h-12 w-12 rounded-full border border-gray-200 object-cover"
                     />
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
                       type="button"
                       aria-label="Remove profile picture"
                       onClick={handleRemovePhoto}
                       disabled={isPending}
-                      className="absolute -right-1 -top-1 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-red-500 text-white shadow hover:bg-red-600"
+                      className="absolute -right-1 -top-1 flex h-5 w-5 p-0 cursor-pointer items-center justify-center rounded-full bg-red-500 text-white shadow hover:bg-red-600 hover:text-white"
                     >
                       <X className="h-3 w-3" />
-                    </button>
+                    </Button>
                   </div>
                 )}
                 <Label htmlFor="nok-photo" className="text-sm font-medium text-gray-700 dark:text-gray-300">

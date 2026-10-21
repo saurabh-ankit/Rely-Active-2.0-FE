@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import {
   Plus,
   Edit2,
@@ -369,37 +370,39 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
 
         {/* Hide Add Master Dish button in Location Mode */}
         {!isLocationMode && canCreateFnb && (
-          <button
+          <Button
             type="button"
             onClick={handleOpenCreate}
-            className="inline-flex items-center gap-2 bg-[#005390] text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-[#004070] transition-colors cursor-pointer shadow-xs shrink-0"
+            className="inline-flex items-center gap-2 bg-[#005390] text-white px-5 py-2.5 h-auto rounded-xl font-bold text-xs hover:bg-[#004070] transition-colors cursor-pointer shadow-xs shrink-0"
           >
             <Plus className="w-4 h-4" /> Add Master Dish
-          </button>
+          </Button>
         )}
       </div>
 
       {/* Category Pills Quick Filter */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => setActiveCategoryFilter('ALL')}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+          className={`px-3.5 py-1.5 h-auto rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
             activeCategoryFilter === 'ALL'
               ? 'bg-[#005390] text-white shadow-xs'
               : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
           }`}
         >
           <Layers className="w-3.5 h-3.5" /> All Dishes ({displayDishes.length})
-        </button>
+        </Button>
         {DISH_CATEGORIES.map((cat) => {
           const count = groupedDishes[cat.key]?.length || 0
           return (
-            <button
+            <Button
               key={cat.key}
               type="button"
+              variant="ghost"
               onClick={() => setActiveCategoryFilter(cat.key)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 h-auto rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                 activeCategoryFilter === cat.key
                   ? 'bg-[#005390] text-white shadow-xs'
                   : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
@@ -414,7 +417,7 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
               >
                 {count}
               </span>
-            </button>
+            </Button>
           )
         })}
       </div>
@@ -440,10 +443,11 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
             return (
               <div key={cat.key} className="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
                 {/* Category Header */}
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => toggleCategoryCollapse(cat.key)}
-                  className="w-full text-left px-5 py-3.5 bg-gray-50/80 border-b border-gray-200/80 flex items-center justify-between cursor-pointer hover:bg-gray-100/50 transition-colors"
+                  className="w-full h-auto text-left px-5 py-3.5 bg-gray-50/80 border-b border-gray-200/80 flex items-center justify-between cursor-pointer hover:bg-gray-100/50 transition-colors rounded-none"
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-lg">{cat.icon}</span>
@@ -455,7 +459,7 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                   <div className="text-gray-400 p-1">
                     {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </div>
-                </button>
+                </Button>
 
                 {/* Category Dishes Table */}
                 {!isCollapsed && (
@@ -559,14 +563,15 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                                   )}
                                   <td className="px-5 py-3.5 text-right">
                                     {canUpdateFnb && (
-                                      <button
+                                      <Button
                                         type="button"
+                                        variant="outline"
                                         onClick={() => handleOpenEdit(dish)}
-                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-[#005390] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 h-auto rounded-lg text-xs font-semibold bg-blue-50 text-[#005390] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
                                       >
                                         <Edit2 className="w-3.5 h-3.5" />
                                         {isLocationMode ? 'Edit Price' : 'Edit'}
-                                      </button>
+                                      </Button>
                                     )}
                                   </td>
                                 </tr>
@@ -633,20 +638,21 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => setOverrideModalDish(null)}
-                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+                  className="px-4 py-2 h-auto text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={overrideSaving}
-                  className="px-5 py-2 bg-[#005390] text-white text-xs font-bold rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 h-auto bg-[#005390] text-white text-xs font-bold rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {overrideSaving ? 'Saving...' : 'Update Price'}
-                </button>
+                </Button>
               </div>
             </form>
           </DialogContent>
@@ -818,10 +824,11 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                       <p className="text-[11px] text-gray-500">Select properties where this dish will be available.</p>
                     </div>
 
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
                       onClick={handleSelectAllProperties}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#005390] hover:text-[#004070] cursor-pointer"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#005390] hover:text-[#004070] cursor-pointer p-0 h-auto"
                     >
                       {isAllPropsSelected ? (
                         <>
@@ -832,7 +839,7 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                           <Square className="w-4 h-4 text-gray-400" /> Select All ({availableProperties.length})
                         </>
                       )}
-                    </button>
+                    </Button>
                   </div>
 
                   {availableProperties.length === 0 ? (
@@ -842,11 +849,12 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                       {availableProperties.map((prop) => {
                         const isSelected = selectedPropertyIds.includes(prop.id)
                         return (
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
                             key={prop.id}
                             onClick={() => handleToggleProperty(prop.id)}
-                            className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-between cursor-pointer transition-all ${
+                            className={`p-2.5 h-auto rounded-xl border text-xs font-semibold flex items-center justify-between cursor-pointer transition-all ${
                               isSelected
                                 ? 'bg-blue-50/80 border-blue-200 text-[#005390]'
                                 : 'bg-gray-50/50 border-gray-200 text-gray-600 hover:bg-gray-100/50'
@@ -858,7 +866,7 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                             ) : (
                               <Square className="w-4 h-4 text-gray-300 shrink-0" />
                             )}
-                          </button>
+                          </Button>
                         )
                       })}
                     </div>
@@ -868,20 +876,21 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
 
               {/* Action Buttons */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+                  className="px-4 py-2 h-auto text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={saving}
-                  className="px-6 py-2.5 bg-[#005390] text-white text-xs font-bold rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50 shadow-xs"
+                  className="px-6 py-2.5 h-auto bg-[#005390] text-white text-xs font-bold rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50 shadow-xs"
                 >
                   {saving ? 'Saving Dish...' : 'Save Dish'}
-                </button>
+                </Button>
               </div>
             </form>
           </DialogContent>

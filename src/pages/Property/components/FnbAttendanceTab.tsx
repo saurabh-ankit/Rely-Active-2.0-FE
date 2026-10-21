@@ -13,6 +13,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { fnbService, fnbAttendanceService } from '@/lib/services/fnbService'
 import type {
   FnbFoodAttendanceMember,
@@ -560,19 +561,23 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
                   { value: 'member', label: 'By Member', icon: User },
                 ] as const
               ).map(({ value, label, icon: Icon }) => (
-                <button
+                <Button
                   key={value}
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   aria-pressed={viewMode === value}
                   onClick={() => setViewMode(value)}
                   className={cn(
-                    'flex cursor-pointer items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all',
-                    viewMode === value ? 'bg-white text-[#005390] shadow-sm' : 'text-gray-600 hover:text-gray-900',
+                    'flex cursor-pointer items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all h-auto',
+                    viewMode === value
+                      ? 'bg-white text-[#005390] shadow-sm hover:bg-white hover:text-[#005390]'
+                      : 'text-gray-600 hover:text-gray-900',
                   )}
                 >
                   <Icon className="h-3.5 w-3.5" />
                   {label}
-                </button>
+                </Button>
               ))}
             </div>
 
@@ -608,16 +613,17 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
               (slot) => {
                 const isSelected = selectedSlot === slot.key
                 return (
-                  <button
+                  <Button
                     key={slot.key}
                     type="button"
+                    variant="ghost"
                     aria-pressed={isSelected}
                     onClick={() => setSelectedSlot(slot.key)}
                     className={cn(
-                      'flex cursor-pointer items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-all',
+                      'flex cursor-pointer items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-all h-auto font-normal',
                       isSelected
-                        ? 'border-[#005390] bg-[#005390] text-white shadow-md shadow-blue-900/10'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-[#005390]/40 hover:text-[#005390]',
+                        ? 'border-[#005390] bg-[#005390] text-white shadow-md shadow-blue-900/10 hover:bg-[#005390] hover:text-white'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-[#005390]/40 hover:text-[#005390] hover:bg-white',
                     )}
                   >
                     {slot.key === ALL_SLOTS ? (
@@ -631,7 +637,7 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
                         {slot.time}
                       </span>
                     )}
-                  </button>
+                  </Button>
                 )
               },
             )}
@@ -641,20 +647,22 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
         <div className="flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Status filter">
             {STATUS_FILTERS.map((f) => (
-              <button
+              <Button
                 key={f.value}
                 type="button"
+                variant="ghost"
+                size="sm"
                 aria-pressed={statusFilter === f.value}
                 onClick={() => setStatusFilter(f.value)}
                 className={cn(
                   'h-7 cursor-pointer rounded-full border px-3 text-[11px] font-semibold transition-colors',
                   statusFilter === f.value
-                    ? 'border-gray-900 bg-gray-900 text-white'
+                    ? 'border-gray-900 bg-gray-900 text-white hover:bg-gray-900 hover:text-white'
                     : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50',
                 )}
               >
                 {f.label}
-              </button>
+              </Button>
             ))}
           </div>
           <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-500">

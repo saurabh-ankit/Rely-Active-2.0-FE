@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Building2, CheckCircle2, Clock3, Search, Sparkles } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
+import { Button } from '@/components/ui/button'
 import { useLocationContext } from '@/hooks/useLocation'
 import { getAmenitySlotConfigAPI, type AmenitySlotConfigResponse } from '@/lib/services/amenitySlotService'
 import { getPropertyByIdAPI } from '@/lib/services/propertyService'
@@ -233,17 +234,18 @@ export default function AmenitiesPage() {
               {filteredAmenities.map((item) => {
                 const timeWindow = readTimeWindow(item)
                 return (
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     key={item.id}
                     onClick={() => openSlotManager(item)}
-                    className={`rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-xs ${
+                    className={`rounded-2xl border border-gray-200 bg-white p-4 h-auto text-left shadow-xs flex-col items-stretch justify-start whitespace-normal font-normal hover:bg-white ${
                       item.slotBookable
                         ? 'cursor-pointer transition hover:border-[#005390]/40 hover:shadow-sm'
                         : 'cursor-default'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start justify-between gap-2 w-full">
                       <p className="text-sm font-semibold text-gray-900">{item.name}</p>
                       <span
                         className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
@@ -254,19 +256,21 @@ export default function AmenitiesPage() {
                         {item.slotBookable ? 'Slot' : 'Standard'}
                       </span>
                     </div>
-                    {item.description ? <p className="mt-2 text-xs text-gray-500">{item.description}</p> : null}
+                    {item.description ? <p className="mt-2 text-xs text-gray-500 w-full">{item.description}</p> : null}
                     {item.slotBookable ? (
-                      <p className="mt-2 text-[11px] font-semibold text-[#005390]">{slotSummaryText(item)}</p>
+                      <p className="mt-2 text-[11px] font-semibold text-[#005390] w-full">{slotSummaryText(item)}</p>
                     ) : timeWindow ? (
-                      <p className="mt-2 text-[11px] font-semibold text-[#005390]">Available: {timeWindow}</p>
+                      <p className="mt-2 text-[11px] font-semibold text-[#005390] w-full">Available: {timeWindow}</p>
                     ) : null}
                     {item.slotBookable ? (
-                      <p className="mt-2 text-[11px] font-semibold text-[#005390]">Manage slots &amp; bookings</p>
+                      <p className="mt-2 text-[11px] font-semibold text-[#005390] w-full">
+                        Manage slots &amp; bookings
+                      </p>
                     ) : null}
-                    <p className="mt-3 flex items-center gap-1 text-[11px] text-gray-400">
+                    <p className="mt-3 flex items-center gap-1 text-[11px] text-gray-400 w-full">
                       <Building2 className="h-3.5 w-3.5" /> {displayPropertyName || 'Property'}
                     </p>
-                  </button>
+                  </Button>
                 )
               })}
             </div>

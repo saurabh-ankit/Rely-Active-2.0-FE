@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Check, RefreshCw, Utensils } from 'lucide-react'
 import api from '@/lib/api/axios'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { AssignedPackage } from './AssignedPackage'
 
 export interface FoodPackageChoice {
@@ -136,28 +137,30 @@ export function OnboardFoodPackages({ locId, people, value, onChange, existing =
             ) : (
               <>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => set(person.key, undefined)}
                     className={cn(
-                      'rounded-xl border p-3 text-left transition-all hover:shadow-sm',
+                      'rounded-xl border p-3 text-left transition-all hover:shadow-sm h-auto flex flex-col items-stretch justify-start whitespace-normal font-normal',
                       !choice
-                        ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20'
-                        : 'border-gray-200 hover:border-gray-300',
+                        ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20 hover:bg-blue-50/50'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-white',
                     )}
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between w-full">
                       <span className="text-xs font-bold text-gray-800">No Food Package</span>
                       {!choice && <Tick />}
                     </div>
-                    <p className="mt-1 text-[11px] text-gray-500">Order meals à la carte.</p>
-                  </button>
+                    <p className="mt-1 text-[11px] text-gray-500 w-full">Order meals à la carte.</p>
+                  </Button>
                   {packages.map((pkg) => {
                     const isSelected = choice?.propertyPackageId === pkg.id
                     const diet = pkg.globalPackage?.dietaryType || ''
                     const slots = pkg.globalPackage?.includedMealSlots?.length ?? 0
                     return (
-                      <button
+                      <Button
+                        variant="ghost"
                         key={pkg.id}
                         type="button"
                         onClick={() =>
@@ -172,23 +175,23 @@ export function OnboardFoodPackages({ locId, people, value, onChange, existing =
                           })
                         }
                         className={cn(
-                          'rounded-xl border p-3 text-left transition-all hover:shadow-sm',
+                          'rounded-xl border p-3 text-left transition-all hover:shadow-sm h-auto flex flex-col items-stretch justify-start whitespace-normal font-normal',
                           isSelected
-                            ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20'
-                            : 'border-gray-200 hover:border-gray-300',
+                            ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20 hover:bg-blue-50/50'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-white',
                         )}
                       >
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center justify-between gap-2 w-full">
                           <span className="truncate text-xs font-bold text-gray-900">
                             {pkg.globalPackage?.name || 'Food package'}
                           </span>
                           {isSelected && <Tick />}
                         </div>
-                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 w-full">
                           <span className="text-sm font-black text-[#005390]">{inr(Number(pkg.price))}</span>
                           <span className="text-[10px] text-gray-500">/ month</span>
                         </div>
-                        <div className="mt-1.5 flex flex-wrap gap-1">
+                        <div className="mt-1.5 flex flex-wrap gap-1 w-full">
                           {diet && (
                             <span
                               className={cn(
@@ -205,7 +208,7 @@ export function OnboardFoodPackages({ locId, people, value, onChange, existing =
                             </span>
                           )}
                         </div>
-                      </button>
+                      </Button>
                     )
                   })}
                 </div>

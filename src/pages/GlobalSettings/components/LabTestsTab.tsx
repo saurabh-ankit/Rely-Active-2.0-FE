@@ -4,6 +4,7 @@ import { AlertCircle, Edit2, FlaskConical, Plus, Trash2, Upload } from 'lucide-r
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import {
   createLabTestSettingAPI,
@@ -216,22 +217,28 @@ export function LabTestsTab() {
         header: () => <div className="text-right">Actions</div>,
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => handleOpenEdit(row.original)}
               className="p-2 rounded-lg text-[#005390] hover:bg-blue-50 transition-colors cursor-pointer"
               title="Edit lab test"
+              aria-label="Edit lab test"
             >
               <Edit2 className="w-4 h-4" />
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => handleDelete(row.original)}
               className="p-2 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
               title="Delete lab test"
+              aria-label="Delete lab test"
             >
               <Trash2 className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         ),
       },
@@ -252,13 +259,13 @@ export function LabTestsTab() {
             {labTests.length > 0 ? ` ${labTests.length} lab test${labTests.length === 1 ? '' : 's'} configured.` : ''}
           </p>
         </div>
-        <button
+        <Button
           type="button"
           onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#005390] hover:bg-[#004070] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 h-auto bg-[#005390] hover:bg-[#004070] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Add New Lab Test
-        </button>
+        </Button>
       </div>
 
       <DataTable
@@ -330,13 +337,14 @@ export function LabTestsTab() {
                     </div>
                   )}
                   <div>
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
                       onClick={() => fileInputRef.current?.click()}
-                      className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:border-[#005390] hover:text-[#005390] transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-2 px-3 py-2 h-auto bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:border-[#005390] hover:text-[#005390] transition-colors cursor-pointer"
                     >
                       <Upload className="w-3.5 h-3.5" /> Upload Image
-                    </button>
+                    </Button>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -364,20 +372,21 @@ export function LabTestsTab() {
               </div>
 
               <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-5">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="px-4 py-2.5 h-auto rounded-xl border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2.5 rounded-xl bg-[#005390] hover:bg-[#004070] text-white text-xs font-bold shadow-xs transition-colors disabled:opacity-60 cursor-pointer"
+                  className="px-4 py-2.5 h-auto rounded-xl bg-[#005390] hover:bg-[#004070] text-white text-xs font-bold shadow-xs transition-colors disabled:opacity-60 cursor-pointer"
                 >
                   {saving ? (editing ? 'Updating...' : 'Creating...') : editing ? 'Update Lab Test' : 'Create Lab Test'}
-                </button>
+                </Button>
               </div>
             </form>
           </DialogContent>

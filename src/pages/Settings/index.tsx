@@ -4,6 +4,7 @@ import { ArrowRight, ClipboardList, Megaphone, Settings as SettingsIcon, Shield 
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocation } from '@/hooks/useLocation'
+import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/common/PageHeader'
 
 interface SettingsCard {
@@ -75,11 +76,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ initialView = 'main'
       {visibleCards.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {visibleCards.map(({ title, description, icon: Icon, href }) => (
-            <button
+            <Button
               key={title}
               type="button"
+              variant="ghost"
               onClick={() => navigate(href)}
-              className="group flex items-start gap-4 rounded-3xl border border-white/50 bg-white/80 p-6 text-left shadow-md backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:shadow-lg cursor-pointer"
+              className="group h-auto flex items-start gap-4 rounded-3xl border border-white/50 bg-white/80 p-6 text-left shadow-md backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:shadow-lg hover:bg-white cursor-pointer whitespace-normal font-normal"
             >
               <div className="p-3.5 rounded-2xl bg-blue-50 text-[#005390] shrink-0 shadow-xs">
                 <Icon className="w-7 h-7" />
@@ -89,7 +91,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ initialView = 'main'
                 <p className="text-sm text-gray-500 leading-relaxed">{description}</p>
               </div>
               <ArrowRight className="w-5 h-5 shrink-0 self-center text-gray-400 transition-transform group-hover:translate-x-1 group-hover:text-[#005390]" />
-            </button>
+            </Button>
           ))}
         </div>
       )}

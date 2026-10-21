@@ -111,15 +111,16 @@ function ChoiceCard({
   onSelect: () => void
 }) {
   return (
-    <button
+    <Button
+      variant="ghost"
       type="button"
       aria-pressed={selected}
       disabled={disabled}
       onClick={onSelect}
       className={cn(
-        'flex w-full items-start gap-3 rounded-xl border p-3.5 text-left transition-colors',
+        'flex w-full h-auto items-start gap-3 rounded-xl border p-3.5 text-left transition-colors font-normal whitespace-normal justify-start',
         selected
-          ? 'border-[#005390] bg-[#005390]/5 ring-2 ring-[#005390]/15'
+          ? 'border-[#005390] bg-[#005390]/5 ring-2 ring-[#005390]/15 hover:bg-[#005390]/5'
           : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50',
         disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
       )}
@@ -136,7 +137,7 @@ function ChoiceCard({
         <span className="block text-sm font-semibold text-gray-900">{title}</span>
         <span className="block text-xs text-gray-500">{hint}</span>
       </span>
-    </button>
+    </Button>
   )
 }
 
@@ -1591,15 +1592,17 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                     className="hidden"
                   />
                   {watchedPhotoUrl && (
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
                       type="button"
                       onClick={() => setValue('photoUrl', '')}
-                      className="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white shadow-md transition hover:bg-red-600"
+                      className="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 h-auto text-white shadow-md transition hover:bg-red-600 hover:text-white"
                       title="Remove photo"
                       aria-label="Remove photo"
                     >
                       <X className="h-3 w-3" />
-                    </button>
+                    </Button>
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -1721,13 +1724,14 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                 <div className="flex flex-col justify-start">
                   <span className="block text-xs font-bold text-gray-700 mb-1.5">Who receives the rent?</span>
                   <div className="grid grid-cols-2 gap-2.5">
-                    <button
+                    <Button
+                      variant="ghost"
                       type="button"
                       onClick={() => setValue('payRentToCompany', false, { shouldValidate: true })}
                       className={cn(
-                        'flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left',
+                        'flex items-center justify-center gap-2 p-2.5 h-auto rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left',
                         !watchedPayRentToCompany
-                          ? 'border-[#005390] bg-[#005390]/10 text-[#005390] ring-1 ring-[#005390] shadow-2xs'
+                          ? 'border-[#005390] bg-[#005390]/10 text-[#005390] ring-1 ring-[#005390] shadow-2xs hover:bg-[#005390]/10 hover:text-[#005390]'
                           : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50',
                       )}
                     >
@@ -1739,15 +1743,16 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                         className="w-3.5 h-3.5 text-[#005390]"
                       />
                       <span>Owner directly</span>
-                    </button>
+                    </Button>
 
-                    <button
+                    <Button
+                      variant="ghost"
                       type="button"
                       onClick={() => setValue('payRentToCompany', true, { shouldValidate: true })}
                       className={cn(
-                        'flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left',
+                        'flex items-center justify-center gap-2 p-2.5 h-auto rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left',
                         watchedPayRentToCompany
-                          ? 'border-[#005390] bg-[#005390]/10 text-[#005390] ring-1 ring-[#005390] shadow-2xs'
+                          ? 'border-[#005390] bg-[#005390]/10 text-[#005390] ring-1 ring-[#005390] shadow-2xs hover:bg-[#005390]/10 hover:text-[#005390]'
                           : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50',
                       )}
                     >
@@ -1759,7 +1764,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                         className="w-3.5 h-3.5 text-[#005390]"
                       />
                       <span>Company</span>
-                    </button>
+                    </Button>
                   </div>
                   <p className="text-[11px] text-gray-500 mt-2 font-medium">
                     {watchedPayRentToCompany
@@ -1820,14 +1825,17 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                               {fm.relation || 'Relative'}
                             </span>
                           </div>
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
                             type="button"
                             onClick={() => handleRemoveFamilyMember(idx)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition"
+                            className="p-1.5 h-auto text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition"
+                            aria-label="Remove Member"
                             title="Remove Member"
                           >
                             <Trash2 className="w-4 h-4" />
-                          </button>
+                          </Button>
                         </div>
 
                         {/* Vertical Form Grid inside Family Member Card */}
@@ -1867,14 +1875,17 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                               <Camera className="w-3 h-3" />
                             </label>
                             {fm.photoUrl && (
-                              <button
+                              <Button
+                                variant="ghost"
+                                size="icon-xs"
                                 type="button"
                                 onClick={() => setValue(`familyMembers.${idx}.photoUrl`, '')}
-                                className="absolute -top-1.5 -right-1.5 bg-red-500 text-white p-0.5 rounded-full shadow-sm hover:bg-red-600 transition"
+                                className="absolute -top-1.5 -right-1.5 bg-red-500 text-white p-0.5 h-auto rounded-full shadow-sm hover:bg-red-600 hover:text-white transition"
+                                aria-label="Remove Photo"
                                 title="Remove Photo"
                               >
                                 <X className="w-2.5 h-2.5" />
-                              </button>
+                              </Button>
                             )}
                           </div>
 
@@ -2193,14 +2204,15 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {/* Option for No Package */}
-                    <button
+                    <Button
+                      variant="ghost"
                       type="button"
                       onClick={() => pickCarePackage('')}
                       className={cn(
-                        'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full',
+                        'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full h-auto whitespace-normal font-normal items-stretch',
                         !watchedCarePackageId
-                          ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20'
-                          : 'border-gray-200 bg-white hover:border-gray-300',
+                          ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20 hover:bg-blue-50/50'
+                          : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-white',
                       )}
                     >
                       <div>
@@ -2214,22 +2226,23 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                         </div>
                         <p className="text-[11px] text-gray-500 mt-1">Skip the care package for now.</p>
                       </div>
-                    </button>
+                    </Button>
 
                     {/* Available Care Packages */}
                     {carePackages.map((pkg) => {
                       const isSelected = watchedCarePackageId === pkg.id
                       const taskCount = pkg.features?.length || pkg.tasks?.length || 0
                       return (
-                        <button
+                        <Button
+                          variant="ghost"
                           key={pkg.id}
                           type="button"
                           onClick={() => pickCarePackage(pkg.id)}
                           className={cn(
-                            'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full',
+                            'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full h-auto whitespace-normal font-normal items-stretch',
                             isSelected
-                              ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20'
-                              : 'border-gray-200 bg-white hover:border-gray-300',
+                              ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20 hover:bg-blue-50/50'
+                              : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-white',
                           )}
                         >
                           <div>
@@ -2272,7 +2285,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                               </div>
                             )}
                           </div>
-                        </button>
+                        </Button>
                       )
                     })}
                   </div>

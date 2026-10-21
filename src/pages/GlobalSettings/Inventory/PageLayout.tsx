@@ -23,13 +23,14 @@ export function InventoryPage({
 }) {
   return (
     <div className="w-full min-w-0 space-y-6 pb-10">
-      <button
+      <Button
+        variant="ghost"
         type="button"
         onClick={onBack}
-        className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+        className="p-0 h-auto inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] hover:bg-transparent transition-colors cursor-pointer"
       >
         <ArrowLeft className="w-4 h-4" /> {backLabel}
-      </button>
+      </Button>
 
       {/* Top Header Banner matching other Global Settings pages */}
       <div className="bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">

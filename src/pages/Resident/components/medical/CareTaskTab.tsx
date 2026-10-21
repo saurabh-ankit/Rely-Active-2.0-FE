@@ -36,19 +36,19 @@ export const CareTaskTab: React.FC<CareTaskTabProps> = ({
       {canUpdateResident && (
         <div className="flex items-center justify-end gap-3 flex-wrap">
           <Button
-            variant="secondary"
-            icon={<Users className="w-4 h-4 text-rose-500" />}
+            type="button"
             onClick={onAssignCareTeam}
-            className="rounded-xl"
+            className="rounded-xl bg-[#005390] px-4 py-2 text-xs font-bold text-white hover:bg-[#004375] cursor-pointer shadow-xs"
           >
+            <Users className="mr-1.5 size-4 text-white" />
             Assign Care Team
           </Button>
           <Button
-            variant="secondary"
-            icon={<HeartPulse className="w-4 h-4 text-rose-500" />}
+            type="button"
             onClick={onAssignCareTask}
-            className="rounded-xl"
+            className="rounded-xl bg-[#005390] px-4 py-2 text-xs font-bold text-white hover:bg-[#004375] cursor-pointer shadow-xs"
           >
+            <HeartPulse className="mr-1.5 size-4 text-white" />
             Assign Care Task
           </Button>
         </div>

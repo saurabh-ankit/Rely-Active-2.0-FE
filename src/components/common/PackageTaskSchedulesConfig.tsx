@@ -1,6 +1,7 @@
 import React from 'react'
 import { Clock, Trash2, Sparkles, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 export interface PackageTaskItemInfo {
   taskId: string
@@ -180,33 +181,35 @@ export const PackageTaskSchedulesConfig: React.FC<PackageTaskSchedulesConfigProp
                   <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">Frequency:</span>
                   <div className="grid grid-cols-6 gap-1.5 flex-1 max-w-sm">
                     {[1, 2, 3, 4, 5].map((num) => (
-                      <button
+                      <Button
+                        variant="ghost"
                         key={num}
                         type="button"
                         onClick={() => handleFrequencyChange(t.taskId, t.taskName, num)}
                         className={cn(
-                          'rounded-lg py-1 px-1 text-center font-bold text-xs transition-all border cursor-pointer',
+                          'rounded-lg py-1 px-1 h-auto text-center font-bold text-xs transition-all border cursor-pointer',
                           freq === num
-                            ? 'border-[#005390] bg-[#005390] text-white shadow-2xs ring-1 ring-[#005390]/30'
+                            ? 'border-[#005390] bg-[#005390] text-white shadow-2xs ring-1 ring-[#005390]/30 hover:bg-[#005390] hover:text-white'
                             : 'border-gray-200 bg-gray-50/70 text-gray-700 hover:border-sky-300 hover:bg-sky-50 dark:border-gray-700 dark:bg-slate-700 dark:text-gray-300',
                         )}
                       >
                         {num}x
-                      </button>
+                      </Button>
                     ))}
-                    <button
+                    <Button
+                      variant="ghost"
                       type="button"
                       onClick={() => handleAddSlot(t.taskId, t.taskName)}
                       className={cn(
-                        'rounded-lg py-1 px-1 text-center font-bold text-xs transition-all border cursor-pointer',
+                        'rounded-lg py-1 px-1 h-auto text-center font-bold text-xs transition-all border cursor-pointer',
                         freq > 5
-                          ? 'border-[#005390] bg-[#005390] text-white shadow-2xs ring-1 ring-[#005390]/30'
+                          ? 'border-[#005390] bg-[#005390] text-white shadow-2xs ring-1 ring-[#005390]/30 hover:bg-[#005390] hover:text-white'
                           : 'border-dashed border-sky-300 bg-sky-50/60 text-[#005390] hover:bg-sky-100 dark:border-sky-700 dark:bg-sky-950/40 dark:text-sky-300',
                       )}
                       title="Add another time slot"
                     >
                       {freq > 5 ? `${freq}x` : '+ Slot'}
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
@@ -235,14 +238,17 @@ export const PackageTaskSchedulesConfig: React.FC<PackageTaskSchedulesConfigProp
                             {formatTimeTo12h(slotTime)}
                           </span>
                           {sched.times.length > 1 && (
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
                               type="button"
                               onClick={() => handleRemoveSlot(t.taskId, t.taskName, idx)}
-                              className="rounded p-0.5 text-gray-400 hover:text-rose-500 transition-colors cursor-pointer"
+                              className="rounded p-0.5 h-auto text-gray-400 hover:text-rose-500 hover:bg-transparent transition-colors cursor-pointer"
+                              aria-label="Remove slot"
                               title="Remove slot"
                             >
                               <Trash2 className="size-2.5" />
-                            </button>
+                            </Button>
                           )}
                         </div>
                       </div>

@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import {
   createSpecializationAPI,
@@ -224,18 +225,19 @@ export function SpecializationsTab() {
         accessorKey: 'isActive',
         header: 'Status',
         cell: ({ row }) => (
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => handleToggleStatus(row.original)}
-            className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors cursor-pointer ${
+            className={`px-2.5 py-1 h-auto rounded-full text-[11px] font-bold transition-colors cursor-pointer ${
               row.original.isActive
-                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-700'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-500'
             }`}
             title={row.original.isActive ? 'Click to deactivate' : 'Click to activate'}
           >
             {row.original.isActive ? 'Active' : 'Inactive'}
-          </button>
+          </Button>
         ),
       },
       {
@@ -243,22 +245,28 @@ export function SpecializationsTab() {
         header: () => <div className="text-right">Actions</div>,
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => handleOpenEdit(row.original)}
               className="p-2 rounded-lg text-[#005390] hover:bg-blue-50 transition-colors cursor-pointer"
               title="Edit specialization"
+              aria-label="Edit specialization"
             >
               <Edit2 className="w-4 h-4" />
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => handleDelete(row.original)}
               className="p-2 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
               title="Delete specialization"
+              aria-label="Delete specialization"
             >
               <Trash2 className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         ),
       },
@@ -281,13 +289,13 @@ export function SpecializationsTab() {
             {specializations.length > 0 ? ` ${activeCount} of ${specializations.length} active.` : ''}
           </p>
         </div>
-        <button
+        <Button
           type="button"
           onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#005390] hover:bg-[#004070] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 h-auto bg-[#005390] hover:bg-[#004070] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Add Specialization
-        </button>
+        </Button>
       </div>
 
       <DataTable
@@ -338,18 +346,19 @@ export function SpecializationsTab() {
                     {availableSuggestions.map((suggestion) => {
                       const selected = currentName?.trim().toLowerCase() === suggestion.toLowerCase()
                       return (
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
                           key={suggestion}
                           onClick={() => setValue('name', suggestion, { shouldValidate: true, shouldDirty: true })}
-                          className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
+                          className={`px-3 py-1.5 h-auto rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
                             selected
-                              ? 'bg-[#005390] border-[#005390] text-white'
+                              ? 'bg-[#005390] border-[#005390] text-white hover:bg-[#005390]'
                               : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-[#005390] hover:text-[#005390]'
                           }`}
                         >
                           {suggestion}
-                        </button>
+                        </Button>
                       )
                     })}
                   </div>
@@ -386,20 +395,21 @@ export function SpecializationsTab() {
               </div>
 
               <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-5">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 text-xs font-bold text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+                  className="px-4 py-2.5 h-auto text-xs font-bold text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#005390] hover:bg-[#004070] disabled:opacity-60 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 h-auto bg-[#005390] hover:bg-[#004070] disabled:opacity-60 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
                 >
                   {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create Specialization'}
-                </button>
+                </Button>
               </div>
             </form>
           </DialogContent>

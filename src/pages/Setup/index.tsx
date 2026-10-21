@@ -276,13 +276,16 @@ export default function SetupPage() {
                       <Building2 className="w-5 h-5 text-gray-400 mr-2" />
                       <span className="text-sm text-gray-700">{documentFile.name}</span>
                     </div>
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      aria-label="Remove document"
                       onClick={() => setDocumentFile(null)}
-                      className="text-gray-400 hover:text-gray-600"
+                      className="h-6 w-6 text-gray-400 hover:text-gray-600 p-0"
                     >
                       <X className="w-4 h-4" />
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -365,13 +368,16 @@ export default function SetupPage() {
                         />
                         <span className="text-sm text-gray-700">{signatureFile.name}</span>
                       </div>
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label="Remove signature"
                         onClick={() => setSignatureFile(null)}
-                        className="text-red-600 hover:text-red-700"
+                        className="h-6 w-6 text-red-600 hover:text-red-700 p-0"
                       >
                         <X className="w-4 h-4" />
-                      </button>
+                      </Button>
                     </div>
                   ) : (
                     <label
@@ -444,13 +450,16 @@ export default function SetupPage() {
                         className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-900 bg-white"
                       />
 
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label="Remove custom field"
                         onClick={() => removeCustomField(idx)}
-                        className="p-1.5 text-red-600 hover:text-red-700"
+                        className="h-7 w-7 p-1.5 text-red-600 hover:text-red-700"
                       >
                         <Trash2 className="h-4 w-4" />
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>

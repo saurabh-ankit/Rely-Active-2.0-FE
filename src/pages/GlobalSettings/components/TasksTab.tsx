@@ -28,6 +28,7 @@ import { notifyError, notifySuccess } from '@/utils/toast'
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { z } from 'zod'
 
 export type { BillingType, CareTask, Task }
@@ -408,22 +409,28 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
 
           return (
             <div className="flex items-center justify-end gap-1.5">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-xs"
                 onClick={() => handleOpenEdit(task)}
                 className="p-1.5 rounded-lg text-[#005390] hover:bg-blue-50 transition-colors cursor-pointer dark:hover:bg-sky-950/40"
                 title="Edit Care Task"
+                aria-label="Edit Care Task"
               >
                 <Edit2 className="w-3.5 h-3.5" />
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-xs"
                 onClick={() => handleOpenDelete(task)}
                 className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer dark:hover:bg-rose-950/40"
                 title="Delete Care Task"
+                aria-label="Delete Care Task"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              </Button>
             </div>
           )
         },
@@ -449,14 +456,14 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
             </p>
           </div>
 
-          <button
+          <Button
             type="button"
             onClick={handleOpenCreate}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004170] transition-colors cursor-pointer shrink-0"
+            className="inline-flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004170] transition-colors cursor-pointer shrink-0"
           >
             <Plus className="w-4 h-4" />
             Create Care Task
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -509,13 +516,13 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
               {searchQuery ? 'Try adjusting your search terms.' : 'Get started by creating your first Care Task.'}
             </p>
             {!searchQuery && (
-              <button
+              <Button
                 type="button"
                 onClick={handleOpenCreate}
-                className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#005390] text-white text-xs font-bold hover:bg-[#004170] cursor-pointer"
+                className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-2 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold hover:bg-[#004170] cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" /> Create Care Task
-              </button>
+              </Button>
             )}
           </div>
         ) : (
@@ -604,10 +611,11 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                 {/* Billing Type Toggle Selection */}
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   {/* Monthly */}
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => setValue('billingType', 'MONTHLY')}
-                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                    className={`p-3 h-auto rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-2.5 whitespace-normal ${
                       watchBillingType === 'MONTHLY'
                         ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20 shadow-xs'
                         : 'border-gray-200 bg-white hover:border-gray-300'
@@ -627,13 +635,14 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                       </div>
                       <p className="text-[10px] text-gray-500 mt-0.5">Fixed recurring monthly charge</p>
                     </div>
-                  </button>
+                  </Button>
 
                   {/* Session */}
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => setValue('billingType', 'SESSION')}
-                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                    className={`p-3 h-auto rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-2.5 whitespace-normal ${
                       watchBillingType === 'SESSION'
                         ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20 shadow-xs'
                         : 'border-gray-200 bg-white hover:border-gray-300'
@@ -653,7 +662,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                       </div>
                       <p className="text-[10px] text-gray-500 mt-0.5">Pay per completed session</p>
                     </div>
-                  </button>
+                  </Button>
                 </div>
                 {errors.billingType && (
                   <p className="text-[11px] text-rose-500 mb-2 font-medium">{errors.billingType.message}</p>
@@ -699,14 +708,17 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                         alt="Care Task Preview"
                         className="w-14 h-14 rounded-xl object-cover border border-gray-200 shadow-xs"
                       />
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label="Remove image"
                         onClick={handleRemoveImage}
                         className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white rounded-full p-1 shadow-sm hover:bg-rose-600 transition-colors cursor-pointer"
                         title="Remove image"
                       >
                         <X className="w-3 h-3" />
-                      </button>
+                      </Button>
                     </div>
                   ) : (
                     <div className="w-14 h-14 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center border border-gray-200 shrink-0">
@@ -735,24 +747,25 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
 
               {/* Modal Actions */}
               <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 sticky bottom-0 bg-white">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setIsModalOpen(false)}
                   disabled={isSubmitting}
-                  className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="px-4 py-2 h-auto rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004170] transition-colors cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-5 py-2 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004170] transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting && (
                     <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   )}
                   {editingTask ? 'Save Changes' : 'Create Care Task'}
-                </button>
+                </Button>
               </div>
             </form>
           </DialogContent>
@@ -780,25 +793,27 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
             </DialogHeader>
 
             <div className="flex items-center justify-center gap-2 mt-6">
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => setIsDeleteModalOpen(false)}
                 disabled={isDeleting}
-                className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                className="px-4 py-2 h-auto rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="destructive"
                 onClick={handleConfirmDelete}
                 disabled={isDeleting}
-                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold shadow-md hover:bg-rose-700 transition-colors cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-5 py-2 h-auto rounded-xl bg-rose-600 text-white text-xs font-bold shadow-md hover:bg-rose-700 transition-colors cursor-pointer disabled:opacity-50"
               >
                 {isDeleting && (
                   <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 )}
                 Delete Care Task
-              </button>
+              </Button>
             </div>
           </DialogContent>
         )}

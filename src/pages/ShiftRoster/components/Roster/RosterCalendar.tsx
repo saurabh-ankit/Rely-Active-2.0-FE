@@ -362,14 +362,15 @@ const RosterCalendar = () => {
                       <ul className="divide-y divide-gray-100 bg-white">
                         {group.events.map((event) => (
                           <li key={event.id}>
-                            <button
+                            <Button
                               type="button"
+                              variant="ghost"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setDetailEvent(event)
                               }}
                               title={`Open ${event.employeeName}'s roster for this day`}
-                              className={`block w-full cursor-pointer border-l-[3px] px-2 py-1.5 text-left transition-colors hover:bg-[#2a517c]/5 ${statusEdge[event.status] || statusEdge.upcoming}`}
+                              className={`h-auto p-0 rounded-none block w-full cursor-pointer border-l-[3px] px-2 py-1.5 text-left transition-colors hover:bg-[#2a517c]/5 whitespace-normal font-normal ${statusEdge[event.status] || statusEdge.upcoming}`}
                             >
                               <p className="truncate text-[13px] font-semibold leading-tight text-[#1e3a5a]">
                                 {event.employeeName}
@@ -379,7 +380,7 @@ const RosterCalendar = () => {
                                   {event.departmentName}
                                 </p>
                               )}
-                            </button>
+                            </Button>
                           </li>
                         ))}
                       </ul>

@@ -38,6 +38,7 @@ import { AddInvoiceModal } from './components/AddInvoiceModal'
 import { ConfirmStatusChangeDialog } from './components/ConfirmStatusChangeDialog'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 interface ParsedCompletion {
   notes: string | null
@@ -720,22 +721,25 @@ export default function TicketsPage() {
         actions={
           <>
             {canCreateTicket && (
-              <button
+              <Button
                 type="button"
                 onClick={() => setIsCreateModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-[#005390] hover:bg-[#004273] text-white text-sm font-semibold rounded-xl transition-all cursor-pointer shadow-xs"
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#005390] hover:bg-[#004273] text-white text-sm font-semibold rounded-xl transition-all cursor-pointer shadow-xs h-auto"
               >
                 <Plus className="w-4 h-4" /> Add New Ticket
-              </button>
+              </Button>
             )}
 
             {canUpdateTicket && (
               <div className="flex items-center gap-2.5 bg-white px-3.5 py-2 rounded-xl border border-gray-200 shadow-2xs">
                 <span className="text-xs font-semibold text-gray-700">Automate Tickets</span>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  role="switch"
+                  aria-checked={automateTickets}
                   onClick={() => setAutomateTickets(!automateTickets)}
-                  className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none p-0 hover:bg-transparent ${
                     automateTickets ? 'bg-[#005390]' : 'bg-gray-200'
                   }`}
                 >
@@ -744,7 +748,8 @@ export default function TicketsPage() {
                       automateTickets ? 'translate-x-5' : 'translate-x-0'
                     }`}
                   />
-                </button>
+                  <span className="sr-only">Toggle automate tickets</span>
+                </Button>
               </div>
             )}
           </>
@@ -757,50 +762,58 @@ export default function TicketsPage() {
         <div className="lg:col-span-4 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-13rem)] min-h-[520px]">
           {/* Tab Filter Header with Primary Brand Blue */}
           <div className="grid grid-cols-4 border-b border-gray-200 text-center font-bold text-[11px]">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => setActiveTab('OPEN')}
-              className={`py-3.5 transition-colors cursor-pointer border-b-2 font-bold ${
+              className={cn(
+                'py-3.5 h-auto rounded-none transition-colors cursor-pointer border-b-2 font-bold text-[11px]',
                 activeTab === 'OPEN'
-                  ? 'bg-[#005390] text-white border-[#005390]'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-transparent'
-              }`}
+                  ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white border-[#005390]'
+                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900 border-transparent',
+              )}
             >
               Open
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => setActiveTab('IN_PROGRESS')}
-              className={`py-3.5 transition-colors cursor-pointer border-b-2 font-bold ${
+              className={cn(
+                'py-3.5 h-auto rounded-none transition-colors cursor-pointer border-b-2 font-bold text-[11px]',
                 activeTab === 'IN_PROGRESS'
-                  ? 'bg-[#005390] text-white border-[#005390]'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-transparent'
-              }`}
+                  ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white border-[#005390]'
+                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900 border-transparent',
+              )}
             >
               In Progress
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => setActiveTab('COMPLETED')}
-              className={`py-3.5 transition-colors cursor-pointer border-b-2 font-bold ${
+              className={cn(
+                'py-3.5 h-auto rounded-none transition-colors cursor-pointer border-b-2 font-bold text-[11px]',
                 activeTab === 'COMPLETED'
-                  ? 'bg-[#005390] text-white border-[#005390]'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-transparent'
-              }`}
+                  ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white border-[#005390]'
+                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900 border-transparent',
+              )}
             >
               Completed
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => setActiveTab('CLOSED')}
-              className={`py-3.5 transition-colors cursor-pointer border-b-2 font-bold ${
+              className={cn(
+                'py-3.5 h-auto rounded-none transition-colors cursor-pointer border-b-2 font-bold text-[11px]',
                 activeTab === 'CLOSED'
-                  ? 'bg-[#005390] text-white border-[#005390]'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-transparent'
-              }`}
+                  ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white border-[#005390]'
+                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900 border-transparent',
+              )}
             >
               Closed
-            </button>
+            </Button>
           </div>
 
           {/* Tickets Scroll List */}
@@ -830,16 +843,20 @@ export default function TicketsPage() {
                     : t.createdAt
 
                 return (
-                  <button
+                  <Button
                     key={t.id}
                     type="button"
+                    variant="ghost"
                     onClick={() => {
                       setSelectedTicket(t)
                       markTicketViewed(t.id)
                     }}
-                    className={`w-full text-left p-4 transition-all cursor-pointer relative ${
-                      isSelected ? 'bg-[#005390] text-white shadow-2xs' : 'bg-white text-gray-900 hover:bg-gray-50'
-                    }`}
+                    className={cn(
+                      'w-full text-left justify-start items-stretch flex flex-col h-auto p-4 transition-all cursor-pointer relative rounded-none border-b border-gray-100 last:border-b-0 whitespace-normal font-normal',
+                      isSelected
+                        ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
+                        : 'bg-white text-gray-900 hover:bg-gray-50 hover:text-gray-900',
+                    )}
                   >
                     <div className="flex items-center justify-between text-xs font-mono mb-1">
                       <div className="flex items-center gap-1.5 min-w-0">
@@ -954,7 +971,7 @@ export default function TicketsPage() {
                           </span>
                         ))}
                     </div>
-                  </button>
+                  </Button>
                 )
               })
             )}
@@ -1128,15 +1145,15 @@ export default function TicketsPage() {
                       <span className="text-xs font-semibold text-amber-900">
                         Review the resident request and the staff completion report below, then verify.
                       </span>
-                      <button
+                      <Button
                         type="button"
                         onClick={handleVerifyTicket}
                         disabled={verifying}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-bold rounded-xl shadow-2xs transition-colors cursor-pointer flex-shrink-0"
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-bold rounded-xl shadow-2xs transition-colors cursor-pointer flex-shrink-0 h-auto"
                       >
                         <ShieldCheck className="w-4 h-4" />
                         {verifying ? 'Verifying…' : 'Verify & Close Ticket'}
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -1283,10 +1300,11 @@ export default function TicketsPage() {
                         </span>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 pt-1">
                           {requestMedia.photos.map((photoUrl, idx) => (
-                            <button
+                            <Button
                               type="button"
+                              variant="ghost"
                               key={`${photoUrl}-${idx}`}
-                              className="relative group rounded-xl overflow-hidden border border-gray-200 shadow-2xs aspect-video cursor-pointer bg-gray-100 p-0 text-left w-full block"
+                              className="relative group rounded-xl overflow-hidden border border-gray-200 shadow-2xs aspect-video cursor-pointer bg-gray-100 p-0 text-left w-full h-auto block hover:bg-gray-100"
                               onClick={() => setPreviewMediaUrl(photoUrl)}
                             >
                               <img
@@ -1297,7 +1315,7 @@ export default function TicketsPage() {
                               <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
                                 <Eye className="w-5 h-5" />
                               </div>
-                            </button>
+                            </Button>
                           ))}
                         </div>
                       </div>
@@ -1395,8 +1413,9 @@ export default function TicketsPage() {
                           </span>
                           <div className="p-3 bg-white rounded-xl border border-gray-200 shadow-2xs flex items-center justify-between gap-3">
                             <div className="flex items-center gap-3 min-w-0">
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
                                 onClick={() => setPreviewMediaUrl(completionData.invoiceUrl)}
                                 className="w-14 h-14 rounded-xl border border-gray-200 overflow-hidden cursor-pointer hover:opacity-85 transition-opacity shadow-2xs p-0 bg-transparent flex-shrink-0"
                               >
@@ -1405,7 +1424,7 @@ export default function TicketsPage() {
                                   alt="Invoice Preview"
                                   className="w-full h-full object-cover"
                                 />
-                              </button>
+                              </Button>
                               <div className="min-w-0">
                                 <h4 className="text-xs font-bold text-gray-900 truncate">
                                   {completionData.invoiceNumber
@@ -1415,13 +1434,15 @@ export default function TicketsPage() {
                                 <p className="text-[10px] text-gray-500 mt-0.5">Click to preview full invoice bill</p>
                               </div>
                             </div>
-                            <button
+                            <Button
                               type="button"
+                              variant="outline"
+                              size="sm"
                               onClick={() => setPreviewMediaUrl(completionData.invoiceUrl)}
-                              className="px-3 py-1.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-xs font-bold text-gray-700 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+                              className="px-3 py-1.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-xs font-bold text-gray-700 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors h-auto"
                             >
                               <Eye className="w-3.5 h-3.5 text-gray-500" /> View Invoice
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       )}
@@ -1435,10 +1456,11 @@ export default function TicketsPage() {
                           </span>
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 pt-1">
                             {completionData.photos.map((photoUrl, idx) => (
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
                                 key={idx}
-                                className="relative group rounded-xl overflow-hidden border border-gray-200 shadow-2xs aspect-video cursor-pointer bg-gray-100 p-0 text-left w-full block"
+                                className="relative group rounded-xl overflow-hidden border border-gray-200 shadow-2xs aspect-video cursor-pointer bg-gray-100 p-0 text-left w-full h-auto block hover:bg-gray-100"
                                 onClick={() => setPreviewMediaUrl(photoUrl)}
                               >
                                 <img
@@ -1449,7 +1471,7 @@ export default function TicketsPage() {
                                 <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
                                   <Eye className="w-5 h-5" />
                                 </div>
-                              </button>
+                              </Button>
                             ))}
                           </div>
                         </div>
@@ -1763,10 +1785,11 @@ export default function TicketsPage() {
                           </div>
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 pt-1">
                             {media.photos.map((photoUrl: string, idx: number) => (
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
                                 key={idx}
-                                className="relative group rounded-xl overflow-hidden border border-gray-200 shadow-2xs aspect-video cursor-pointer bg-gray-100 p-0 text-left w-full block"
+                                className="relative group rounded-xl overflow-hidden border border-gray-200 shadow-2xs aspect-video cursor-pointer bg-gray-100 p-0 text-left w-full h-auto block hover:bg-gray-100"
                                 onClick={() => setPreviewMediaUrl(photoUrl)}
                               >
                                 <img
@@ -1777,7 +1800,7 @@ export default function TicketsPage() {
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
                                   <Eye className="w-5 h-5" />
                                 </div>
-                              </button>
+                              </Button>
                             ))}
                           </div>
                         </div>
@@ -1833,13 +1856,15 @@ export default function TicketsPage() {
                     <span className="text-gray-500 font-semibold">TAT :</span>
                     <span className="font-bold text-gray-900">{selectedTicket.tatOption || '1-2 hour'}</span>
                     {canUpdateTicket && (
-                      <button
+                      <Button
                         type="button"
+                        variant="link"
+                        size="sm"
                         onClick={() => setIsTatModalOpen(true)}
-                        className="text-[#005390] hover:underline font-bold text-xs cursor-pointer ml-2"
+                        className="text-[#005390] hover:underline font-bold text-xs cursor-pointer ml-2 p-0 h-auto"
                       >
                         Change TAT
-                      </button>
+                      </Button>
                     )}
                   </div>
 
@@ -1848,13 +1873,15 @@ export default function TicketsPage() {
                     <span className="text-gray-500 font-semibold">Assigned :</span>
                     <span className="font-bold text-gray-900">{assignedName}</span>
                     {canUpdateTicket && (
-                      <button
+                      <Button
                         type="button"
+                        variant="link"
+                        size="sm"
                         onClick={() => setIsAssignDrawerOpen(true)}
-                        className="text-[#005390] hover:underline font-bold text-xs cursor-pointer ml-2"
+                        className="text-[#005390] hover:underline font-bold text-xs cursor-pointer ml-2 p-0 h-auto"
                       >
                         Change Assignee
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -1862,13 +1889,14 @@ export default function TicketsPage() {
                 {/* Add Invoice Details CTA Button styled with primary color */}
                 {canUpdateTicket && (
                   <div className="pt-6">
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
                       onClick={() => setIsInvoiceModalOpen(true)}
-                      className="w-full py-3.5 border-2 border-[#005390] text-[#005390] hover:bg-blue-50/60 rounded-xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-2xs"
+                      className="w-full py-3.5 h-auto border-2 border-[#005390] text-[#005390] hover:bg-blue-50/60 rounded-xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-2xs"
                     >
                       <Plus className="w-4 h-4" /> Add Invoice Details
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -2003,10 +2031,11 @@ export default function TicketsPage() {
                           </div>
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 pt-1">
                             {media.photos.map((photoUrl: string, idx: number) => (
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
                                 key={idx}
-                                className="relative group rounded-xl overflow-hidden border border-gray-200 shadow-2xs aspect-video cursor-pointer bg-gray-100 p-0 text-left w-full block"
+                                className="relative group rounded-xl overflow-hidden border border-gray-200 shadow-2xs aspect-video cursor-pointer bg-gray-100 p-0 text-left w-full h-auto block hover:bg-gray-100"
                                 onClick={() => setPreviewMediaUrl(photoUrl)}
                               >
                                 <img
@@ -2017,7 +2046,7 @@ export default function TicketsPage() {
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
                                   <Eye className="w-5 h-5" />
                                 </div>
-                              </button>
+                              </Button>
                             ))}
                           </div>
                         </div>
@@ -2044,18 +2073,20 @@ export default function TicketsPage() {
                         dept.code === ticketDepartmentCode
 
                       return (
-                        <button
+                        <Button
                           key={dept.id}
                           type="button"
+                          variant="ghost"
                           disabled
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-not-allowed ${
+                          className={cn(
+                            'px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all cursor-not-allowed',
                             isSelected
-                              ? 'bg-[#005390] text-white shadow-2xs'
-                              : 'bg-gray-100/70 text-gray-400 opacity-60'
-                          }`}
+                              ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
+                              : 'bg-gray-100/70 text-gray-400 opacity-60 hover:bg-gray-100/70',
+                          )}
                         >
                           {dept.name}
-                        </button>
+                        </Button>
                       )
                     })}
                   </div>
@@ -2088,18 +2119,20 @@ export default function TicketsPage() {
                         )
 
                       return (
-                        <button
+                        <Button
                           key={sub.id}
                           type="button"
+                          variant="ghost"
                           disabled
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-not-allowed ${
+                          className={cn(
+                            'px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all cursor-not-allowed',
                             isSelected
-                              ? 'bg-[#005390] text-white shadow-2xs'
-                              : 'bg-gray-100/70 text-gray-400 opacity-60'
-                          }`}
+                              ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
+                              : 'bg-gray-100/70 text-gray-400 opacity-60 hover:bg-gray-100/70',
+                          )}
                         >
                           {sub.name}
-                        </button>
+                        </Button>
                       )
                     })}
                   </div>
@@ -2120,21 +2153,22 @@ export default function TicketsPage() {
                       const isSelected = selectedTicket.priority === p.key
 
                       return (
-                        <button
+                        <Button
                           key={p.key}
                           type="button"
+                          variant="ghost"
                           disabled={!canUpdateTicket}
                           onClick={() => canUpdateTicket && handleUpdateOption({ priority: p.key as TicketPriority })}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                            canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed'
-                          } ${
+                          className={cn(
+                            'px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all',
+                            canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed',
                             isSelected
-                              ? 'bg-[#005390] text-white shadow-2xs'
-                              : 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100'
-                          }`}
+                              ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
+                              : 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100',
+                          )}
                         >
                           {p.label}
-                        </button>
+                        </Button>
                       )
                     })}
                   </div>
@@ -2150,21 +2184,22 @@ export default function TicketsPage() {
                       const isSelected = selectedTicket.tatOption === tat
 
                       return (
-                        <button
+                        <Button
                           key={tat}
                           type="button"
+                          variant="ghost"
                           disabled={!canUpdateTicket}
                           onClick={() => canUpdateTicket && handleUpdateOption({ tatOption: tat })}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                            canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed'
-                          } ${
+                          className={cn(
+                            'px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all',
+                            canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed',
                             isSelected
-                              ? 'bg-[#005390] text-white shadow-2xs'
-                              : 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100'
-                          }`}
+                              ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
+                              : 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100',
+                          )}
                         >
                           {tat}
-                        </button>
+                        </Button>
                       )
                     })}
                   </div>
@@ -2173,22 +2208,22 @@ export default function TicketsPage() {
                 {/* Action Buttons */}
                 {canUpdateTicket && (
                   <div className="pt-4 flex flex-wrap items-center gap-3">
-                    <button
+                    <Button
                       type="button"
                       onClick={() => setIsAssignDrawerOpen(true)}
-                      className="px-5 py-2.5 bg-[#005390] hover:bg-[#004273] text-white text-xs font-extrabold rounded-xl flex items-center gap-2 transition-colors cursor-pointer shadow-sm"
+                      className="px-5 py-2.5 h-auto bg-[#005390] hover:bg-[#004273] text-white text-xs font-extrabold rounded-xl flex items-center gap-2 transition-colors cursor-pointer shadow-sm"
                     >
                       <UserPlus className="w-4 h-4" /> Assign Person
-                    </button>
+                    </Button>
 
                     {isSelfAssigned && selectedTicket.status !== 'CLOSED' && (
-                      <button
+                      <Button
                         type="button"
                         onClick={() => handleUpdateOption({ status: 'CLOSED' })}
-                        className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+                        className="px-5 py-2.5 h-auto bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-sm"
                       >
                         <CheckCircle2 className="w-4 h-4" /> Close Ticket
-                      </button>
+                      </Button>
                     )}
                   </div>
                 )}
@@ -2279,21 +2314,23 @@ export default function TicketsPage() {
             </DialogHeader>
             <div className="grid grid-cols-2 gap-2">
               {['30 mins', '1-2 hour', '2-5 hours', 'Custom'].map((option) => (
-                <button
+                <Button
                   key={option}
                   type="button"
+                  variant="outline"
                   onClick={() => {
                     handleUpdateOption({ tatOption: option })
                     setIsTatModalOpen(false)
                   }}
-                  className={`p-3 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
+                  className={cn(
+                    'p-3 h-auto rounded-xl border text-xs font-bold cursor-pointer transition-all',
                     selectedTicket.tatOption === option
-                      ? 'border-[#005390] bg-blue-50 text-[#005390]'
-                      : 'border-gray-200 hover:bg-gray-50 text-gray-700'
-                  }`}
+                      ? 'border-[#005390] bg-blue-50 text-[#005390] hover:bg-blue-100 hover:text-[#005390]'
+                      : 'border-gray-200 hover:bg-gray-50 text-gray-700',
+                  )}
                 >
                   {option}
-                </button>
+                </Button>
               ))}
             </div>
           </DialogContent>

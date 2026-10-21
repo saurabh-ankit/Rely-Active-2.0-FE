@@ -13,6 +13,7 @@ import {
   startOfWeek,
 } from 'date-fns'
 import { ChevronLeft, ChevronRight, Clock, MapPin, RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useListShiftEmployeeDates } from '@/hooks/react-query/roster'
 import { Panel } from '@/components/common/DetailPanel'
 import { cn } from '@/lib/utils'
@@ -114,55 +115,58 @@ export const EmployeeMonthlyRoster = ({
   const leaves = entries.filter((e) => stateOf(e) === 'leave')
   const isCurrentMonth = isSameMonth(month, new Date())
 
-  const navBtn =
-    'inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-slate-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-slate-800'
-
   return (
     <Panel
       icon={Clock}
       title="Shift roster"
       action={
         showFullRosterLink ? (
-          <button
+          <Button
             type="button"
+            variant="link"
             onClick={() => navigate(`/admin/shift-roster-management/employees/${employeeId}`)}
-            className="cursor-pointer text-xs font-semibold text-[#005390] hover:underline"
+            className="h-auto p-0 cursor-pointer text-xs font-semibold text-[#005390] hover:text-[#004274] hover:bg-transparent hover:underline dark:text-sky-400 dark:hover:text-sky-300"
           >
             Manage roster →
-          </button>
+          </Button>
         ) : null
       }
     >
       {/* Month switcher and the month at a glance */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <button
+          <Button
             type="button"
-            className={navBtn}
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 rounded-lg border-gray-200 text-gray-600 hover:bg-slate-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-slate-800"
             onClick={() => setMonth((m) => addMonths(m, -1))}
             aria-label="Previous month"
           >
             <ChevronLeft className="h-4 w-4" />
-          </button>
+          </Button>
           <span className="min-w-[128px] text-center text-sm font-bold text-gray-900 dark:text-white">
             {format(month, 'MMMM yyyy')}
           </span>
-          <button
+          <Button
             type="button"
-            className={navBtn}
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 rounded-lg border-gray-200 text-gray-600 hover:bg-slate-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-slate-800"
             onClick={() => setMonth((m) => addMonths(m, 1))}
             aria-label="Next month"
           >
             <ChevronRight className="h-4 w-4" />
-          </button>
+          </Button>
           {!isCurrentMonth && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => setMonth(startOfMonth(new Date()))}
-              className="ml-1 cursor-pointer rounded-lg px-2 py-1 text-xs font-semibold text-[#005390] hover:bg-[#005390]/5"
+              className="ml-1 h-auto rounded-lg px-2 py-1 text-xs font-semibold text-[#005390] hover:text-[#004274] hover:bg-[#005390]/5 dark:text-sky-400 dark:hover:text-sky-300"
             >
               This month
-            </button>
+            </Button>
           )}
           {isFetching && !isLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin text-gray-400" />}
         </div>

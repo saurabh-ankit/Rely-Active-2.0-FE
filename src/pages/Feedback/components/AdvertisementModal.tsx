@@ -136,15 +136,16 @@ const AdvertisementModal = ({ open, onOpenChange, advertisement }: Advertisement
                 </div>
               </div>
             ) : (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex h-48 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 text-gray-500 transition-colors hover:border-[#2a517c] hover:text-[#2a517c]"
+                className="h-48 w-full cursor-pointer flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 text-gray-500 transition-colors hover:border-[#2a517c] hover:text-[#2a517c] hover:bg-gray-50 whitespace-normal font-normal"
               >
                 <ImagePlus className="h-8 w-8" />
                 <span className="text-sm font-medium">Click to upload an image</span>
                 <span className="text-xs">JPEG, PNG, WebP or GIF, up to 10 MB</span>
-              </button>
+              </Button>
             )}
             <input
               ref={fileInputRef}

@@ -4,6 +4,7 @@ import { useLocationContext } from '@/hooks/useLocation'
 import { toast } from 'sonner'
 import { getFileUrl } from '@/lib/utils'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 // ── Hooks ──────────────────────────────────────────────────────────────────────
 import {
@@ -161,13 +162,16 @@ const AssignCareTeamContent: React.FC<{
             )}
           </div>
         </div>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-sm"
           onClick={onClose}
-          className="rounded-xl p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800 dark:hover:text-gray-300 transition-colors cursor-pointer"
+          className="rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800 dark:hover:text-gray-300 transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
-        </button>
+          <span className="sr-only">Close</span>
+        </Button>
       </div>
 
       <div className="flex flex-col md:flex-row overflow-hidden flex-1 min-h-0">
@@ -217,8 +221,10 @@ const AssignCareTeamContent: React.FC<{
                             <p className="text-[10px] text-blue-500 font-medium">Doctor</p>
                           </div>
                         </div>
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="icon-xs"
                           onClick={() => void handleRemove(member.id, name)}
                           disabled={isRemoving}
                           className="p-1 rounded-lg text-gray-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer shrink-0"
@@ -229,7 +235,8 @@ const AssignCareTeamContent: React.FC<{
                           ) : (
                             <Trash2 className="w-3.5 h-3.5" />
                           )}
-                        </button>
+                          <span className="sr-only">Remove</span>
+                        </Button>
                       </div>
                     )
                   })}
@@ -265,8 +272,10 @@ const AssignCareTeamContent: React.FC<{
                             <p className="text-[10px] text-rose-500 font-medium">Nurse</p>
                           </div>
                         </div>
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="icon-xs"
                           onClick={() => void handleRemove(member.id, name)}
                           disabled={isRemoving}
                           className="p-1 rounded-lg text-gray-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer shrink-0"
@@ -277,7 +286,8 @@ const AssignCareTeamContent: React.FC<{
                           ) : (
                             <Trash2 className="w-3.5 h-3.5" />
                           )}
-                        </button>
+                          <span className="sr-only">Remove</span>
+                        </Button>
                       </div>
                     )
                   })}
@@ -295,36 +305,38 @@ const AssignCareTeamContent: React.FC<{
 
           {/* Role Tabs */}
           <div className="flex gap-2 bg-gray-100 dark:bg-slate-800 rounded-2xl p-1">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => {
                 setActiveRole('DOCTOR')
                 setSearch('')
               }}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all h-auto cursor-pointer ${
                 activeRole === 'DOCTOR'
-                  ? 'bg-[#005390] text-white shadow-sm'
+                  ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-sm'
                   : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
               }`}
             >
               <Stethoscope className="w-3.5 h-3.5" />
               Doctor
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => {
                 setActiveRole('NURSE')
                 setSearch('')
               }}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all h-auto cursor-pointer ${
                 activeRole === 'NURSE'
-                  ? 'bg-rose-500 text-white shadow-sm'
+                  ? 'bg-rose-500 text-white hover:bg-rose-500 hover:text-white shadow-sm'
                   : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
               }`}
             >
               <Heart className="w-3.5 h-3.5" />
               Nurse
-            </button>
+            </Button>
           </div>
 
           {/* Search */}
@@ -427,8 +439,9 @@ const AssignCareTeamContent: React.FC<{
                         ✓ Assigned
                       </span>
                     ) : (
-                      <button
+                      <Button
                         type="button"
+                        size="sm"
                         onClick={() => void handleAssign(user)}
                         disabled={isAssigning}
                         className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-all cursor-pointer shadow-xs ${
@@ -437,7 +450,7 @@ const AssignCareTeamContent: React.FC<{
                       >
                         {isAssigning ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserCheck className="w-3 h-3" />}
                         Assign
-                      </button>
+                      </Button>
                     )}
                   </div>
                 )
@@ -449,13 +462,15 @@ const AssignCareTeamContent: React.FC<{
 
       {/* Footer */}
       <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex justify-end shrink-0">
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={onClose}
           className="px-5 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-slate-800 transition-colors cursor-pointer"
         >
           Done
-        </button>
+        </Button>
       </div>
     </div>
   )

@@ -9,6 +9,7 @@ import {
   ComboboxList,
 } from '@/components/ui/combobox'
 import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
 import {
   getServiceTotalPrice,
   type LocationGlobalService,
@@ -198,14 +199,16 @@ export function VenueAddOnServicesSelect({
                     </div>
                     <div className="text-sm font-bold text-[#005390]">{formatPrice(total)}</div>
                   </div>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
                     type="button"
                     onClick={() => removeService(service.id)}
                     className="p-1 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                     aria-label={`Remove ${service.name}`}
                   >
                     <X className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </div>
               </div>
             )

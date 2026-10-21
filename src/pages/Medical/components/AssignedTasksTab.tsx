@@ -414,14 +414,15 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
       {/* ── Tabs Navigation Bar ───────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-3 dark:border-gray-800">
         <div className="inline-flex items-center gap-1 rounded-2xl bg-slate-100/90 p-1.5 dark:bg-slate-800/70">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => setActiveTab('PENDING')}
             className={cn(
-              'flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer',
+              'h-auto flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer',
               activeTab === 'PENDING'
-                ? 'bg-white text-amber-700 shadow-xs dark:bg-slate-900 dark:text-amber-400'
-                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white',
+                ? 'bg-white text-amber-700 shadow-xs dark:bg-slate-900 dark:text-amber-400 hover:bg-white hover:text-amber-700'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-400 dark:hover:text-white dark:hover:bg-slate-700',
             )}
           >
             <Clock className="size-3.5" />
@@ -436,16 +437,17 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
             >
               {pendingCount}
             </span>
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => setActiveTab('COMPLETED')}
             className={cn(
-              'flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer',
+              'h-auto flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer',
               activeTab === 'COMPLETED'
-                ? 'bg-white text-emerald-700 shadow-xs dark:bg-slate-900 dark:text-emerald-400'
-                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white',
+                ? 'bg-white text-emerald-700 shadow-xs dark:bg-slate-900 dark:text-emerald-400 hover:bg-white hover:text-emerald-700'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-400 dark:hover:text-white dark:hover:bg-slate-700',
             )}
           >
             <CheckCircle2 className="size-3.5" />
@@ -460,7 +462,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
             >
               {completedCount}
             </span>
-          </button>
+          </Button>
         </div>
 
         {/* Assign Button */}
@@ -977,25 +979,29 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                           <td className="px-4 py-3.5 align-middle text-right">
                             <div className="flex items-center justify-end gap-1.5">
                               {firstSlot.status === 'ACTIVE' && (
-                                <button
+                                <Button
                                   type="button"
+                                  variant="ghost"
                                   onClick={() => setCompletingAssignment(firstSlot.rawAssignment)}
-                                  className="inline-flex min-w-[112px] items-center justify-center gap-1.5 rounded-md border border-emerald-700 bg-emerald-600 px-3 py-1.5 text-[11px] font-extrabold text-white shadow-sm transition-colors hover:bg-emerald-700 dark:border-emerald-500 dark:bg-emerald-600 dark:hover:bg-emerald-500 cursor-pointer"
+                                  className="h-auto inline-flex min-w-[112px] items-center justify-center gap-1.5 rounded-md border border-emerald-700 bg-emerald-600 px-3 py-1.5 text-[11px] font-extrabold text-white shadow-sm transition-colors hover:bg-emerald-700 hover:text-white dark:border-emerald-500 dark:bg-emerald-600 dark:hover:bg-emerald-500 cursor-pointer"
                                 >
                                   <CheckCircle2 className="size-3" />
                                   Complete Task
-                                </button>
+                                </Button>
                               )}
 
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
+                                size="icon-xs"
                                 onClick={() => handleDelete(firstSlot.id)}
                                 disabled={deleteMutation.isPending}
-                                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-rose-600 dark:hover:bg-slate-800 cursor-pointer"
+                                className="h-7 w-7 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-rose-600 dark:hover:bg-slate-800 cursor-pointer"
                                 title="Delete Assignment"
+                                aria-label="Delete Assignment"
                               >
                                 <Trash2 className="size-3.5" />
-                              </button>
+                              </Button>
                             </div>
                           </td>
                         </tr>
@@ -1061,25 +1067,29 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                               <td className="px-4 py-3.5 align-middle text-right">
                                 <div className="flex items-center justify-end gap-1.5">
                                   {slot.status === 'ACTIVE' && (
-                                    <button
+                                    <Button
                                       type="button"
+                                      variant="ghost"
                                       onClick={() => setCompletingAssignment(slot.rawAssignment)}
-                                      className="inline-flex min-w-[112px] items-center justify-center gap-1.5 rounded-md border border-emerald-700 bg-emerald-600 px-3 py-1.5 text-[11px] font-extrabold text-white shadow-sm transition-colors hover:bg-emerald-700 dark:border-emerald-500 dark:bg-emerald-600 dark:hover:bg-emerald-500 cursor-pointer"
+                                      className="h-auto inline-flex min-w-[112px] items-center justify-center gap-1.5 rounded-md border border-emerald-700 bg-emerald-600 px-3 py-1.5 text-[11px] font-extrabold text-white shadow-sm transition-colors hover:bg-emerald-700 hover:text-white dark:border-emerald-500 dark:bg-emerald-600 dark:hover:bg-emerald-500 cursor-pointer"
                                     >
                                       <CheckCircle2 className="size-3" />
                                       Complete Task
-                                    </button>
+                                    </Button>
                                   )}
 
-                                  <button
+                                  <Button
                                     type="button"
+                                    variant="ghost"
+                                    size="icon-xs"
                                     onClick={() => handleDelete(slot.id)}
                                     disabled={deleteMutation.isPending}
-                                    className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-rose-600 dark:hover:bg-slate-800 cursor-pointer"
+                                    className="h-7 w-7 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-rose-600 dark:hover:bg-slate-800 cursor-pointer"
                                     title="Delete Assignment"
+                                    aria-label="Delete Assignment"
                                   >
                                     <Trash2 className="size-3.5" />
-                                  </button>
+                                  </Button>
                                 </div>
                               </td>
                             </tr>

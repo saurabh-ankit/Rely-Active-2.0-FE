@@ -451,13 +451,15 @@ export default function CompanyPage() {
                         className="flex-1 rounded-xl border border-gray-200 px-3 py-1.5 text-xs text-gray-900 min-w-[140px]"
                       />
 
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        aria-label="Remove custom field"
                         onClick={() => removeCustomField(idx)}
-                        className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-100"
+                        className="h-7 w-7 rounded-lg p-1.5 text-rose-500 hover:text-rose-600 hover:bg-rose-100"
                       >
                         <Trash2 className="h-4 w-4" />
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>

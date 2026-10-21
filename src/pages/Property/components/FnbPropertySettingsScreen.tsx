@@ -23,6 +23,7 @@ import { useLocationContext } from '@/hooks/useLocation'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import {
   Pagination,
   PaginationContent,
@@ -678,24 +679,26 @@ export function FnbPropertySettingsScreen({
           {/* View Switcher & Debounced Backend Search Bar */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-xs">
             <div className="flex items-center gap-1.5 bg-gray-100/80 p-1 rounded-xl w-full sm:w-auto">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => setViewMode('unit')}
-                className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 h-auto rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   viewMode === 'unit' ? 'bg-white text-[#005390] shadow-xs' : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
                 <Home className="w-4 h-4" /> By Property Unit / Flat
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => setViewMode('package')}
-                className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 h-auto rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   viewMode === 'package' ? 'bg-white text-[#005390] shadow-xs' : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
                 <Package className="w-4 h-4" /> By Package Template
-              </button>
+              </Button>
             </div>
 
             <div className="relative w-full sm:w-80">
@@ -756,8 +759,11 @@ export function FnbPropertySettingsScreen({
                             onClick={() => toggleUnitAccordion(grp.unitId)}
                           >
                             <td className="py-4 px-4 text-center">
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
+                                size="icon-xs"
+                                aria-label={isExpanded ? 'Collapse unit details' : 'Expand unit details'}
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   toggleUnitAccordion(grp.unitId)
@@ -769,7 +775,7 @@ export function FnbPropertySettingsScreen({
                                 ) : (
                                   <ChevronRight className="w-4 h-4" />
                                 )}
-                              </button>
+                              </Button>
                             </td>
                             <td className="py-4 px-4">
                               <div className="font-extrabold text-gray-900 text-sm flex items-center gap-2">
@@ -801,13 +807,13 @@ export function FnbPropertySettingsScreen({
                               </span>
                             </td>
                             <td className="py-4 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                              <button
+                              <Button
                                 type="button"
                                 onClick={() => toggleUnitAccordion(grp.unitId)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs bg-[#005390] text-white hover:bg-[#004070] transition-colors cursor-pointer shadow-xs"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 h-auto rounded-xl font-bold text-xs bg-[#005390] text-white hover:bg-[#004070] transition-colors cursor-pointer shadow-xs"
                               >
                                 {isExpanded ? 'Hide Details' : 'View Breakdown'}
-                              </button>
+                              </Button>
                             </td>
                           </tr>
 
@@ -964,11 +970,11 @@ export function FnbPropertySettingsScreen({
                                                   </span>
                                                 ) : (
                                                   <>
-                                                    <button
+                                                    <Button
                                                       type="button"
                                                       onClick={() => handleTogglePause(sub)}
                                                       disabled={actionLoading === sub.id}
-                                                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-50 ${
+                                                      className={`inline-flex items-center gap-1 px-2.5 py-1 h-auto rounded-lg text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-50 ${
                                                         isPaused
                                                           ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
                                                           : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
@@ -983,14 +989,15 @@ export function FnbPropertySettingsScreen({
                                                           <Pause className="w-3 h-3" /> Pause
                                                         </>
                                                       )}
-                                                    </button>
-                                                    <button
+                                                    </Button>
+                                                    <Button
                                                       type="button"
+                                                      variant="outline"
                                                       onClick={() => handleOpenChangeModal(sub)}
-                                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-[#005390] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
+                                                      className="inline-flex items-center gap-1 px-2.5 py-1 h-auto rounded-lg text-xs font-semibold bg-blue-50 text-[#005390] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
                                                     >
                                                       <RefreshCw className="w-3 h-3" /> Change Package
-                                                    </button>
+                                                    </Button>
                                                   </>
                                                 )}
                                               </td>
@@ -1128,8 +1135,11 @@ export function FnbPropertySettingsScreen({
                             onClick={() => togglePackageAccordion(gPkg.id)}
                           >
                             <td className="py-4 px-4 text-center">
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
+                                size="icon-xs"
+                                aria-label={isExpanded ? 'Collapse package details' : 'Expand package details'}
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   togglePackageAccordion(gPkg.id)
@@ -1141,7 +1151,7 @@ export function FnbPropertySettingsScreen({
                                 ) : (
                                   <ChevronRight className="w-4 h-4" />
                                 )}
-                              </button>
+                              </Button>
                             </td>
                             <td className="py-4 px-4">
                               <div className="font-bold text-gray-900 text-sm flex items-center gap-2">
@@ -1202,7 +1212,7 @@ export function FnbPropertySettingsScreen({
                             </td>
                             <td className="py-4 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                               {canUpdateFnb && (
-                                <button
+                                <Button
                                   type="button"
                                   disabled={isOpted}
                                   onClick={() => handleOpenEditModal(gPkg, assigned)}
@@ -1211,7 +1221,7 @@ export function FnbPropertySettingsScreen({
                                       ? 'Pricing cannot be modified while residents are currently opted into this package'
                                       : 'Edit pricing'
                                   }
-                                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition-colors shadow-xs ${
+                                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 h-auto rounded-xl font-bold text-xs transition-colors shadow-xs ${
                                     isOpted
                                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
                                       : 'bg-[#005390] text-white hover:bg-[#004070] cursor-pointer'
@@ -1219,7 +1229,7 @@ export function FnbPropertySettingsScreen({
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
                                   {assigned ? 'Edit Pricing' : 'Configure Pricing'}
-                                </button>
+                                </Button>
                               )}
                             </td>
                           </tr>
@@ -1361,11 +1371,11 @@ export function FnbPropertySettingsScreen({
                                                   ) : (
                                                     canUpdateFnb && (
                                                       <>
-                                                        <button
+                                                        <Button
                                                           type="button"
                                                           onClick={() => handleTogglePause(sub)}
                                                           disabled={actionLoading === sub.id}
-                                                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-50 ${
+                                                          className={`inline-flex items-center gap-1 px-2.5 py-1 h-auto rounded-lg text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-50 ${
                                                             isPaused
                                                               ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
                                                               : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
@@ -1380,14 +1390,15 @@ export function FnbPropertySettingsScreen({
                                                               <Pause className="w-3 h-3" /> Pause
                                                             </>
                                                           )}
-                                                        </button>
-                                                        <button
+                                                        </Button>
+                                                        <Button
                                                           type="button"
+                                                          variant="outline"
                                                           onClick={() => handleOpenChangeModal(sub)}
-                                                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-[#005390] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
+                                                          className="inline-flex items-center gap-1 px-2.5 py-1 h-auto rounded-lg text-xs font-semibold bg-blue-50 text-[#005390] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
                                                         >
                                                           <RefreshCw className="w-3 h-3" /> Change Package
-                                                        </button>
+                                                        </Button>
                                                       </>
                                                     )
                                                   )}
@@ -1496,28 +1507,30 @@ export function FnbPropertySettingsScreen({
 
             {/* Sub-Tabs: Regular Meal Slots vs Special Meal Slots */}
             <div className="inline-flex items-center p-1 bg-gray-100 rounded-xl border border-gray-200 shrink-0">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => setMealSlotsSubTab('regular')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 h-auto rounded-lg text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
                   mealSlotsSubTab === 'regular'
                     ? 'bg-[#005390] text-white shadow-2xs'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 <Utensils className="w-3.5 h-3.5" /> Regular Meal Slots
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => setMealSlotsSubTab('special')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 h-auto rounded-lg text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
                   mealSlotsSubTab === 'special'
                     ? 'bg-[#005390] text-white shadow-2xs'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Special Meal Slots
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -1554,13 +1567,14 @@ export function FnbPropertySettingsScreen({
                   </div>
 
                   {canUpdateFnb && (
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
                       onClick={() => handleOpenMealSlotModal(slot)}
-                      className="w-full py-2 bg-white hover:bg-blue-50 text-[#005390] border border-blue-200 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                      className="w-full py-2 h-auto bg-white hover:bg-blue-50 text-[#005390] border border-blue-200 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                     >
                       <Edit2 className="w-3.5 h-3.5" /> Override Timings & Price
-                    </button>
+                    </Button>
                   )}
                 </div>
               ))}
@@ -1605,13 +1619,14 @@ export function FnbPropertySettingsScreen({
                       </div>
 
                       {canUpdateFnb && (
-                        <button
+                        <Button
                           type="button"
+                          variant="outline"
                           onClick={() => handleOpenSpecialSlotModal(spSlot)}
-                          className="w-full py-2 bg-white hover:bg-amber-100/70 text-amber-900 border border-amber-300 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                          className="w-full py-2 h-auto bg-white hover:bg-amber-100/70 text-amber-900 border border-amber-300 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                         >
                           <Edit2 className="w-3.5 h-3.5" /> Override Special Price
-                        </button>
+                        </Button>
                       )}
                     </div>
                   ))}
@@ -1698,20 +1713,21 @@ export function FnbPropertySettingsScreen({
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-2 border-t border-gray-100">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setIsMealSlotModalOpen(false)}
-                  className="px-4 py-2 font-bold text-xs rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="px-4 py-2 h-auto font-bold text-xs rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={savingSlot || Boolean(propertySlotCollisionError)}
-                  className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-4 py-2 h-auto rounded-xl shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {savingSlot ? 'Saving...' : 'Save Override'}
-                </button>
+                </Button>
               </div>
             </form>
           </DialogContent>
@@ -1776,20 +1792,21 @@ export function FnbPropertySettingsScreen({
               </div>
 
               <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+                  className="px-4 py-2 h-auto text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={saving || editHasOpted}
-                  className="inline-flex items-center gap-2 bg-[#005390] text-white px-5 py-2 rounded-xl font-medium text-xs hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-2 bg-[#005390] text-white px-5 py-2 h-auto rounded-xl font-medium text-xs hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Property Pricing'}
-                </button>
+                </Button>
               </div>
             </form>
           </DialogContent>
@@ -1878,20 +1895,21 @@ export function FnbPropertySettingsScreen({
 
               {/* Action buttons - Enabled ONLY when a new different package is selected */}
               <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => setIsChangeModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+                  className="px-4 py-2 h-auto text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={changingPackage || !newPropertyPkgId || newPropertyPkgId === changingSub.propertyPackageId}
-                  className="px-5 py-2 bg-[#005390] text-white text-xs font-bold rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+                  className="px-5 py-2 h-auto bg-[#005390] text-white text-xs font-bold rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
                 >
                   {changingPackage ? 'Saving Changes...' : 'Confirm Change Package'}
-                </button>
+                </Button>
               </div>
             </form>
           </DialogContent>
@@ -1935,20 +1953,21 @@ export function FnbPropertySettingsScreen({
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-2 border-t border-gray-100">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setIsSpecialSlotModalOpen(false)}
-                  className="px-4 py-2 font-bold text-xs rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="px-4 py-2 h-auto font-bold text-xs rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={savingSpecialSlot}
-                  className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs cursor-pointer disabled:opacity-50"
+                  className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-4 py-2 h-auto rounded-xl shadow-xs cursor-pointer disabled:opacity-50"
                 >
                   {savingSpecialSlot ? 'Saving...' : 'Save Special Price'}
-                </button>
+                </Button>
               </div>
             </form>
           </DialogContent>

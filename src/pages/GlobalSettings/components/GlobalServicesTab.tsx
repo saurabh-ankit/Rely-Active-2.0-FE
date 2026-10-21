@@ -21,6 +21,7 @@ import { notifyError, notifySuccess } from '@/utils/toast'
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { z } from 'zod'
 
 const propertyAssignmentFormSchema = z.object({
@@ -428,22 +429,28 @@ export function GlobalServicesTab() {
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => handleOpenEdit(row.original)}
               className="p-2 rounded-lg text-[#005390] hover:bg-blue-50 transition-colors cursor-pointer"
               title="Edit service"
+              aria-label="Edit service"
             >
               <Edit2 className="w-4 h-4" />
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => handleDelete(row.original)}
               className="p-2 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
               title="Delete service"
+              aria-label="Delete service"
             >
               <Trash2 className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         ),
       },
@@ -463,13 +470,13 @@ export function GlobalServicesTab() {
             Create and manage global service templates with property-specific pricing.
           </p>
         </div>
-        <button
+        <Button
           type="button"
           onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#005390] hover:bg-[#004070] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 h-auto bg-[#005390] hover:bg-[#004070] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Add Event Global Service
-        </button>
+        </Button>
       </div>
 
       <DataTable
@@ -591,10 +598,11 @@ export function GlobalServicesTab() {
                       {propertyAssignments.filter((pa) => pa.enabled).length}/{propertyAssignments.length})
                     </h4>
                     {propertyAssignments.length > 0 && (
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         onClick={handleSelectAllProperties}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#005390] hover:text-[#004070] cursor-pointer"
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#005390] hover:text-[#004070] cursor-pointer p-0 h-auto"
                       >
                         {isAllPropsSelected ? (
                           <>
@@ -605,7 +613,7 @@ export function GlobalServicesTab() {
                             <Square className="w-4 h-4 text-gray-400" /> Select All ({propertyAssignments.length})
                           </>
                         )}
-                      </button>
+                      </Button>
                     )}
                   </div>
 
@@ -672,20 +680,21 @@ export function GlobalServicesTab() {
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl cursor-pointer"
+                  className="px-4 py-2 h-auto text-sm text-gray-600 hover:bg-gray-100 rounded-xl cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={saving}
-                  className="px-6 py-2.5 bg-[#005390] text-white text-sm font-medium rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50"
+                  className="px-6 py-2.5 h-auto bg-[#005390] text-white text-sm font-medium rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : 'Save Service & Assignments'}
-                </button>
+                </Button>
               </div>
             </form>
           </DialogContent>

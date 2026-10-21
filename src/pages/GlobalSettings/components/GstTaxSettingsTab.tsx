@@ -110,13 +110,15 @@ const GstTaxSettingsForm: React.FC<{ initial?: TaxSettings }> = ({ initial }) =>
               When enabled, invoices will automatically include GST, CGST, and SGST breakdowns.
             </p>
           </div>
-          <button
+          <Button
             type="button"
             role="switch"
+            variant="ghost"
             aria-checked={gstEnabled}
+            aria-label="Enable GST Invoicing"
             onClick={() => setGstEnabled(!gstEnabled)}
-            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#005390] focus:ring-offset-2 ${
-              gstEnabled ? 'bg-[#005390]' : 'bg-gray-300'
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out p-0 hover:bg-transparent ${
+              gstEnabled ? 'bg-[#005390] hover:bg-[#005390]' : 'bg-gray-300 hover:bg-gray-300'
             }`}
           >
             <span
@@ -124,7 +126,7 @@ const GstTaxSettingsForm: React.FC<{ initial?: TaxSettings }> = ({ initial }) =>
                 gstEnabled ? 'translate-x-5' : 'translate-x-0'
               }`}
             />
-          </button>
+          </Button>
         </div>
 
         {/* Company GSTIN */}
@@ -156,18 +158,19 @@ const GstTaxSettingsForm: React.FC<{ initial?: TaxSettings }> = ({ initial }) =>
             </Label>
             <div className="flex flex-wrap items-center gap-2">
               {GST_PRESETS.map((preset) => (
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   key={preset}
                   onClick={() => handlePresetClick(preset)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                  className={`px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all cursor-pointer border ${
                     defaultGstRate === preset
-                      ? 'bg-[#005390] text-white border-[#005390] shadow-sm'
+                      ? 'bg-[#005390] text-white border-[#005390] shadow-sm hover:bg-[#005390] hover:text-white'
                       : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
                   {preset}%
-                </button>
+                </Button>
               ))}
               <div className="flex items-center gap-1 ml-2">
                 <Input

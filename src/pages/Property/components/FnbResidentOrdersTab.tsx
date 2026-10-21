@@ -457,14 +457,15 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
     }
 
     return (
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={handleBadgeClick}
-        className="inline-block cursor-pointer hover:scale-105 active:scale-95 transition-transform border-0 bg-transparent p-0"
+        className="inline-block cursor-pointer hover:scale-105 active:scale-95 transition-transform border-0 bg-transparent p-0 h-auto hover:bg-transparent"
         title={transition ? `Click to ${transition.label}` : 'View Details'}
       >
         {badgeElement}
-      </button>
+      </Button>
     )
   }
 
@@ -811,21 +812,26 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                             {/* Actions */}
                             <td className="py-3.5 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                                <button
+                                <Button
                                   type="button"
+                                  variant="ghost"
+                                  size="icon-xs"
                                   onClick={() => setSelectedOrder(order)}
                                   className="p-1.5 text-gray-600 hover:text-[#005390] hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                                   title="View Order Details"
                                 >
                                   <Eye className="w-4 h-4" />
-                                </button>
+                                  <span className="sr-only">View Order Details</span>
+                                </Button>
 
                                 {canUpdateFnb && (
                                   <>
                                     {/* 1. Placed -> Accept Order */}
                                     {order.orderStatus === 'placed' && (
-                                      <button
+                                      <Button
                                         type="button"
+                                        variant="ghost"
+                                        size="sm"
                                         disabled={updatingStatusId === order.id}
                                         onClick={() =>
                                           setConfirmModalData({
@@ -834,16 +840,18 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                             actionLabel: 'Accept Order',
                                           })
                                         }
-                                        className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-[#005390] border border-blue-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
+                                        className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-[#005390] border border-blue-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
                                       >
                                         Accept Order
-                                      </button>
+                                      </Button>
                                     )}
 
                                     {/* 2. Accepted -> Start Preparing */}
                                     {order.orderStatus === 'accepted' && (
-                                      <button
+                                      <Button
                                         type="button"
+                                        variant="ghost"
+                                        size="sm"
                                         disabled={updatingStatusId === order.id}
                                         onClick={() =>
                                           setConfirmModalData({
@@ -852,16 +860,18 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                             actionLabel: 'Start Preparing',
                                           })
                                         }
-                                        className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
+                                        className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
                                       >
                                         Start Preparing
-                                      </button>
+                                      </Button>
                                     )}
 
                                     {/* 3. Preparing -> Food is Ready (Dine In & Room Service) */}
                                     {order.orderStatus === 'preparing' && (
-                                      <button
+                                      <Button
                                         type="button"
+                                        variant="ghost"
+                                        size="sm"
                                         disabled={updatingStatusId === order.id}
                                         onClick={() =>
                                           setConfirmModalData({
@@ -870,18 +880,20 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                             actionLabel: 'Food is Ready',
                                           })
                                         }
-                                        className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
+                                        className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
                                       >
                                         Food is Ready
-                                      </button>
+                                      </Button>
                                     )}
 
                                     {/* 4. Ready -> Assign Delivery Employee (Room Service) OR Complete Order (Dine In) */}
                                     {(order.orderStatus === 'ready' || order.orderStatus === 'food_ready') && (
                                       <>
                                         {order.serviceType === 'room_service' ? (
-                                          <button
+                                          <Button
                                             type="button"
+                                            variant="ghost"
+                                            size="sm"
                                             onClick={() =>
                                               setConfirmModalData({
                                                 order,
@@ -889,13 +901,15 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                                 actionLabel: 'Assign Delivery Employee',
                                               })
                                             }
-                                            className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
+                                            className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
                                           >
                                             Assign Delivery Employee
-                                          </button>
+                                          </Button>
                                         ) : (
-                                          <button
+                                          <Button
                                             type="button"
+                                            variant="ghost"
+                                            size="sm"
                                             disabled={updatingStatusId === order.id}
                                             onClick={() =>
                                               setConfirmModalData({
@@ -904,10 +918,10 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                                 actionLabel: 'Complete Order',
                                               })
                                             }
-                                            className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
+                                            className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
                                           >
                                             Complete Order
-                                          </button>
+                                          </Button>
                                         )}
                                       </>
                                     )}

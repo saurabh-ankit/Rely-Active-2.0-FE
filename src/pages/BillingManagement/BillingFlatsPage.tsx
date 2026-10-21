@@ -348,14 +348,15 @@ function FilterChip({
   onClick: () => void
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       title={hint}
       onClick={onClick}
       className={cn(
-        'flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors',
+        'h-auto flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors',
         active
-          ? 'border-[#2a517c] bg-[#2a517c] text-white'
+          ? 'border-[#2a517c] bg-[#2a517c] text-white hover:bg-[#2a517c] hover:text-white'
           : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50',
       )}
     >
@@ -369,6 +370,6 @@ function FilterChip({
       >
         {count}
       </span>
-    </button>
+    </Button>
   )
 }

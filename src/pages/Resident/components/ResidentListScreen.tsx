@@ -437,10 +437,11 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                       return (
                         <li key={occ.id}>
                           <div className="flex flex-col gap-2 px-4 py-3 transition-colors hover:bg-[#005390]/[0.03] md:flex-row md:items-center">
-                            <button
+                            <Button
+                              variant="ghost"
                               type="button"
                               onClick={() => goToResident(occ.id)}
-                              className="group flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left"
+                              className="group flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left p-0 h-auto font-normal hover:bg-transparent justify-start"
                               title="View profile"
                             >
                               <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#005390]/10 text-xs font-bold text-[#005390]">
@@ -470,7 +471,7 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                                 </p>
                                 {occ.email && <p className="truncate text-xs text-gray-500">{occ.email}</p>}
                               </div>
-                            </button>
+                            </Button>
 
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pl-12 text-xs md:pl-0">
                               <LivingBadge status={occ.isResiding ? 'here' : 'elsewhere'} />

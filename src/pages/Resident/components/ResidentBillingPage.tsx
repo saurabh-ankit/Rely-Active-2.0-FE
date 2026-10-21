@@ -292,15 +292,16 @@ export const ResidentBillingPage: React.FC = () => {
       {/* ── Top Navigation Bar ────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden">
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            variant="ghost"
             type="button"
             onClick={() =>
               residentId ? navigate(`/admin/residents/details/${residentId}`) : navigate('/admin/residents')
             }
-            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer bg-white px-3 py-2 rounded-xl border border-gray-200 shadow-xs"
+            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer bg-white px-3 py-2 h-auto rounded-xl border border-gray-200 shadow-xs hover:bg-gray-50"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Resident Profile
-          </button>
+          </Button>
         </div>
 
         {/* Action Buttons: Print & Generate */}
@@ -702,14 +703,17 @@ export const ResidentBillingPage: React.FC = () => {
                               <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full uppercase">
                                 Custom
                               </span>
-                              <button
+                              <Button
+                                variant="ghost"
+                                size="icon-xs"
                                 type="button"
                                 onClick={() => handleRemoveMiscItem(misc.id)}
-                                className="text-gray-400 hover:text-rose-600 p-1 rounded-md cursor-pointer transition-colors print:hidden"
+                                className="text-gray-400 hover:text-rose-600 p-1 h-auto rounded-md cursor-pointer transition-colors print:hidden hover:bg-transparent"
+                                aria-label="Delete service item"
                                 title="Delete service item"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              </Button>
                             </div>
                           </td>
                           <td className="py-3.5 px-6 text-gray-600 text-xs">{misc.description}</td>
@@ -735,28 +739,30 @@ export const ResidentBillingPage: React.FC = () => {
                 <span className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Apply Discount</span>
                 <div className="flex items-center gap-2">
                   <div className="inline-flex rounded-xl bg-gray-100 p-1 border border-gray-200">
-                    <button
+                    <Button
+                      variant="ghost"
                       type="button"
                       onClick={() => setDiscountType('flat')}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                      className={`px-3 py-1 h-auto text-xs font-bold rounded-lg transition-all ${
                         discountType === 'flat'
-                          ? 'bg-white text-gray-900 shadow-xs'
+                          ? 'bg-white text-gray-900 shadow-xs hover:bg-white hover:text-gray-900'
                           : 'text-gray-500 hover:text-gray-900'
                       }`}
                     >
                       Flat (₹)
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="ghost"
                       type="button"
                       onClick={() => setDiscountType('percentage')}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                      className={`px-3 py-1 h-auto text-xs font-bold rounded-lg transition-all ${
                         discountType === 'percentage'
-                          ? 'bg-white text-gray-900 shadow-xs'
+                          ? 'bg-white text-gray-900 shadow-xs hover:bg-white hover:text-gray-900'
                           : 'text-gray-500 hover:text-gray-900'
                       }`}
                     >
                       Percent (%)
-                    </button>
+                    </Button>
                   </div>
 
                   <div className="relative flex-1">

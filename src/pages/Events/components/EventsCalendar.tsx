@@ -64,7 +64,8 @@ const EventChip = ({
   // Multi-day events only show the start time on their first day
   const startsToday = isSameDay(new Date(event.startDate), day)
   return (
-    <button
+    <Button
+      variant="ghost"
       type="button"
       title={event.title}
       onClick={(e) => {
@@ -72,14 +73,14 @@ const EventChip = ({
         onOpen()
       }}
       className={cn(
-        'flex w-full items-center gap-1.5 truncate rounded-md border-l-[3px] px-1.5 py-1 text-left text-[11px] font-semibold leading-tight transition-colors',
+        'flex w-full h-auto items-center gap-1.5 truncate rounded-md border-l-[3px] px-1.5 py-1 text-left text-[11px] font-semibold leading-tight transition-colors justify-start font-normal',
         kind.chip,
         clickable ? 'cursor-pointer' : 'cursor-default',
       )}
     >
       {startsToday && <span className="shrink-0 font-medium opacity-70">{formatTime(event.startDate)}</span>}
       <span className="truncate">{event.title}</span>
-    </button>
+    </Button>
   )
 }
 
@@ -466,7 +467,9 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
       <div className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-3 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex items-center rounded-xl border border-gray-200 bg-gray-50 p-0.5">
-            <button
+            <Button
+              variant="ghost"
+              size="icon-xs"
               type="button"
               aria-label="Previous"
               title="Previous"
@@ -474,15 +477,18 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
               className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-white hover:text-[#005390] hover:shadow-xs"
             >
               <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
               type="button"
               onClick={() => navigateMonth('current')}
               className="h-8 cursor-pointer rounded-lg px-3 text-xs font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#005390] hover:shadow-xs"
             >
               Today
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
               type="button"
               aria-label="Next"
               title="Next"
@@ -490,7 +496,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
               className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-white hover:text-[#005390] hover:shadow-xs"
             >
               <ChevronRight className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
           <h2 className="text-lg font-bold text-gray-900 whitespace-nowrap">{calendarTitle}</h2>
         </div>
@@ -512,7 +518,8 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
           </div>
           <div className="flex rounded-xl border border-gray-200 bg-gray-50 p-0.5">
             {VIEW_MODES.map((mode) => (
-              <button
+              <Button
+                variant="ghost"
                 type="button"
                 key={mode}
                 aria-pressed={viewMode === mode}
@@ -525,12 +532,12 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                 className={cn(
                   'h-8 cursor-pointer rounded-lg px-3 text-xs font-semibold capitalize transition-colors',
                   viewMode === mode
-                    ? 'bg-[#005390] text-white shadow-xs'
+                    ? 'bg-[#005390] text-white shadow-xs hover:bg-[#005390] hover:text-white'
                     : 'text-gray-600 hover:bg-white hover:text-gray-900',
                 )}
               >
                 {mode}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -587,13 +594,14 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                         />
                       ))}
                       {safeDayEvents.length > 4 && (
-                        <button
+                        <Button
+                          variant="ghost"
                           type="button"
-                          className="cursor-pointer rounded-md px-1.5 text-[11px] font-semibold text-gray-500 hover:bg-gray-100 hover:text-[#005390]"
+                          className="h-auto p-0 cursor-pointer rounded-md px-1.5 text-[11px] font-semibold text-gray-500 hover:bg-gray-100 hover:text-[#005390]"
                           onClick={() => setEventsPopupDate(day)}
                         >
                           +{safeDayEvents.length - 4} more
-                        </button>
+                        </Button>
                       )}
                       {safeDayEvents.length === 0 && (
                         <p className="pt-6 text-center text-[11px] text-gray-300">No events</p>
@@ -960,16 +968,17 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                       />
                     ))}
                     {dateEvents.length > 2 && (
-                      <button
+                      <Button
+                        variant="ghost"
                         type="button"
-                        className="cursor-pointer rounded-md px-1.5 text-[11px] font-semibold text-gray-500 hover:bg-gray-100 hover:text-[#005390]"
+                        className="h-auto p-0 cursor-pointer rounded-md px-1.5 text-[11px] font-semibold text-gray-500 hover:bg-gray-100 hover:text-[#005390]"
                         onClick={(e) => {
                           e.stopPropagation()
                           setEventsPopupDate(date)
                         }}
                       >
                         +{dateEvents.length - 2} more
-                      </button>
+                      </Button>
                     )}
                   </div>
                   {/* Phones: dots instead of chips */}

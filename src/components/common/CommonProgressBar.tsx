@@ -1,5 +1,6 @@
 import React from 'react'
 import { Check } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export interface ProgressBarStep {
   id: number
@@ -47,12 +48,13 @@ export const CommonProgressBar: React.FC<CommonProgressBarProps> = ({
           const Icon = step.icon
 
           return (
-            <button
+            <Button
               key={step.id || index}
+              variant="ghost"
               type="button"
               disabled={!isDone || !onStepClick}
               onClick={() => isDone && onStepClick?.(step.id)}
-              className={`relative z-10 flex flex-col items-center group bg-transparent border-0 p-0 text-left ${
+              className={`relative z-10 flex flex-col items-center group bg-transparent hover:bg-transparent border-0 p-0 h-auto text-left whitespace-normal ${
                 isDone && onStepClick ? 'cursor-pointer' : 'cursor-default'
               }`}
             >
@@ -103,7 +105,7 @@ export const CommonProgressBar: React.FC<CommonProgressBarProps> = ({
                   </span>
                 )}
               </div>
-            </button>
+            </Button>
           )
         })}
       </div>

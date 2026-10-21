@@ -762,13 +762,14 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
   if (initialMode === 'permissions' || paramUserId) {
     return (
       <div className="space-y-6 pb-10">
-        <button
+        <Button
+          variant="ghost"
           type="button"
           onClick={() => navigate('/global-settings/users')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+          className="p-0 h-auto inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] hover:bg-transparent transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Employee Directory
-        </button>
+        </Button>
 
         <RoleModuleManagement onClose={() => navigate('/global-settings/users')} />
       </div>
@@ -784,17 +785,18 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
     return (
       <div className="space-y-6 pb-12">
         {/* Back Button */}
-        <button
+        <Button
+          variant="ghost"
           type="button"
           onClick={() => {
             resetForm()
             navigate(isLocationScoped ? '/admin/employees' : '/global-settings/users')
           }}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+          className="p-0 h-auto inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] hover:bg-transparent transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />{' '}
           {isLocationScoped ? 'Back to Employee Directory' : 'Back to User Management'}
-        </button>
+        </Button>
 
         {/* Page Header */}
         <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl">
@@ -1178,20 +1180,21 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                           {specializations.map((sp) => {
                             const selected = selectedSpecializationIds.includes(sp.id)
                             return (
-                              <button
+                              <Button
+                                variant="ghost"
                                 type="button"
                                 key={sp.id}
                                 onClick={() => toggleSpecialization(sp.id)}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors cursor-pointer ${
+                                className={`h-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors cursor-pointer ${
                                   selected
-                                    ? 'bg-[#005390] border-[#005390] text-white'
-                                    : 'bg-white border-gray-200 text-gray-700 hover:border-[#005390]'
+                                    ? 'bg-[#005390] border-[#005390] text-white hover:bg-[#005390] hover:text-white'
+                                    : 'bg-white border-gray-200 text-gray-700 hover:border-[#005390] hover:bg-white'
                                 }`}
                               >
                                 <Stethoscope className="w-3.5 h-3.5" />
                                 {sp.name}
                                 {selected && <Check className="w-3.5 h-3.5" />}
-                              </button>
+                              </Button>
                             )
                           })}
                         </div>
@@ -1295,14 +1298,15 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                     const isChecked = selectedPropertyIds.has(p.id)
 
                     return (
-                      <button
+                      <Button
+                        variant="ghost"
                         type="button"
                         key={p.id}
                         onClick={() => togglePropertySelection(p.id)}
-                        className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex items-center justify-between gap-4 ${
+                        className={`w-full text-left p-4 h-auto whitespace-normal rounded-2xl border transition-all duration-200 cursor-pointer flex items-center justify-between gap-4 font-normal ${
                           isChecked
-                            ? 'bg-[#005390]/5 border-[#005390] shadow-sm'
-                            : 'bg-white border-gray-200 hover:border-[#005390]/30'
+                            ? 'bg-[#005390]/5 border-[#005390] shadow-sm hover:bg-[#005390]/5'
+                            : 'bg-white border-gray-200 hover:border-[#005390]/30 hover:bg-white'
                         }`}
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -1337,7 +1341,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                               <div className="w-2 h-2 rounded-full bg-white" />
                             ))}
                         </div>
-                      </button>
+                      </Button>
                     )
                   })}
                 </div>

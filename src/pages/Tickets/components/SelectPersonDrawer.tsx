@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import type { AssignableEmployee, EmployeeShiftInfo, Ticket } from '@/lib/types'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   isOpen: boolean
@@ -210,13 +211,14 @@ export function SelectPersonDrawer({ isOpen, ticket, locationId, onClose, onAssi
           isSelected ? 'border-[#005390] bg-blue-50/40 shadow-2xs' : 'border-gray-200 bg-white hover:border-gray-300'
         }`}
       >
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => {
             setSelectedUserId(options.id)
             setExpandedId(isExpanded ? null : options.id)
           }}
-          className="w-full text-left p-3.5 flex items-start gap-3 cursor-pointer"
+          className="w-full text-left p-3.5 h-auto flex items-start gap-3 rounded-2xl justify-start whitespace-normal hover:bg-transparent"
         >
           <div
             className={`w-10 h-10 rounded-full text-white font-bold text-xs flex items-center justify-center shrink-0 ${options.avatarClass}`}
@@ -257,7 +259,7 @@ export function SelectPersonDrawer({ isOpen, ticket, locationId, onClose, onAssi
             {isSelected && <Check className="w-4.5 h-4.5 text-[#005390]" />}
             <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
           </div>
-        </button>
+        </Button>
 
         {isExpanded && <div className="px-3.5 pb-3.5">{<ShiftDetails shift={options.shift} />}</div>}
       </div>
@@ -367,13 +369,15 @@ export function SelectPersonDrawer({ isOpen, ticket, locationId, onClose, onAssi
                   (inDepartmentCount === 0 || showOtherStaff ? (
                     renderGroup(otherStaff, 'Other departments', 'Outside this ticket\u2019s department')
                   ) : (
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
+                      size="sm"
                       onClick={() => setShowOtherStaff(true)}
-                      className="w-full py-2.5 rounded-xl border border-dashed border-gray-300 text-[11px] font-bold text-gray-500 hover:text-gray-700 hover:border-gray-400 transition-colors cursor-pointer"
+                      className="w-full py-2.5 h-auto rounded-xl border border-dashed border-gray-300 text-[11px] font-bold text-gray-500 hover:text-gray-700 hover:border-gray-400 transition-colors cursor-pointer"
                     >
                       Show staff from other departments ({otherStaff.length})
-                    </button>
+                    </Button>
                   ))}
 
                 {otherEmployees.length === 0 && (
@@ -387,21 +391,24 @@ export function SelectPersonDrawer({ isOpen, ticket, locationId, onClose, onAssi
 
           {/* Footer */}
           <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-3xl flex items-center justify-end gap-3">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={onClose}
-              className="px-4 py-2.5 text-xs font-bold text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+              className="px-4 py-2.5 text-xs font-bold text-gray-600 hover:text-gray-900 border-none bg-transparent hover:bg-gray-200 transition-colors cursor-pointer"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="sm"
               onClick={handleAssign}
               disabled={isSubmitting}
               className="px-6 py-2.5 bg-[#005390] hover:bg-[#004070] disabled:opacity-60 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer shadow-2xs flex items-center justify-center gap-2 min-w-[120px]"
             >
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Assign Ticket'}
-            </button>
+            </Button>
           </div>
         </DialogContent>
       )}

@@ -294,28 +294,30 @@ export default function FnbGlobalMealSlotsTab() {
     <div className="space-y-6">
       {/* Top Navigation Sub-Tabs */}
       <div className="flex items-center gap-2 border-b border-gray-200 dark:border-neutral-800 pb-3">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => setActiveSubTab('regular')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl text-sm font-bold transition-all cursor-pointer ${
             activeSubTab === 'regular'
-              ? 'bg-[#005390] text-white shadow-sm'
+              ? 'bg-[#005390] text-white shadow-sm hover:bg-[#005390] hover:text-white'
               : 'bg-white dark:bg-neutral-900 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800'
           }`}
         >
           <Utensils className="w-4 h-4" /> Regular Meal Slots
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => setActiveSubTab('special')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl text-sm font-bold transition-all cursor-pointer ${
             activeSubTab === 'special'
-              ? 'bg-[#005390] text-white shadow-sm'
+              ? 'bg-[#005390] text-white shadow-sm hover:bg-[#005390] hover:text-white'
               : 'bg-white dark:bg-neutral-900 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800'
           }`}
         >
           <Sparkles className="w-4 h-4 text-amber-400" /> Special Meal Slots
-        </button>
+        </Button>
       </div>
 
       {/* Special Meal Slots View */}
@@ -535,22 +537,24 @@ export default function FnbGlobalMealSlotsTab() {
                   <div className="space-y-2 pt-2 border-t border-gray-100">
                     <div className="flex items-center justify-between">
                       <span className="block text-xs font-bold text-gray-700">Assign to Properties</span>
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         onClick={toggleAllProperties}
-                        className="text-xs text-[#005390] font-bold hover:underline cursor-pointer"
+                        className="text-xs text-[#005390] font-bold hover:underline cursor-pointer p-0 h-auto hover:bg-transparent"
                       >
                         {isAllPropsSelected ? 'Deselect All' : 'Select All'}
-                      </button>
+                      </Button>
                     </div>
 
                     <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                       {propertyAssignments.map((pa) => (
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
                           key={pa.locId}
                           onClick={() => togglePropertyAssignment(pa.locId)}
-                          className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
+                          className={`w-full flex items-center justify-between p-2.5 h-auto rounded-xl border text-xs cursor-pointer transition-all ${
                             pa.enabled
                               ? 'bg-blue-50/70 border-blue-200 text-[#005390] font-bold'
                               : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300'
@@ -565,7 +569,7 @@ export default function FnbGlobalMealSlotsTab() {
                           ) : (
                             <Square className="w-4 h-4 text-gray-300" />
                           )}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>

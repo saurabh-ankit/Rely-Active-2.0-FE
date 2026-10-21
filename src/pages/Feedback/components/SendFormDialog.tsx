@@ -59,16 +59,17 @@ const SendFormDialog = ({ open, onOpenChange, form, onSent }: SendFormDialogProp
 
         <div className="grid grid-cols-3 gap-3">
           {AUDIENCE_OPTIONS.map(({ value, label, icon: Icon }) => (
-            <button
+            <Button
               key={value}
               type="button"
+              variant="ghost"
               aria-pressed={audience === value}
               onClick={() => setAudience(value)}
               className={cn(
-                'flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 p-3 text-sm font-medium transition-colors',
+                'h-auto flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 p-3 text-sm font-medium transition-colors whitespace-normal font-normal',
                 audience === value
-                  ? 'border-[#2a517c] bg-[#2a517c]/5 text-[#2a517c]'
-                  : 'border-gray-200 text-gray-600 hover:border-gray-300',
+                  ? 'border-[#2a517c] bg-[#2a517c]/5 text-[#2a517c] hover:bg-[#2a517c]/10 hover:text-[#2a517c]'
+                  : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-slate-50',
               )}
             >
               <Icon className="h-5 w-5" />
@@ -76,7 +77,7 @@ const SendFormDialog = ({ open, onOpenChange, form, onSent }: SendFormDialogProp
               <span className="text-xs font-normal text-gray-500">
                 {isCounting ? '…' : `${countFor(value)} people`}
               </span>
-            </button>
+            </Button>
           ))}
         </div>
 

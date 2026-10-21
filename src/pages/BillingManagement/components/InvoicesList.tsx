@@ -115,18 +115,20 @@ export function InvoicesList({ unitId, onEditInvoice }: InvoicesListProps) {
                       )}
                     >
                       <td className="px-3 py-3.5">
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="icon-xs"
                           aria-label={isOpen ? 'Collapse' : 'Expand'}
                           aria-expanded={isOpen}
                           onClick={(e) => {
                             e.stopPropagation()
                             toggle()
                           }}
-                          className="rounded-md p-1 text-gray-500 hover:bg-gray-200/70"
+                          className="h-7 w-7 rounded-md p-1 text-gray-500 hover:bg-gray-200/70"
                         >
                           {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                        </button>
+                        </Button>
                       </td>
                       <td className="px-3 py-3.5">
                         <div className="flex items-center gap-2.5">

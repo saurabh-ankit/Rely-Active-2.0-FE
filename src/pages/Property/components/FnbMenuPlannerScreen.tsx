@@ -35,6 +35,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
+import { cn } from '@/lib/utils'
 
 interface Dish {
   id: string
@@ -872,15 +873,16 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                     const monthShort = dObj.toLocaleDateString('en-US', { month: 'short' })
 
                     return (
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         key={wItem.dayOfWeek}
                         onClick={() => setActiveBaseDay(wItem.dayOfWeek)}
-                        className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col items-center justify-between text-center select-none shadow-2xs relative group py-3.5 ${
+                        className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col items-center justify-between text-center select-none shadow-2xs relative group py-3.5 h-auto font-normal ${
                           isSelected
-                            ? 'bg-[#005390] text-white border-[#005390] shadow-md ring-2 ring-blue-200 scale-[1.02]'
+                            ? 'bg-[#005390] text-white border-[#005390] shadow-md ring-2 ring-blue-200 scale-[1.02] hover:bg-[#005390] hover:text-white'
                             : isToday
-                              ? 'bg-blue-50/70 text-gray-900 border-blue-300 ring-2 ring-blue-100'
+                              ? 'bg-blue-50/70 text-gray-900 border-blue-300 ring-2 ring-blue-100 hover:bg-blue-50/70'
                               : 'bg-white text-gray-700 hover:bg-blue-50/50 border-gray-200 hover:border-blue-300'
                         }`}
                       >
@@ -911,7 +913,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                         <span className={`text-xs font-semibold ${isSelected ? 'text-blue-100' : 'text-gray-400'}`}>
                           {monthShort}
                         </span>
-                      </button>
+                      </Button>
                     )
                   })}
                 </div>
@@ -978,43 +980,52 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
 
                 {/* Category Filter Pills Carousel with Nav Buttons */}
                 <div className="relative border-b border-gray-200/60 pb-2 flex items-center gap-1">
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="icon-xs"
                     onClick={() => scrollCategoryLeft(categoryScrollRef)}
-                    className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center text-gray-600 shrink-0 cursor-pointer shadow-2xs transition-colors"
+                    className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center text-gray-600 shrink-0 cursor-pointer shadow-2xs transition-colors p-0"
                     title="Scroll Left"
+                    aria-label="Scroll categories left"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
-                  </button>
+                  </Button>
 
                   <div
                     ref={categoryScrollRef}
                     className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none scroll-smooth flex-1"
                   >
                     {categories.map((cat) => (
-                      <button
+                      <Button
                         key={cat.value}
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setSelectedCategory(cat.value)}
-                        className={`px-3 py-1 rounded-xl text-[11px] font-extrabold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
+                        className={cn(
+                          'px-3 py-1 rounded-xl text-[11px] font-extrabold whitespace-nowrap transition-all shrink-0 cursor-pointer h-auto',
                           selectedCategory === cat.value
-                            ? 'bg-[#005390] text-white shadow-2xs'
-                            : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
-                        }`}
+                            ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
+                            : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200',
+                        )}
                       >
                         {cat.label}
-                      </button>
+                      </Button>
                     ))}
                   </div>
 
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="icon-xs"
                     onClick={() => scrollCategoryRight(categoryScrollRef)}
-                    className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center text-gray-600 shrink-0 cursor-pointer shadow-2xs transition-colors"
+                    className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center text-gray-600 shrink-0 cursor-pointer shadow-2xs transition-colors p-0"
                     title="Scroll Right"
+                    aria-label="Scroll categories right"
                   >
                     <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="space-y-2 overflow-y-auto flex-1 pr-1">
@@ -1080,15 +1091,17 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                                       Regular Slots:
                                     </div>
                                     {propertyMealSlots.map((s) => (
-                                      <button
+                                      <Button
                                         key={s.id}
                                         type="button"
+                                        variant="ghost"
+                                        size="sm"
                                         onClick={() => handleAddBaseWeeklyDish(s, dish.id)}
-                                        className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-blue-50 text-gray-800 font-bold hover:text-[#005390] transition-colors flex items-center justify-between text-xs cursor-pointer"
+                                        className="w-full text-left justify-between px-2.5 py-1.5 h-auto rounded-lg hover:bg-blue-50 text-gray-800 font-bold hover:text-[#005390] transition-colors flex items-center text-xs cursor-pointer"
                                       >
                                         <span>{s.name}</span>
                                         <span className="text-[10px] text-gray-400 font-normal">{s.startTime}</span>
-                                      </button>
+                                      </Button>
                                     ))}
                                   </>
                                 )}
@@ -1099,15 +1112,17 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                                       <Sparkles className="w-3 h-3" /> Special Slots (Every Day):
                                     </div>
                                     {propertySpecialSlots.map((sp) => (
-                                      <button
+                                      <Button
                                         key={sp.id}
                                         type="button"
+                                        variant="ghost"
+                                        size="sm"
                                         onClick={() => handleAddSpecialDish(sp.id, dish.id)}
-                                        className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-amber-50 text-gray-800 font-bold hover:text-amber-800 transition-colors flex items-center justify-between text-xs cursor-pointer"
+                                        className="w-full text-left justify-between px-2.5 py-1.5 h-auto rounded-lg hover:bg-amber-50 text-gray-800 font-bold hover:text-amber-800 transition-colors flex items-center text-xs cursor-pointer"
                                       >
                                         <span>{sp.name}</span>
                                         <span className="text-[10px] text-amber-600 font-semibold">Special</span>
-                                      </button>
+                                      </Button>
                                     ))}
                                   </>
                                 )}
@@ -1139,20 +1154,24 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                         {propertyMealSlots.length} Meal Slot{propertyMealSlots.length !== 1 ? 's' : ''} Configured
                       </span>
                       <div className="flex items-center gap-2">
-                        <button
+                        <Button
                           type="button"
+                          variant="outline"
+                          size="sm"
                           onClick={handleCollapseAll}
-                          className="px-2.5 py-1 text-[11px] font-bold text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg cursor-pointer transition-colors shadow-2xs"
+                          className="px-2.5 py-1 text-[11px] font-bold text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg cursor-pointer transition-colors shadow-2xs h-auto"
                         >
                           ↕️ Collapse All
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
+                          variant="outline"
+                          size="sm"
                           onClick={handleExpandAll}
-                          className="px-2.5 py-1 text-[11px] font-bold text-[#005390] hover:bg-blue-50 bg-blue-50/50 border border-blue-200 rounded-lg cursor-pointer transition-colors shadow-2xs"
+                          className="px-2.5 py-1 text-[11px] font-bold text-[#005390] hover:bg-blue-50 bg-blue-50/50 border border-blue-200 rounded-lg cursor-pointer transition-colors shadow-2xs h-auto"
                         >
                           ↕️ Expand All
-                        </button>
+                        </Button>
                       </div>
                     </div>
 
@@ -1218,18 +1237,21 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                                   <span className="text-[10px] font-bold text-gray-500 shrink-0">
                                     {slotItems.length} Dish{slotItems.length !== 1 ? 'es' : ''}
                                   </span>
-                                  <button
+                                  <Button
                                     type="button"
+                                    variant="ghost"
+                                    size="icon-xs"
                                     onClick={() => toggleSlotCollapse(slot.id)}
-                                    className="p-1 rounded-lg hover:bg-white/80 text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
+                                    className="p-1 rounded-lg hover:bg-white/80 text-gray-500 hover:text-gray-900 transition-colors cursor-pointer h-auto"
                                     title={isCollapsed ? 'Expand Meal Slot' : 'Collapse Meal Slot'}
+                                    aria-label={isCollapsed ? `Expand ${slot.name}` : `Collapse ${slot.name}`}
                                   >
                                     {isCollapsed ? (
                                       <ChevronDown className="w-4 h-4" />
                                     ) : (
                                       <ChevronUp className="w-4 h-4" />
                                     )}
-                                  </button>
+                                  </Button>
                                 </div>
                               </div>
 
@@ -1290,13 +1312,16 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                                           </div>
                                         </div>
                                         {canUpdateFnb && !isPreviewingCustomOverride && (
-                                          <button
+                                          <Button
                                             type="button"
+                                            variant="ghost"
+                                            size="icon-xs"
                                             onClick={() => handleDeleteMenuItem(item.id)}
-                                            className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                                            className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0 h-auto"
+                                            aria-label={`Delete ${fullDish?.name || 'dish'} from menu`}
                                           >
                                             <Trash2 className="w-3.5 h-3.5" />
-                                          </button>
+                                          </Button>
                                         )}
                                       </div>
                                     )
@@ -1384,18 +1409,21 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                                   <span className="text-[10px] font-bold text-amber-800 shrink-0">
                                     {specDishes.length} Dish{specDishes.length !== 1 ? 'es' : ''}
                                   </span>
-                                  <button
+                                  <Button
                                     type="button"
+                                    variant="ghost"
+                                    size="icon-xs"
                                     onClick={() => toggleSlotCollapse(`special-${spSlot.id}`)}
-                                    className="p-1 rounded-lg hover:bg-amber-100 text-amber-800 transition-colors cursor-pointer"
+                                    className="p-1 rounded-lg hover:bg-amber-100 text-amber-800 transition-colors cursor-pointer h-auto"
                                     title={isCollapsed ? 'Expand Special Slot' : 'Collapse Special Slot'}
+                                    aria-label={isCollapsed ? `Expand ${spSlot.name}` : `Collapse ${spSlot.name}`}
                                   >
                                     {isCollapsed ? (
                                       <ChevronDown className="w-4 h-4" />
                                     ) : (
                                       <ChevronUp className="w-4 h-4" />
                                     )}
-                                  </button>
+                                  </Button>
                                 </div>
                               </div>
 
@@ -1448,14 +1476,17 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                                           </div>
                                         </div>
 
-                                        <button
+                                        <Button
                                           type="button"
+                                          variant="ghost"
+                                          size="icon-xs"
                                           onClick={() => handleRemoveSpecialDish(sdItem.id, fullDish?.name)}
-                                          className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                                          className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0 h-auto"
                                           title="Remove from Special Slot"
+                                          aria-label={`Remove ${fullDish?.name || 'dish'} from special slot`}
                                         >
                                           <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
+                                        </Button>
                                       </div>
                                     )
                                   })}
@@ -1562,43 +1593,52 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
 
               {/* Category Filter Pills Carousel with Nav Buttons inside Modal */}
               <div className="relative border-b border-gray-200/60 pb-2 flex items-center gap-1">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="icon-xs"
                   onClick={() => scrollCategoryLeft(modalCategoryScrollRef)}
-                  className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center text-gray-600 shrink-0 cursor-pointer shadow-2xs transition-colors"
+                  className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center text-gray-600 shrink-0 cursor-pointer shadow-2xs transition-colors p-0"
                   title="Scroll Left"
+                  aria-label="Scroll modal categories left"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
-                </button>
+                </Button>
 
                 <div
                   ref={modalCategoryScrollRef}
                   className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none scroll-smooth flex-1"
                 >
                   {categories.map((cat) => (
-                    <button
+                    <Button
                       key={cat.value}
                       type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setModalSelectedCategory(cat.value)}
-                      className={`px-3 py-1 rounded-xl text-[11px] font-extrabold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
+                      className={cn(
+                        'px-3 py-1 rounded-xl text-[11px] font-extrabold whitespace-nowrap transition-all shrink-0 cursor-pointer h-auto',
                         modalSelectedCategory === cat.value
-                          ? 'bg-[#005390] text-white shadow-2xs'
-                          : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
-                      }`}
+                          ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
+                          : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200',
+                      )}
                     >
                       {cat.label}
-                    </button>
+                    </Button>
                   ))}
                 </div>
 
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="icon-xs"
                   onClick={() => scrollCategoryRight(modalCategoryScrollRef)}
-                  className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center text-gray-600 shrink-0 cursor-pointer shadow-2xs transition-colors"
+                  className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center text-gray-600 shrink-0 cursor-pointer shadow-2xs transition-colors p-0"
                   title="Scroll Right"
+                  aria-label="Scroll modal categories right"
                 >
                   <ChevronRight className="w-3.5 h-3.5" />
-                </button>
+                </Button>
               </div>
 
               <div className="space-y-2 overflow-y-auto flex-1 pr-1">
@@ -1716,14 +1756,17 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                               <span className="text-[10px] font-bold text-gray-400 shrink-0">
                                 {modalDateOverrideItems.length} Dish{modalDateOverrideItems.length !== 1 ? 'es' : ''}
                               </span>
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
+                                size="icon-xs"
                                 onClick={() => toggleModalSlotCollapse(slot.id)}
-                                className="p-1 rounded-lg hover:bg-white/80 text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
+                                className="p-1 rounded-lg hover:bg-white/80 text-gray-500 hover:text-gray-900 transition-colors cursor-pointer h-auto"
                                 title={isCollapsed ? 'Expand Meal Slot' : 'Collapse Meal Slot'}
+                                aria-label={isCollapsed ? `Expand ${slot.name}` : `Collapse ${slot.name}`}
                               >
                                 {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-                              </button>
+                              </Button>
                             </div>
                           </div>
 
@@ -1781,13 +1824,16 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                                         </div>
                                       </div>
                                     </div>
-                                    <button
+                                    <Button
                                       type="button"
+                                      variant="ghost"
+                                      size="icon-xs"
                                       onClick={() => item.id && handleDeleteMenuItem(item.id)}
-                                      className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                                      className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0 h-auto"
+                                      aria-label={`Delete ${fullDish?.name || 'dish'} from menu`}
                                     >
                                       <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
+                                    </Button>
                                   </div>
                                 )
                               })}

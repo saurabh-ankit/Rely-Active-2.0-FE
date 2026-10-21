@@ -442,11 +442,12 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                         >
                           <div className="w-full h-full min-h-[40px] flex items-stretch divide-x divide-white/60">
                             {getActiveGridEntries(entries).map((entry) => (
-                              <button
+                              <Button
                                 key={entry.shiftId}
                                 type="button"
+                                variant="ghost"
                                 onClick={() => onSelectDate(ds)}
-                                className={`flex-1 flex flex-col items-center justify-center px-1.5 py-1 cursor-pointer hover:brightness-95 transition ${getShiftColor(entry.shiftId).cell}`}
+                                className={`h-auto rounded-none flex-1 flex flex-col items-center justify-center px-1.5 py-1 cursor-pointer hover:brightness-95 transition whitespace-normal font-normal ${getShiftColor(entry.shiftId).cell}`}
                                 title={entry.shiftTime ? `${entry.shiftName} (${entry.shiftTime})` : entry.shiftName}
                               >
                                 <span className="max-w-full truncate text-[11px] font-bold leading-tight">
@@ -457,7 +458,7 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                                     {entry.shiftTime.replace(' - ', '–')}
                                   </span>
                                 )}
-                              </button>
+                              </Button>
                             ))}
                           </div>
                         </td>

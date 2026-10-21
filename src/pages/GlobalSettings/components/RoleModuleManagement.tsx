@@ -70,19 +70,20 @@ const LevelSelector = ({
     {LEVELS.map((l) => {
       const active = value === l.level
       return (
-        <button
+        <Button
           key={l.level}
           type="button"
           role="radio"
+          variant="ghost"
           aria-checked={active}
           title={`${l.label}: ${l.hint}`}
           onClick={() => onChange(l.level)}
-          className={`cursor-pointer whitespace-nowrap rounded-md font-semibold transition-colors ${
+          className={`cursor-pointer whitespace-nowrap rounded-md font-semibold transition-colors h-auto ${
             compact ? 'px-2 py-1 text-[10px]' : 'px-2.5 py-1.5 text-[11px]'
-          } ${active ? `${l.tone} shadow-sm` : 'text-gray-500 hover:bg-white hover:text-gray-800'}`}
+          } ${active ? `${l.tone} shadow-sm hover:text-white` : 'text-gray-500 hover:bg-white hover:text-gray-800'}`}
         >
           {SHORT_LABELS[l.level]}
-        </button>
+        </Button>
       )
     })}
   </div>
@@ -333,13 +334,16 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
             </p>
           </div>
           {onClose && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={onClose}
+              aria-label="Close"
               className="p-2 rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors cursor-pointer"
             >
               <X className="h-5 w-5" />
-            </button>
+            </Button>
           )}
         </div>
 
@@ -405,13 +409,14 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
               <span className="flex items-center gap-2 text-xs font-semibold text-amber-600">
                 <span className="h-2 w-2 rounded-full bg-amber-500" />
                 Unsaved changes
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => setActivePermissions(new Set(savedPermissions))}
-                  className="cursor-pointer font-semibold text-gray-500 underline-offset-2 hover:text-gray-800 hover:underline"
+                  className="cursor-pointer font-semibold text-gray-500 underline-offset-2 hover:text-gray-800 hover:underline p-0 h-auto"
                 >
                   Discard
-                </button>
+                </Button>
               </span>
             )}
             {onClose && (
@@ -461,40 +466,44 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
               aria-label="Search modules or sections"
               className="h-9 w-64 rounded-xl border border-gray-200 bg-white px-3 text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => setExpanded(new Set(modules.map((m) => m.key)))}
               className="h-9 cursor-pointer rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-600 hover:bg-gray-50"
             >
               Expand all
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
               onClick={() => setExpanded(new Set())}
               className="h-9 cursor-pointer rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-600 hover:bg-gray-50"
             >
               Collapse all
-            </button>
+            </Button>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="text-gray-500">
               <span className="font-bold text-gray-900">{modulesWithAccess}</span> of {modules.length} modules with
               access
             </span>
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => setEverything(4)}
               className="h-9 cursor-pointer rounded-xl border border-emerald-200 bg-emerald-50 px-3 font-semibold text-emerald-700 hover:bg-emerald-100"
             >
               Full access to all
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
               onClick={() => setEverything(0)}
               className="h-9 cursor-pointer rounded-xl border border-gray-200 bg-white px-3 font-semibold text-gray-600 hover:bg-gray-50"
             >
               Clear all
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -521,12 +530,13 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
                 }`}
               >
                 <div className="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => toggleExpanded(module.key)}
                     disabled={subs.length === 0}
                     aria-expanded={isOpen}
-                    className="flex min-w-0 cursor-pointer items-start gap-2 text-left disabled:cursor-default"
+                    className="flex min-w-0 cursor-pointer items-start gap-2 text-left disabled:cursor-default p-0 h-auto hover:bg-transparent"
                   >
                     <ChevronRight
                       className={`mt-0.5 h-4 w-4 shrink-0 text-gray-400 transition-transform ${
@@ -548,7 +558,7 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
                         {summary}
                       </span>
                     </span>
-                  </button>
+                  </Button>
                   <div className="flex shrink-0 items-center gap-2">
                     {custom && <span className="text-[10px] font-semibold text-violet-600">Set all sections:</span>}
                     <LevelSelector value={level} onChange={(l) => setLevel(module.key, l)} label={module.name} />

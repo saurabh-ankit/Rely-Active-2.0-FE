@@ -89,8 +89,13 @@ const RosterShiftCard = ({
           />
         </div>
       )}
-      <button type="button" onClick={() => onAction('details')} className="w-full text-left">
-        <div className="relative bg-gradient-to-br from-[#1e3a5a] via-[#2a517c] to-[#3a6a9a] px-4 py-3.5">
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={() => onAction('details')}
+        className="h-auto p-0 flex flex-col items-stretch w-full text-left rounded-none whitespace-normal font-normal hover:bg-transparent"
+      >
+        <div className="relative bg-gradient-to-br from-[#1e3a5a] via-[#2a517c] to-[#3a6a9a] px-4 py-3.5 w-full">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_55%)]" />
           <div className={cn('relative flex items-start justify-between gap-3', canSelect && 'pl-6')}>
             <div className="min-w-0">
@@ -108,7 +113,7 @@ const RosterShiftCard = ({
           </div>
         </div>
 
-        <div className="space-y-3 px-4 py-4">
+        <div className="space-y-3 px-4 py-4 w-full">
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2 text-sm text-slate-700">
               <CalendarDays className="h-4 w-4 shrink-0 text-slate-400" />
@@ -138,14 +143,15 @@ const RosterShiftCard = ({
             </p>
           ) : null}
         </div>
-      </button>
+      </Button>
 
       {showAssignedResidents && (
         <div className="px-4 pb-3">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => onAction('residents')}
-            className="flex w-full items-center gap-3 rounded-xl border border-[#2a517c]/10 bg-[#2a517c]/5 px-3 py-2.5 text-left transition-colors hover:bg-[#2a517c]/10"
+            className="h-auto flex w-full items-center gap-3 rounded-xl border border-[#2a517c]/10 bg-[#2a517c]/5 px-3 py-2.5 text-left transition-colors hover:bg-[#2a517c]/10 whitespace-normal font-normal"
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#2a517c]/10">
               <Users className="h-4 w-4 text-[#2a517c]" />
@@ -155,7 +161,7 @@ const RosterShiftCard = ({
               <p className="text-xs text-[#2a517c]/70">Configure client-care roster</p>
             </div>
             <ChevronRight className="h-4 w-4 shrink-0 text-[#2a517c]/60" />
-          </button>
+          </Button>
         </div>
       )}
 

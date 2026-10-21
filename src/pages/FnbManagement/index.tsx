@@ -9,6 +9,7 @@ import { FnbPropertySettingsScreen } from '../Property/components/FnbPropertySet
 import { FnbDishesMasterTab } from '../GlobalSettings/components/FnbDishesMasterTab'
 import { FnbResidentOrdersTab } from '../Property/components/FnbResidentOrdersTab'
 import { FnbAttendanceTab } from '../Property/components/FnbAttendanceTab'
+import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/common/PageHeader'
 
 type FnbTab = 'planner' | 'packages' | 'dishes' | 'meal-slots' | 'resident-orders' | 'attendance'
@@ -55,16 +56,19 @@ export default function FnbManagementPage() {
       {/* Tabs */}
       <div className="flex border-b border-gray-200 space-x-6 text-sm font-semibold text-gray-500 overflow-x-auto">
         {visibleTabs.map((tab) => (
-          <button
+          <Button
             key={tab.value}
             type="button"
+            variant="ghost"
             onClick={() => setActiveTab(tab.value)}
-            className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-              activeTab === tab.value ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
+            className={`h-auto p-0 pb-3 border-b-2 rounded-none flex items-center gap-2 transition-colors cursor-pointer shrink-0 hover:bg-transparent ${
+              activeTab === tab.value
+                ? 'border-[#005390] text-[#005390]'
+                : 'border-transparent text-gray-500 hover:text-gray-800'
             }`}
           >
             <tab.icon className={`w-4 h-4 ${tab.iconClass ?? ''}`} /> {tab.label}
-          </button>
+          </Button>
         ))}
       </div>
 

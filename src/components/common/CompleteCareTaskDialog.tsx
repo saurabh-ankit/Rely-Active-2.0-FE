@@ -91,13 +91,16 @@ const CompleteCareTaskDialogContent: React.FC<CompleteCareTaskDialogContentProps
   return (
     <div className="relative w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden rounded-3xl border border-white/40 bg-white p-6 shadow-2xl dark:border-gray-800 dark:bg-slate-900 sm:p-7 my-auto animate-in zoom-in-95 duration-200">
       {/* Close Button */}
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-sm"
         onClick={() => onOpenChange(false)}
-        className="absolute top-5 right-5 rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800 dark:hover:text-gray-300 cursor-pointer"
+        className="absolute top-5 right-5 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800 dark:hover:text-gray-300"
       >
         <X className="size-5" />
-      </button>
+        <span className="sr-only">Close</span>
+      </Button>
 
       <div className="flex items-center gap-3 shrink-0">
         <div className="flex size-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
@@ -226,13 +229,15 @@ const CompleteCareTaskDialogContent: React.FC<CompleteCareTaskDialogContentProps
 
       {/* Footer Actions */}
       <div className="flex items-center justify-end gap-3 pt-3 mt-2 border-t border-gray-100 dark:border-gray-800 shrink-0">
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => onOpenChange(false)}
           className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-slate-800 cursor-pointer"
         >
           Cancel
-        </button>
+        </Button>
         <Button
           type="submit"
           form="complete-care-task-form"

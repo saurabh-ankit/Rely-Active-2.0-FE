@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react'
 import type { CarePackage } from '@/lib/types/medical'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { AssignedPackage } from './AssignedPackage'
 
 export interface FamilyCareRow {
@@ -113,15 +114,18 @@ function Option({
   onClick: () => void
 }) {
   return (
-    <button
+    <Button
+      variant="ghost"
       type="button"
       onClick={onClick}
       className={cn(
-        'rounded-xl border p-3 text-left transition-all hover:shadow-sm',
-        selected ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20' : 'border-gray-200 hover:border-gray-300',
+        'rounded-xl border p-3 text-left transition-all hover:shadow-sm h-auto flex flex-col items-stretch justify-start whitespace-normal font-normal',
+        selected
+          ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20 hover:bg-blue-50/50'
+          : 'border-gray-200 hover:border-gray-300 hover:bg-white',
       )}
     >
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 w-full">
         <span className="truncate text-xs font-bold text-gray-900">{title}</span>
         {selected && (
           <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[#005390] text-white">
@@ -129,8 +133,8 @@ function Option({
           </span>
         )}
       </div>
-      {price && <p className="mt-1 text-xs font-bold text-[#005390]">{price}</p>}
-      {hint && <p className="mt-1 text-[11px] text-gray-500">{hint}</p>}
-    </button>
+      {price && <p className="mt-1 text-xs font-bold text-[#005390] w-full">{price}</p>}
+      {hint && <p className="mt-1 text-[11px] text-gray-500 w-full">{hint}</p>}
+    </Button>
   )
 }

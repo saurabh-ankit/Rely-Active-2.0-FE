@@ -240,16 +240,17 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({ residentId, minDate })
             <div className="flex items-center justify-between border-b border-gray-100 pb-2 dark:border-gray-800">
               <span className={filterLabelClass}>Filter by event type</span>
               {types.length > 0 && (
-                <button
+                <Button
+                  variant="link"
                   type="button"
                   onClick={() => {
                     setTypes([])
                     setPage(1)
                   }}
-                  className="text-[11px] font-bold text-[#005390] hover:underline"
+                  className="p-0 h-auto text-[11px] font-bold text-[#005390] hover:text-[#004274] hover:underline hover:bg-transparent dark:text-sky-400 dark:hover:text-sky-300"
                 >
                   Clear
-                </button>
+                </Button>
               )}
             </div>
             <div className="mt-3 space-y-2.5">

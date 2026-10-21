@@ -108,14 +108,15 @@ export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ is
 
   const backLabel = isGlobal ? 'Back to Global Employee Directory' : 'Back to Employee Directory'
   const backButton = (
-    <button
+    <Button
+      variant="ghost"
       type="button"
       onClick={() => navigate(backUrl)}
-      className="inline-flex cursor-pointer items-center gap-2 text-xs font-bold text-gray-600 transition-colors hover:text-[#005390]"
+      className="p-0 h-auto inline-flex cursor-pointer items-center gap-2 text-xs font-bold text-gray-600 transition-colors hover:text-[#005390] hover:bg-transparent"
     >
       <ArrowLeft className="h-4 w-4" />
       {backLabel}
-    </button>
+    </Button>
   )
 
   if (isLoading) {

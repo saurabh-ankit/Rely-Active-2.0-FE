@@ -28,14 +28,16 @@ export function BulkAddControl({ label, onAdd }: BulkAddProps) {
         onChange={(e) => setCount(e.target.valueAsNumber)}
         className="h-7 w-16 rounded-md border border-gray-200 bg-white px-1.5 text-[11px] outline-none focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20"
       />
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         disabled={!valid}
         onClick={() => onAdd(count)}
-        className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-blue-600 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-blue-600 hover:bg-white hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50 h-auto"
       >
         <Plus className="h-3 w-3" /> Add {plural(label, valid ? count : 2)}
-      </button>
+      </Button>
     </div>
   )
 }

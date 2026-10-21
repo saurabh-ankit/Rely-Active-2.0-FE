@@ -1,6 +1,7 @@
 import type React from 'react'
 import { ArrowLeft, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 interface PageHeaderProps {
   title: React.ReactNode
@@ -24,14 +25,16 @@ export function PageHeader({ title, description, icon: Icon, actions, onBack, cl
     >
       <div className="flex min-w-0 items-start gap-2">
         {onBack && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon-xs"
             type="button"
             aria-label="Back"
             onClick={onBack}
             className="-ml-1 mt-0.5 rounded-lg p-1 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 cursor-pointer dark:hover:bg-slate-800"
           >
             <ArrowLeft className="h-4 w-4" />
-          </button>
+          </Button>
         )}
         <div className="min-w-0">
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 dark:text-white">

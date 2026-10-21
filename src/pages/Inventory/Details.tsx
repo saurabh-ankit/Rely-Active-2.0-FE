@@ -356,14 +356,15 @@ export function ItemDetail({
     <div className="flex min-w-0 flex-col gap-6">
       {/* Where we are: category › items › this item */}
       <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-gray-500">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={onBack}
-          className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 hover:bg-gray-100 hover:text-[#005390]"
+          className="h-auto p-0 inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-100 hover:text-[#005390]"
         >
           <ArrowLeft className="size-3.5" />
           Back to items
-        </button>
+        </Button>
         {activeCategory && (
           <>
             <ChevronRight className="size-3.5 text-gray-300" />

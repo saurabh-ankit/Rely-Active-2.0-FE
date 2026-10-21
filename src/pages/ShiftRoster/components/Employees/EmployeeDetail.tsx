@@ -332,12 +332,13 @@ const EmployeeDetail = () => {
                 ['day_off', 'Days off', 'text-violet-700'],
               ] as const
             ).map(([value, label, tone]) => (
-              <button
+              <Button
                 key={value}
                 type="button"
+                variant="ghost"
                 onClick={() => handleStatusFilterChange(value)}
                 className={cn(
-                  'cursor-pointer rounded-xl border px-3 py-2 text-center transition-colors',
+                  'h-auto cursor-pointer rounded-xl border px-3 py-2 text-center transition-colors flex flex-col items-center justify-center hover:bg-transparent whitespace-normal font-normal',
                   statusFilter === value
                     ? 'border-[#005390] bg-[#005390]/5'
                     : 'border-slate-200 bg-slate-50 hover:border-slate-300',
@@ -345,7 +346,7 @@ const EmployeeDetail = () => {
               >
                 <p className={cn('text-xl font-semibold tabular-nums', tone)}>{filterCounts[value] ?? 0}</p>
                 <p className="text-[11px] font-medium text-slate-500">{label}</p>
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -369,17 +370,18 @@ const EmployeeDetail = () => {
               const count = filterCounts[opt.value] ?? 0
               if (opt.value === 'today') {
                 return (
-                  <button
+                  <Button
                     key={opt.value}
                     type="button"
+                    variant="ghost"
                     role="tab"
                     aria-selected={active}
                     onClick={() => handleStatusFilterChange(opt.value)}
                     className={cn(
-                      'flex shrink-0 items-center gap-2.5 rounded-xl border-2 px-4 py-2 text-left transition-all cursor-pointer',
+                      'h-auto flex shrink-0 items-center gap-2.5 rounded-xl border-2 px-4 py-2 text-left transition-all cursor-pointer whitespace-normal font-normal',
                       active
-                        ? 'border-[#005390] bg-[#005390] text-white shadow-md shadow-[#005390]/25'
-                        : 'border-[#005390]/30 bg-[#005390]/5 text-[#005390] hover:border-[#005390]/60',
+                        ? 'border-[#005390] bg-[#005390] text-white shadow-md shadow-[#005390]/25 hover:bg-[#005390] hover:text-white'
+                        : 'border-[#005390]/30 bg-[#005390]/5 text-[#005390] hover:border-[#005390]/60 hover:bg-[#005390]/10 hover:text-[#005390]',
                     )}
                   >
                     <CalendarCheck className="h-5 w-5 shrink-0" />
@@ -399,26 +401,27 @@ const EmployeeDetail = () => {
                     >
                       {count}
                     </span>
-                  </button>
+                  </Button>
                 )
               }
               return (
-                <button
+                <Button
                   key={opt.value}
                   type="button"
+                  variant="ghost"
                   role="tab"
                   aria-selected={active}
                   onClick={() => handleStatusFilterChange(opt.value)}
                   className={cn(
-                    'flex shrink-0 items-center gap-1.5 self-center rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer',
+                    'h-auto flex shrink-0 items-center gap-1.5 self-center rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer',
                     active
-                      ? 'border-[#005390] bg-[#005390]/10 text-[#005390]'
-                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-900',
+                      ? 'border-[#005390] bg-[#005390]/10 text-[#005390] hover:bg-[#005390]/15 hover:text-[#005390]'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-900 hover:bg-slate-50',
                   )}
                 >
                   {opt.label}
                   <span className={cn('text-[11px]', active ? 'text-[#005390]/80' : 'text-gray-400')}>{count}</span>
-                </button>
+                </Button>
               )
             })}
           </div>

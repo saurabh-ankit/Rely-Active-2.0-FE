@@ -1014,7 +1014,8 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                 ).map(([value, label, hint]) => {
                   const active = eventForm.eventType === value
                   return (
-                    <button
+                    <Button
+                      variant="ghost"
                       key={value}
                       type="button"
                       aria-pressed={active}
@@ -1032,17 +1033,17 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                         }
                       }}
                       className={cn(
-                        'flex cursor-pointer flex-col rounded-xl border p-3 text-left transition-colors',
+                        'flex cursor-pointer flex-col h-auto rounded-xl border p-3 text-left transition-colors whitespace-normal font-normal items-start justify-start',
                         active
                           ? value === 'special'
-                            ? 'border-purple-400 bg-purple-50 ring-2 ring-purple-400/20'
-                            : 'border-[#005390] bg-[#005390]/5 ring-2 ring-[#005390]/20'
+                            ? 'border-purple-400 bg-purple-50 ring-2 ring-purple-400/20 hover:bg-purple-50'
+                            : 'border-[#005390] bg-[#005390]/5 ring-2 ring-[#005390]/20 hover:bg-[#005390]/5'
                           : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50',
                       )}
                     >
                       <span className="text-sm font-semibold text-gray-900">{label}</span>
                       <span className="text-xs text-gray-500">{hint}</span>
-                    </button>
+                    </Button>
                   )
                 })}
               </div>
@@ -1104,7 +1105,8 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                 render={({ field }) => (
                   <div className="flex flex-wrap gap-1.5" role="group" aria-label="Frequency">
                     {frequencyOptions.map((opt) => (
-                      <button
+                      <Button
+                        variant="ghost"
                         key={opt.value}
                         type="button"
                         aria-pressed={field.value === opt.value}
@@ -1119,12 +1121,12 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                         className={cn(
                           'h-8 cursor-pointer rounded-lg border px-3.5 text-xs font-semibold transition-colors',
                           field.value === opt.value
-                            ? 'border-[#005390] bg-[#005390] text-white shadow-xs'
-                            : 'border-gray-200 bg-white text-gray-600 hover:border-[#005390]/40 hover:text-[#005390]',
+                            ? 'border-[#005390] bg-[#005390] text-white shadow-xs hover:bg-[#005390] hover:text-white'
+                            : 'border-gray-200 bg-white text-gray-600 hover:border-[#005390]/40 hover:text-[#005390] hover:bg-white',
                         )}
                       >
                         {opt.label}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 )}
@@ -1171,7 +1173,9 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-blue-50 text-[#005390] border border-blue-100"
                     >
                       {day.label}
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
                         type="button"
                         onClick={() =>
                           setValue(
@@ -1179,11 +1183,11 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                             (eventForm.recurrenceDaysOfWeek || []).filter((value) => value !== day.value),
                           )
                         }
-                        className="p-0.5 rounded hover:bg-blue-100 transition-colors cursor-pointer"
+                        className="p-0.5 h-auto rounded hover:bg-blue-100 hover:text-[#005390] transition-colors cursor-pointer"
                         aria-label={`Remove ${day.label}`}
                       >
                         <X className="h-3 w-3" />
-                      </button>
+                      </Button>
                     </span>
                   ))}
                 </div>
@@ -1365,7 +1369,8 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                     const isBooked = availability?.available === false
                     const isSelected = eventForm.venueId === venue.id
                     return (
-                      <button
+                      <Button
+                        variant="ghost"
                         key={venue.id}
                         type="button"
                         disabled={isBooked}
@@ -1375,11 +1380,11 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                           setValue('selectedServices', [])
                           clearErrors('venueId')
                         }}
-                        className={`w-full text-left rounded-xl border px-3 py-3 transition-colors ${
+                        className={`w-full text-left h-auto rounded-xl border px-3 py-3 font-normal whitespace-normal transition-colors flex-col items-stretch justify-start ${
                           isBooked
-                            ? 'bg-red-50/80 border-red-200 cursor-not-allowed opacity-90'
+                            ? 'bg-red-50/80 border-red-200 cursor-not-allowed opacity-90 hover:bg-red-50/80'
                             : isSelected
-                              ? 'bg-white border-[#005390] ring-2 ring-[#005390]/20 shadow-sm'
+                              ? 'bg-white border-[#005390] ring-2 ring-[#005390]/20 shadow-sm hover:bg-white'
                               : 'bg-white border-gray-200 hover:border-[#005390]/50 hover:bg-white cursor-pointer'
                         }`}
                       >
@@ -1421,7 +1426,7 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                             </span>
                           )}
                         </div>
-                      </button>
+                      </Button>
                     )
                   })}
                 </div>

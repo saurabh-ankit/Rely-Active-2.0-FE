@@ -20,6 +20,7 @@ import api from '@/lib/api/axios'
 import { useAuth } from '@/hooks/useAuth'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -259,14 +260,17 @@ export default function UserProfilePage() {
       {/* Top Header Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-gray-100 rounded-2xl p-5 shadow-2xs">
         <div className="flex items-center gap-3">
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="icon"
             onClick={() => navigate(-1)}
             className="p-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
             title="Go Back"
+            aria-label="Go Back"
           >
             <ArrowLeft className="w-5 h-5" />
-          </button>
+          </Button>
           <div>
             <h1 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
               <User className="w-5 h-5 text-[#005390]" />
@@ -468,21 +472,22 @@ export default function UserProfilePage() {
                 </div>
 
                 <div className="pt-6 border-t border-gray-100 flex items-center justify-end gap-3">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => navigate(-1)}
-                    className="px-5 py-3 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-2xl transition-colors cursor-pointer"
+                    className="h-auto px-5 py-3 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-2xl transition-colors cursor-pointer"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
                     disabled={saving}
-                    className="inline-flex items-center gap-2 bg-[#005390] text-white px-7 py-3 rounded-2xl font-bold text-xs hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50 shadow-lg shadow-[#005390]/25"
+                    className="h-auto inline-flex items-center gap-2 bg-[#005390] text-white px-7 py-3 rounded-2xl font-bold text-xs hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50 shadow-lg shadow-[#005390]/25"
                   >
                     <Save className="w-4 h-4" />
                     {saving ? 'Saving Changes...' : 'Save Profile Changes'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

@@ -120,13 +120,14 @@ export function SupplierList({
                 icon={Truck}
                 tone="amber"
                 title={
-                  <button
+                  <Button
                     type="button"
-                    className="cursor-pointer text-left hover:text-[#005390] hover:underline"
+                    variant="ghost"
+                    className="h-auto p-0 cursor-pointer text-left hover:text-[#005390] hover:underline hover:bg-transparent font-normal whitespace-normal justify-start inline"
                     onClick={() => setSelected({ supplier: row.original, mode: 'view' })}
                   >
                     {row.original.name}
-                  </button>
+                  </Button>
                 }
                 subtitle={row.original.address}
               />

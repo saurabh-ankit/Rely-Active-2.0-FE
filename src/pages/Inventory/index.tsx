@@ -110,13 +110,14 @@ function CategoryList({ locationId, onSelect }: { locationId: string; onSelect: 
               icon={FolderOpen}
               image={row.original.image}
               title={
-                <button
+                <Button
                   type="button"
-                  className="cursor-pointer text-left hover:text-[#005390] hover:underline"
+                  variant="ghost"
+                  className="h-auto p-0 cursor-pointer text-left hover:text-[#005390] hover:underline hover:bg-transparent font-normal whitespace-normal justify-start inline"
                   onClick={() => onSelect(row.original)}
                 >
                   {row.original.name}
-                </button>
+                </Button>
               }
               subtitle={row.original.description}
             />
@@ -178,14 +179,15 @@ function CategoryInventory({
     <div className="min-w-0 space-y-6">
       {/* Where we are: Inventory › category */}
       <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-gray-500">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => navigate({})}
-          className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 hover:bg-gray-100 hover:text-[#005390]"
+          className="h-auto p-0 inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 hover:bg-gray-100 hover:text-[#005390]"
         >
           <ArrowLeft className="size-3.5" />
           Back to Categories
-        </button>
+        </Button>
         <ChevronRight className="size-3.5 text-gray-300" />
         <span>Inventory</span>
         <ChevronRight className="size-3.5 text-gray-300" />
@@ -496,13 +498,14 @@ function ItemList({
         <EntityCell
           icon={Package}
           title={
-            <button
+            <Button
               type="button"
-              className="cursor-pointer text-left hover:text-[#005390] hover:underline"
+              variant="ghost"
+              className="h-auto p-0 cursor-pointer text-left hover:text-[#005390] hover:underline hover:bg-transparent font-normal whitespace-normal justify-start inline"
               onClick={() => onSelect(row.original.id)}
             >
               {row.original.name}
-            </button>
+            </Button>
           }
         />
       ),
@@ -553,14 +556,15 @@ function ItemList({
               {item.maxQuantity ? quantityDisplay(item.maxQuantity, item) : '—'}
             </span>
             {low && canCreate && (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={onPO}
-                className="inline-flex w-fit cursor-pointer items-center gap-1 rounded-md border border-[#005390]/30 bg-[#005390]/5 px-2 py-0.5 text-[11px] font-semibold text-[#005390] hover:bg-[#005390]/10"
+                className="h-auto inline-flex w-fit cursor-pointer items-center gap-1 rounded-md border border-[#005390]/30 bg-[#005390]/5 px-2 py-0.5 text-[11px] font-semibold text-[#005390] hover:bg-[#005390]/10"
               >
                 <Plus className="size-3" />
                 Create PO
-              </button>
+              </Button>
             )}
           </div>
         )

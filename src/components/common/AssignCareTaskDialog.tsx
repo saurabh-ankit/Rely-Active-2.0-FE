@@ -176,13 +176,16 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
             Assign a care task to a resident with customized schedule and timing.
           </p>
         </div>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-sm"
           onClick={() => onOpenChange(false)}
-          className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800 dark:hover:text-gray-300 transition-colors cursor-pointer"
+          className="rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800 dark:hover:text-gray-300"
         >
           <X className="size-5" />
-        </button>
+          <span className="sr-only">Close</span>
+        </Button>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
@@ -237,13 +240,16 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
                 className="w-full rounded-xl border border-gray-200 bg-gray-50/50 pl-8.5 pr-8 py-2 text-xs text-gray-900 transition-colors focus:border-[#005390] focus:bg-white focus:outline-none dark:border-gray-800 dark:bg-slate-800 dark:text-white"
               />
               {taskSearchQuery && (
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon-xs"
                   onClick={() => setTaskSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer p-0.5"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-0.5"
                 >
                   <X className="w-3.5 h-3.5" />
-                </button>
+                  <span className="sr-only">Clear search</span>
+                </Button>
               )}
             </div>
 
@@ -276,18 +282,19 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
                 {careTasks.map((task) => {
                   const isSelected = task.id === effectiveTaskId
                   return (
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
                       key={task.id}
                       onClick={() => setSelectedTaskId(task.id)}
                       className={cn(
-                        'w-full text-left p-2.5 text-xs flex items-center justify-between cursor-pointer transition-colors',
+                        'w-full text-left p-2.5 text-xs flex items-center justify-between h-auto rounded-none justify-between whitespace-normal',
                         isSelected
                           ? 'bg-sky-50 text-[#005390] dark:bg-sky-950/40 dark:text-sky-300 font-bold border-l-4 border-l-[#005390]'
                           : 'hover:bg-gray-50 text-gray-700 dark:hover:bg-slate-800 dark:text-gray-300',
                       )}
                     >
-                      <div className="truncate pr-2">
+                      <div className="truncate pr-2 text-left">
                         <div className="font-semibold">{task.careTaskName}</div>
                         {task.careTaskDescription && (
                           <p className="text-[10px] text-gray-400 truncate font-normal">{task.careTaskDescription}</p>
@@ -299,7 +306,7 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
                         </span>
                         {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-[#005390]" />}
                       </div>
-                    </button>
+                    </Button>
                   )
                 })}
               </div>
@@ -320,28 +327,30 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
             {/* Quick Frequency Buttons */}
             <div className="grid grid-cols-6 gap-2">
               {[1, 2, 3, 4, 5].map((num) => (
-                <button
+                <Button
                   key={num}
                   type="button"
+                  variant="ghost"
                   onClick={() => handleFrequencyChange(num)}
                   className={cn(
-                    'flex flex-col items-center justify-center rounded-xl py-2 px-1 text-center font-bold transition-all border cursor-pointer',
+                    'flex flex-col items-center justify-center rounded-xl py-2 px-1 text-center font-bold transition-all border h-auto',
                     frequency === num
-                      ? 'border-[#005390] bg-[#005390] text-white shadow-sm ring-2 ring-[#005390]/20'
+                      ? 'border-[#005390] bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-sm ring-2 ring-[#005390]/20'
                       : 'border-gray-200 bg-white text-gray-700 hover:border-sky-300 hover:bg-sky-50/60 dark:border-gray-800 dark:bg-slate-800 dark:text-gray-300 dark:hover:border-sky-700',
                   )}
                 >
                   <span className="text-sm">{num}x</span>
                   <span className="text-[9px] font-medium opacity-85">{num === 1 ? 'Daily' : `${num} slots`}</span>
-                </button>
+                </Button>
               ))}
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={handleAddSlot}
                 className={cn(
-                  'flex flex-col items-center justify-center rounded-xl py-2 px-1 text-center font-bold transition-all border cursor-pointer',
+                  'flex flex-col items-center justify-center rounded-xl py-2 px-1 text-center font-bold transition-all border h-auto',
                   frequency > 5
-                    ? 'border-[#005390] bg-[#005390] text-white shadow-sm ring-2 ring-[#005390]/20'
+                    ? 'border-[#005390] bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-sm ring-2 ring-[#005390]/20'
                     : 'border-dashed border-sky-300 bg-sky-50/70 text-[#005390] hover:bg-sky-100 hover:border-sky-400 dark:border-sky-700 dark:bg-sky-950/40 dark:text-sky-300',
                 )}
                 title="Add another time slot"
@@ -351,7 +360,7 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
                   <span className="text-xs">{frequency > 5 ? `${frequency}x` : 'New'}</span>
                 </div>
                 <span className="text-[9px] font-medium opacity-85">{frequency > 5 ? 'Custom' : '+ Slot'}</span>
-              </button>
+              </Button>
             </div>
 
             {/* Dynamic Time Slots */}
@@ -365,14 +374,16 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
                   <span className="text-[10px] text-gray-500 dark:text-gray-400">
                     Creates {frequency} record{frequency > 1 ? 's' : ''}
                   </span>
-                  <button
+                  <Button
                     type="button"
+                    variant="link"
+                    size="xs"
                     onClick={handleAddSlot}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#005390] hover:underline dark:text-sky-400 cursor-pointer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#005390] hover:underline dark:text-sky-400 p-0 h-auto"
                   >
                     <Plus className="size-3" />
                     <span>Add Time</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -396,14 +407,17 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
                           {formatTimeTo12h(slotTime)}
                         </span>
                         {times.length > 1 && (
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="icon-xs"
                             onClick={() => handleRemoveSlot(idx)}
-                            className="rounded p-0.5 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                            className="rounded p-0.5 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40"
                             title="Remove this slot"
                           >
                             <Trash2 className="size-3" />
-                          </button>
+                            <span className="sr-only">Remove this slot</span>
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -479,13 +493,14 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
 
         {/* Sticky Footer Actions */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-slate-900/50 shrink-0">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => onOpenChange(false)}
             className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-slate-800 cursor-pointer"
           >
             Cancel
-          </button>
+          </Button>
           <Button
             type="submit"
             disabled={createAssignmentMutation.isPending}

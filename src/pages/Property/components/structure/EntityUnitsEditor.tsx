@@ -123,14 +123,16 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
                       </td>
                     ))}
                     <td className="px-3 py-1.5 text-right">
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon-xs"
                         aria-label={`Remove ${unit.unit_number}`}
                         onClick={() => onChange(units.filter((_, i) => i !== index))}
                         className="cursor-pointer rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 )

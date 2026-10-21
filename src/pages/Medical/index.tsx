@@ -9,6 +9,7 @@ import { SubscriptionsTab } from '@/pages/GlobalSettings/components/Subscription
 import { AssignedTasksTab } from '@/pages/Medical/components/AssignedTasksTab'
 import { AppointmentsCalendar } from '@/pages/Medical/components/appointments/AppointmentsCalendar'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/common/PageHeader'
 
 export type MedicalSection = 'care' | 'appointments'
@@ -80,94 +81,100 @@ export const MedicalPage: React.FC<MedicalPageProps> = ({ initialTab }) => {
 
       {/* Top-level: Care | Appointments */}
       <div className="grid w-full grid-cols-2 gap-3 border-b border-gray-200/80 pb-4">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => handleSectionChange('care')}
           className={cn(
             'inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-2xl px-8 text-sm font-bold transition-all cursor-pointer shadow-sm shrink-0 border',
             activeSection === 'care'
-              ? 'border-[#005390] bg-[#005390] text-white shadow-lg shadow-[#005390]/25'
+              ? 'border-[#005390] bg-[#005390] text-white shadow-lg shadow-[#005390]/25 hover:bg-[#005390] hover:text-white'
               : 'border-white/80 bg-white/90 text-gray-600 hover:border-[#005390]/20 hover:bg-white hover:text-[#005390]',
           )}
         >
           <HeartPulse className="w-4 h-4" />
           Care
-        </button>
+        </Button>
 
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => handleSectionChange('appointments')}
           className={cn(
             'inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-2xl px-8 text-sm font-bold transition-all cursor-pointer shadow-sm shrink-0 border',
             activeSection === 'appointments'
-              ? 'border-[#005390] bg-[#005390] text-white shadow-lg shadow-[#005390]/25'
+              ? 'border-[#005390] bg-[#005390] text-white shadow-lg shadow-[#005390]/25 hover:bg-[#005390] hover:text-white'
               : 'border-white/80 bg-white/90 text-gray-600 hover:border-[#005390]/20 hover:bg-white hover:text-[#005390]',
           )}
         >
           <CalendarDays className="w-4 h-4" />
           Appointments
-        </button>
+        </Button>
       </div>
 
       {activeSection === 'care' && (
         <>
           {/* Care subtabs */}
           <div className="grid w-full grid-cols-1 gap-3 pb-1 sm:grid-cols-2 xl:grid-cols-4">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => handleTabChange('tasks')}
               className={cn(
                 'inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-2xl px-6 text-xs font-bold transition-all cursor-pointer shadow-sm shrink-0 border',
                 activeTab === 'tasks'
-                  ? 'border-[#005390] bg-[#005390] text-white shadow-lg shadow-[#005390]/20'
+                  ? 'border-[#005390] bg-[#005390] text-white shadow-lg shadow-[#005390]/20 hover:bg-[#005390] hover:text-white'
                   : 'border-white/80 bg-white/90 text-gray-600 hover:border-[#005390]/20 hover:bg-white hover:text-[#005390]',
               )}
             >
               <HeartHandshake className="w-4 h-4" />
               Care Tasks
-            </button>
+            </Button>
 
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => handleTabChange('packages')}
               className={cn(
                 'inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-2xl px-6 text-xs font-bold transition-all cursor-pointer shadow-sm shrink-0 border',
                 activeTab === 'packages'
-                  ? 'border-[#005390] bg-[#005390] text-white shadow-lg shadow-[#005390]/20'
+                  ? 'border-[#005390] bg-[#005390] text-white shadow-lg shadow-[#005390]/20 hover:bg-[#005390] hover:text-white'
                   : 'border-white/80 bg-white/90 text-gray-600 hover:border-[#005390]/20 hover:bg-white hover:text-[#005390]',
               )}
             >
               <Boxes className="w-4 h-4" />
               Care Packages
-            </button>
+            </Button>
 
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => handleTabChange('subscriptions')}
               className={cn(
                 'inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-2xl px-6 text-xs font-bold transition-all cursor-pointer shadow-sm shrink-0 border',
                 activeTab === 'subscriptions'
-                  ? 'border-[#005390] bg-[#005390] text-white shadow-lg shadow-[#005390]/20'
+                  ? 'border-[#005390] bg-[#005390] text-white shadow-lg shadow-[#005390]/20 hover:bg-[#005390] hover:text-white'
                   : 'border-white/80 bg-white/90 text-gray-600 hover:border-[#005390]/20 hover:bg-white hover:text-[#005390]',
               )}
             >
               <Package className="w-4 h-4" />
               Package Subscriptions
-            </button>
+            </Button>
 
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => handleTabChange('assigned')}
               className={cn(
                 'inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-2xl px-6 text-xs font-bold transition-all cursor-pointer shadow-sm shrink-0 border',
                 activeTab === 'assigned'
-                  ? 'border-[#005390] bg-[#005390] text-white shadow-lg shadow-[#005390]/20'
+                  ? 'border-[#005390] bg-[#005390] text-white shadow-lg shadow-[#005390]/20 hover:bg-[#005390] hover:text-white'
                   : 'border-white/80 bg-white/90 text-gray-600 hover:border-[#005390]/20 hover:bg-white hover:text-[#005390]',
               )}
             >
               <Activity className="w-4 h-4" />
               Clinical Care Tasks
-            </button>
+            </Button>
           </div>
 
           <div className="pt-2">
