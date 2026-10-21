@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { createPortal } from 'react-dom'
 import {
   Utensils,
   ChevronDown,
@@ -7,7 +6,6 @@ import {
   Edit2,
   Users,
   AlertCircle,
-  X,
   Save,
   Phone,
   Pause,
@@ -23,8 +21,8 @@ import {
 import api from '@/lib/api/axios'
 import { useLocationContext } from '@/hooks/useLocation'
 import { notifyError, notifySuccess } from '@/utils/toast'
-import { useScrollLock } from '@/hooks/useScrollLock'
 import { useDebounce } from '@/hooks/useDebounce'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import {
   Pagination,
   PaginationContent,
@@ -286,8 +284,6 @@ export function FnbPropertySettingsScreen({
   const [newPropertyPkgId, setNewPropertyPkgId] = useState<string>('')
   const [changeNotes, setChangeNotes] = useState<string>('')
   const [changingPackage, setChangingPackage] = useState(false)
-
-  useScrollLock(isEditModalOpen || isChangeModalOpen || isMealSlotModalOpen || isSpecialSlotModalOpen)
 
   const propertySlotCollisionError = useMemo(() => {
     if (!editingMealSlot || !slotIsActive || !slotStartTime || !slotEndTime) return null
@@ -1627,374 +1623,337 @@ export function FnbPropertySettingsScreen({
       )}
 
       {/* Edit Property Meal Slot Modal */}
-      {isMealSlotModalOpen &&
-        editingMealSlot &&
-        createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-            <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 relative animate-in fade-in zoom-in duration-150">
-              <button
-                type="button"
-                onClick={() => setIsMealSlotModalOpen(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 cursor-pointer p-1"
-              >
-                <X className="w-4 h-4" />
-              </button>
+      <Dialog
+        open={isMealSlotModalOpen && Boolean(editingMealSlot)}
+        onOpenChange={(open) => !open && setIsMealSlotModalOpen(false)}
+      >
+        {editingMealSlot && (
+          <DialogContent className="max-w-md w-full p-5 space-y-4" showCloseButton={true}>
+            <DialogHeader>
+              <DialogTitle className="text-sm font-extrabold text-gray-900 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#005390]" /> Override {editingMealSlot.name} Timings & Price
+              </DialogTitle>
+              <DialogDescription className="text-xs text-gray-500 mt-0.5">
+                Set property-specific start/end times and price for {editingMealSlot.name}.
+              </DialogDescription>
+            </DialogHeader>
 
-              <div>
-                <h3 className="text-sm font-extrabold text-gray-900 flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-[#005390]" /> Override {editingMealSlot.name} Timings & Price
-                </h3>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Set property-specific start/end times and price for {editingMealSlot.name}.
-                </p>
-              </div>
-
-              <form onSubmit={handleSaveMealSlotOverride} className="space-y-4 text-xs pt-1">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="slot-start-time" className="font-bold text-gray-700 block mb-1">
-                      Start Time (24h)
-                    </label>
-                    <input
-                      id="slot-start-time"
-                      type="time"
-                      required
-                      value={slotStartTime}
-                      onChange={(e) => setSlotStartTime(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl font-semibold text-xs focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] outline-hidden"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="slot-end-time" className="font-bold text-gray-700 block mb-1">
-                      End Time (24h)
-                    </label>
-                    <input
-                      id="slot-end-time"
-                      type="time"
-                      required
-                      value={slotEndTime}
-                      onChange={(e) => setSlotEndTime(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl font-semibold text-xs focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] outline-hidden"
-                    />
-                  </div>
-                </div>
-
-                {propertySlotCollisionError && (
-                  <div className="p-3.5 rounded-2xl border border-rose-200 bg-rose-50/80 text-xs text-rose-800 flex items-start gap-2.5 font-medium animate-fadeIn">
-                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-bold text-rose-900 mb-0.5">Time Collision Detected</div>
-                      <div className="text-[11px] text-rose-700 leading-relaxed">{propertySlotCollisionError}</div>
-                    </div>
-                  </div>
-                )}
-
+            <form onSubmit={handleSaveMealSlotOverride} className="space-y-4 text-xs pt-1">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="slot-price" className="font-bold text-gray-700 block mb-1">
-                    Property Override Price (₹)
+                  <label htmlFor="slot-start-time" className="font-bold text-gray-700 block mb-1">
+                    Start Time (24h)
                   </label>
                   <input
-                    id="slot-price"
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    id="slot-start-time"
+                    type="time"
                     required
-                    value={slotPrice}
-                    onChange={(e) => setSlotPrice(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl font-bold text-xs focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] outline-hidden"
+                    value={slotStartTime}
+                    onChange={(e) => setSlotStartTime(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl font-semibold text-xs focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] outline-hidden"
                   />
-                  <p className="text-[10px] text-gray-400 mt-1">
-                    Global Base Price: ₹{editingMealSlot.globalPrice.toFixed(2)}
-                  </p>
                 </div>
-
-                <div className="pt-2 flex items-center justify-end gap-2 border-t border-gray-100">
-                  <button
-                    type="button"
-                    onClick={() => setIsMealSlotModalOpen(false)}
-                    className="px-4 py-2 font-bold text-xs rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={savingSlot || Boolean(propertySlotCollisionError)}
-                    className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {savingSlot ? 'Saving...' : 'Save Override'}
-                  </button>
+                <div>
+                  <label htmlFor="slot-end-time" className="font-bold text-gray-700 block mb-1">
+                    End Time (24h)
+                  </label>
+                  <input
+                    id="slot-end-time"
+                    type="time"
+                    required
+                    value={slotEndTime}
+                    onChange={(e) => setSlotEndTime(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl font-semibold text-xs focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] outline-hidden"
+                  />
                 </div>
-              </form>
-            </div>
-          </div>,
-          document.body,
-        )}
-
-      {/* Edit Pricing Modal */}
-      {isEditModalOpen &&
-        editingGlobalPkg &&
-        createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-            <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 relative">
-              <button
-                type="button"
-                onClick={() => setIsEditModalOpen(false)}
-                className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <Utensils className="w-5 h-5 text-[#005390]" /> Configure Property Pricing
-                </h3>
-                <p className="text-xs text-gray-500 mt-1">
-                  Set monthly subscription rate for <strong>"{editingGlobalPkg.name}"</strong> at this property.
-                </p>
               </div>
 
-              {editHasOpted && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-900 p-3 rounded-xl text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
-                  <span>
-                    Note: Pricing cannot be edited while residents are currently opted into this food package.
-                  </span>
+              {propertySlotCollisionError && (
+                <div className="p-3.5 rounded-2xl border border-rose-200 bg-rose-50/80 text-xs text-rose-800 flex items-start gap-2.5 font-medium animate-fadeIn">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold text-rose-900 mb-0.5">Time Collision Detected</div>
+                    <div className="text-[11px] text-rose-700 leading-relaxed">{propertySlotCollisionError}</div>
+                  </div>
                 </div>
               )}
 
-              <form onSubmit={handleSavePricing} className="space-y-4">
-                <div>
-                  <label htmlFor="monthly-price-input" className="block text-xs font-semibold text-gray-700 mb-1">
-                    Monthly Package Price (₹) <span className="text-red-500 font-bold ml-0.5">*</span>
-                  </label>
-                  <input
-                    id="monthly-price-input"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    disabled={editHasOpted}
-                    value={editPrice}
-                    onChange={(e) => setEditPrice(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-sm font-bold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] disabled:bg-gray-100 disabled:text-gray-400"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <span className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-2">
-                    Included Meal Breakdown
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {editingGlobalPkg.includedMealSlots?.map((slot) => (
-                      <span
-                        key={slot}
-                        className="px-3 py-1.5 bg-blue-50 text-[#005390] rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-blue-100"
-                      >
-                        {getSlotDisplayName(slot)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditModalOpen(false)}
-                    className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving || editHasOpted}
-                    className="inline-flex items-center gap-2 bg-[#005390] text-white px-5 py-2 rounded-xl font-medium text-xs hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Property Pricing'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>,
-          document.body,
-        )}
-
-      {/* Change Package Modal */}
-      {isChangeModalOpen &&
-        changingSub &&
-        createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-6 relative my-auto">
-              <div className="flex items-start justify-between border-b border-gray-100 pb-4">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <div className="p-2 rounded-xl bg-blue-50 text-[#005390]">
-                      <RefreshCw className="w-5 h-5" />
-                    </div>
-                    Change Food Package
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Select a new package to replace the current active package.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsChangeModalOpen(false)}
-                  className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleSaveChangePackage} className="space-y-4">
-                {/* Resident Info Summary */}
-                <div className="bg-gray-50 p-3.5 rounded-2xl border border-gray-200 text-xs space-y-1">
-                  <div className="text-gray-400 font-semibold uppercase text-[10px]">Resident / Member</div>
-                  <div className="font-bold text-gray-900 text-sm">
-                    {changingSub.familyMember
-                      ? `${changingSub.familyMember.firstName} ${changingSub.familyMember.lastName || ''}`.trim()
-                      : `${changingSub.resident?.firstName || ''} ${changingSub.resident?.lastName || ''}`.trim()}
-                  </div>
-                  <div className="text-gray-500 text-[11px]">
-                    Current Package:{' '}
-                    <span className="font-semibold text-gray-700">
-                      {changingSub.propertyPackage?.globalPackage?.name || 'Package'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Select New Package (Excludes Currently Subscribed Package) */}
-                <div>
-                  <label htmlFor="new-pkg-select" className="block text-xs font-semibold text-gray-700 mb-1">
-                    Select New Food Package <span className="text-red-500 font-bold">*</span>
-                  </label>
-                  <select
-                    id="new-pkg-select"
-                    value={newPropertyPkgId}
-                    onChange={(e) => setNewPropertyPkgId(e.target.value)}
-                    className="w-full px-3 py-2.5 text-xs font-medium border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] bg-white"
-                    required
-                  >
-                    <option value="">-- Select New Package --</option>
-                    {propertyPackages
-                      .filter((pkg) => pkg.id !== changingSub.propertyPackageId)
-                      .map((pkg) => {
-                        const dietStr = pkg.globalPackage?.dietaryType
-                          ? ` (${pkg.globalPackage.dietaryType.replace('_', ' ').toUpperCase()})`
-                          : ''
-                        return (
-                          <option key={pkg.id} value={pkg.id}>
-                            {pkg.globalPackage?.name || 'Package'}
-                            {dietStr} — ₹{Number(pkg.price).toLocaleString('en-IN')}/mo
-                          </option>
-                        )
-                      })}
-                  </select>
-                </div>
-
-                {/* Allergies / Special Notes */}
-                <div>
-                  <label htmlFor="change-notes-input" className="block text-xs font-semibold text-gray-700 mb-1">
-                    Allergies & Special Instructions
-                  </label>
-                  <input
-                    id="change-notes-input"
-                    type="text"
-                    value={changeNotes}
-                    onChange={(e) => setChangeNotes(e.target.value)}
-                    placeholder="e.g. Peanut allergy, low sodium..."
-                    className="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390]"
-                  />
-                </div>
-
-                {/* Action buttons - Enabled ONLY when a new different package is selected */}
-                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100">
-                  <button
-                    type="button"
-                    onClick={() => setIsChangeModalOpen(false)}
-                    className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={
-                      changingPackage || !newPropertyPkgId || newPropertyPkgId === changingSub.propertyPackageId
-                    }
-                    className="px-5 py-2 bg-[#005390] text-white text-xs font-bold rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
-                  >
-                    {changingPackage ? 'Saving Changes...' : 'Confirm Change Package'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>,
-          document.body,
-        )}
-
-      {/* Edit Property Special Meal Slot Price Modal */}
-      {isSpecialSlotModalOpen &&
-        editingSpecialSlot &&
-        createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-            <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 relative animate-in fade-in zoom-in duration-150">
-              <button
-                type="button"
-                onClick={() => setIsSpecialSlotModalOpen(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 cursor-pointer p-1"
-              >
-                <X className="w-4 h-4" />
-              </button>
-
               <div>
-                <h3 className="text-sm font-extrabold text-gray-900 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-600" /> Override {editingSpecialSlot.name} Price
-                </h3>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Set property-specific location price for {editingSpecialSlot.name}.
+                <label htmlFor="slot-price" className="font-bold text-gray-700 block mb-1">
+                  Property Override Price (₹)
+                </label>
+                <input
+                  id="slot-price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  required
+                  value={slotPrice}
+                  onChange={(e) => setSlotPrice(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl font-bold text-xs focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] outline-hidden"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Global Base Price: ₹{editingMealSlot.globalPrice.toFixed(2)}
                 </p>
               </div>
 
-              <form onSubmit={handleSaveSpecialSlotPrice} className="space-y-4 text-xs pt-1">
-                <div>
-                  <label htmlFor="special-slot-price" className="font-bold text-gray-700 block mb-1">
-                    Property Special Price (₹)
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-2 text-xs text-gray-400 font-bold">₹</span>
-                    <input
-                      id="special-slot-price"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      required
-                      value={specialSlotPrice}
-                      onChange={(e) => setSpecialSlotPrice(e.target.value)}
-                      className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-xl font-bold text-xs focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] outline-hidden"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-2 flex items-center justify-end gap-2 border-t border-gray-100">
-                  <button
-                    type="button"
-                    onClick={() => setIsSpecialSlotModalOpen(false)}
-                    className="px-4 py-2 font-bold text-xs rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={savingSpecialSlot}
-                    className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs cursor-pointer disabled:opacity-50"
-                  >
-                    {savingSpecialSlot ? 'Saving...' : 'Save Special Price'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>,
-          document.body,
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setIsMealSlotModalOpen(false)}
+                  className="px-4 py-2 font-bold text-xs rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingSlot || Boolean(propertySlotCollisionError)}
+                  className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {savingSlot ? 'Saving...' : 'Save Override'}
+                </button>
+              </div>
+            </form>
+          </DialogContent>
         )}
+      </Dialog>
+
+      {/* Edit Pricing Modal */}
+      <Dialog
+        open={isEditModalOpen && Boolean(editingGlobalPkg)}
+        onOpenChange={(open) => !open && setIsEditModalOpen(false)}
+      >
+        {editingGlobalPkg && (
+          <DialogContent className="max-w-lg w-full p-6 space-y-5" showCloseButton={true}>
+            <DialogHeader>
+              <DialogTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Utensils className="w-5 h-5 text-[#005390]" /> Configure Property Pricing
+              </DialogTitle>
+              <DialogDescription className="text-xs text-gray-500 mt-1">
+                Set monthly subscription rate for <strong>"{editingGlobalPkg.name}"</strong> at this property.
+              </DialogDescription>
+            </DialogHeader>
+
+            {editHasOpted && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-900 p-3 rounded-xl text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+                <span>Note: Pricing cannot be edited while residents are currently opted into this food package.</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSavePricing} className="space-y-4">
+              <div>
+                <label htmlFor="monthly-price-input" className="block text-xs font-semibold text-gray-700 mb-1">
+                  Monthly Package Price (₹) <span className="text-red-500 font-bold ml-0.5">*</span>
+                </label>
+                <input
+                  id="monthly-price-input"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  disabled={editHasOpted}
+                  value={editPrice}
+                  onChange={(e) => setEditPrice(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-sm font-bold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] disabled:bg-gray-100 disabled:text-gray-400"
+                  required
+                />
+              </div>
+
+              <div>
+                <span className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-2">
+                  Included Meal Breakdown
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {editingGlobalPkg.includedMealSlots?.map((slot) => (
+                    <span
+                      key={slot}
+                      className="px-3 py-1.5 bg-blue-50 text-[#005390] rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-blue-100"
+                    >
+                      {getSlotDisplayName(slot)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving || editHasOpted}
+                  className="inline-flex items-center gap-2 bg-[#005390] text-white px-5 py-2 rounded-xl font-medium text-xs hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Property Pricing'}
+                </button>
+              </div>
+            </form>
+          </DialogContent>
+        )}
+      </Dialog>
+
+      {/* Change Package Modal */}
+      <Dialog
+        open={isChangeModalOpen && Boolean(changingSub)}
+        onOpenChange={(open) => !open && setIsChangeModalOpen(false)}
+      >
+        {changingSub && (
+          <DialogContent className="max-w-md w-full p-6 space-y-6" showCloseButton={true}>
+            <DialogHeader>
+              <DialogTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-blue-50 text-[#005390]">
+                  <RefreshCw className="w-5 h-5" />
+                </div>
+                Change Food Package
+              </DialogTitle>
+              <DialogDescription className="text-xs text-gray-500 mt-1">
+                Select a new package to replace the current active package.
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleSaveChangePackage} className="space-y-4">
+              {/* Resident Info Summary */}
+              <div className="bg-gray-50 p-3.5 rounded-2xl border border-gray-200 text-xs space-y-1">
+                <div className="text-gray-400 font-semibold uppercase text-[10px]">Resident / Member</div>
+                <div className="font-bold text-gray-900 text-sm">
+                  {changingSub.familyMember
+                    ? `${changingSub.familyMember.firstName} ${changingSub.familyMember.lastName || ''}`.trim()
+                    : `${changingSub.resident?.firstName || ''} ${changingSub.resident?.lastName || ''}`.trim()}
+                </div>
+                <div className="text-gray-500 text-[11px]">
+                  Current Package:{' '}
+                  <span className="font-semibold text-gray-700">
+                    {changingSub.propertyPackage?.globalPackage?.name || 'Package'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Select New Package (Excludes Currently Subscribed Package) */}
+              <div>
+                <label htmlFor="new-pkg-select" className="block text-xs font-semibold text-gray-700 mb-1">
+                  Select New Food Package <span className="text-red-500 font-bold">*</span>
+                </label>
+                <select
+                  id="new-pkg-select"
+                  value={newPropertyPkgId}
+                  onChange={(e) => setNewPropertyPkgId(e.target.value)}
+                  className="w-full px-3 py-2.5 text-xs font-medium border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] bg-white"
+                  required
+                >
+                  <option value="">-- Select New Package --</option>
+                  {propertyPackages
+                    .filter((pkg) => pkg.id !== changingSub.propertyPackageId)
+                    .map((pkg) => {
+                      const dietStr = pkg.globalPackage?.dietaryType
+                        ? ` (${pkg.globalPackage.dietaryType.replace('_', ' ').toUpperCase()})`
+                        : ''
+                      return (
+                        <option key={pkg.id} value={pkg.id}>
+                          {pkg.globalPackage?.name || 'Package'}
+                          {dietStr} — ₹{Number(pkg.price).toLocaleString('en-IN')}/mo
+                        </option>
+                      )
+                    })}
+                </select>
+              </div>
+
+              {/* Allergies / Special Notes */}
+              <div>
+                <label htmlFor="change-notes-input" className="block text-xs font-semibold text-gray-700 mb-1">
+                  Allergies & Special Instructions
+                </label>
+                <input
+                  id="change-notes-input"
+                  type="text"
+                  value={changeNotes}
+                  onChange={(e) => setChangeNotes(e.target.value)}
+                  placeholder="e.g. Peanut allergy, low sodium..."
+                  className="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390]"
+                />
+              </div>
+
+              {/* Action buttons - Enabled ONLY when a new different package is selected */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setIsChangeModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={changingPackage || !newPropertyPkgId || newPropertyPkgId === changingSub.propertyPackageId}
+                  className="px-5 py-2 bg-[#005390] text-white text-xs font-bold rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+                >
+                  {changingPackage ? 'Saving Changes...' : 'Confirm Change Package'}
+                </button>
+              </div>
+            </form>
+          </DialogContent>
+        )}
+      </Dialog>
+
+      {/* Edit Property Special Meal Slot Price Modal */}
+      <Dialog
+        open={isSpecialSlotModalOpen && Boolean(editingSpecialSlot)}
+        onOpenChange={(open) => !open && setIsSpecialSlotModalOpen(false)}
+      >
+        {editingSpecialSlot && (
+          <DialogContent className="max-w-md w-full p-5 space-y-4" showCloseButton={true}>
+            <DialogHeader>
+              <DialogTitle className="text-sm font-extrabold text-gray-900 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-600" /> Override {editingSpecialSlot.name} Price
+              </DialogTitle>
+              <DialogDescription className="text-xs text-gray-500 mt-0.5">
+                Set property-specific location price for {editingSpecialSlot.name}.
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleSaveSpecialSlotPrice} className="space-y-4 text-xs pt-1">
+              <div>
+                <label htmlFor="special-slot-price" className="font-bold text-gray-700 block mb-1">
+                  Property Special Price (₹)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2 text-xs text-gray-400 font-bold">₹</span>
+                  <input
+                    id="special-slot-price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    value={specialSlotPrice}
+                    onChange={(e) => setSpecialSlotPrice(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-xl font-bold text-xs focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setIsSpecialSlotModalOpen(false)}
+                  className="px-4 py-2 font-bold text-xs rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingSpecialSlot}
+                  className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  {savingSpecialSlot ? 'Saving...' : 'Save Special Price'}
+                </button>
+              </div>
+            </form>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   )
 }

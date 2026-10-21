@@ -18,6 +18,7 @@ import {
   Lock,
 } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
+import { notifyError, notifySuccess } from '@/utils/toast'
 import {
   useCarePackagesQuery,
   useCreateCarePackageMutation,
@@ -27,9 +28,9 @@ import {
   usePackageSubscriptionsQuery,
 } from '@/hooks/react-query/medical'
 import type { CarePackage, PackageTaskItem, CareTask } from '@/lib/types/medical'
-import { notifyError, notifySuccess } from '@/utils/toast'
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { z } from 'zod'
 
 export type Task = CareTask
@@ -686,29 +687,24 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
       </div>
 
       {/* Create / Edit Package Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        {isModalOpen && (
+          <DialogContent className="sm:max-w-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
             {/* Modal Header */}
-            <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50/80 to-white">
+            <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50/80 to-white pr-12">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-[#005390]/10 flex items-center justify-center text-[#005390]">
                   <Boxes className="w-5 h-5" />
                 </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-gray-900">
+                <DialogHeader>
+                  <DialogTitle className="text-base font-extrabold text-gray-900">
                     {editingPackage ? 'Edit Care Package' : 'Create Care Package'}
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-0.5">Configure package specifications</p>
-                </div>
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-gray-500 mt-0.5">
+                    Configure package specifications
+                  </DialogDescription>
+                </DialogHeader>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
 
             {/* Modal Body */}
@@ -1004,25 +1000,33 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
 
       {/* Delete Confirmation Modal */}
-      {isDeleteModalOpen && packageToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-gray-100 p-6 space-y-4">
+      <Dialog
+        open={Boolean(isDeleteModalOpen && packageToDelete)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsDeleteModalOpen(false)
+            setPackageToDelete(null)
+          }
+        }}
+      >
+        {isDeleteModalOpen && packageToDelete && (
+          <DialogContent className="sm:max-w-sm p-6 space-y-4">
             <div className="w-11 h-11 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center">
               <Trash2 className="w-5 h-5" />
             </div>
-            <div>
-              <h4 className="text-base font-extrabold text-gray-900">Delete Care Package?</h4>
-              <p className="text-xs text-gray-500 mt-1">
+            <DialogHeader>
+              <DialogTitle className="text-base font-extrabold text-gray-900">Delete Care Package?</DialogTitle>
+              <DialogDescription className="text-xs text-gray-500 mt-1">
                 Are you sure you want to delete{' '}
                 <span className="font-bold text-gray-800">"{packageToDelete.packageName}"</span>? This will remove the
                 package template.
-              </p>
-            </div>
+              </DialogDescription>
+            </DialogHeader>
             <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
@@ -1043,9 +1047,9 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                 {isDeleting ? 'Deleting...' : 'Yes, Delete'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   )
 }

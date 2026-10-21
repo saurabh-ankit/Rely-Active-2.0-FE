@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Plus, Edit2, Trash2, X, Building2, CheckSquare, Square, Clock, IndianRupee } from 'lucide-react'
+import { Plus, Edit2, Trash2, Building2, CheckSquare, Square, Clock, IndianRupee } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import api from '@/lib/api/axios'
 import { toast } from 'sonner'
 
@@ -296,25 +297,18 @@ export default function FnbGlobalSpecialSlotsTab() {
       )}
 
       {/* Add / Edit Special Meal Slot Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150 border border-gray-100 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <div>
-                <h3 className="font-extrabold text-base text-gray-900">
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        {isModalOpen && (
+          <DialogContent className="sm:max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3 pr-8">
+              <DialogHeader>
+                <DialogTitle className="font-extrabold text-base text-gray-900">
                   {editingSlot ? 'Edit Special Meal Slot' : 'Add Special Meal Slot'}
-                </h3>
-                <p className="text-xs text-gray-500">
+                </DialogTitle>
+                <DialogDescription className="text-xs text-gray-500">
                   Configure special slot details, base price, and assigned properties.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+                </DialogDescription>
+              </DialogHeader>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -423,9 +417,9 @@ export default function FnbGlobalSpecialSlotsTab() {
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   )
 }

@@ -2,10 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Edit2, Plus, Trash2, X } from 'lucide-react'
+import { Edit2, Plus, Trash2 } from 'lucide-react'
 import { z } from 'zod'
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import {
   createAmenityAPI,
@@ -244,19 +245,16 @@ export function AmenitiesTab() {
 
       <DataTable columns={columns} data={filtered} isLoading={loading} pageSize={10} />
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-          <div className="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
-              <h3 className="text-sm font-bold text-gray-900">{editing ? 'Edit Amenity' : 'Create Amenity'}</h3>
-              <button
-                type="button"
-                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-                onClick={() => setIsModalOpen(false)}
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" />
-              </button>
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        {isModalOpen && (
+          <DialogContent className="sm:max-w-2xl p-0 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5 pr-12">
+              <DialogHeader>
+                <DialogTitle className="text-sm font-bold text-gray-900">
+                  {editing ? 'Edit Amenity' : 'Create Amenity'}
+                </DialogTitle>
+                <DialogDescription className="sr-only">Configure community amenity details</DialogDescription>
+              </DialogHeader>
             </div>
 
             <form className="space-y-4 px-5 py-4" onSubmit={handleSubmit(onSubmit)}>
@@ -333,9 +331,9 @@ export function AmenitiesTab() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   )
 }

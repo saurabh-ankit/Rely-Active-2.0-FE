@@ -27,6 +27,7 @@ import type { CareTask, BillingType, Task } from '@/lib/types/medical'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { z } from 'zod'
 
 export type { BillingType, CareTask, Task }
@@ -533,31 +534,24 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
       </div>
 
       {/* Create / Edit Modal Dialog */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-lg overflow-hidden animate-in fade-in duration-200 max-h-[90vh] flex flex-col">
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        {isModalOpen && (
+          <DialogContent className="sm:max-w-lg p-0 overflow-hidden max-h-[90vh] flex flex-col">
             {/* Modal Header */}
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 shrink-0">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 shrink-0 pr-12">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-[#005390]/10 text-[#005390]">
                   {editingTask ? <Edit2 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                 </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-sm">
+                <DialogHeader>
+                  <DialogTitle className="font-bold text-gray-900 text-sm">
                     {editingTask ? 'Edit Care Task' : 'Create Care Task'}
-                  </h3>
-                  <p className="text-[11px] text-gray-500 mt-0.5">
+                  </DialogTitle>
+                  <DialogDescription className="text-[11px] text-gray-500 mt-0.5">
                     Configure task details, select billing type (Monthly or Session), and set task rate.
-                  </p>
-                </div>
+                  </DialogDescription>
+                </DialogHeader>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
 
             {/* Modal Form */}
@@ -761,22 +755,29 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
 
       {/* Delete Confirmation Modal */}
-      {isDeleteModalOpen && taskToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-sm overflow-hidden p-6 text-center animate-in fade-in duration-200">
+      <Dialog
+        open={Boolean(isDeleteModalOpen && taskToDelete)}
+        onOpenChange={(open) => {
+          if (!open) setIsDeleteModalOpen(false)
+        }}
+      >
+        {isDeleteModalOpen && taskToDelete && (
+          <DialogContent className="sm:max-w-sm p-6 text-center">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-3 border border-rose-100">
               <Trash2 className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-bold text-gray-900">Delete Care Task?</h3>
-            <p className="text-xs text-gray-500 mt-1">
-              Are you sure you want to delete{' '}
-              <strong className="text-gray-800 font-semibold">{taskToDelete.careTaskName}</strong>?
-            </p>
+            <DialogHeader className="text-center">
+              <DialogTitle className="text-base font-bold text-gray-900 text-center">Delete Care Task?</DialogTitle>
+              <DialogDescription className="text-xs text-gray-500 mt-1 text-center">
+                Are you sure you want to delete{' '}
+                <strong className="text-gray-800 font-semibold">{taskToDelete.careTaskName}</strong>?
+              </DialogDescription>
+            </DialogHeader>
 
             <div className="flex items-center justify-center gap-2 mt-6">
               <button
@@ -799,9 +800,9 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                 Delete Care Task
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   )
 }

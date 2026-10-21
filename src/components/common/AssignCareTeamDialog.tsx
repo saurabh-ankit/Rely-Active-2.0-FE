@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { X, Loader2, UserCheck, Stethoscope, Heart, Search, Trash2, AlertTriangle } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
 import { toast } from 'sonner'
 import { getFileUrl } from '@/lib/utils'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 
 // ── Hooks ──────────────────────────────────────────────────────────────────────
 import {
@@ -473,29 +473,26 @@ export const AssignCareTeamDialog: React.FC<AssignCareTeamDialogProps> = ({
   propertyId,
   onSuccess,
 }) => {
-  if (!open) return null
-
-  return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
-      <button
-        type="button"
-        aria-label="Close dialog backdrop"
-        tabIndex={-1}
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs cursor-default"
-        onClick={() => onOpenChange(false)}
-      />
-      <div className="relative z-10 w-full max-w-2xl max-h-[90vh] my-auto">
-        <AssignCareTeamContent
-          key={residentId}
-          onClose={() => onOpenChange(false)}
-          residentId={residentId}
-          residentName={residentName}
-          propertyId={propertyId}
-          onSuccess={onSuccess}
-        />
-      </div>
-    </div>,
-    document.body,
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {open && (
+        <DialogContent
+          className="p-0 border-none bg-transparent shadow-none max-w-2xl max-h-[90vh] sm:max-w-2xl"
+          showCloseButton={false}
+        >
+          <DialogTitle className="sr-only">Assign Care Team</DialogTitle>
+          <DialogDescription className="sr-only">Managing care team for resident</DialogDescription>
+          <AssignCareTeamContent
+            key={residentId}
+            onClose={() => onOpenChange(false)}
+            residentId={residentId}
+            residentName={residentName}
+            propertyId={propertyId}
+            onSuccess={onSuccess}
+          />
+        </DialogContent>
+      )}
+    </Dialog>
   )
 }
 

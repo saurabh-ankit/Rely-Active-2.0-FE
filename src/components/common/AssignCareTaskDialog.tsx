@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { X, Loader2, Clock, Plus, Trash2, Search, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useLocationContext } from '@/hooks/useLocation'
@@ -9,6 +8,7 @@ import type { CareTask } from '@/lib/types/medical'
 import type { ResidentItem } from '@/lib/types'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 
 function formatTimeTo12h(time24: string): string {
   if (!time24) return '12:00 PM'
@@ -507,28 +507,27 @@ export const AssignCareTaskDialog: React.FC<AssignCareTaskDialogProps> = ({
   initialPropertyId,
   onSuccess,
 }) => {
-  if (!open) return null
-
-  return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
-      <button
-        type="button"
-        aria-label="Close dialog backdrop"
-        tabIndex={-1}
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs cursor-default"
-        onClick={() => onOpenChange(false)}
-      />
-      <div className="relative z-10 w-full max-w-xl max-h-[90vh] my-auto">
-        <AssignCareTaskDialogContent
-          key={`${initialResidentId || 'all'}-${initialPropertyId || 'all'}`}
-          onOpenChange={onOpenChange}
-          initialResidentId={initialResidentId}
-          initialPropertyId={initialPropertyId}
-          onSuccess={onSuccess}
-        />
-      </div>
-    </div>,
-    document.body,
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {open && (
+        <DialogContent
+          className="p-0 border-none bg-transparent shadow-none max-w-xl max-h-[90vh] sm:max-w-xl"
+          showCloseButton={false}
+        >
+          <DialogTitle className="sr-only">Assign Care Task</DialogTitle>
+          <DialogDescription className="sr-only">
+            Assign a care task to a resident with customized schedule and timing.
+          </DialogDescription>
+          <AssignCareTaskDialogContent
+            key={`${initialResidentId || 'all'}-${initialPropertyId || 'all'}`}
+            onOpenChange={onOpenChange}
+            initialResidentId={initialResidentId}
+            initialPropertyId={initialPropertyId}
+            onSuccess={onSuccess}
+          />
+        </DialogContent>
+      )}
+    </Dialog>
   )
 }
 

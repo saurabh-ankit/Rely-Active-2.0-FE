@@ -11,7 +11,6 @@ import {
   List,
   User,
   Check,
-  X,
   FileText,
   Receipt,
   IndianRupee,
@@ -38,6 +37,7 @@ import { SelectPersonDrawer } from './components/SelectPersonDrawer'
 import { AddInvoiceModal } from './components/AddInvoiceModal'
 import { ConfirmStatusChangeDialog } from './components/ConfirmStatusChangeDialog'
 import { PageHeader } from '@/components/common/PageHeader'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 interface ParsedCompletion {
   notes: string | null
@@ -2263,19 +2263,20 @@ export default function TicketsPage() {
       />
 
       {/* Change TAT Modal */}
-      {isTatModalOpen && selectedTicket && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-5 space-y-4 border border-gray-100 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h3 className="text-sm font-bold text-gray-900">Change TAT SLA</h3>
-              <button
-                type="button"
-                onClick={() => setIsTatModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      <Dialog
+        open={Boolean(isTatModalOpen && selectedTicket)}
+        onOpenChange={(open) => {
+          if (!open) setIsTatModalOpen(false)
+        }}
+      >
+        {isTatModalOpen && selectedTicket && (
+          <DialogContent className="sm:max-w-sm p-5 space-y-4">
+            <DialogHeader className="border-b pb-3 pr-8">
+              <DialogTitle className="text-sm font-bold text-gray-900">Change TAT SLA</DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Set expected resolution time for ticket #{selectedTicket.ticketNumber}
+              </DialogDescription>
+            </DialogHeader>
             <div className="grid grid-cols-2 gap-2">
               {['30 mins', '1-2 hour', '2-5 hours', 'Custom'].map((option) => (
                 <button
@@ -2295,40 +2296,31 @@ export default function TicketsPage() {
                 </button>
               ))}
             </div>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
 
       {/* Lightbox Image Preview Modal */}
-      {previewMediaUrl && (
-        <div
-          role="button"
-          tabIndex={0}
-          aria-label="Close preview"
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setPreviewMediaUrl(null)
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape' || e.key === 'Enter') setPreviewMediaUrl(null)
-          }}
-        >
-          <div className="relative max-w-4xl max-h-[90vh] bg-white rounded-2xl overflow-hidden shadow-2xl p-2">
-            <button
-              type="button"
-              onClick={() => setPreviewMediaUrl(null)}
-              className="absolute top-4 right-4 p-2 rounded-full bg-black/70 text-white hover:bg-black/90 z-10 transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+      <Dialog
+        open={Boolean(previewMediaUrl)}
+        onOpenChange={(open) => {
+          if (!open) setPreviewMediaUrl(null)
+        }}
+      >
+        {previewMediaUrl && (
+          <DialogContent className="sm:max-w-4xl p-2 bg-background border overflow-hidden">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Image Preview</DialogTitle>
+              <DialogDescription>Enlarged ticket attachment preview</DialogDescription>
+            </DialogHeader>
             <img
               src={previewMediaUrl}
               alt="Enlarged preview"
               className="w-full max-h-[82vh] object-contain rounded-xl"
             />
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
 
       <ConfirmStatusChangeDialog
         ticketNumber={selectedTicket?.ticketNumber}

@@ -17,6 +17,15 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { useLocationContext } from '@/hooks/useLocation'
 import {
   getGateStats,
@@ -865,91 +874,123 @@ export default function GateManagementPage() {
       </div>
 
       {/* Photo Viewer Modal */}
-      {photoViewerData && photoViewerData.photos.length > 0 && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="relative bg-white/10 rounded-2xl shadow-2xl overflow-hidden max-w-2xl w-full p-2 flex items-center justify-center min-h-[300px]">
-            <button
-              onClick={() => setPhotoViewerData(null)}
-              className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/40 rounded-full text-white shadow-lg backdrop-blur-md transition-colors z-10"
-            >
-              <X className="w-5 h-5" />
-            </button>
+      <Dialog
+        open={Boolean(photoViewerData && photoViewerData.photos.length > 0)}
+        onOpenChange={(open) => {
+          if (!open) setPhotoViewerData(null)
+        }}
+      >
+        {photoViewerData && photoViewerData.photos.length > 0 && (
+          <DialogContent className="sm:max-w-3xl p-4 gap-3">
+            <DialogHeader className="pr-8">
+              <DialogTitle className="text-base font-semibold">
+                Visitor Photo{' '}
+                {photoViewerData.photos.length > 1
+                  ? `(${photoViewerData.currentIndex + 1} of ${photoViewerData.photos.length})`
+                  : ''}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Gate entry capture preview
+              </DialogDescription>
+            </DialogHeader>
 
-            {photoViewerData.photos.length > 1 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setPhotoViewerData((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          currentIndex: prev.currentIndex === 0 ? prev.photos.length - 1 : prev.currentIndex - 1,
-                        }
-                      : null,
-                  )
-                }}
-                className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 hover:bg-white/40 rounded-full text-white shadow-lg backdrop-blur-md transition-colors z-10"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-            )}
+            <div className="relative flex items-center justify-center min-h-[300px] max-h-[70vh] bg-muted/30 rounded-xl overflow-hidden p-2 border">
+              {photoViewerData.photos.length > 1 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setPhotoViewerData((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            currentIndex: prev.currentIndex === 0 ? prev.photos.length - 1 : prev.currentIndex - 1,
+                          }
+                        : null,
+                    )
+                  }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full shadow-md bg-background/90 backdrop-blur-sm hover:bg-background z-10"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                  <span className="sr-only">Previous photo</span>
+                </Button>
+              )}
 
-            <img
-              src={photoViewerData.photos[photoViewerData.currentIndex]}
-              alt={`Visitor capture ${photoViewerData.currentIndex + 1}`}
-              className="w-full h-auto max-h-[80vh] object-contain rounded-xl"
-            />
+              <img
+                src={photoViewerData.photos[photoViewerData.currentIndex]}
+                alt={`Visitor capture ${photoViewerData.currentIndex + 1}`}
+                className="w-full h-auto max-h-[65vh] object-contain rounded-lg"
+              />
 
-            {photoViewerData.photos.length > 1 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setPhotoViewerData((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          currentIndex: prev.currentIndex === prev.photos.length - 1 ? 0 : prev.currentIndex + 1,
-                        }
-                      : null,
-                  )
-                }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 hover:bg-white/40 rounded-full text-white shadow-lg backdrop-blur-md transition-colors z-10"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
-            )}
+              {photoViewerData.photos.length > 1 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setPhotoViewerData((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            currentIndex: prev.currentIndex === prev.photos.length - 1 ? 0 : prev.currentIndex + 1,
+                          }
+                        : null,
+                    )
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full shadow-md bg-background/90 backdrop-blur-sm hover:bg-background z-10"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                  <span className="sr-only">Next photo</span>
+                </Button>
+              )}
 
-            {photoViewerData.photos.length > 1 && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-md">
-                {photoViewerData.photos.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setPhotoViewerData((prev) => (prev ? { ...prev, currentIndex: idx } : null))
-                    }}
-                    className={`w-2 h-2 rounded-full transition-all ${idx === photoViewerData.currentIndex ? 'bg-white w-4' : 'bg-white/50 hover:bg-white/80'}`}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+              {photoViewerData.photos.length > 1 && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10 bg-black/60 px-3 py-1.5 rounded-full backdrop-blur-md">
+                  {photoViewerData.photos.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setPhotoViewerData((prev) => (prev ? { ...prev, currentIndex: idx } : null))
+                      }}
+                      className={`h-2 rounded-full transition-all ${
+                        idx === photoViewerData.currentIndex ? 'bg-white w-4' : 'bg-white/50 hover:bg-white/80 w-2'
+                      }`}
+                      aria-label={`Go to photo ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
 
       {/* Item Modal for Office Walkin */}
-      {isItemModalOpen && selectedEntry && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-2">Add Items for Office Visitor</h2>
-            <p className="text-sm text-gray-500 mb-6">
-              Provide the items (e.g., Gate Pass items) this visitor is carrying.
-            </p>
+      <Dialog
+        open={Boolean(isItemModalOpen && selectedEntry)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsItemModalOpen(false)
+            setSelectedEntry(null)
+          }
+        }}
+      >
+        {isItemModalOpen && selectedEntry && (
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add Items for Office Visitor</DialogTitle>
+              <DialogDescription>Provide the items (e.g., Gate Pass items) this visitor is carrying.</DialogDescription>
+            </DialogHeader>
 
-            <div className="space-y-3 max-h-60 overflow-y-auto mb-4 px-1">
+            <div className="space-y-3 max-h-60 overflow-y-auto px-1 py-1">
               {items.map((item, idx) => (
                 <div key={idx} className="flex gap-2 items-center">
-                  <input
+                  <Input
                     type="text"
                     placeholder="Item Name"
                     value={item.itemName}
@@ -958,9 +999,9 @@ export default function GateManagementPage() {
                       newItems[idx].itemName = e.target.value
                       setItems(newItems)
                     }}
-                    className="flex-1 p-2 border rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="flex-1 text-sm"
                   />
-                  <input
+                  <Input
                     type="number"
                     min="1"
                     value={item.quantity}
@@ -969,77 +1010,83 @@ export default function GateManagementPage() {
                       newItems[idx].quantity = Number(e.target.value)
                       setItems(newItems)
                     }}
-                    className="w-20 p-2 border rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-20 text-sm"
                   />
-                  <button
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
                     onClick={() => setItems(items.filter((_, i) => i !== idx))}
-                    className="text-red-500 p-2 hover:bg-red-50 rounded-lg"
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
                   >
                     <X className="w-4 h-4" />
-                  </button>
+                    <span className="sr-only">Remove item</span>
+                  </Button>
                 </div>
               ))}
-              <button
+              <Button
+                type="button"
+                variant="ghost"
                 onClick={() => setItems([...items, { itemName: '', quantity: 1 }])}
-                className="text-sm text-[#005390] font-bold mt-2 flex items-center gap-1 hover:underline"
+                className="text-sm text-[#005390] font-bold p-0 h-auto hover:bg-transparent hover:underline"
               >
                 + Add Another Item
-              </button>
+              </Button>
             </div>
 
-            <div className="flex gap-3 mt-6">
-              <button
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => {
                   setIsItemModalOpen(false)
                   setSelectedEntry(null)
                 }}
-                className="flex-1 py-2.5 border border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-gray-50"
               >
                 Cancel
-              </button>
-              <button
-                onClick={handleAddItems}
-                className="flex-1 py-2.5 bg-emerald-500 text-white rounded-xl font-bold hover:bg-emerald-600 shadow-sm"
-              >
+              </Button>
+              <Button type="button" onClick={handleAddItems} className="bg-emerald-600 hover:bg-emerald-700 text-white">
                 Save Items
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
 
       {/* Verify Items Modal */}
-      {isVerifyItemModalOpen && selectedEntry && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/80">
-              <div>
-                <h3 className="font-bold text-gray-800 flex items-center gap-2">
+      <Dialog
+        open={Boolean(isVerifyItemModalOpen && selectedEntry)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsVerifyItemModalOpen(false)
+            setSelectedEntry(null)
+          }
+        }}
+      >
+        {isVerifyItemModalOpen && selectedEntry && (
+          <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+            <div className="p-4 border-b bg-muted/40">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-base font-semibold">
                   <ShieldAlert className="w-5 h-5 text-indigo-500" /> Verify Exit Items
-                </h3>
-                <p className="text-xs text-gray-500 mt-0.5">Please check off items before completing exit.</p>
-              </div>
-              <button
-                onClick={() => {
-                  setIsVerifyItemModalOpen(false)
-                  setSelectedEntry(null)
-                }}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  Please check off items before completing exit.
+                </DialogDescription>
+              </DialogHeader>
             </div>
 
-            <div className="p-4 bg-gray-50 max-h-[60vh] overflow-y-auto">
+            <div className="p-4 max-h-[60vh] overflow-y-auto bg-muted/20">
               <div className="space-y-3">
                 {(selectedEntry.items as any[]).map((item: any) => (
                   <div
                     key={item.id as string}
-                    className="flex items-center gap-3 bg-white p-3 border rounded-xl shadow-sm"
+                    className="flex items-center gap-3 bg-card p-3 border rounded-xl shadow-xs"
                   >
                     <input
+                      id={`verify-item-${item.id}`}
                       type="checkbox"
-                      className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500"
+                      className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                       checked={checkedItems.includes(item.id as string)}
                       onChange={(e) => {
                         if (e.target.checked) {
@@ -1049,38 +1096,40 @@ export default function GateManagementPage() {
                         }
                       }}
                     />
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-gray-700">{item.itemName as string}</p>
-                      <p className="text-xs text-gray-500 font-semibold uppercase mt-0.5">
+                    <label htmlFor={`verify-item-${item.id}`} className="flex-1 cursor-pointer">
+                      <span className="block text-sm font-bold text-foreground">{item.itemName as string}</span>
+                      <span className="block text-xs text-muted-foreground font-semibold uppercase mt-0.5">
                         Quantity: {item.quantity as number}
-                      </p>
-                    </div>
+                      </span>
+                    </label>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="p-4 border-t border-gray-100 flex gap-3">
-              <button
+            <DialogFooter className="p-4 border-t m-0 rounded-none bg-background gap-2 sm:gap-2">
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => {
                   setIsVerifyItemModalOpen(false)
                   setSelectedEntry(null)
                 }}
-                className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                type="button"
                 onClick={handleVerifyAndCheckout}
                 disabled={checkedItems.length !== (selectedEntry.items as any[]).length}
-                className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:bg-gray-300 disabled:text-gray-500 shadow-sm"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
               >
                 Complete Checkout
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   )
 }

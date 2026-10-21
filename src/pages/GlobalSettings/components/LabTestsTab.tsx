@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { AlertCircle, Edit2, FlaskConical, Plus, Trash2, Upload, X } from 'lucide-react'
+import { AlertCircle, Edit2, FlaskConical, Plus, Trash2, Upload } from 'lucide-react'
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import {
   createLabTestSettingAPI,
@@ -269,32 +270,27 @@ export function LabTestsTab() {
         searchPlaceholder="Search lab tests by name or description..."
       />
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-5 relative my-auto max-h-[90vh] flex flex-col">
-            <div className="flex items-start justify-between border-b border-gray-100 pb-4">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">{editing ? 'Edit Lab Test' : 'Add New Lab Test'}</h3>
-                <p className="text-xs text-gray-500 mt-1">
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        {isModalOpen && (
+          <DialogContent className="sm:max-w-lg p-0 overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="flex items-start justify-between border-b border-gray-100 p-6 pb-4 pr-12">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold text-gray-900">
+                  {editing ? 'Edit Lab Test' : 'Add New Lab Test'}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-gray-500 mt-1">
                   {editing ? 'Update this lab test configuration.' : 'Create a new lab test configuration.'}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+                </DialogDescription>
+              </DialogHeader>
             </div>
 
             {errorMsg && (
-              <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-xl text-xs flex items-center gap-2">
+              <div className="mx-6 bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-xl text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" /> {errorMsg}
               </div>
             )}
 
-            <form onSubmit={onSubmit} noValidate className="space-y-5 overflow-y-auto px-1 flex-1">
+            <form onSubmit={onSubmit} noValidate className="space-y-5 overflow-y-auto px-6 pb-6 flex-1">
               <Input
                 id="lab-test-name"
                 label="Name *"
@@ -384,9 +380,9 @@ export function LabTestsTab() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   )
 }

@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react'
-import { createPortal } from 'react-dom'
 import { CheckCircle2, Loader2, X, Sparkles, AlertCircle } from 'lucide-react'
 import { useCompleteCareTaskMutation, useCareTaskAssignmentByIdQuery } from '@/hooks/react-query/medical'
 import type { CareTaskAssignment } from '@/lib/types/medical'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { Button } from '@/components/ui/button'
 import { formatDisplayDate, cn } from '@/lib/utils'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 
 export interface CompleteCareTaskDialogProps {
   open: boolean
@@ -258,27 +258,26 @@ export const CompleteCareTaskDialog: React.FC<CompleteCareTaskDialogProps> = ({
   assignment,
   onSuccess,
 }) => {
-  if (!open || !assignment) return null
-
-  return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
-      <button
-        type="button"
-        aria-label="Close dialog backdrop"
-        tabIndex={-1}
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs cursor-default"
-        onClick={() => onOpenChange(false)}
-      />
-      <div className="relative z-10 w-full max-w-xl max-h-[90vh] my-auto">
-        <CompleteCareTaskDialogContent
-          key={assignment.id}
-          onOpenChange={onOpenChange}
-          assignment={assignment}
-          onSuccess={onSuccess}
-        />
-      </div>
-    </div>,
-    document.body,
+  return (
+    <Dialog open={Boolean(open && assignment)} onOpenChange={onOpenChange}>
+      {open && assignment && (
+        <DialogContent
+          className="p-0 border-none bg-transparent shadow-none max-w-xl max-h-[90vh] sm:max-w-xl"
+          showCloseButton={false}
+        >
+          <DialogTitle className="sr-only">Complete Care Task</DialogTitle>
+          <DialogDescription className="sr-only">
+            Mark care task as completed and record nurse observations.
+          </DialogDescription>
+          <CompleteCareTaskDialogContent
+            key={assignment.id}
+            onOpenChange={onOpenChange}
+            assignment={assignment}
+            onSuccess={onSuccess}
+          />
+        </DialogContent>
+      )}
+    </Dialog>
   )
 }
 

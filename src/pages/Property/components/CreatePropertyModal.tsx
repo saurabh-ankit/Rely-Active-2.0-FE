@@ -1,6 +1,5 @@
 import CreatePropertyScreen from './CreatePropertyScreen'
-import { useScrollLock } from '@/hooks/useScrollLock'
-import { createPortal } from 'react-dom'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
 export default function CreatePropertyModal({
   isOpen,
@@ -13,10 +12,15 @@ export default function CreatePropertyModal({
   onClose: () => void
   onSuccess: () => void
 }) {
-  useScrollLock(isOpen)
-  if (!isOpen) return null
-  return createPortal(
-    <CreatePropertyScreen companyId={companyId} onBack={onClose} onSuccess={onSuccess} />,
-    document.body,
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-6" showCloseButton={true}>
+        <DialogHeader className="sr-only">
+          <DialogTitle>Create Property</DialogTitle>
+          <DialogDescription>Create a new property</DialogDescription>
+        </DialogHeader>
+        <CreatePropertyScreen companyId={companyId} onBack={onClose} onSuccess={onSuccess} />
+      </DialogContent>
+    </Dialog>
   )
 }
