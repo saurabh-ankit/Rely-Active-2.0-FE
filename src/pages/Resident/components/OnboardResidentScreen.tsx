@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { type FieldPath, useFieldArray, useForm, useWatch } from 'react-hook-form'
+import { type FieldPath, useFieldArray, useForm, useWatch, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Camera,
@@ -40,6 +40,7 @@ import { z } from 'zod'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PageHeader } from '@/components/common/PageHeader'
 import { cn, getFileUrl } from '@/lib/utils'
 import { floorLabel, isHiddenFloor } from '@/utils/unitLabel'
@@ -1440,19 +1441,18 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                   <label htmlFor="select-entity" className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Type <span className="text-red-500 font-bold">*</span>
                   </label>
-                  <select
-                    id="select-entity"
-                    value={selectedEntityKey}
-                    onChange={(e) => handleEntityChange(e.target.value)}
-                    className={selectClass}
-                  >
-                    <option value="">Select…</option>
-                    {entityOptions.map((e) => (
-                      <option key={e.key} value={e.key}>
-                        {e.name}
-                      </option>
-                    ))}
-                  </select>
+                  <Select value={selectedEntityKey || undefined} onValueChange={(val) => handleEntityChange(val || '')}>
+                    <SelectTrigger id="select-entity" className={cn(selectClass, 'h-auto')}>
+                      <SelectValue placeholder="Select…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {entityOptions.map((e) => (
+                        <SelectItem key={e.key} value={e.key}>
+                          {e.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
@@ -1462,22 +1462,24 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                   <label htmlFor="select-block" className="block text-xs font-semibold text-gray-700 mb-1.5">
                     {blockWord} <span className="text-red-500 font-bold">*</span>
                   </label>
-                  <select
-                    id="select-block"
-                    value={selectedBlockId}
+                  <Select
+                    value={selectedBlockId || undefined}
                     disabled={showEntityPicker && !selectedEntityKey}
-                    onChange={(e) => handleBlockChange(e.target.value)}
-                    className={selectClass}
+                    onValueChange={(val) => handleBlockChange(val || '')}
                   >
-                    <option value="">
-                      {showEntityPicker && !selectedEntityKey ? 'Select a type first…' : 'Select…'}
-                    </option>
-                    {blockChoices.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.block_name}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger id="select-block" className={cn(selectClass, 'h-auto')}>
+                      <SelectValue
+                        placeholder={showEntityPicker && !selectedEntityKey ? 'Select a type first…' : 'Select…'}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {blockChoices.map((b) => (
+                        <SelectItem key={b.id} value={b.id}>
+                          {b.block_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
@@ -1487,28 +1489,30 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                   <label htmlFor="select-floor" className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Floor <span className="text-red-500 font-bold">*</span>
                   </label>
-                  <select
-                    id="select-floor"
-                    value={selectedFloorId}
-                    disabled={!selectedBlockId}
-                    onChange={(e) => handleFloorChange(e.target.value)}
-                    className={selectClass}
+                  <Select
+                    value={selectedFloorId || undefined}
+                    disabled={!selectedBlockId || floors.length === 0}
+                    onValueChange={(val) => handleFloorChange(val || '')}
                   >
-                    {!selectedBlockId ? (
-                      <option value="">Select Block first...</option>
-                    ) : floors.length === 0 ? (
-                      <option value="">No floors in this block</option>
-                    ) : (
-                      <>
-                        <option value="">Select Floor...</option>
-                        {floors.map((f) => (
-                          <option key={f.id} value={f.id}>
-                            {f.label}
-                          </option>
-                        ))}
-                      </>
-                    )}
-                  </select>
+                    <SelectTrigger id="select-floor" className={cn(selectClass, 'h-auto')}>
+                      <SelectValue
+                        placeholder={
+                          !selectedBlockId
+                            ? 'Select Block first...'
+                            : floors.length === 0
+                              ? 'No floors in this block'
+                              : 'Select Floor...'
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {floors.map((f) => (
+                        <SelectItem key={f.id} value={f.id}>
+                          {f.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
@@ -1517,51 +1521,62 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                 <label htmlFor="select-unit" className="block text-xs font-semibold text-gray-700 mb-1.5">
                   {unitWord} <span className="text-red-500 font-bold">*</span>
                 </label>
-                <select
-                  id="select-unit"
-                  {...register('unitId')}
-                  disabled={!selectedFloorId}
-                  className={`h-9 w-full rounded-xl border bg-white px-3.5 py-1 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20 shadow-2xs ${
-                    errors.unitId ? 'border-red-500 focus:ring-red-500/20' : 'border-gray-200'
-                  } disabled:bg-gray-100 disabled:opacity-70`}
-                >
-                  {!selectedFloorId ? (
-                    <option value="">
-                      {!floorsHidden
-                        ? 'Select Floor first...'
-                        : showBlockPicker
-                          ? `Select a ${blockWord.toLowerCase()} first…`
-                          : 'Select a type first…'}
-                    </option>
-                  ) : filteredFloorUnits.length === 0 ? (
-                    <option value="">No {unitWord.toLowerCase()}s available</option>
-                  ) : (
-                    <>
-                      <option value="">Select {unitWord}…</option>
-                      {filteredFloorUnits.map((u) => {
-                        const isOccupied = checkIsUnitOccupied(u)
-                        const isDisabled = isOccupied && (!isEditMode || u.id !== watchedUnitId)
+                <Controller
+                  control={control}
+                  name="unitId"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value || undefined}
+                      onValueChange={(val) => field.onChange(val || '')}
+                      disabled={!selectedFloorId}
+                    >
+                      <SelectTrigger
+                        id="select-unit"
+                        className={cn(
+                          'h-9 w-full rounded-xl border bg-white px-3.5 py-1 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20 shadow-2xs disabled:bg-gray-100 disabled:opacity-70',
+                          errors.unitId ? 'border-red-500 focus:ring-red-500/20' : 'border-gray-200',
+                        )}
+                      >
+                        <SelectValue
+                          placeholder={
+                            !selectedFloorId
+                              ? !floorsHidden
+                                ? 'Select Floor first...'
+                                : showBlockPicker
+                                  ? `Select a ${blockWord.toLowerCase()} first…`
+                                  : 'Select a type first…'
+                              : filteredFloorUnits.length === 0
+                                ? `No ${unitWord.toLowerCase()}s available`
+                                : `Select ${unitWord}…`
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredFloorUnits.map((u) => {
+                          const isOccupied = checkIsUnitOccupied(u)
+                          const isDisabled = isOccupied && (!isEditMode || u.id !== watchedUnitId)
 
-                        return (
-                          <option
-                            key={u.id}
-                            value={u.id}
-                            disabled={isDisabled}
-                            className={
-                              isDisabled ? 'text-gray-400 bg-gray-100 font-normal' : 'text-gray-900 font-medium'
-                            }
-                          >
-                            {u.unit_number}
-                            {u.unit_type ? ` · ${u.unit_type}` : ''}
-                            {isDisabled
-                              ? ' · Occupied'
-                              : ` · ${(u.occupancyStatus || 'VACANT').toLowerCase().replace(/_/g, ' ')}`}
-                          </option>
-                        )
-                      })}
-                    </>
+                          return (
+                            <SelectItem
+                              key={u.id}
+                              value={u.id}
+                              disabled={isDisabled}
+                              className={
+                                isDisabled ? 'text-gray-400 bg-gray-100 font-normal' : 'text-gray-900 font-medium'
+                              }
+                            >
+                              {u.unit_number}
+                              {u.unit_type ? ` · ${u.unit_type}` : ''}
+                              {isDisabled
+                                ? ' · Occupied'
+                                : ` · ${(u.occupancyStatus || 'VACANT').toLowerCase().replace(/_/g, ' ')}`}
+                            </SelectItem>
+                          )
+                        })}
+                      </SelectContent>
+                    </Select>
                   )}
-                </select>
+                />
                 {errors.unitId && <p className="mt-1 text-xs font-semibold text-red-500">{errors.unitId.message}</p>}
               </div>
             </div>
@@ -1631,18 +1646,29 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                   <label htmlFor="resident-gender-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Gender <span className="text-red-500 font-bold">*</span>
                   </label>
-                  <select
-                    id="resident-gender-select"
-                    {...register('gender')}
-                    className={cn(
-                      selectClass,
-                      errors.gender && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+                  <Controller
+                    control={control}
+                    name="gender"
+                    render={({ field }) => (
+                      <Select value={field.value || undefined} onValueChange={(val) => field.onChange(val || 'MALE')}>
+                        <SelectTrigger
+                          id="resident-gender-select"
+                          className={cn(
+                            selectClass,
+                            'h-auto',
+                            errors.gender && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+                          )}
+                        >
+                          <SelectValue placeholder="Gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MALE">Male</SelectItem>
+                          <SelectItem value="FEMALE">Female</SelectItem>
+                          <SelectItem value="OTHER">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
                     )}
-                  >
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                    <option value="OTHER">Other</option>
-                  </select>
+                  />
                   {errors.gender && <p className="mt-1 text-xs font-semibold text-red-500">{errors.gender.message}</p>}
                 </div>
 
@@ -1655,17 +1681,27 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                   >
                     Blood Group
                   </label>
-                  <select id="resident-blood-group-select" {...register('bloodGroup')} className={selectClass}>
-                    <option value="">Not known</option>
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                  </select>
+                  <Controller
+                    control={control}
+                    name="bloodGroup"
+                    render={({ field }) => (
+                      <Select value={field.value || undefined} onValueChange={(val) => field.onChange(val || '')}>
+                        <SelectTrigger id="resident-blood-group-select" className={cn(selectClass, 'h-auto')}>
+                          <SelectValue placeholder="Not known" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="A+">A+</SelectItem>
+                          <SelectItem value="A-">A-</SelectItem>
+                          <SelectItem value="B+">B+</SelectItem>
+                          <SelectItem value="B-">B-</SelectItem>
+                          <SelectItem value="AB+">AB+</SelectItem>
+                          <SelectItem value="AB-">AB-</SelectItem>
+                          <SelectItem value="O+">O+</SelectItem>
+                          <SelectItem value="O-">O-</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
               </div>
 
@@ -1943,23 +1979,37 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                 >
                                   Relation <span className="text-red-500 font-bold">*</span>
                                 </label>
-                                <select
-                                  id={`fm-relation-select-${idx}`}
-                                  {...register(`familyMembers.${idx}.relation`)}
-                                  className={cn(
-                                    'h-9 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20',
-                                    fmErrors?.relation && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+                                <Controller
+                                  control={control}
+                                  name={`familyMembers.${idx}.relation` as const}
+                                  render={({ field }) => (
+                                    <Select
+                                      value={field.value || undefined}
+                                      onValueChange={(val) => field.onChange(val || 'Spouse')}
+                                    >
+                                      <SelectTrigger
+                                        id={`fm-relation-select-${idx}`}
+                                        className={cn(
+                                          'h-9 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20',
+                                          fmErrors?.relation &&
+                                            'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+                                        )}
+                                      >
+                                        <SelectValue placeholder="Relation" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="Spouse">Spouse</SelectItem>
+                                        <SelectItem value="Son">Son</SelectItem>
+                                        <SelectItem value="Daughter">Daughter</SelectItem>
+                                        <SelectItem value="Father">Father</SelectItem>
+                                        <SelectItem value="Mother">Mother</SelectItem>
+                                        <SelectItem value="Brother">Brother</SelectItem>
+                                        <SelectItem value="Sister">Sister</SelectItem>
+                                        <SelectItem value="Other">Other</SelectItem>
+                                      </SelectContent>
+                                    </Select>
                                   )}
-                                >
-                                  <option value="Spouse">Spouse</option>
-                                  <option value="Son">Son</option>
-                                  <option value="Daughter">Daughter</option>
-                                  <option value="Father">Father</option>
-                                  <option value="Mother">Mother</option>
-                                  <option value="Brother">Brother</option>
-                                  <option value="Sister">Sister</option>
-                                  <option value="Other">Other</option>
-                                </select>
+                                />
                                 {fmErrors?.relation && (
                                   <p className="mt-1 text-xs font-semibold text-red-500">{fmErrors.relation.message}</p>
                                 )}
@@ -1972,18 +2022,32 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                 >
                                   Gender <span className="text-red-500 font-bold">*</span>
                                 </label>
-                                <select
-                                  id={`fm-gender-select-${idx}`}
-                                  {...register(`familyMembers.${idx}.gender`)}
-                                  className={cn(
-                                    'h-9 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20',
-                                    fmErrors?.gender && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+                                <Controller
+                                  control={control}
+                                  name={`familyMembers.${idx}.gender` as const}
+                                  render={({ field }) => (
+                                    <Select
+                                      value={field.value || undefined}
+                                      onValueChange={(val) => field.onChange(val || 'MALE')}
+                                    >
+                                      <SelectTrigger
+                                        id={`fm-gender-select-${idx}`}
+                                        className={cn(
+                                          'h-9 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20',
+                                          fmErrors?.gender &&
+                                            'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+                                        )}
+                                      >
+                                        <SelectValue placeholder="Gender" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="MALE">Male</SelectItem>
+                                        <SelectItem value="FEMALE">Female</SelectItem>
+                                        <SelectItem value="OTHER">Other</SelectItem>
+                                      </SelectContent>
+                                    </Select>
                                   )}
-                                >
-                                  <option value="MALE">Male</option>
-                                  <option value="FEMALE">Female</option>
-                                  <option value="OTHER">Other</option>
-                                </select>
+                                />
                                 {fmErrors?.gender && (
                                   <p className="mt-1 text-xs font-semibold text-red-500">{fmErrors.gender.message}</p>
                                 )}
@@ -2020,21 +2084,33 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                 >
                                   Blood Group
                                 </label>
-                                <select
-                                  id={`fm-blood-group-select-${idx}`}
-                                  {...register(`familyMembers.${idx}.bloodGroup`)}
-                                  className="h-9 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20"
-                                >
-                                  <option value="">Not known</option>
-                                  <option value="A+">A+</option>
-                                  <option value="A-">A-</option>
-                                  <option value="B+">B+</option>
-                                  <option value="B-">B-</option>
-                                  <option value="AB+">AB+</option>
-                                  <option value="AB-">AB-</option>
-                                  <option value="O+">O+</option>
-                                  <option value="O-">O-</option>
-                                </select>
+                                <Controller
+                                  control={control}
+                                  name={`familyMembers.${idx}.bloodGroup` as const}
+                                  render={({ field }) => (
+                                    <Select
+                                      value={field.value || undefined}
+                                      onValueChange={(val) => field.onChange(val || '')}
+                                    >
+                                      <SelectTrigger
+                                        id={`fm-blood-group-select-${idx}`}
+                                        className="h-9 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20"
+                                      >
+                                        <SelectValue placeholder="Not known" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="A+">A+</SelectItem>
+                                        <SelectItem value="A-">A-</SelectItem>
+                                        <SelectItem value="B+">B+</SelectItem>
+                                        <SelectItem value="B-">B-</SelectItem>
+                                        <SelectItem value="AB+">AB+</SelectItem>
+                                        <SelectItem value="AB-">AB-</SelectItem>
+                                        <SelectItem value="O+">O+</SelectItem>
+                                        <SelectItem value="O-">O-</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  )}
+                                />
                               </div>
                             </div>
 

@@ -23,6 +23,7 @@ import { AssignCareTaskDialog } from '@/components/common/AssignCareTaskDialog'
 import { CompleteCareTaskDialog } from '@/components/common/CompleteCareTaskDialog'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn, formatDisplayDate, formatDisplayDateTime } from '@/lib/utils'
 
 const getBillingLabel = (type?: string) => {
@@ -491,27 +492,29 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
         </div>
 
         {/* Source Filter (Available for both Pending and Completed views) */}
-        <select
-          value={sourceFilter}
-          onChange={(e) => setSourceFilter(e.target.value)}
-          className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 focus:border-[#005390] focus:outline-none dark:border-gray-800 dark:bg-slate-900 dark:text-gray-300"
-        >
-          <option value="ALL">All Sources</option>
-          <option value="PACKAGE">Package Wise</option>
-          <option value="ADDON">Add On Tasks</option>
-        </select>
+        <Select value={sourceFilter} onValueChange={(val) => setSourceFilter(val || 'ALL')}>
+          <SelectTrigger className="w-auto min-w-[130px] rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-300">
+            <SelectValue placeholder="All Sources" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All Sources</SelectItem>
+            <SelectItem value="PACKAGE">Package Wise</SelectItem>
+            <SelectItem value="ADDON">Add On Tasks</SelectItem>
+          </SelectContent>
+        </Select>
 
         {activeTab === 'COMPLETED' && (
           /* Completed Tab Status Filter */
-          <select
-            value={completedStatusFilter}
-            onChange={(e) => setCompletedStatusFilter(e.target.value)}
-            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 focus:border-[#005390] focus:outline-none dark:border-gray-800 dark:bg-slate-900 dark:text-gray-300"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
+          <Select value={completedStatusFilter} onValueChange={(val) => setCompletedStatusFilter(val || 'ALL')}>
+            <SelectTrigger className="w-auto min-w-[130px] rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-300">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Statuses</SelectItem>
+              <SelectItem value="COMPLETED">Completed</SelectItem>
+              <SelectItem value="CANCELLED">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
         )}
       </div>
 

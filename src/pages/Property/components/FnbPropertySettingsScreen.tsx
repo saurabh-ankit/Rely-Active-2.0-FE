@@ -24,6 +24,7 @@ import { notifyError, notifySuccess } from '@/utils/toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Pagination,
   PaginationContent,
@@ -1854,28 +1855,29 @@ export function FnbPropertySettingsScreen({
                 <label htmlFor="new-pkg-select" className="block text-xs font-semibold text-gray-700 mb-1">
                   Select New Food Package <span className="text-red-500 font-bold">*</span>
                 </label>
-                <select
-                  id="new-pkg-select"
-                  value={newPropertyPkgId}
-                  onChange={(e) => setNewPropertyPkgId(e.target.value)}
-                  className="w-full px-3 py-2.5 text-xs font-medium border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] bg-white"
-                  required
-                >
-                  <option value="">-- Select New Package --</option>
-                  {propertyPackages
-                    .filter((pkg) => pkg.id !== changingSub.propertyPackageId)
-                    .map((pkg) => {
-                      const dietStr = pkg.globalPackage?.dietaryType
-                        ? ` (${pkg.globalPackage.dietaryType.replace('_', ' ').toUpperCase()})`
-                        : ''
-                      return (
-                        <option key={pkg.id} value={pkg.id}>
-                          {pkg.globalPackage?.name || 'Package'}
-                          {dietStr} — ₹{Number(pkg.price).toLocaleString('en-IN')}/mo
-                        </option>
-                      )
-                    })}
-                </select>
+                <Select value={newPropertyPkgId || undefined} onValueChange={(val) => setNewPropertyPkgId(val || '')}>
+                  <SelectTrigger
+                    id="new-pkg-select"
+                    className="w-full px-3 py-2.5 h-auto text-xs font-medium border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] bg-white"
+                  >
+                    <SelectValue placeholder="-- Select New Package --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {propertyPackages
+                      .filter((pkg) => pkg.id !== changingSub.propertyPackageId)
+                      .map((pkg) => {
+                        const dietStr = pkg.globalPackage?.dietaryType
+                          ? ` (${pkg.globalPackage.dietaryType.replace('_', ' ').toUpperCase()})`
+                          : ''
+                        return (
+                          <SelectItem key={pkg.id} value={pkg.id}>
+                            {pkg.globalPackage?.name || 'Package'}
+                            {dietStr} — ₹{Number(pkg.price).toLocaleString('en-IN')}/mo
+                          </SelectItem>
+                        )
+                      })}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Allergies / Special Notes */}

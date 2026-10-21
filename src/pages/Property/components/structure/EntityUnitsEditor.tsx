@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import type { BlockInput, EntityInput, FloorInput, UnitInput, UnitType } from '../../types'
 import { ENTITY_PRESETS, levelLabel, newUnit, UNIT_TYPE_OPTIONS } from './entityPresets'
@@ -85,18 +86,21 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
                       />
                     </td>
                     <td className="px-3 py-1.5">
-                      <select
-                        aria-label="Type"
-                        value={unit.unit_type}
-                        onChange={(e) => update(index, { unit_type: e.target.value as UnitType })}
-                        className={inputClass}
+                      <Select
+                        value={unit.unit_type || undefined}
+                        onValueChange={(val) => update(index, { unit_type: val as UnitType })}
                       >
-                        {UNIT_TYPE_OPTIONS.map((t) => (
-                          <option key={t} value={t}>
-                            {t.replace('_', ' ')}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger aria-label="Type" className={cn(inputClass, 'h-auto')}>
+                          <SelectValue placeholder="Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {UNIT_TYPE_OPTIONS.map((t) => (
+                            <SelectItem key={t} value={t}>
+                              {t.replace('_', ' ')}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </td>
                     <td className="px-3 py-1.5">
                       <input

@@ -13,6 +13,7 @@ import {
   RoleBadges,
 } from '@/components/employees/EmployeeCells'
 import { DataTable } from '@/components/ui/data-table'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   ArrowLeft,
   Building2,
@@ -909,16 +910,25 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                 <label htmlFor="gender-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Gender
                 </label>
-                <select
-                  id="gender-select"
-                  {...register('gender')}
-                  className={`w-full rounded-xl border ${errors.gender?.message ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:outline-none focus:ring-2 font-medium shadow-2xs`}
-                >
-                  <option value="">Select Gender</option>
-                  <option value="MALE">Male</option>
-                  <option value="FEMALE">Female</option>
-                  <option value="OTHER">Other</option>
-                </select>
+                <Controller
+                  control={control}
+                  name="gender"
+                  render={({ field }) => (
+                    <Select value={field.value || undefined} onValueChange={(val) => field.onChange(val || '')}>
+                      <SelectTrigger
+                        id="gender-select"
+                        className={`w-full rounded-xl border ${errors.gender?.message ? 'border-red-500' : 'border-gray-200'} bg-white py-2.5 px-3.5 text-xs text-gray-900 font-medium shadow-2xs h-auto`}
+                      >
+                        <SelectValue placeholder="Select Gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MALE">Male</SelectItem>
+                        <SelectItem value="FEMALE">Female</SelectItem>
+                        <SelectItem value="OTHER">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 {errors.gender?.message && (
                   <p className="mt-1 text-xs font-semibold text-red-500">{errors.gender.message}</p>
                 )}
@@ -984,21 +994,30 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                 <label htmlFor="bloodgroup-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Blood Group
                 </label>
-                <select
-                  id="bloodgroup-select"
-                  {...register('bloodGroup')}
-                  className={`w-full rounded-xl border ${errors.bloodGroup?.message ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:outline-none focus:ring-2 font-medium shadow-2xs`}
-                >
-                  <option value="">Select Blood Group</option>
-                  <option value="A+">A+</option>
-                  <option value="A-">A-</option>
-                  <option value="B+">B+</option>
-                  <option value="B-">B-</option>
-                  <option value="O+">O+</option>
-                  <option value="O-">O-</option>
-                  <option value="AB+">AB+</option>
-                  <option value="AB-">AB-</option>
-                </select>
+                <Controller
+                  control={control}
+                  name="bloodGroup"
+                  render={({ field }) => (
+                    <Select value={field.value || undefined} onValueChange={(val) => field.onChange(val || '')}>
+                      <SelectTrigger
+                        id="bloodgroup-select"
+                        className={`w-full rounded-xl border ${errors.bloodGroup?.message ? 'border-red-500' : 'border-gray-200'} bg-white py-2.5 px-3.5 text-xs text-gray-900 font-medium shadow-2xs h-auto`}
+                      >
+                        <SelectValue placeholder="Select Blood Group" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="A+">A+</SelectItem>
+                        <SelectItem value="A-">A-</SelectItem>
+                        <SelectItem value="B+">B+</SelectItem>
+                        <SelectItem value="B-">B-</SelectItem>
+                        <SelectItem value="O+">O+</SelectItem>
+                        <SelectItem value="O-">O-</SelectItem>
+                        <SelectItem value="AB+">AB+</SelectItem>
+                        <SelectItem value="AB-">AB-</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 {errors.bloodGroup?.message && (
                   <p className="mt-1 text-xs font-semibold text-red-500">{errors.bloodGroup.message}</p>
                 )}
@@ -1075,19 +1094,29 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                 <label htmlFor="role-select-page" className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Assigned System Role <span className="text-red-500 font-bold">*</span>
                 </label>
-                <select
-                  id="role-select-page"
-                  {...register('selectedRoleCode')}
-                  className={`w-full rounded-xl border ${errors.selectedRoleCode?.message ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:outline-none focus:ring-2 font-medium shadow-2xs`}
-                >
-                  {roles
-                    .filter((r) => !['SUPER_ADMIN', 'RESIDENT'].includes((r.code || '').toUpperCase()))
-                    .map((r) => (
-                      <option key={r.id} value={r.code}>
-                        {r.name} ({r.code})
-                      </option>
-                    ))}
-                </select>
+                <Controller
+                  control={control}
+                  name="selectedRoleCode"
+                  render={({ field }) => (
+                    <Select value={field.value || undefined} onValueChange={(val) => field.onChange(val || '')}>
+                      <SelectTrigger
+                        id="role-select-page"
+                        className={`w-full rounded-xl border ${errors.selectedRoleCode?.message ? 'border-red-500' : 'border-gray-200'} bg-white py-2.5 px-3.5 text-xs text-gray-900 font-medium shadow-2xs h-auto`}
+                      >
+                        <SelectValue placeholder="Select Role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roles
+                          .filter((r) => !['SUPER_ADMIN', 'RESIDENT'].includes((r.code || '').toUpperCase()))
+                          .map((r) => (
+                            <SelectItem key={r.id} value={r.code}>
+                              {r.name} ({r.code})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 {errors.selectedRoleCode?.message && (
                   <p className="mt-1 text-xs font-semibold text-red-500">{errors.selectedRoleCode.message}</p>
                 )}
@@ -1100,19 +1129,31 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                       <label htmlFor="dept-select-page" className="block text-xs font-semibold text-gray-700 mb-1.5">
                         Assign Operational Department <span className="text-red-500 font-bold">*</span>
                       </label>
-                      <select
-                        id="dept-select-page"
-                        {...register('selectedDepartmentId')}
-                        disabled={isMedicalRole}
-                        className={`w-full rounded-xl border ${errors.selectedDepartmentId?.message ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:outline-none focus:ring-2 font-medium shadow-2xs disabled:bg-gray-100 disabled:text-gray-500`}
-                      >
-                        {!isMedicalRole && <option value="">Select Department</option>}
-                        {availableDepartments.map((d) => (
-                          <option key={d.id} value={d.id}>
-                            {d.name} ({d.code})
-                          </option>
-                        ))}
-                      </select>
+                      <Controller
+                        control={control}
+                        name="selectedDepartmentId"
+                        render={({ field }) => (
+                          <Select
+                            value={field.value || undefined}
+                            onValueChange={(val) => field.onChange(val || '')}
+                            disabled={isMedicalRole}
+                          >
+                            <SelectTrigger
+                              id="dept-select-page"
+                              className={`w-full rounded-xl border ${errors.selectedDepartmentId?.message ? 'border-red-500' : 'border-gray-200'} bg-white py-2.5 px-3.5 text-xs text-gray-900 font-medium shadow-2xs disabled:bg-gray-100 disabled:text-gray-500 h-auto`}
+                            >
+                              <SelectValue placeholder="Select Department" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableDepartments.map((d) => (
+                                <SelectItem key={d.id} value={d.id}>
+                                  {d.name} ({d.code})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
                       {errors.selectedDepartmentId?.message && (
                         <p className="mt-1 text-xs font-semibold text-red-500">{errors.selectedDepartmentId.message}</p>
                       )}
@@ -1122,23 +1163,37 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                       <label htmlFor="job-cat-select-page" className="block text-xs font-semibold text-gray-700 mb-1.5">
                         Select Job Category <span className="text-red-500 font-bold">*</span>
                       </label>
-                      <select
-                        id="job-cat-select-page"
-                        {...register('selectedJobCategoryId')}
-                        disabled={isNurseOrCaretakerRole || availableJobCategories.length === 0}
-                        className={`w-full rounded-xl border ${errors.selectedJobCategoryId?.message ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:outline-none focus:ring-2 font-medium shadow-2xs disabled:bg-gray-100 disabled:text-gray-500`}
-                      >
-                        {!isNurseOrCaretakerRole && (
-                          <option value="">
-                            {availableJobCategories.length > 0 ? 'Select Job Category' : 'Select a department first'}
-                          </option>
+                      <Controller
+                        control={control}
+                        name="selectedJobCategoryId"
+                        render={({ field }) => (
+                          <Select
+                            value={field.value || undefined}
+                            onValueChange={(val) => field.onChange(val || '')}
+                            disabled={isNurseOrCaretakerRole || availableJobCategories.length === 0}
+                          >
+                            <SelectTrigger
+                              id="job-cat-select-page"
+                              className={`w-full rounded-xl border ${errors.selectedJobCategoryId?.message ? 'border-red-500' : 'border-gray-200'} bg-white py-2.5 px-3.5 text-xs text-gray-900 font-medium shadow-2xs disabled:bg-gray-100 disabled:text-gray-500 h-auto`}
+                            >
+                              <SelectValue
+                                placeholder={
+                                  availableJobCategories.length > 0
+                                    ? 'Select Job Category'
+                                    : 'Select a department first'
+                                }
+                              />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableJobCategories.map((jc) => (
+                                <SelectItem key={jc.id} value={jc.id}>
+                                  {jc.name} ({jc.code})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         )}
-                        {availableJobCategories.map((jc) => (
-                          <option key={jc.id} value={jc.id}>
-                            {jc.name} ({jc.code})
-                          </option>
-                        ))}
-                      </select>
+                      />
                       {errors.selectedJobCategoryId?.message && (
                         <p className="mt-1 text-xs font-semibold text-red-500">
                           {errors.selectedJobCategoryId.message}
@@ -1208,18 +1263,24 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                           >
                             Primary Specialization
                           </label>
-                          <select
-                            id="primary-specialization-select"
+                          <Select
                             value={primarySpecializationId}
-                            onChange={(e) => setPrimarySpecializationId(e.target.value)}
-                            className="w-full rounded-xl border border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20 bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:outline-none focus:ring-2 font-medium shadow-2xs"
+                            onValueChange={(val) => setPrimarySpecializationId(val)}
                           >
-                            {selectedSpecializationIds.map((id) => (
-                              <option key={id} value={id}>
-                                {specializations.find((sp) => sp.id === id)?.name || id}
-                              </option>
-                            ))}
-                          </select>
+                            <SelectTrigger
+                              id="primary-specialization-select"
+                              className="w-full rounded-xl border border-gray-200 bg-white py-2.5 px-3.5 text-xs text-gray-900 font-medium shadow-2xs h-auto"
+                            >
+                              <SelectValue placeholder="Primary Specialization" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {selectedSpecializationIds.map((id) => (
+                                <SelectItem key={id} value={id}>
+                                  {specializations.find((sp) => sp.id === id)?.name || id}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       )}
 
@@ -1710,57 +1771,64 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
         }
         filterActions={
           <div className="flex items-center gap-2 flex-wrap">
-            <select
+            <Select
               value={selectedDepartmentFilter}
-              onChange={(e) => {
-                setSelectedDepartmentFilter(e.target.value)
+              onValueChange={(val) => {
+                setSelectedDepartmentFilter(val)
                 setSelectedJobCategoryFilter('ALL')
               }}
-              className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
             >
-              <option value="ALL">All departments</option>
-              {departments.map((dept) => (
-                <option key={dept.id} value={dept.id}>
-                  {dept.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-200 shadow-2xs w-auto min-w-[140px]">
+                <SelectValue placeholder="All departments" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All departments</SelectItem>
+                {departments.map((dept) => (
+                  <SelectItem key={dept.id} value={dept.id}>
+                    {dept.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-            <select
-              value={selectedJobCategoryFilter}
-              onChange={(e) => setSelectedJobCategoryFilter(e.target.value)}
-              className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All job categories</option>
-              {availableFilterCategories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+            <Select value={selectedJobCategoryFilter} onValueChange={(val) => setSelectedJobCategoryFilter(val)}>
+              <SelectTrigger className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-200 shadow-2xs w-auto min-w-[140px]">
+                <SelectValue placeholder="All job categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All job categories</SelectItem>
+                {availableFilterCategories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-            <select
-              value={selectedRoleFilter}
-              onChange={(e) => setSelectedRoleFilter(e.target.value)}
-              className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All roles</option>
-              {roles.map((role) => (
-                <option key={role.id} value={role.code || role.name}>
-                  {role.name}
-                </option>
-              ))}
-            </select>
+            <Select value={selectedRoleFilter} onValueChange={(val) => setSelectedRoleFilter(val)}>
+              <SelectTrigger className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-200 shadow-2xs w-auto min-w-[120px]">
+                <SelectValue placeholder="All roles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All roles</SelectItem>
+                {roles.map((role) => (
+                  <SelectItem key={role.id} value={role.code || role.name}>
+                    {role.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-            <select
-              value={selectedStatusFilter}
-              onChange={(e) => setSelectedStatusFilter(e.target.value)}
-              className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All statuses</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-            </select>
+            <Select value={selectedStatusFilter} onValueChange={(val) => setSelectedStatusFilter(val)}>
+              <SelectTrigger className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-200 shadow-2xs w-auto min-w-[120px]">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All statuses</SelectItem>
+                <SelectItem value="ACTIVE">Active</SelectItem>
+                <SelectItem value="INACTIVE">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         }
       />

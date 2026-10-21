@@ -9,6 +9,7 @@ import type { ResidentItem } from '@/lib/types'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 function formatTimeTo12h(time24: string): string {
   if (!time24) return '12:00 PM'
@@ -196,25 +197,30 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
             <label htmlFor="assign-resident-select" className="text-xs font-semibold text-gray-700 dark:text-gray-300">
               1. Select Resident <span className="text-rose-500">*</span>
             </label>
-            <select
-              id="assign-resident-select"
-              value={selectedResidentId}
-              onChange={(e) => setSelectedResidentId(e.target.value)}
+            <Select
+              value={selectedResidentId || undefined}
+              onValueChange={(val) => setSelectedResidentId(val || '')}
               disabled={Boolean(initialResidentId) || loadingResidents}
-              className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-xs text-gray-900 transition-colors focus:border-[#005390] focus:bg-white focus:outline-none dark:border-gray-800 dark:bg-slate-800 dark:text-white sm:text-sm"
             >
-              <option value="">{loadingResidents ? 'Loading residents...' : '-- Select Resident --'}</option>
-              {residents.map((r) => {
-                const name = `${r.firstName || ''} ${r.lastName || ''}`.trim() || 'Resident'
-                const unit = r.unit?.unit_number ? ` (Flat ${r.unit.unit_number})` : ''
-                return (
-                  <option key={r.id} value={r.id}>
-                    {name}
-                    {unit}
-                  </option>
-                )
-              })}
-            </select>
+              <SelectTrigger
+                id="assign-resident-select"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-xs text-gray-900 transition-colors focus:border-[#005390] focus:bg-white dark:border-gray-800 dark:bg-slate-800 dark:text-white sm:text-sm h-auto"
+              >
+                <SelectValue placeholder={loadingResidents ? 'Loading residents...' : '-- Select Resident --'} />
+              </SelectTrigger>
+              <SelectContent>
+                {residents.map((r) => {
+                  const name = `${r.firstName || ''} ${r.lastName || ''}`.trim() || 'Resident'
+                  const unit = r.unit?.unit_number ? ` (Flat ${r.unit.unit_number})` : ''
+                  return (
+                    <SelectItem key={r.id} value={r.id}>
+                      {name}
+                      {unit}
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* 2. Select Care Task */}
@@ -254,26 +260,33 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
             </div>
 
             <div className="relative">
-              <select
-                id="assign-task-select"
-                value={effectiveTaskId}
-                onChange={(e) => setSelectedTaskId(e.target.value)}
+              <Select
+                value={effectiveTaskId || undefined}
+                onValueChange={(val) => setSelectedTaskId(val || '')}
                 disabled={loadingTasks}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-xs text-gray-900 transition-colors focus:border-[#005390] focus:bg-white focus:outline-none dark:border-gray-800 dark:bg-slate-800 dark:text-white sm:text-sm"
               >
-                <option value="">
-                  {loadingTasks
-                    ? 'Searching tasks from BE...'
-                    : careTasks.length === 0
-                      ? `No tasks found for "${taskSearchQuery}"`
-                      : '-- Select Care Task --'}
-                </option>
-                {careTasks.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.careTaskName} ({t.billingType || 'Session'} • ₹{Number(t.price || 0)})
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger
+                  id="assign-task-select"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-xs text-gray-900 transition-colors focus:border-[#005390] focus:bg-white dark:border-gray-800 dark:bg-slate-800 dark:text-white sm:text-sm h-auto"
+                >
+                  <SelectValue
+                    placeholder={
+                      loadingTasks
+                        ? 'Searching tasks from BE...'
+                        : careTasks.length === 0
+                          ? `No tasks found for "${taskSearchQuery}"`
+                          : '-- Select Care Task --'
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {careTasks.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.careTaskName} ({t.billingType || 'Session'} • ₹{Number(t.price || 0)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Quick select list when search query is typed */}

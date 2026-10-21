@@ -32,6 +32,7 @@ import {
 } from './structure/entityPresets'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createPropertyAPI, getPropertyByIdAPI, updatePropertyAPI } from '@/lib/services/propertyService'
 import { getAmenitiesAPI, type Amenity } from '@/lib/services/amenityService'
 import { CommonProgressBar, type ProgressBarStep } from '@/components/common/CommonProgressBar'
@@ -206,9 +207,19 @@ function SelectField({
   label,
   required,
   error,
+  value,
+  onValueChange,
+  placeholder,
   children,
-  ...props
-}: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; required?: boolean; error?: string }) {
+}: {
+  label: string
+  required?: boolean
+  error?: string
+  value?: string
+  onValueChange?: (value: string) => void
+  placeholder?: string
+  children: React.ReactNode
+}) {
   const isReq = required || label.includes('*')
   const cleanLabel = label.replace(/\s*\*/g, '')
 
@@ -217,12 +228,18 @@ function SelectField({
       <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
         {cleanLabel} {isReq && <span className="text-red-500 font-bold">*</span>}
       </label>
-      <select
-        {...props}
-        className={`w-full rounded-xl border ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white px-3.5 py-2.5 text-xs text-gray-900 outline-none transition focus:ring-2 disabled:opacity-50`}
-      >
-        {children}
-      </select>
+      <Select value={value || undefined} onValueChange={(val) => onValueChange?.(val || '')}>
+        <SelectTrigger
+          className={`w-full h-auto rounded-xl border ${
+            error
+              ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+              : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'
+          } bg-white px-3.5 py-2.5 text-xs text-gray-900 outline-none transition focus:ring-2 disabled:opacity-50`}
+        >
+          <SelectValue placeholder={placeholder || 'Select...'} />
+        </SelectTrigger>
+        <SelectContent>{children}</SelectContent>
+      </Select>
       {error && <p className="mt-1 text-xs font-semibold text-red-500">{error}</p>}
     </div>
   )
@@ -1060,11 +1077,11 @@ export default function CreatePropertyScreen({
                 value={totalArea}
                 onChange={(e) => setTotalArea(e.target.value)}
               />
-              <SelectField label="Area Unit" value={areaUnit} onChange={(e) => setAreaUnit(e.target.value as AreaUnit)}>
+              <SelectField label="Area Unit" value={areaUnit} onValueChange={(val) => setAreaUnit(val as AreaUnit)}>
                 {AREA_UNITS.map((u) => (
-                  <option key={u} value={u}>
+                  <SelectItem key={u} value={u}>
                     {u}
-                  </option>
+                  </SelectItem>
                 ))}
               </SelectField>
             </div>
@@ -1716,9 +1733,9 @@ export default function CreatePropertyScreen({
                                               return (
                                                 <SelectField
                                                   label="Position"
-                                                  value={currentPos}
-                                                  onChange={(e) => {
-                                                    const pos = Number(e.target.value)
+                                                  value={String(currentPos)}
+                                                  onValueChange={(val) => {
+                                                    const pos = Number(val)
                                                     const updatedPos = [{ ...variant.positions[0], position: pos }]
                                                     updateBHKTemplateVariant(vIdx, {
                                                       positions: updatedPos,
@@ -1726,9 +1743,9 @@ export default function CreatePropertyScreen({
                                                   }}
                                                 >
                                                   {availablePositions.map((posNum) => (
-                                                    <option key={posNum} value={posNum}>
+                                                    <SelectItem key={posNum} value={String(posNum)}>
                                                       Position {posNum}
-                                                    </option>
+                                                    </SelectItem>
                                                   ))}
                                                 </SelectField>
                                               )
@@ -1737,8 +1754,8 @@ export default function CreatePropertyScreen({
                                             <SelectField
                                               label="Direction"
                                               value={variant.positions[0]?.direction || 'North-East'}
-                                              onChange={(e) => {
-                                                const dir = e.target.value
+                                              onValueChange={(val) => {
+                                                const dir = val
                                                 const updatedPos = [{ ...variant.positions[0], direction: dir }]
                                                 updateBHKTemplateVariant(vIdx, {
                                                   positions: updatedPos,
@@ -1746,17 +1763,17 @@ export default function CreatePropertyScreen({
                                               }}
                                             >
                                               {DIRECTION_OPTIONS.map((d) => (
-                                                <option key={d} value={d}>
+                                                <SelectItem key={d} value={d}>
                                                   {d}
-                                                </option>
+                                                </SelectItem>
                                               ))}
                                             </SelectField>
 
                                             <SelectField
                                               label="View facing"
                                               value={variant.positions[0]?.view_facing || 'Garden View'}
-                                              onChange={(e) => {
-                                                const view = e.target.value
+                                              onValueChange={(val) => {
+                                                const view = val
                                                 const updatedPos = [{ ...variant.positions[0], view_facing: view }]
                                                 updateBHKTemplateVariant(vIdx, {
                                                   positions: updatedPos,
@@ -1764,9 +1781,9 @@ export default function CreatePropertyScreen({
                                               }}
                                             >
                                               {VIEW_FACING_OPTIONS.map((vf) => (
-                                                <option key={vf} value={vf}>
+                                                <SelectItem key={vf} value={vf}>
                                                   {vf}
-                                                </option>
+                                                </SelectItem>
                                               ))}
                                             </SelectField>
                                           </div>
@@ -1879,17 +1896,21 @@ export default function CreatePropertyScreen({
                               <tr key={floorNum}>
                                 <td className="p-3 font-bold text-gray-900">{floorNum}</td>
                                 <td className="p-3">
-                                  <select
-                                    value={currentFloorType}
-                                    onChange={(e) => updateFloorConfig({ floor_type: e.target.value })}
-                                    className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs outline-none"
+                                  <Select
+                                    value={currentFloorType || undefined}
+                                    onValueChange={(val) => updateFloorConfig({ floor_type: val || '' })}
                                   >
-                                    {FLOOR_TYPE_OPTIONS.map((ft) => (
-                                      <option key={ft} value={ft}>
-                                        {ft}
-                                      </option>
-                                    ))}
-                                  </select>
+                                    <SelectTrigger className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs h-auto outline-none">
+                                      <SelectValue placeholder="Floor Type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {FLOOR_TYPE_OPTIONS.map((ft) => (
+                                        <SelectItem key={ft} value={ft}>
+                                          {ft}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
                                 </td>
                                 <td className="p-3">
                                   <label className="flex items-center gap-2 cursor-pointer">

@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { residentService, type ResidentBillingData } from '@/lib/services/residentService'
 import type { ResidentItem } from '@/lib/types/resident'
@@ -339,19 +340,25 @@ export const ResidentBillingPage: React.FC = () => {
             >
               Select Resident for Billing
             </label>
-            <select
-              id="billing-resident-select"
-              value={residentId}
-              onChange={(e) => setSearchParams({ residentId: e.target.value })}
-              className="w-full max-w-md px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#005390]"
+            <Select
+              value={residentId || undefined}
+              onValueChange={(val) => setSearchParams({ residentId: val || '' })}
               disabled={isLoadingResidents}
             >
-              {allResidents.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.firstName} {r.lastName || ''} ({r.unit?.unit_number ? `Unit ${r.unit.unit_number}` : 'No unit'})
-                </option>
-              ))}
-            </select>
+              <SelectTrigger
+                id="billing-resident-select"
+                className="w-full max-w-md px-3 py-2 h-auto bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#005390]"
+              >
+                <SelectValue placeholder="Select Resident..." />
+              </SelectTrigger>
+              <SelectContent>
+                {allResidents.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.firstName} {r.lastName || ''} ({r.unit?.unit_number ? `Unit ${r.unit.unit_number}` : 'No unit'})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -364,18 +371,21 @@ export const ResidentBillingPage: React.FC = () => {
             >
               Billing Month
             </label>
-            <select
-              id="billing-month-select"
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#005390]"
-            >
-              {MONTH_NAMES.map((name, index) => (
-                <option key={name} value={index + 1}>
-                  {name}
-                </option>
-              ))}
-            </select>
+            <Select value={String(selectedMonth)} onValueChange={(val) => setSelectedMonth(Number(val))}>
+              <SelectTrigger
+                id="billing-month-select"
+                className="px-3 py-2 h-auto bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#005390]"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MONTH_NAMES.map((name, index) => (
+                  <SelectItem key={name} value={String(index + 1)}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -385,18 +395,21 @@ export const ResidentBillingPage: React.FC = () => {
             >
               Year
             </label>
-            <select
-              id="billing-year-select"
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#005390]"
-            >
-              {[2025, 2026, 2027].map((yr) => (
-                <option key={yr} value={yr}>
-                  {yr}
-                </option>
-              ))}
-            </select>
+            <Select value={String(selectedYear)} onValueChange={(val) => setSelectedYear(Number(val))}>
+              <SelectTrigger
+                id="billing-year-select"
+                className="px-3 py-2 h-auto bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#005390]"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[2025, 2026, 2027].map((yr) => (
+                  <SelectItem key={yr} value={String(yr)}>
+                    {yr}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>

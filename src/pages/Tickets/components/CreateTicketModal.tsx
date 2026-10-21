@@ -6,6 +6,7 @@ import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import type { TicketPriority } from '@/lib/types'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const MAX_PHOTOS = 10
 
@@ -507,57 +508,66 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
                   <label htmlFor="create-block-select" className="block text-xs font-bold text-gray-900 mb-1.5">
                     Select Block <span className="text-rose-500">*</span>
                   </label>
-                  <select
-                    id="create-block-select"
-                    value={selectedBlockName}
-                    onChange={(e) => {
-                      setSelectedBlockName(e.target.value)
+                  <Select
+                    value={selectedBlockName || undefined}
+                    onValueChange={(val) => {
+                      setSelectedBlockName(val || '')
                       setSelectedFlatId('')
                     }}
                     disabled={isLoadingProperty}
-                    className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] cursor-pointer disabled:opacity-50"
                   >
-                    {isLoadingProperty ? (
-                      <option value="">Loading blocks...</option>
-                    ) : availableBlocks.length > 0 ? (
-                      availableBlocks.map((b) => (
-                        <option key={b} value={b}>
-                          {b}
-                        </option>
-                      ))
-                    ) : (
-                      <option value="A">A</option>
-                    )}
-                  </select>
+                    <SelectTrigger
+                      id="create-block-select"
+                      className="w-full px-3.5 py-2.5 h-auto bg-white border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] cursor-pointer disabled:opacity-50"
+                    >
+                      <SelectValue placeholder={isLoadingProperty ? 'Loading blocks...' : 'Select Block...'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableBlocks.length > 0 ? (
+                        availableBlocks.map((b) => (
+                          <SelectItem key={b} value={b}>
+                            {b}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="A">A</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
                   <label htmlFor="create-flat-select" className="block text-xs font-bold text-gray-900 mb-1.5">
                     Select Flat <span className="text-rose-500">*</span>
                   </label>
-                  <select
-                    id="create-flat-select"
-                    value={selectedFlatId}
-                    onChange={(e) => {
-                      setSelectedFlatId(e.target.value)
+                  <Select
+                    value={selectedFlatId || undefined}
+                    onValueChange={(val) => {
+                      setSelectedFlatId(val || '')
                       if (fieldErrors.selectedFlatId) {
                         setFieldErrors((prev) => ({ ...prev, selectedFlatId: '' }))
                       }
                     }}
                     disabled={isLoadingProperty}
-                    className={`w-full px-3.5 py-2.5 bg-white border rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 cursor-pointer disabled:opacity-50 shadow-2xs ${
-                      fieldErrors.selectedFlatId
-                        ? 'border-rose-500 focus:ring-rose-500/20'
-                        : 'border-blue-600 focus:ring-blue-500/20'
-                    }`}
                   >
-                    <option value="">Select Flat...</option>
-                    {flatsInSelectedBlock.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.blockName}-{f.unitNumber}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger
+                      id="create-flat-select"
+                      className={`w-full px-3.5 py-2.5 h-auto bg-white border rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 cursor-pointer disabled:opacity-50 shadow-2xs ${
+                        fieldErrors.selectedFlatId
+                          ? 'border-rose-500 focus:ring-rose-500/20'
+                          : 'border-blue-600 focus:ring-blue-500/20'
+                      }`}
+                    >
+                      <SelectValue placeholder="Select Flat..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {flatsInSelectedBlock.map((f) => (
+                        <SelectItem key={f.id} value={f.id}>
+                          {f.blockName}-{f.unitNumber}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   {fieldErrors.selectedFlatId && (
                     <p className="text-xs font-semibold text-rose-600 mt-1">{fieldErrors.selectedFlatId}</p>
                   )}
@@ -613,32 +623,39 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
               <label htmlFor="create-role-cat" className="block text-xs font-bold text-gray-900 mb-1.5">
                 Assign Role Category <span className="text-rose-500">*</span>
               </label>
-              <select
-                id="create-role-cat"
-                value={jobCategoryId}
-                onChange={(e) => {
-                  setJobCategoryId(e.target.value)
+              <Select
+                value={jobCategoryId || undefined}
+                onValueChange={(val) => {
+                  setJobCategoryId(val || '')
                   if (fieldErrors.jobCategoryId) {
                     setFieldErrors((prev) => ({ ...prev, jobCategoryId: '' }))
                   }
                 }}
-                className={`w-full px-3.5 py-2.5 bg-gray-50 border rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 cursor-pointer ${
-                  fieldErrors.jobCategoryId
-                    ? 'border-rose-500 focus:ring-rose-500/20'
-                    : 'border-gray-300 focus:ring-[#005390]/20'
-                }`}
               >
-                <option value="">
-                  {availableJobCategories.length === 0
-                    ? `No Role Categories for ${activeDepartmentObj?.name || 'Department'}`
-                    : `Select Role Category for ${activeDepartmentObj?.name || 'Department'}...`}
-                </option>
-                {availableJobCategories.map((j) => (
-                  <option key={j.id} value={j.id}>
-                    {j.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger
+                  id="create-role-cat"
+                  className={`w-full px-3.5 py-2.5 h-auto bg-gray-50 border rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 cursor-pointer ${
+                    fieldErrors.jobCategoryId
+                      ? 'border-rose-500 focus:ring-rose-500/20'
+                      : 'border-gray-300 focus:ring-[#005390]/20'
+                  }`}
+                >
+                  <SelectValue
+                    placeholder={
+                      availableJobCategories.length === 0
+                        ? `No Role Categories for ${activeDepartmentObj?.name || 'Department'}`
+                        : `Select Role Category for ${activeDepartmentObj?.name || 'Department'}...`
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableJobCategories.map((j) => (
+                    <SelectItem key={j.id} value={j.id}>
+                      {j.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {fieldErrors.jobCategoryId && (
                 <p className="text-xs font-semibold text-rose-600 mt-1">{fieldErrors.jobCategoryId}</p>
               )}

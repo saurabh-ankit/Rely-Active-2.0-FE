@@ -39,6 +39,7 @@ import { ConfirmStatusChangeDialog } from './components/ConfirmStatusChangeDialo
 import { PageHeader } from '@/components/common/PageHeader'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface ParsedCompletion {
   notes: string | null
@@ -1541,16 +1542,17 @@ export default function TicketsPage() {
                   </div>
 
                   {/* Status Badge Dropdown */}
-                  <select
-                    value={selectedTicket.status}
-                    onChange={(e) => setPendingStatus(e.target.value as TicketStatus)}
-                    className="px-3 py-1.5 bg-amber-50/90 text-amber-800 border border-amber-200 rounded-xl text-xs font-extrabold focus:outline-none cursor-pointer shadow-2xs"
-                  >
-                    <option value="OPEN">Open</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="RESOLVED">Completed</option>
-                    <option value="CLOSED">Closed</option>
-                  </select>
+                  <Select value={selectedTicket.status} onValueChange={(val) => setPendingStatus(val as TicketStatus)}>
+                    <SelectTrigger className="px-3 py-1.5 bg-amber-50/90 text-amber-800 border border-amber-200 rounded-xl text-xs font-extrabold shadow-2xs h-auto w-auto">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="OPEN">Open</SelectItem>
+                      <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                      <SelectItem value="RESOLVED">Completed</SelectItem>
+                      <SelectItem value="CLOSED">Closed</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Progress Stepper Tracker Box styled with primary brand blue */}
@@ -1922,19 +1924,25 @@ export default function TicketsPage() {
                           Escalated
                         </span>
                       )}
-                      <select
+                      <Select
                         value={selectedTicket.status}
-                        onChange={(e) => setPendingStatus(e.target.value as TicketStatus)}
+                        onValueChange={(val) => setPendingStatus(val as TicketStatus)}
                         disabled={!canUpdateTicket}
-                        className={`px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-xs font-bold focus:outline-none ${
-                          canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'
-                        }`}
                       >
-                        <option value="OPEN">Open</option>
-                        <option value="IN_PROGRESS">In Progress</option>
-                        <option value="RESOLVED">Completed</option>
-                        <option value="CLOSED">Closed</option>
-                      </select>
+                        <SelectTrigger
+                          className={`px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-xs font-bold h-auto w-auto ${
+                            !canUpdateTicket ? 'cursor-not-allowed opacity-75' : ''
+                          }`}
+                        >
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="OPEN">Open</SelectItem>
+                          <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                          <SelectItem value="RESOLVED">Completed</SelectItem>
+                          <SelectItem value="CLOSED">Closed</SelectItem>
+                        </SelectContent>
+                      </Select>
 
                       {isSelfAssigned && (
                         <span className="px-2.5 py-1 bg-blue-50 text-[#005390] border border-blue-200 rounded-lg text-xs font-bold">

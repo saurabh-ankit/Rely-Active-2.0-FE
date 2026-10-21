@@ -19,6 +19,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -316,39 +317,47 @@ export default function GateManagementPage() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <select
-            value={visitorTypeFilter}
-            onChange={(e) => {
-              setVisitorTypeFilter(e.target.value)
+          <Select
+            value={visitorTypeFilter || 'ALL'}
+            onValueChange={(val) => {
+              setVisitorTypeFilter(val === 'ALL' ? '' : val)
               setEntriesPage(1)
               setPreapprovedPage(1)
             }}
-            className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
           >
-            <option value="">Visitor Type: All Types</option>
-            <option value="Guest">Visitor Type: Guest</option>
-            <option value="Delivery">Visitor Type: Delivery</option>
-            <option value="Cab">Visitor Type: Cab</option>
-            <option value="Office">Visitor Type: Office</option>
-            <option value="Other">Visitor Type: Other</option>
-          </select>
+            <SelectTrigger className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 shadow-2xs w-auto min-w-[180px]">
+              <SelectValue placeholder="Visitor Type: All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Visitor Type: All Types</SelectItem>
+              <SelectItem value="Guest">Visitor Type: Guest</SelectItem>
+              <SelectItem value="Delivery">Visitor Type: Delivery</SelectItem>
+              <SelectItem value="Cab">Visitor Type: Cab</SelectItem>
+              <SelectItem value="Office">Visitor Type: Office</SelectItem>
+              <SelectItem value="Other">Visitor Type: Other</SelectItem>
+            </SelectContent>
+          </Select>
 
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value)
+          <Select
+            value={statusFilter || 'ALL'}
+            onValueChange={(val) => {
+              setStatusFilter(val === 'ALL' ? '' : val)
               setEntriesPage(1)
               setPreapprovedPage(1)
             }}
-            className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
           >
-            <option value="">Status: All Statuses</option>
-            <option value="Inside">Status: Inside</option>
-            <option value="Completed">Status: Completed</option>
-            <option value="PendingApproval">Status: Walk-ins (Pending)</option>
-            <option value="Rejected">Status: Rejected</option>
-            <option value="Expired">Status: Expired</option>
-          </select>
+            <SelectTrigger className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 shadow-2xs w-auto min-w-[180px]">
+              <SelectValue placeholder="Status: All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Status: All Statuses</SelectItem>
+              <SelectItem value="Inside">Status: Inside</SelectItem>
+              <SelectItem value="Completed">Status: Completed</SelectItem>
+              <SelectItem value="PendingApproval">Status: Walk-ins (Pending)</SelectItem>
+              <SelectItem value="Rejected">Status: Rejected</SelectItem>
+              <SelectItem value="Expired">Status: Expired</SelectItem>
+            </SelectContent>
+          </Select>
 
           <input
             type="date"

@@ -21,6 +21,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { z } from 'zod'
 import EditCompanyModal from './components/EditCompanyModal'
 import type { CompanyData, CustomFieldItem } from './components/EditCompanyModal'
@@ -428,20 +429,24 @@ export default function CompanyPage() {
                         className="flex-1 rounded-xl border border-gray-200 px-3 py-1.5 text-xs text-gray-900 min-w-[120px]"
                       />
 
-                      <select
+                      <Select
                         value={field.fieldType}
-                        onChange={(e) =>
-                          updateCustomField(idx, 'fieldType', e.target.value as CustomFieldItem['fieldType'])
+                        onValueChange={(val) =>
+                          updateCustomField(idx, 'fieldType', val as CustomFieldItem['fieldType'])
                         }
-                        className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs text-gray-900"
                       >
-                        <option value="text">Text</option>
-                        <option value="number">Number</option>
-                        <option value="date">Date</option>
-                        <option value="select">Select</option>
-                        <option value="bool">Boolean</option>
-                        <option value="document">Document</option>
-                      </select>
+                        <SelectTrigger className="w-[120px] rounded-xl border border-gray-200 px-3 py-1.5 text-xs text-gray-900 bg-white">
+                          <SelectValue placeholder="Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="text">Text</SelectItem>
+                          <SelectItem value="number">Number</SelectItem>
+                          <SelectItem value="date">Date</SelectItem>
+                          <SelectItem value="select">Select</SelectItem>
+                          <SelectItem value="bool">Boolean</SelectItem>
+                          <SelectItem value="document">Document</SelectItem>
+                        </SelectContent>
+                      </Select>
 
                       <input
                         type="text"

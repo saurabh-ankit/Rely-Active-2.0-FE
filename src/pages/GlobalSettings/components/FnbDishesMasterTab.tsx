@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Plus,
   Edit2,
@@ -713,18 +714,21 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                   <label htmlFor="dish-category-select" className="block text-xs font-semibold text-gray-700 mb-1">
                     Category
                   </label>
-                  <select
-                    id="dish-category-select"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs font-semibold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] bg-white text-gray-800"
-                  >
-                    {DISH_CATEGORIES.map((cat) => (
-                      <option key={cat.key} value={cat.key}>
-                        {cat.icon} {cat.label}
-                      </option>
-                    ))}
-                  </select>
+                  <Select value={category} onValueChange={(val) => setCategory(val)}>
+                    <SelectTrigger
+                      id="dish-category-select"
+                      className="w-full px-3.5 py-2.5 text-xs font-semibold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] bg-white text-gray-800 h-auto"
+                    >
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DISH_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat.key} value={cat.key}>
+                          {cat.icon} {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Dietary Type */}
@@ -732,18 +736,24 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                   <label htmlFor="dish-dietary-select" className="block text-xs font-semibold text-gray-700 mb-1">
                     Dietary Type
                   </label>
-                  <select
-                    id="dish-dietary-select"
+                  <Select
                     value={dietaryType}
-                    onChange={(e) => setDietaryType(e.target.value as 'veg' | 'non_veg' | 'egg' | 'jain' | 'vegan')}
-                    className="w-full px-3.5 py-2.5 text-xs font-semibold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] bg-white text-gray-800"
+                    onValueChange={(val) => setDietaryType(val as 'veg' | 'non_veg' | 'egg' | 'jain' | 'vegan')}
                   >
-                    <option value="veg">🟢 Vegetarian</option>
-                    <option value="non_veg">🔴 Non-Vegetarian</option>
-                    <option value="egg">🟡 Eggitarian</option>
-                    <option value="jain">🟢 Jain</option>
-                    <option value="vegan">🌱 Vegan</option>
-                  </select>
+                    <SelectTrigger
+                      id="dish-dietary-select"
+                      className="w-full px-3.5 py-2.5 text-xs font-semibold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] bg-white text-gray-800 h-auto"
+                    >
+                      <SelectValue placeholder="Dietary Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="veg">🟢 Vegetarian</SelectItem>
+                      <SelectItem value="non_veg">🔴 Non-Vegetarian</SelectItem>
+                      <SelectItem value="egg">🟡 Eggitarian</SelectItem>
+                      <SelectItem value="jain">🟢 Jain</SelectItem>
+                      <SelectItem value="vegan">🌱 Vegan</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Base Price */}

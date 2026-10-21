@@ -6,6 +6,7 @@ import { getPropertiesAPI } from '@/lib/services/propertyService'
 import { residentService } from '@/lib/services/residentService'
 import { useLocationContext } from '@/hooks/useLocation'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import {
   Pagination,
@@ -272,56 +273,74 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
     <div className="flex flex-wrap items-center gap-3">
       {/* Property Location Filter (Only in Global Mode) */}
       {isGlobalMode && (
-        <select
-          id="filter-property-select"
-          value={selectedPropertyId}
-          onChange={(e) => {
-            setSelectedPropertyId(e.target.value)
+        <Select
+          value={selectedPropertyId || 'ALL'}
+          onValueChange={(val) => {
+            setSelectedPropertyId(val || 'ALL')
             setCurrentPage(0)
           }}
-          aria-label="Property Location"
-          className="h-9 px-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-2xs cursor-pointer"
         >
-          <option value="ALL">All properties ({properties.length})</option>
-          {properties.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.property_name || (p as { name?: string }).name || 'Property'}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger
+            id="filter-property-select"
+            aria-label="Property Location"
+            className="h-9 px-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-2xs cursor-pointer w-auto"
+          >
+            <SelectValue placeholder={`All properties (${properties.length})`} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All properties ({properties.length})</SelectItem>
+            {properties.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.property_name || (p as { name?: string }).name || 'Property'}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
 
       {/* Resident Type Filter */}
-      <select
-        id="filter-type-select"
-        value={filterType}
-        onChange={(e) => {
-          setFilterType(e.target.value)
+      <Select
+        value={filterType || 'ALL'}
+        onValueChange={(val) => {
+          setFilterType(val || 'ALL')
           setCurrentPage(0)
         }}
-        aria-label="Resident Type"
-        className="h-9 px-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-2xs cursor-pointer"
       >
-        <option value="ALL">Owners & tenants</option>
-        <option value="OWNER">Owners only</option>
-        <option value="TENANT">Tenants only</option>
-      </select>
+        <SelectTrigger
+          id="filter-type-select"
+          aria-label="Resident Type"
+          className="h-9 px-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-2xs cursor-pointer w-auto"
+        >
+          <SelectValue placeholder="Owners & tenants" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="ALL">Owners & tenants</SelectItem>
+          <SelectItem value="OWNER">Owners only</SelectItem>
+          <SelectItem value="TENANT">Tenants only</SelectItem>
+        </SelectContent>
+      </Select>
 
       {/* Residing Status Filter */}
-      <select
-        id="filter-residing-select"
-        value={filterResiding}
-        onChange={(e) => {
-          setFilterResiding(e.target.value)
+      <Select
+        value={filterResiding || 'ALL'}
+        onValueChange={(val) => {
+          setFilterResiding(val || 'ALL')
           setCurrentPage(0)
         }}
-        aria-label="Residing Status"
-        className="h-9 px-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-2xs cursor-pointer"
       >
-        <option value="ALL">Everyone</option>
-        <option value="RESIDING">Residing</option>
-        <option value="OFFSITE">Off-site Resident</option>
-      </select>
+        <SelectTrigger
+          id="filter-residing-select"
+          aria-label="Residing Status"
+          className="h-9 px-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-2xs cursor-pointer w-auto"
+        >
+          <SelectValue placeholder="Everyone" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="ALL">Everyone</SelectItem>
+          <SelectItem value="RESIDING">Residing</SelectItem>
+          <SelectItem value="OFFSITE">Off-site Resident</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   )
 

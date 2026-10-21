@@ -7,6 +7,7 @@ import { useUserByIdQuery, useUsersQuery } from '@/hooks/react-query/user'
 import { getUserLocationPermissionsAPI } from '@/lib/services/rbacService'
 import type { UserItem } from '@/lib/types'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { notifyError, notifySuccess } from '@/utils/toast'
 
 type PermissionAction = 'view' | 'create' | 'update' | 'delete'
@@ -356,25 +357,29 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
             <Building2 className="w-4 h-4 text-blue-600" />
             Select Location / Property Scope
           </label>
-          <select
-            id="location-select"
+          <Select
             value={selectedPropertyId}
-            onChange={(e) => setSelectedPropertyId(e.target.value)}
+            onValueChange={(val) => setSelectedPropertyId(val)}
             disabled={userAssignedProperties.length === 0}
-            className="w-full sm:w-72 rounded-xl border border-gray-200 bg-white py-2.5 px-3.5 text-xs text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 font-semibold shadow-xs disabled:opacity-50 disabled:bg-gray-50 cursor-pointer"
           >
-            {userAssignedProperties.length > 0 ? (
-              userAssignedProperties.map((p) => (
-                <option key={p.id} value={p.id}>
+            <SelectTrigger
+              id="location-select"
+              className="w-full sm:w-72 rounded-xl border border-gray-200 bg-white py-2.5 px-3.5 text-xs text-gray-900 font-semibold shadow-xs disabled:opacity-50 disabled:bg-gray-50 h-auto"
+            >
+              <SelectValue
+                placeholder={
+                  userAssignedProperties.length > 0 ? 'Select Location' : 'No properties assigned to this user'
+                }
+              />
+            </SelectTrigger>
+            <SelectContent>
+              {userAssignedProperties.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
                   {p.property_name}
-                </option>
-              ))
-            ) : (
-              <option value="" disabled>
-                No properties assigned to this user
-              </option>
-            )}
-          </select>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

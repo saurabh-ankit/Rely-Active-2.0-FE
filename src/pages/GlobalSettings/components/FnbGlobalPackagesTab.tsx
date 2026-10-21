@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Plus,
   Edit2,
@@ -526,21 +527,27 @@ export function FnbGlobalPackagesTab() {
                     <label htmlFor="pkg-dietary-select" className="block text-xs font-semibold text-gray-700 mb-1">
                       Dietary Type
                     </label>
-                    <select
-                      id="pkg-dietary-select"
+                    <Select
                       value={dietaryType}
-                      onChange={(e) =>
-                        setDietaryType(e.target.value as 'veg' | 'non_veg' | 'egg' | 'jain' | 'mixed' | 'vegan')
+                      onValueChange={(val) =>
+                        setDietaryType(val as 'veg' | 'non_veg' | 'egg' | 'jain' | 'mixed' | 'vegan')
                       }
-                      className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390]"
                     >
-                      <option value="veg">Vegetarian</option>
-                      <option value="non_veg">Non-Vegetarian</option>
-                      <option value="egg">Eggitarian</option>
-                      <option value="jain">Jain</option>
-                      <option value="vegan">Vegan</option>
-                      <option value="mixed">Mixed / Choice</option>
-                    </select>
+                      <SelectTrigger
+                        id="pkg-dietary-select"
+                        className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] h-auto bg-white"
+                      >
+                        <SelectValue placeholder="Dietary Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="veg">Vegetarian</SelectItem>
+                        <SelectItem value="non_veg">Non-Vegetarian</SelectItem>
+                        <SelectItem value="egg">Eggitarian</SelectItem>
+                        <SelectItem value="jain">Jain</SelectItem>
+                        <SelectItem value="vegan">Vegan</SelectItem>
+                        <SelectItem value="mixed">Mixed / Choice</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div>

@@ -18,6 +18,7 @@ import { useLocationContext } from '@/hooks/useLocation'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { isHiddenFloor } from '@/utils/unitLabel'
 
 interface OrderDetail {
@@ -631,35 +632,37 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
           {/* Status Filter */}
           <div className="flex items-center gap-1.5">
             <Filter className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-xl bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
-            >
-              <option value="all">All Order Statuses</option>
-              <option value="placed">Placed</option>
-              <option value="accepted">Accepted</option>
-              <option value="preparing">Preparing</option>
-              <option value="ready">Food is Ready</option>
-              <option value="delivering_to_room">Delivering to Room</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+            <Select value={selectedStatus || 'all'} onValueChange={(val) => setSelectedStatus(val || 'all')}>
+              <SelectTrigger className="w-full px-3 py-1.5 h-auto text-xs font-medium border border-gray-200 rounded-xl bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]">
+                <SelectValue placeholder="All Order Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Order Statuses</SelectItem>
+                <SelectItem value="placed">Placed</SelectItem>
+                <SelectItem value="accepted">Accepted</SelectItem>
+                <SelectItem value="preparing">Preparing</SelectItem>
+                <SelectItem value="ready">Food is Ready</SelectItem>
+                <SelectItem value="delivering_to_room">Delivering to Room</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Type Filter */}
           <div className="flex items-center gap-1.5">
             <Utensils className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-            <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-xl bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
-            >
-              <option value="all">All Order Types</option>
-              <option value="personal">Personal Meal</option>
-              <option value="guest">Guest Meal</option>
-              <option value="special">Special Meal</option>
-            </select>
+            <Select value={selectedType || 'all'} onValueChange={(val) => setSelectedType(val || 'all')}>
+              <SelectTrigger className="w-full px-3 py-1.5 h-auto text-xs font-medium border border-gray-200 rounded-xl bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]">
+                <SelectValue placeholder="All Order Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Order Types</SelectItem>
+                <SelectItem value="personal">Personal Meal</SelectItem>
+                <SelectItem value="guest">Guest Meal</SelectItem>
+                <SelectItem value="special">Special Meal</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Date Filter */}
@@ -952,19 +955,23 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
 
                   <div className="flex items-center gap-1.5 border-l border-gray-200 pl-3">
                     <span className="text-gray-400 font-medium">Per page:</span>
-                    <select
-                      value={pageSize}
-                      onChange={(e) => {
-                        setPageSize(Number(e.target.value))
+                    <Select
+                      value={String(pageSize)}
+                      onValueChange={(val) => {
+                        setPageSize(Number(val))
                         setCurrentPage(1)
                       }}
-                      className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs font-bold text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#005390] cursor-pointer"
                     >
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
-                    </select>
+                      <SelectTrigger className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 h-auto text-xs font-bold text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#005390] cursor-pointer">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -1119,33 +1126,35 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                 <label htmlFor="select-delivery-staff" className="font-extrabold text-gray-700 block">
                   Select F&B Delivery Employee <span className="text-rose-500">*</span>
                 </label>
-                <select
-                  id="select-delivery-staff"
-                  value={selectedStaffId}
-                  onChange={(e) => setSelectedStaffId(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-semibold border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
-                >
-                  <option value="">-- Choose F&B Staff / Employee --</option>
-                  {staffList.map((item) => {
-                    const u = item as {
-                      id: string
-                      username?: string
-                      email?: string
-                      detail?: { firstName?: string; lastName?: string; employeeCode?: string }
-                      profile?: { firstName?: string; lastName?: string; employeeCode?: string }
-                    }
-                    const profileData = u.profile || u.detail
-                    const dName = profileData
-                      ? `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim()
-                      : u.username || u.email
-                    const code = profileData?.employeeCode ? ` (${profileData.employeeCode})` : ''
-                    return (
-                      <option key={u.id} value={u.id}>
-                        {dName || u.username || u.email} {code}
-                      </option>
-                    )
-                  })}
-                </select>
+                <Select value={selectedStaffId || undefined} onValueChange={(val) => setSelectedStaffId(val || '')}>
+                  <SelectTrigger
+                    id="select-delivery-staff"
+                    className="w-full px-3 py-2 h-auto text-xs font-semibold border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
+                  >
+                    <SelectValue placeholder="-- Choose F&B Staff / Employee --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {staffList.map((item) => {
+                      const u = item as {
+                        id: string
+                        username?: string
+                        email?: string
+                        detail?: { firstName?: string; lastName?: string; employeeCode?: string }
+                        profile?: { firstName?: string; lastName?: string; employeeCode?: string }
+                      }
+                      const profileData = u.profile || u.detail
+                      const dName = profileData
+                        ? `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim()
+                        : u.username || u.email
+                      const code = profileData?.employeeCode ? ` (${profileData.employeeCode})` : ''
+                      return (
+                        <SelectItem key={u.id} value={u.id}>
+                          {dName || u.username || u.email} {code}
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
                 {!selectedStaffId && (
                   <p className="text-[10px] text-rose-500 font-semibold">
                     An F&B employee must be selected for room delivery.

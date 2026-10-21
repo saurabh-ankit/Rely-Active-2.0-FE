@@ -45,7 +45,12 @@ function buildValueLabelMap(node: React.ReactNode, map: Map<unknown, string> = n
   return map
 }
 
-function Select({ children, value, defaultValue, ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) {
+function Select<Value = string, Multiple extends boolean | undefined = false>({
+  children,
+  value,
+  defaultValue,
+  ...props
+}: SelectPrimitive.Root.Props<Value, Multiple>) {
   const valueLabelMap = React.useMemo(() => {
     return buildValueLabelMap(children)
   }, [children])
