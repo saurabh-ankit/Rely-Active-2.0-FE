@@ -575,7 +575,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                 <Label htmlFor="careTaskName" className="block text-xs font-bold text-gray-700 mb-1">
                   1. Care Task Name <span className="text-rose-500">*</span>
                 </Label>
-                <input
+                <Input
                   id="careTaskName"
                   type="text"
                   {...register('careTaskName')}
@@ -676,7 +676,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
                       ₹
                     </span>
-                    <input
+                    <Input
                       id="care-task-price"
                       type="number"
                       min="0"

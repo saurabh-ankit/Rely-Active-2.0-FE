@@ -325,7 +325,7 @@ export default function GateManagementPage() {
             <option value="Expired">Status: Expired</option>
           </select>
 
-          <input
+          <Input
             type="date"
             value={dateFilter}
             onChange={(e) => {
@@ -933,7 +933,7 @@ export default function GateManagementPage() {
             <div className="space-y-3 max-h-60 overflow-y-auto mb-4 px-1">
               {items.map((item, idx) => (
                 <div key={idx} className="flex gap-2 items-center">
-                  <input
+                  <Input
                     type="text"
                     placeholder="Item Name"
                     value={item.itemName}
@@ -944,7 +944,7 @@ export default function GateManagementPage() {
                     }}
                     className="flex-1 p-2 border rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                   />
-                  <input
+                  <Input
                     type="number"
                     min="1"
                     value={item.quantity}

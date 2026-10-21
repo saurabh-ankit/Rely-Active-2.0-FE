@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import {
@@ -152,7 +153,7 @@ export function EventVenueServicesSelect({ services, selectedServices, onChange 
                   <div className="flex flex-col items-end gap-0.5">
                     <div className="flex items-center gap-1">
                       <span className="text-[10px] text-gray-500 font-medium">Qty</span>
-                      <input
+                      <Input
                         type="number"
                         min={1}
                         max={maxQty}

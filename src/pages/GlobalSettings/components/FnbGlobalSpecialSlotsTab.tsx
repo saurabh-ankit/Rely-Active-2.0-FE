@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useCallback, useEffect, useState } from 'react'
 import { Plus, Edit2, Trash2, X, Building2, CheckSquare, Square, Clock, IndianRupee } from 'lucide-react'
@@ -323,7 +324,7 @@ export default function FnbGlobalSpecialSlotsTab() {
                 <Label htmlFor="global-special-slot-name" className="block text-xs font-bold text-gray-700 mb-1">
                   Special Slot Name <span className="text-red-500">*</span>
                 </Label>
-                <input
+                <Input
                   id="global-special-slot-name"
                   type="text"
                   placeholder="e.g. Festival Special, Sunday Brunch, Chef Special"
@@ -340,7 +341,7 @@ export default function FnbGlobalSpecialSlotsTab() {
                 </Label>
                 <div className="relative">
                   <span className="absolute left-3 top-2 text-xs text-gray-400 font-bold">₹</span>
-                  <input
+                  <Input
                     id="global-special-slot-price"
                     type="number"
                     step="0.01"

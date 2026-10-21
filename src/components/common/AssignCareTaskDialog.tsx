@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import React, { useState, useMemo, useEffect } from 'react'
 import { createPortal } from 'react-dom'
@@ -230,7 +231,7 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
             {/* Search Input querying BE directly */}
             <div className="relative">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              <input
+              <Input
                 type="text"
                 value={taskSearchQuery}
                 onChange={(e) => setTaskSearchQuery(e.target.value)}
@@ -408,7 +409,7 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
                         )}
                       </div>
                     </div>
-                    <input
+                    <Input
                       type="time"
                       aria-label={`Time slot ${idx + 1}`}
                       value={slotTime}
@@ -435,7 +436,7 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
               >
                 Start Date <span className="text-rose-500">*</span>
               </Label>
-              <input
+              <Input
                 id="assign-start-date-input"
                 type="date"
                 value={startDate}
@@ -449,7 +450,7 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
               <Label htmlFor="assign-end-date-input" className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                 End Date <span className="text-gray-400 font-normal">(Optional — Lifetime if empty)</span>
               </Label>
-              <input
+              <Input
                 id="assign-end-date-input"
                 type="date"
                 min={startDate}
@@ -466,7 +467,7 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
               >
                 Instructions / Clinical Notes (Optional)
               </Label>
-              <input
+              <Input
                 id="assign-instructions-input"
                 type="text"
                 value={instructions}

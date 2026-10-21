@@ -1890,7 +1890,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                 >
                                   First Name <span className="text-red-500 font-bold">*</span>
                                 </Label>
-                                <input
+                                <Input
                                   id={`fm-first-name-${idx}`}
                                   type="text"
                                   placeholder="e.g. Ananya"
@@ -1913,7 +1913,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                 >
                                   Last Name
                                 </Label>
-                                <input
+                                <Input
                                   id={`fm-last-name-${idx}`}
                                   type="text"
                                   placeholder="e.g. Sharma"
@@ -1988,7 +1988,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                 >
                                   Date of Birth <span className="text-red-500 font-bold">*</span>
                                 </Label>
-                                <input
+                                <Input
                                   id={`fm-dob-input-${idx}`}
                                   type="date"
                                   {...register(`familyMembers.${idx}.dob`)}
@@ -2036,7 +2036,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                 >
                                   Mobile number <span className="text-red-500 font-bold">*</span>
                                 </Label>
-                                <input
+                                <Input
                                   id={`fm-phone-input-${idx}`}
                                   type="text"
                                   placeholder="e.g. 9876543210"
@@ -2058,7 +2058,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                 >
                                   Email <span className="text-red-500 font-bold">*</span>
                                 </Label>
-                                <input
+                                <Input
                                   id={`fm-email-input-${idx}`}
                                   type="email"
                                   placeholder="e.g. member@example.com"
@@ -2123,7 +2123,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                         >
                                           Username
                                         </Label>
-                                        <input
+                                        <Input
                                           id={`fm-username-input-${idx}`}
                                           type="text"
                                           placeholder="e.g. priya_101"
@@ -2285,7 +2285,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                       <span className="mb-1 block font-semibold text-gray-700">
                         Package start date <span className="text-rose-600">*</span>
                       </span>
-                      <input
+                      <Input
                         type="date"
                         {...register('carePackageStartDate')}
                         disabled={keepsCurrentCare}

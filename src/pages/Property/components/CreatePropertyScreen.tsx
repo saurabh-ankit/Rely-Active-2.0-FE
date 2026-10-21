@@ -1,4 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import React, { useState } from 'react'
 import { ArrowLeft, Building2, Home, Layers, MapPin, Plus, Sparkles, Trash2, X, Check } from 'lucide-react'
@@ -183,7 +184,7 @@ function InputField({
       <Label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
         {cleanLabel} {isReq && <span className="text-red-500 font-bold">*</span>}
       </Label>
-      <input
+      <Input
         {...props}
         className={`w-full rounded-xl border ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white px-3.5 py-2.5 text-xs text-gray-900 placeholder-gray-400 outline-none transition focus:ring-2 disabled:bg-gray-100 disabled:opacity-75`}
       />
@@ -1114,7 +1115,7 @@ export default function CreatePropertyScreen({
                             >
                               Available From (Optional)
                             </Label>
-                            <input
+                            <Input
                               id={availableFromId}
                               type="time"
                               value={amenity.availableFrom || ''}
@@ -1131,7 +1132,7 @@ export default function CreatePropertyScreen({
                             >
                               Available To (Optional)
                             </Label>
-                            <input
+                            <Input
                               id={availableToId}
                               type="time"
                               value={amenity.availableTo || ''}
@@ -1148,7 +1149,7 @@ export default function CreatePropertyScreen({
                 </div>
               )}
 
-              <input
+              <Input
                 type="text"
                 placeholder="Search amenities by name or description"
                 value={amenitySearch}
@@ -1599,7 +1600,7 @@ export default function CreatePropertyScreen({
                                   <tr>
                                     <td className="p-3 font-bold text-gray-900">{variant.type}</td>
                                     <td className="p-3">
-                                      <input
+                                      <Input
                                         type="number"
                                         min={0}
                                         aria-label={`${variant.type} carpet area`}
@@ -1618,7 +1619,7 @@ export default function CreatePropertyScreen({
                                       />
                                     </td>
                                     <td className="p-3">
-                                      <input
+                                      <Input
                                         type="number"
                                         min={0}
                                         aria-label={`${variant.type} super built-up area`}

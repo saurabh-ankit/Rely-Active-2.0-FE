@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
@@ -77,7 +78,7 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
                 return (
                   <tr key={unit.id ?? index}>
                     <td className="px-3 py-1.5">
-                      <input
+                      <Input
                         aria-label={`${unitName} number`}
                         value={unit.unit_number}
                         onChange={(e) => update(index, { unit_number: e.target.value })}
@@ -100,7 +101,7 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
                       </select>
                     </td>
                     <td className="px-3 py-1.5">
-                      <input
+                      <Input
                         aria-label="Area"
                         type="number"
                         min={0}
@@ -113,7 +114,7 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
                     </td>
                     {preset.attributes.map((a) => (
                       <td key={a.key} className="px-3 py-1.5">
-                        <input
+                        <Input
                           aria-label={a.label}
                           type="number"
                           min={0}
@@ -146,7 +147,7 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
           <Label htmlFor={`qa-prefix-${entity.name}`} className="text-[11px] text-gray-500">
             Number prefix
           </Label>
-          <input
+          <Input
             id={`qa-prefix-${entity.name}`}
             value={prefix}
             onChange={(e) => setPrefix(e.target.value)}
@@ -157,7 +158,7 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
           <Label htmlFor={`qa-count-${entity.name}`} className="text-[11px] text-gray-500">
             How many
           </Label>
-          <input
+          <Input
             id={`qa-count-${entity.name}`}
             type="number"
             min={1}
@@ -214,7 +215,7 @@ export function EntityUnitsEditor({ entity, onChange, numberCounts }: EntityUnit
                 <Label htmlFor={`floor-no-${index}`} className="text-[11px] text-gray-500">
                   {floorName} no.
                 </Label>
-                <input
+                <Input
                   id={`floor-no-${index}`}
                   type="number"
                   value={floor.floor_number}
@@ -226,7 +227,7 @@ export function EntityUnitsEditor({ entity, onChange, numberCounts }: EntityUnit
                 <Label htmlFor={`floor-name-${index}`} className="text-[11px] text-gray-500">
                   Name
                 </Label>
-                <input
+                <Input
                   id={`floor-name-${index}`}
                   value={floor.floor_name ?? ''}
                   placeholder={`${floorName} ${floor.floor_number}`}
@@ -282,7 +283,7 @@ export function EntityUnitsEditor({ entity, onChange, numberCounts }: EntityUnit
               <Label htmlFor={`block-name-${index}`} className="text-[11px] text-gray-500">
                 {blockName} name
               </Label>
-              <input
+              <Input
                 id={`block-name-${index}`}
                 value={block.block_name}
                 onChange={(e) => patchBlock(index, { block_name: e.target.value })}

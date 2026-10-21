@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
@@ -620,7 +621,7 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
           {/* Search Input */}
           <div className="relative">
             <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-2.5" />
-            <input
+            <Input
               type="text"
               placeholder="Search resident, unit, order ID..."
               value={searchQuery}
@@ -665,7 +666,7 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
 
           {/* Date Filter */}
           <div className="relative">
-            <input
+            <Input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
@@ -1143,7 +1144,7 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                   <Label htmlFor="delivery-charge-input" className="font-extrabold text-gray-700 block">
                     Set Room Delivery Charge (₹)
                   </Label>
-                  <input
+                  <Input
                     id="delivery-charge-input"
                     type="number"
                     min="0"
@@ -1212,7 +1213,7 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                   <Label htmlFor="proof-photo-input" className="font-extrabold text-gray-700 block">
                     Proof of Delivery Photo URL
                   </Label>
-                  <input
+                  <Input
                     id="proof-photo-input"
                     type="text"
                     value={proofPhotoInput}

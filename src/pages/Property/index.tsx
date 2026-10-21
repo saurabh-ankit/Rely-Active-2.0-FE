@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Building2, Edit, Eye, Layers, MapPin, Plus, Search, Trash2 } from 'lucide-react'
@@ -168,7 +169,7 @@ export default function PropertyPage() {
       {/* ── Search ────────────────────────────────────────────────────────── */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <input
+        <Input
           type="text"
           placeholder="Search by name or city..."
           value={search}

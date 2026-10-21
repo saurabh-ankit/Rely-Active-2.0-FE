@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import { Check } from 'lucide-react'
 import type { CarePackage } from '@/lib/types/medical'
 import { cn } from '@/lib/utils'
@@ -77,7 +78,7 @@ export function FamilyCarePackages({ packages, rows, onPick, onStartDate }: Fami
                     <span className="mb-1 block font-semibold text-gray-700">
                       Package start date <span className="text-rose-600">*</span>
                     </span>
-                    <input
+                    <Input
                       type="date"
                       value={row.startDate}
                       disabled={keepsCurrent}

@@ -641,7 +641,7 @@ export function VitalsTab() {
                       >
                         {getThresholdLabel(field, formData.name)}
                       </Label>
-                      <input
+                      <Input
                         id={`vital-threshold-${field}`}
                         type="number"
                         step="any"

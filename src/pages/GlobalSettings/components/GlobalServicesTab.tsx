@@ -646,7 +646,7 @@ export function GlobalServicesTab() {
                             <div className="flex items-center gap-2 pl-7">
                               <div className="flex items-center gap-1">
                                 <span className="text-gray-500 font-medium text-[10px]">Qty</span>
-                                <input
+                                <Input
                                   type="number"
                                   min="1"
                                   step="1"
@@ -659,7 +659,7 @@ export function GlobalServicesTab() {
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <span className="text-gray-500 font-medium">₹</span>
-                                <input
+                                <Input
                                   type="number"
                                   step="0.01"
                                   min="0"

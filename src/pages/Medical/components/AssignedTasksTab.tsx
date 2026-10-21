@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import React, { useMemo, useState } from 'react'
 import {
   Activity,
@@ -479,7 +480,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
         {/* Search */}
         <div className="relative min-w-[220px]">
           <Search className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-gray-400" />
-          <input
+          <Input
             type="text"
             placeholder={activeTab === 'COMPLETED' ? 'Search completed task or nurse...' : 'Search resident or task...'}
             value={searchTerm}

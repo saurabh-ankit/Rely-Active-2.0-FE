@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
@@ -455,7 +456,7 @@ export default function FnbGlobalMealSlotsTab() {
                     <Label htmlFor="global-meal-slot-name" className="block text-xs font-bold text-gray-700 mb-1">
                       Meal Slot Name <span className="text-red-500">*</span>
                     </Label>
-                    <input
+                    <Input
                       id="global-meal-slot-name"
                       type="text"
                       placeholder="e.g. Breakfast, Lunch, Mid Night Snacks"
@@ -474,7 +475,7 @@ export default function FnbGlobalMealSlotsTab() {
                       >
                         Start Time (24h)
                       </Label>
-                      <input
+                      <Input
                         id="global-meal-slot-start-time"
                         type="time"
                         value={formData.startTime}
@@ -487,7 +488,7 @@ export default function FnbGlobalMealSlotsTab() {
                       <Label htmlFor="global-meal-slot-end-time" className="block text-xs font-bold text-gray-700 mb-1">
                         End Time (24h)
                       </Label>
-                      <input
+                      <Input
                         id="global-meal-slot-end-time"
                         type="time"
                         value={formData.endTime}
@@ -509,7 +510,7 @@ export default function FnbGlobalMealSlotsTab() {
                     <Label htmlFor="global-meal-slot-price" className="block text-xs font-bold text-gray-700 mb-1">
                       Base Price (₹)
                     </Label>
-                    <input
+                    <Input
                       id="global-meal-slot-price"
                       type="number"
                       step="0.01"

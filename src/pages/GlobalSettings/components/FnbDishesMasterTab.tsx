@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import React, { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
@@ -626,7 +627,7 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                   <Label htmlFor="override-price-input" className="block text-xs font-semibold text-gray-700 mb-1">
                     Location Specific Price (₹) <span className="text-red-500 font-bold ml-0.5">*</span>
                   </Label>
-                  <input
+                  <Input
                     id="override-price-input"
                     type="number"
                     step="0.01"
@@ -702,7 +703,7 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                     <Label htmlFor="dish-name-input" className="block text-xs font-semibold text-gray-700 mb-1">
                       Dish Name <span className="text-red-500 font-bold ml-0.5">*</span>
                     </Label>
-                    <input
+                    <Input
                       id="dish-name-input"
                       type="text"
                       value={name}
@@ -756,7 +757,7 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                     <Label htmlFor="dish-base-price-input" className="block text-xs font-semibold text-gray-700 mb-1">
                       Base Price (₹) for A-La-Carte
                     </Label>
-                    <input
+                    <Input
                       id="dish-base-price-input"
                       type="number"
                       step="0.01"
@@ -772,7 +773,7 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                     <Label htmlFor="dish-desc-input" className="block text-xs font-semibold text-gray-700 mb-1">
                       Description / Ingredients
                     </Label>
-                    <input
+                    <Input
                       id="dish-desc-input"
                       type="text"
                       value={description}

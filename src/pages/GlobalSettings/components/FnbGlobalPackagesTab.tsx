@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
@@ -495,7 +496,7 @@ export function FnbGlobalPackagesTab() {
                       <Label htmlFor="pkg-name-input" className="block text-xs font-semibold text-gray-700 mb-1">
                         Package Name <span className="text-red-500 font-bold ml-0.5">*</span>
                       </Label>
-                      <input
+                      <Input
                         id="pkg-name-input"
                         type="text"
                         value={name}
@@ -510,7 +511,7 @@ export function FnbGlobalPackagesTab() {
                       <Label htmlFor="pkg-code-input" className="block text-xs font-semibold text-gray-700 mb-1">
                         Package Code <span className="text-red-500 font-bold ml-0.5">*</span>
                       </Label>
-                      <input
+                      <Input
                         id="pkg-code-input"
                         type="text"
                         value={code}
@@ -697,7 +698,7 @@ export function FnbGlobalPackagesTab() {
                             {pa.enabled && (
                               <div className="flex items-center gap-1.5">
                                 <span className="text-gray-500 font-medium">₹</span>
-                                <input
+                                <Input
                                   type="number"
                                   step="0.01"
                                   min="0"

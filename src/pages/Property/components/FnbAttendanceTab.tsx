@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   Calendar,
@@ -579,7 +580,7 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
 
             <div className="relative w-full sm:w-72">
               <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
+              <Input
                 type="text"
                 aria-label="Search residents"
                 placeholder="Search name, phone or flat…"
@@ -593,7 +594,7 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
           <Label className="flex w-fit items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2">
             <Calendar className="h-4 w-4 text-[#005390]" />
             <span className="sr-only">Date</span>
-            <input
+            <Input
               type="date"
               value={selectedDate}
               onChange={(e) => e.target.value && setSelectedDate(e.target.value)}

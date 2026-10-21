@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import React, { useState } from 'react'
 import { X, FileText, Upload, Check } from 'lucide-react'
 import apiClient from '@/lib/api/axios'
@@ -82,7 +83,7 @@ export function AddInvoiceModal({ isOpen, onClose, ticket, locationId, onSuccess
               <Label htmlFor="inv-number" className="block text-xs font-bold text-gray-700 mb-1">
                 Invoice Number
               </Label>
-              <input
+              <Input
                 id="inv-number"
                 type="text"
                 placeholder="e.g. INV-2026-001"
@@ -95,7 +96,7 @@ export function AddInvoiceModal({ isOpen, onClose, ticket, locationId, onSuccess
               <Label htmlFor="inv-amount" className="block text-xs font-bold text-gray-700 mb-1">
                 Total Amount (₹) *
               </Label>
-              <input
+              <Input
                 id="inv-amount"
                 type="number"
                 placeholder="0.00"
@@ -112,7 +113,7 @@ export function AddInvoiceModal({ isOpen, onClose, ticket, locationId, onSuccess
               <Label htmlFor="inv-material" className="block text-xs font-bold text-gray-700 mb-1">
                 Material Cost (₹)
               </Label>
-              <input
+              <Input
                 id="inv-material"
                 type="number"
                 placeholder="0.00"
@@ -125,7 +126,7 @@ export function AddInvoiceModal({ isOpen, onClose, ticket, locationId, onSuccess
               <Label htmlFor="inv-labor" className="block text-xs font-bold text-gray-700 mb-1">
                 Labor / Service Cost (₹)
               </Label>
-              <input
+              <Input
                 id="inv-labor"
                 type="number"
                 placeholder="0.00"

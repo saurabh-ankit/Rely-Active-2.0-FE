@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import React, { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Loader2, UserCheck, Stethoscope, Heart, Search, Trash2, AlertTriangle } from 'lucide-react'
@@ -331,7 +332,7 @@ const AssignCareTeamContent: React.FC<{
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-            <input
+            <Input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -345,7 +346,7 @@ const AssignCareTeamContent: React.FC<{
             <Label htmlFor="care-team-note" className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
               Note (optional)
             </Label>
-            <input
+            <Input
               id="care-team-note"
               type="text"
               value={note}

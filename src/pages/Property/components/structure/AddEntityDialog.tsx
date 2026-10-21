@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -83,7 +84,7 @@ export function AddEntityDialog({ onOpenChange, onCreate }: AddEntityDialogProps
             <Label htmlFor="entity-name" className="text-xs font-semibold text-gray-700">
               Name
             </Label>
-            <input
+            <Input
               id="entity-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -140,7 +141,7 @@ export function AddEntityDialog({ onOpenChange, onCreate }: AddEntityDialogProps
                   <Label htmlFor={`label-${level}`} className="text-[11px] text-gray-500">
                     {LEVEL_NAMES[level]}
                   </Label>
-                  <input
+                  <Input
                     id={`label-${level}`}
                     value={labels[level] ?? ''}
                     placeholder={LEVEL_NAMES[level]}

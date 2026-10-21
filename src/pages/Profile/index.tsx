@@ -357,7 +357,7 @@ export default function UserProfilePage() {
                     <Label htmlFor="page-profile-first-name" className="block text-xs font-bold text-gray-700 mb-1.5">
                       First Name <span className="text-red-500">*</span>
                     </Label>
-                    <input
+                    <Input
                       id="page-profile-first-name"
                       type="text"
                       {...registerFiltered('firstName', lettersOnly)}
@@ -376,7 +376,7 @@ export default function UserProfilePage() {
                     <Label htmlFor="page-profile-last-name" className="block text-xs font-bold text-gray-700 mb-1.5">
                       Last Name <span className="text-red-500">*</span>
                     </Label>
-                    <input
+                    <Input
                       id="page-profile-last-name"
                       type="text"
                       {...registerFiltered('lastName', lettersOnly)}
@@ -396,7 +396,7 @@ export default function UserProfilePage() {
                       Email Address <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative">
-                      <input
+                      <Input
                         id="page-profile-email"
                         type="email"
                         {...register('email')}
@@ -416,7 +416,7 @@ export default function UserProfilePage() {
                       Phone Number <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative">
-                      <input
+                      <Input
                         id="page-profile-phone"
                         type="text"
                         {...register('phone')}

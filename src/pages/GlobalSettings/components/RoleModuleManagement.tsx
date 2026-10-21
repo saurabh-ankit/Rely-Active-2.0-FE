@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
@@ -454,7 +455,7 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
         {/* Toolbar */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-2">
-            <input
+            <Input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}

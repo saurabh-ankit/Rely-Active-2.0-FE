@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -705,7 +706,7 @@ export function FnbPropertySettingsScreen({
 
             <div className="relative w-full sm:w-80">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
+              <Input
                 type="text"
                 placeholder="Search flat number, resident, or package (debounced)..."
                 value={searchQuery}
@@ -1656,7 +1657,7 @@ export function FnbPropertySettingsScreen({
                     <Label htmlFor="slot-start-time" className="font-bold text-gray-700 block mb-1">
                       Start Time (24h)
                     </Label>
-                    <input
+                    <Input
                       id="slot-start-time"
                       type="time"
                       required
@@ -1669,7 +1670,7 @@ export function FnbPropertySettingsScreen({
                     <Label htmlFor="slot-end-time" className="font-bold text-gray-700 block mb-1">
                       End Time (24h)
                     </Label>
-                    <input
+                    <Input
                       id="slot-end-time"
                       type="time"
                       required
@@ -1694,7 +1695,7 @@ export function FnbPropertySettingsScreen({
                   <Label htmlFor="slot-price" className="font-bold text-gray-700 block mb-1">
                     Property Override Price (₹)
                   </Label>
-                  <input
+                  <Input
                     id="slot-price"
                     type="number"
                     step="0.01"
@@ -1768,7 +1769,7 @@ export function FnbPropertySettingsScreen({
                   <Label htmlFor="monthly-price-input" className="block text-xs font-semibold text-gray-700 mb-1">
                     Monthly Package Price (₹) <span className="text-red-500 font-bold ml-0.5">*</span>
                   </Label>
-                  <input
+                  <Input
                     id="monthly-price-input"
                     type="number"
                     step="0.01"
@@ -1897,7 +1898,7 @@ export function FnbPropertySettingsScreen({
                   <Label htmlFor="change-notes-input" className="block text-xs font-semibold text-gray-700 mb-1">
                     Allergies & Special Instructions
                   </Label>
-                  <input
+                  <Input
                     id="change-notes-input"
                     type="text"
                     value={changeNotes}
@@ -1962,7 +1963,7 @@ export function FnbPropertySettingsScreen({
                   </Label>
                   <div className="relative">
                     <span className="absolute left-3 top-2 text-xs text-gray-400 font-bold">₹</span>
-                    <input
+                    <Input
                       id="special-slot-price"
                       type="number"
                       step="0.01"

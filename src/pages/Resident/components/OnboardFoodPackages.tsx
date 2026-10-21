@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import { useQuery } from '@tanstack/react-query'
 import { Check, RefreshCw, Utensils } from 'lucide-react'
 import api from '@/lib/api/axios'
@@ -217,7 +218,7 @@ export function OnboardFoodPackages({ locId, people, value, onChange, existing =
                       <span className="mb-1 block text-[11px] font-semibold text-gray-600">
                         Start date <span className="text-rose-600">*</span>
                       </span>
-                      <input
+                      <Input
                         type="date"
                         required
                         value={choice.startDate}

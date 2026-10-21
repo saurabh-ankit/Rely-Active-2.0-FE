@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import React, { useMemo, useState } from 'react'
 import {
   AlertCircle,
@@ -197,7 +198,7 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
 
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
+          <Input
             type="text"
             placeholder="Search by resident name or flat..."
             value={searchTerm}

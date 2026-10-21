@@ -727,7 +727,7 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                   <Label htmlFor="packageName" className="block text-xs font-bold text-gray-700 mb-1.5">
                     1. Package Name <span className="text-red-500">*</span>
                   </Label>
-                  <input
+                  <Input
                     id="packageName"
                     type="text"
                     {...register('packageName')}
@@ -748,7 +748,7 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                     </Label>
                     <div className="relative">
                       <ReceiptIndianRupee className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input
+                      <Input
                         id="packageCost"
                         type="number"
                         step="0.01"
@@ -813,7 +813,7 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                   <div className="rounded-2xl border border-gray-200 p-3 bg-gray-50/50 dark:border-gray-800 dark:bg-slate-900/50">
                     <div className="relative mb-2.5">
                       <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input
+                      <Input
                         type="text"
                         value={taskSearchQuery}
                         onChange={(e) => setTaskSearchQuery(e.target.value)}
@@ -917,7 +917,7 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                                         >
                                           <Minus className="w-3 h-3" />
                                         </button>
-                                        <input
+                                        <Input
                                           type="number"
                                           min="1"
                                           max="999"

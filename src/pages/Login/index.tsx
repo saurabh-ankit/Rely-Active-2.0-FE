@@ -8,6 +8,7 @@ import { getCompaniesAPI } from '@/lib/services/companyService'
 import { notifyError, notifySuccess } from '@/utils/toast'
 
 import { getDepartmentManagerType, getDepartmentManagerDefaultRoute } from '@/utils/departmentManager'
+import { Input } from '@/components/ui/input'
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -98,7 +99,7 @@ export default function LoginPage() {
               Username
             </span>
             <div className="relative">
-              <input
+              <Input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -116,7 +117,7 @@ export default function LoginPage() {
               Password
             </span>
             <div className="relative">
-              <input
+              <Input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
