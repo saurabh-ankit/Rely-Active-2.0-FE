@@ -42,6 +42,20 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401) {
+      localStorage.removeItem('rely_auth_token')
+      localStorage.removeItem('rely-active-user-storage')
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
+    }
+    return Promise.reject(error)
+  },
+)
+
 export const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('rely_auth_token')
   const locationId = localStorage.getItem('rely_active_property_id')

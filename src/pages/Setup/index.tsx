@@ -3,16 +3,19 @@ import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AlertCircle, Building2, Plus, Trash2, Upload, X } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { CustomFieldItem } from '@/pages/Company/components/EditCompanyModal'
 import { TEXT_LIBRARY } from '@/lib/constants/textLibrary'
-import { getCompaniesAPI, saveCompanyFormDataAPI } from '@/lib/services/companyService'
+import { saveCompanyFormDataAPI } from '@/lib/services/companyService'
+import { useCompaniesQuery, COMPANY_KEYS } from '@/hooks/react-query/company'
 import { companySchema, type CompanyFormValues } from '@/pages/Company'
 
 export default function SetupPage() {
   const navigate = useNavigate()
-  const [isChecking, setIsChecking] = useState(true)
+  const queryClient = useQueryClient()
+  const { data: companies, isLoading: isChecking } = useCompaniesQuery()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -44,26 +47,10 @@ export default function SetupPage() {
   })
 
   useEffect(() => {
-    let isMounted = true
-
-    getCompaniesAPI()
-      .then((companies) => {
-        if (!isMounted) return
-        if (companies.length > 0) {
-          navigate('/dashboard', { replace: true })
-        }
-      })
-      .catch((err) => {
-        console.warn('Initial setup check note:', err?.message || err)
-      })
-      .finally(() => {
-        if (isMounted) setIsChecking(false)
-      })
-
-    return () => {
-      isMounted = false
+    if (Array.isArray(companies) && companies.length > 0) {
+      navigate('/dashboard', { replace: true })
     }
-  }, [navigate])
+  }, [companies, navigate])
 
   const onSubmit = async (values: CompanyFormValues) => {
     setErrorMessage(null)
@@ -100,6 +87,7 @@ export default function SetupPage() {
       formData.append('customFields', JSON.stringify(customFields))
 
       await saveCompanyFormDataAPI(formData)
+      await queryClient.invalidateQueries({ queryKey: COMPANY_KEYS.all })
 
       navigate('/dashboard', { replace: true })
     } catch (error) {
