@@ -11,6 +11,8 @@ import type {
   ResidentClinicalData,
   ResidentClinicalMutationResponse,
   ResidentDocumentItem,
+  ResidentFluidBalancePayload,
+  ResidentFluidBalanceUpdatePayload,
   ResidentItem,
   ResidentLabReportItem,
   ResidentMedicationPayload,
@@ -301,6 +303,55 @@ export const useDeleteResidentAllergyMutation = (residentId: string) =>
     RESIDENT_KEYS.clinical(residentId),
     (id: string) => residentService.deleteResidentAllergy(residentId, id),
     { success: 'Allergy deleted successfully', error: 'Failed to delete allergy' },
+  )
+
+export const useCreateResidentFluidBalanceMutation = (residentId: string) =>
+  useResidentClinicalMutation(
+    residentId,
+    RESIDENT_KEYS.clinical(residentId),
+    (payload: ResidentFluidBalancePayload) => residentService.createResidentFluidBalance(residentId, payload),
+    { success: 'Fluid balance saved successfully', error: 'Failed to save fluid balance' },
+  )
+
+export const useUpdateResidentFluidBalanceMutation = (residentId: string) =>
+  useResidentClinicalMutation(
+    residentId,
+    RESIDENT_KEYS.clinical(residentId),
+    ({ id, payload }: UpdateVariables<ResidentFluidBalanceUpdatePayload>) =>
+      residentService.updateResidentFluidBalance(residentId, id, payload),
+    { success: 'Fluid balance updated successfully', error: 'Failed to update fluid balance' },
+  )
+
+export const useDeleteResidentFluidBalanceMutation = (residentId: string) =>
+  useResidentClinicalMutation(
+    residentId,
+    RESIDENT_KEYS.clinical(residentId),
+    (id: string) => residentService.deleteResidentFluidBalance(residentId, id),
+    { success: 'Fluid balance deleted successfully', error: 'Failed to delete fluid balance' },
+  )
+
+export const useCreateResidentIncidentMutation = (residentId: string) =>
+  useResidentClinicalMutation(
+    residentId,
+    RESIDENT_KEYS.clinical(residentId),
+    (data: FormData) => residentService.createResidentIncident(residentId, data),
+    { success: 'Incident added successfully', error: 'Failed to add incident' },
+  )
+
+export const useUpdateResidentIncidentMutation = (residentId: string) =>
+  useResidentClinicalMutation(
+    residentId,
+    RESIDENT_KEYS.clinical(residentId),
+    ({ id, payload }: UpdateVariables<FormData>) => residentService.updateResidentIncident(residentId, id, payload),
+    { success: 'Incident updated successfully', error: 'Failed to update incident' },
+  )
+
+export const useDeleteResidentIncidentMutation = (residentId: string) =>
+  useResidentClinicalMutation(
+    residentId,
+    RESIDENT_KEYS.clinical(residentId),
+    (id: string) => residentService.deleteResidentIncident(residentId, id),
+    { success: 'Incident deleted successfully', error: 'Failed to delete incident' },
   )
 
 export const useCreateResidentLabReportMutation = (residentId: string) =>

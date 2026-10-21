@@ -323,6 +323,113 @@ export interface ResidentAllergyPayload {
   recordedAt: string
 }
 
+export type FluidBalanceCategory = 'INTAKE' | 'OUTPUT' | 'BOWEL'
+export type FluidIntakeType = 'oral_ng' | 'nasal_feed' | 'iv_fluids'
+export type FluidOutputType = 'urine' | 'vomit_drain'
+export type FluidUnit = 'ml' | 'l'
+export type IvFluidType = 'ns' | 'ns_with_injection' | 'dns' | 'rl' | 'd5' | 'd25'
+export type StoolType = 'hard' | 'normal' | 'loose'
+export type BowelComfortLevel = 'easy' | 'strained' | 'painful'
+
+export interface FluidIntakePayload {
+  type: FluidIntakeType
+  ivFluidType?: IvFluidType | null
+  description?: string | null
+  quantity: number
+  unit: FluidUnit
+}
+
+export interface FluidOutputPayload {
+  type: FluidOutputType
+  quantity: number
+  unit: FluidUnit
+  collectedBy?: string | null
+}
+
+export interface ResidentFluidBalancePayload {
+  recordedAt?: string | null
+  intakes: FluidIntakePayload[]
+  outputs: FluidOutputPayload[]
+  bowel: {
+    stoolType: StoolType
+    comfortLevel: BowelComfortLevel
+    note: string | null
+  } | null
+}
+
+export interface ResidentFluidBalanceUpdatePayload {
+  recordedAt?: string | null
+  type?: string | null
+  ivFluidType?: IvFluidType | null
+  description?: string | null
+  quantity?: number
+  unit?: FluidUnit
+  collectedBy?: string | null
+  stoolType?: StoolType | null
+  comfortLevel?: BowelComfortLevel | null
+  note?: string | null
+}
+
+export interface ResidentFluidBalanceItem {
+  id: string
+  batchId: string
+  category: FluidBalanceCategory
+  fluidType: string | null
+  ivFluidType: IvFluidType | null
+  description: string | null
+  collectedBy: string | null
+  quantity: number | null
+  unit: FluidUnit | null
+  quantityMl: number | null
+  stoolType: StoolType | null
+  comfortLevel: BowelComfortLevel | null
+  note: string | null
+  recordedAt: string
+  createdByName: string | null
+  createdAt: string | null
+}
+
+export type IncidentType = 'fall_injury' | 'skin_wound' | 'behavior' | 'env_temp' | 'bathroom' | 'refusal' | 'other'
+
+export type IncidentSeverity = 'low' | 'moderate' | 'high' | 'critical'
+
+export interface IncidentFile {
+  id: string
+  url: string
+  name: string
+  contentType?: string
+}
+
+export interface IncidentSopSummary {
+  total: number
+  completed: number
+  mandatoryTotal: number
+  mandatoryCompleted: number
+  isComplete: boolean
+}
+
+export interface ResidentIncidentItem {
+  id: string
+  incidentType: IncidentType
+  severity: IncidentSeverity
+  incidentAt: string
+  notes: string | null
+  photos: IncidentFile[]
+  voiceNotes: IncidentFile[]
+  reportedByName: string | null
+  createdAt: string | null
+  sop: IncidentSopSummary | null
+}
+
+export interface ResidentIncidentFormValues {
+  incidentType: IncidentType
+  severity: IncidentSeverity
+  incidentAt: string
+  notes: string
+  photos: File[]
+  voiceNote: File | null
+}
+
 export interface LocationMedicineOption {
   id: string
   name: string
@@ -346,12 +453,23 @@ export interface ResidentClinicalData {
   vitals: ResidentVitalItem[]
   medications: ResidentMedicationItem[]
   insulin: ResidentMedicationItem[]
+  fluidBalances: ResidentFluidBalanceItem[]
+  incidents: ResidentIncidentItem[]
   doctorNotes: ResidentDoctorNote[]
   currentCondition: ResidentCurrentCondition | null
 }
 
 export type ResidentTimelineEventType =
-  'allergy' | 'vital' | 'medication' | 'insulin' | 'lab' | 'appointment' | 'care_task' | 'condition'
+  | 'allergy'
+  | 'vital'
+  | 'medication'
+  | 'insulin'
+  | 'lab'
+  | 'appointment'
+  | 'care_task'
+  | 'condition'
+  | 'incident'
+  | 'fluid_balance'
 
 export interface ResidentTimelineEvent {
   id: string

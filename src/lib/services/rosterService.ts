@@ -127,6 +127,10 @@ export interface UpdateEmployeeShiftPayload {
   workingDays?: WeekDay[]
   slotTimeRange?: string | null
   notes?: string | null
+  areaId?: string | null
+  unitId?: string | null
+  blockId?: string | null
+  floorId?: string | null
 }
 
 export const updateEmployeeShiftAPI = async (

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  checkPropertyNameAPI,
   createPropertyAPI,
   deletePropertyAPI,
   getPropertiesAPI,
@@ -11,7 +12,15 @@ import type { CreatePropertyPayload } from '@/lib/types'
 export const PROPERTY_KEYS = {
   all: (companyId?: string) => ['property', companyId] as const,
   byId: (id?: string) => ['property', 'detail', id] as const,
+  nameAvailability: (name: string, excludeId?: string) => ['property', 'name-availability', name, excludeId] as const,
 }
+
+export const usePropertyNameAvailability = (name: string, excludeId?: string) =>
+  useQuery({
+    queryKey: PROPERTY_KEYS.nameAvailability(name, excludeId),
+    queryFn: () => checkPropertyNameAPI(name, excludeId),
+    enabled: name.trim().length >= 2,
+  })
 
 export const usePropertiesQuery = (companyId?: string) => {
   return useQuery({

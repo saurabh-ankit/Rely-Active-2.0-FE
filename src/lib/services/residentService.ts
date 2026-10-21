@@ -12,6 +12,10 @@ import type {
   ResidentClinicalMutationResponse,
   ResidentCurrentCondition,
   ResidentDocumentItem,
+  ResidentFluidBalanceItem,
+  ResidentFluidBalancePayload,
+  ResidentFluidBalanceUpdatePayload,
+  ResidentIncidentItem,
   ResidentItem,
   ResidentLabReportItem,
   ResidentMedicationItem,
@@ -185,7 +189,18 @@ export const removeCareTeamMemberAPI = async (residentId: string, memberId: stri
 
 export const getResidentClinicalAPI = async (residentId: string): Promise<ResidentClinicalData> => {
   const response = await api.get(API_ENDPOINTS.resident.clinical(residentId))
-  return response.data?.data || response.data
+  const data = (response.data?.data || response.data) as ResidentClinicalData
+  return {
+    ...data,
+    allergies: data?.allergies ?? [],
+    vitals: data?.vitals ?? [],
+    medications: data?.medications ?? [],
+    insulin: data?.insulin ?? [],
+    fluidBalances: data?.fluidBalances ?? [],
+    incidents: data?.incidents ?? [],
+    doctorNotes: data?.doctorNotes ?? [],
+    currentCondition: data?.currentCondition ?? null,
+  }
 }
 
 export const updateResidentConditionAPI = async (
@@ -342,6 +357,56 @@ export const deleteResidentAllergyAPI = async (
   return response.data
 }
 
+export const createResidentFluidBalanceAPI = async (
+  residentId: string,
+  payload: ResidentFluidBalancePayload,
+): Promise<ResidentClinicalMutationResponse<{ batchId: string; entries: ResidentFluidBalanceItem[] }>> => {
+  const response = await api.post(API_ENDPOINTS.resident.fluidBalance(residentId), payload)
+  return response.data
+}
+
+export const updateResidentFluidBalanceAPI = async (
+  residentId: string,
+  id: string,
+  payload: ResidentFluidBalanceUpdatePayload,
+): Promise<ResidentClinicalMutationResponse<ResidentFluidBalanceItem>> => {
+  const response = await api.put(API_ENDPOINTS.resident.fluidBalanceItem(residentId, id), payload)
+  return response.data
+}
+
+export const deleteResidentFluidBalanceAPI = async (
+  residentId: string,
+  id: string,
+): Promise<ResidentClinicalMutationResponse> => {
+  const response = await api.delete(API_ENDPOINTS.resident.fluidBalanceItem(residentId, id))
+  return response.data
+}
+
+export const createResidentIncidentAPI = async (
+  residentId: string,
+  data: FormData,
+): Promise<ResidentClinicalMutationResponse<ResidentIncidentItem>> => {
+  const response = await api.post(API_ENDPOINTS.resident.incidents(residentId), data, { timeout: 60_000 })
+  return response.data
+}
+
+export const updateResidentIncidentAPI = async (
+  residentId: string,
+  id: string,
+  data: FormData,
+): Promise<ResidentClinicalMutationResponse<ResidentIncidentItem>> => {
+  const response = await api.put(API_ENDPOINTS.resident.incident(residentId, id), data, { timeout: 60_000 })
+  return response.data
+}
+
+export const deleteResidentIncidentAPI = async (
+  residentId: string,
+  id: string,
+): Promise<ResidentClinicalMutationResponse> => {
+  const response = await api.delete(API_ENDPOINTS.resident.incident(residentId, id))
+  return response.data
+}
+
 export const getResidentDocumentsAPI = async (residentId: string): Promise<ResidentDocumentItem[]> => {
   const response = await api.get(API_ENDPOINTS.resident.documents(residentId))
   return response.data?.data || response.data
@@ -426,6 +491,12 @@ export const residentService = {
   createResidentAllergy: createResidentAllergyAPI,
   updateResidentAllergy: updateResidentAllergyAPI,
   deleteResidentAllergy: deleteResidentAllergyAPI,
+  createResidentFluidBalance: createResidentFluidBalanceAPI,
+  updateResidentFluidBalance: updateResidentFluidBalanceAPI,
+  deleteResidentFluidBalance: deleteResidentFluidBalanceAPI,
+  createResidentIncident: createResidentIncidentAPI,
+  updateResidentIncident: updateResidentIncidentAPI,
+  deleteResidentIncident: deleteResidentIncidentAPI,
   getResidentDocuments: getResidentDocumentsAPI,
   createResidentDocument: createResidentDocumentAPI,
   getResidentNokContacts: getResidentNokContactsAPI,

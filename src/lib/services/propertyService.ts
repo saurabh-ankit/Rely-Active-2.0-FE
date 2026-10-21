@@ -18,6 +18,16 @@ export const createPropertyAPI = async (payload: CreatePropertyPayload): Promise
   return response.data?.data || response.data
 }
 
+export const checkPropertyNameAPI = async (
+  name: string,
+  excludePropertyId?: string,
+): Promise<{ available: boolean }> => {
+  const response = await api.get(API_ENDPOINTS.property.nameAvailability, {
+    params: { name, excludePropertyId },
+  })
+  return response.data?.data || response.data
+}
+
 export const updatePropertyAPI = async (id: string, payload: Partial<CreatePropertyPayload>): Promise<Property> => {
   const response = await api.put(API_ENDPOINTS.property.update(id), payload)
   return response.data?.data || response.data

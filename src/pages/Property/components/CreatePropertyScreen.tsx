@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { useState } from 'react'
+import { isAxiosError } from 'axios'
 import { ArrowLeft, Building2, Home, Layers, MapPin, Plus, Sparkles, Trash2, X, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AddEntityDialog } from './structure/AddEntityDialog'
@@ -35,7 +36,11 @@ import { createPropertyAPI, getPropertyByIdAPI, updatePropertyAPI } from '@/lib/
 import { getAmenitiesAPI, type Amenity } from '@/lib/services/amenityService'
 import { CommonProgressBar, type ProgressBarStep } from '@/components/common/CommonProgressBar'
 import { notifyError } from '@/utils/toast'
+import { useDebounce } from '@/hooks/useDebounce'
+import { usePropertyNameAvailability } from '@/hooks/react-query/property'
 import { z } from 'zod'
+
+const PROPERTY_NAME_EXISTS_MESSAGE = 'This property name already exists'
 
 export const PINCODE_REGEX = /^[1-9][0-9]{5}$/
 
@@ -267,6 +272,17 @@ export default function CreatePropertyScreen({
   const [selectedAmenities, setSelectedAmenities] = useState<SelectedAmenity[]>([])
   const [amenityCatalog, setAmenityCatalog] = useState<Amenity[]>([])
   const [amenitySearch, setAmenitySearch] = useState('')
+
+  const debouncedPropertyName = useDebounce(propertyName.trim(), 300)
+  const nameAvailability = usePropertyNameAvailability(debouncedPropertyName, editPropertyId ?? undefined)
+  const propertyNameTaken =
+    debouncedPropertyName.length >= 2 &&
+    debouncedPropertyName === propertyName.trim() &&
+    nameAvailability.data?.available === false
+  const propertyNameCheckPending =
+    propertyName.trim().length >= 2 &&
+    (debouncedPropertyName !== propertyName.trim() || nameAvailability.isFetching || nameAvailability.isLoading)
+  const propertyNameError = propertyNameTaken ? PROPERTY_NAME_EXISTS_MESSAGE : undefined
 
   // Step 2 – Address
   const [street, setStreet] = useState('')
@@ -738,6 +754,14 @@ export default function CreatePropertyScreen({
         setError(res.error.issues[0]?.message || 'Invalid property details')
         return false
       }
+      if (propertyNameCheckPending) {
+        setError('Checking property name availability…')
+        return false
+      }
+      if (propertyNameTaken) {
+        setError(PROPERTY_NAME_EXISTS_MESSAGE)
+        return false
+      }
     } else if (step === 2) {
       const res = propertyAddressSchema.safeParse({
         street,
@@ -799,6 +823,14 @@ export default function CreatePropertyScreen({
 
   const handleSubmit = async () => {
     if (!validateStep()) return
+    if (propertyNameCheckPending) {
+      setError('Checking property name availability…')
+      return
+    }
+    if (propertyNameTaken) {
+      setError(PROPERTY_NAME_EXISTS_MESSAGE)
+      return
+    }
     setError(null)
     setIsSubmitting(true)
     try {
@@ -946,7 +978,13 @@ export default function CreatePropertyScreen({
       onSuccess()
       onBack()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong')
+      const apiMessage =
+        isAxiosError<{ message?: string }>(e) && typeof e.response?.data?.message === 'string'
+          ? e.response.data.message
+          : e instanceof Error
+            ? e.message
+            : 'Something went wrong'
+      setError(apiMessage)
     } finally {
       setIsSubmitting(false)
     }
@@ -1002,7 +1040,13 @@ export default function CreatePropertyScreen({
               required
               placeholder="e.g. Green Valley Residency"
               value={propertyName}
-              onChange={(e) => setPropertyName(e.target.value)}
+              onChange={(e) => {
+                setPropertyName(e.target.value)
+                if (error === PROPERTY_NAME_EXISTS_MESSAGE || error === 'Checking property name availability…') {
+                  setError(null)
+                }
+              }}
+              error={propertyNameError}
             />
 
             <div className="space-y-1.5">

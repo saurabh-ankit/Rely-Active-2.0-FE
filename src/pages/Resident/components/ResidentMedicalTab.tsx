@@ -1,5 +1,16 @@
 import React, { useState } from 'react'
-import { Activity, AlertTriangle, FileText, FlaskConical, HeartPulse, History, Pill, Stethoscope } from 'lucide-react'
+import {
+  Activity,
+  AlertTriangle,
+  Droplets,
+  FileText,
+  FlaskConical,
+  HeartPulse,
+  History,
+  Pill,
+  Stethoscope,
+  TriangleAlert,
+} from 'lucide-react'
 import type { ResidentItem } from '@/lib/types'
 import { ResponsiveTabs, type TabItem } from '@/components/common/ResponsiveTabs'
 import { useResidentClinicalQuery, useResidentLabReportsQuery } from '@/hooks/react-query/resident'
@@ -8,6 +19,8 @@ import { VitalsTab } from './medical/VitalsTab'
 import { CareTaskTab } from './medical/CareTaskTab'
 import { LabReportsTab } from './medical/LabReportsTab'
 import { AllergiesTab } from './medical/AllergiesTab'
+import { FluidBalanceTab } from './medical/FluidBalanceTab'
+import { IncidentsTab } from './medical/IncidentsTab'
 import { TimelineTab } from './medical/TimelineTab'
 import { DoctorSuggestionsTab } from './medical/DoctorSuggestionsTab'
 import { DocumentsTab } from './medical/DocumentsTab'
@@ -21,7 +34,16 @@ export interface ResidentMedicalTabProps {
 }
 
 type MedicalSubTab =
-  'medication' | 'vitals' | 'care-task' | 'lab-reports' | 'allergies' | 'timeline' | 'doctor-suggestions' | 'documents'
+  | 'medication'
+  | 'vitals'
+  | 'care-task'
+  | 'lab-reports'
+  | 'allergies'
+  | 'fluid-balance'
+  | 'incidents'
+  | 'timeline'
+  | 'doctor-suggestions'
+  | 'documents'
 
 export const ResidentMedicalTab: React.FC<ResidentMedicalTabProps> = ({
   resident,
@@ -121,6 +143,40 @@ export const ResidentMedicalTab: React.FC<ResidentMedicalTabProps> = ({
             residentId={resident.id}
             canUpdateResident={canUpdateResident}
             allergies={clinical?.allergies ?? []}
+            isLoading={isClinicalLoading}
+          />
+        </>
+      ),
+    },
+    {
+      value: 'fluid-balance',
+      label: 'Fluid Balance',
+      shortLabel: 'Fluid',
+      icon: Droplets,
+      content: (
+        <>
+          {clinicalError}
+          <FluidBalanceTab
+            residentId={resident.id}
+            canUpdateResident={canUpdateResident}
+            fluidBalances={clinical?.fluidBalances ?? []}
+            isLoading={isClinicalLoading}
+          />
+        </>
+      ),
+    },
+    {
+      value: 'incidents',
+      label: 'Incident',
+      shortLabel: 'Incident',
+      icon: TriangleAlert,
+      content: (
+        <>
+          {clinicalError}
+          <IncidentsTab
+            residentId={resident.id}
+            canUpdateResident={canUpdateResident}
+            incidents={clinical?.incidents ?? []}
             isLoading={isClinicalLoading}
           />
         </>

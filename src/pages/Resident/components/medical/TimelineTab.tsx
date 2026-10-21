@@ -2,10 +2,12 @@ import React, { useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import {
   Activity,
+  AlertOctagon,
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
   Clock,
+  Droplets,
   ExternalLink,
   FlaskConical,
   HeartPulse,
@@ -74,6 +76,18 @@ const TYPE_STYLES: Record<ResidentTimelineEventType, { label: string; icon: Luci
       dot: 'bg-pink-600',
       badge: 'border-pink-200 bg-pink-50 text-pink-700',
     },
+    incident: {
+      label: 'Incident',
+      icon: AlertOctagon,
+      dot: 'bg-orange-600',
+      badge: 'border-orange-200 bg-orange-50 text-orange-700',
+    },
+    fluid_balance: {
+      label: 'Fluid Balance',
+      icon: Droplets,
+      dot: 'bg-cyan-600',
+      badge: 'border-cyan-200 bg-cyan-50 text-cyan-700',
+    },
   }
 
 const TYPE_FILTERS: Array<{ value: ResidentTimelineEventType; label: string }> = [
@@ -85,6 +99,8 @@ const TYPE_FILTERS: Array<{ value: ResidentTimelineEventType; label: string }> =
   { value: 'allergy', label: 'Allergies' },
   { value: 'care_task', label: 'Care Tasks' },
   { value: 'condition', label: 'Condition' },
+  { value: 'incident', label: 'Incidents' },
+  { value: 'fluid_balance', label: 'Fluid Balance' },
 ]
 
 const PAGE_SIZE = 25

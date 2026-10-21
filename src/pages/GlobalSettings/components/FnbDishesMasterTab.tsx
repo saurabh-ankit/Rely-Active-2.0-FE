@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import {
   Plus,
   Edit2,
+  Trash2,
   Utensils,
   AlertCircle,
   Upload,
@@ -19,7 +20,7 @@ import {
 import api from '@/lib/api/axios'
 import { getPropertiesAPI } from '@/lib/services/propertyService'
 import { useLocationContext } from '@/hooks/useLocation'
-import { notifySuccess } from '@/utils/toast'
+import { notifyError, notifySuccess } from '@/utils/toast'
 import { useScrollLock } from '@/hooks/useScrollLock'
 
 const DISH_CATEGORIES = [
@@ -57,6 +58,7 @@ export interface Dish {
   basePrice: number
   imageUrl?: string
   isActive: boolean
+  isUsedInResidentMeal?: boolean
   propertyDishes?: PropertyDish[]
 }
 
@@ -76,6 +78,7 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
   const { hasResourcePermission } = useLocationContext()
   const canCreateFnb = hasResourcePermission('FNB', 'create')
   const canUpdateFnb = hasResourcePermission('FNB', 'update')
+  const canDeleteFnb = hasResourcePermission('FNB', 'delete')
   const [dishes, setDishes] = useState<Dish[]>([])
   const [availableProperties, setAvailableProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
@@ -88,6 +91,11 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingDish, setEditingDish] = useState<Dish | null>(null)
   const [saving, setSaving] = useState(false)
+
+  // Delete Confirmation Modal
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [dishToDelete, setDishToDelete] = useState<Dish | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   // Form State (Master)
   const [name, setName] = useState('')
@@ -105,7 +113,7 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
   const [overridePrice, setOverridePrice] = useState<number | string>(0)
   const [overrideSaving, setOverrideSaving] = useState(false)
 
-  useScrollLock(isModalOpen || !!overrideModalDish)
+  useScrollLock(isModalOpen || !!overrideModalDish || isDeleteModalOpen)
 
   const fetchData = useCallback(async () => {
     try {
@@ -222,6 +230,39 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
     setSelectedPropertyIds(assignedIds)
     setErrorMsg('')
     setIsModalOpen(true)
+  }
+
+  const handleOpenDelete = (dish: Dish) => {
+    if (dish.isUsedInResidentMeal) {
+      notifyError('Notice', 'Cannot delete this dish because it is currently added to a resident meal.')
+      return
+    }
+    setDishToDelete(dish)
+    setIsDeleteModalOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!dishToDelete) return
+    try {
+      setDeleting(true)
+      const res = await api.delete(`/fnb/dishes/${dishToDelete.id}`)
+      if (res.data?.success) {
+        notifySuccess('Dish deleted successfully!')
+        setIsDeleteModalOpen(false)
+        setDishToDelete(null)
+        fetchData()
+      } else {
+        notifyError('Notice', res.data?.message || 'Failed to delete dish')
+      }
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined
+      notifyError('Notice', msg || 'Failed to delete dish')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const handleSavePriceOverride = async (e: React.FormEvent) => {
@@ -559,16 +600,28 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                                     </td>
                                   )}
                                   <td className="px-5 py-3.5 text-right">
-                                    {canUpdateFnb && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleOpenEdit(dish)}
-                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-[#005390] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
-                                      >
-                                        <Edit2 className="w-3.5 h-3.5" />
-                                        {isLocationMode ? 'Edit Price' : 'Edit'}
-                                      </button>
-                                    )}
+                                    <div className="inline-flex items-center justify-end gap-1.5">
+                                      {canUpdateFnb && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleOpenEdit(dish)}
+                                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-[#005390] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
+                                        >
+                                          <Edit2 className="w-3.5 h-3.5" />
+                                          {isLocationMode ? 'Edit Price' : 'Edit'}
+                                        </button>
+                                      )}
+                                      {!isLocationMode && canDeleteFnb && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleOpenDelete(dish)}
+                                          className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                          title="Delete Dish"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
+                                    </div>
                                   </td>
                                 </tr>
                               )
@@ -896,6 +949,50 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                   </button>
                 </div>
               </form>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen &&
+        dishToDelete &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+            <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-sm overflow-hidden p-6 text-center animate-in fade-in duration-200">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-3 border border-rose-100">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-gray-900">Delete Dish?</h3>
+              <p className="text-xs text-gray-500 mt-1">
+                Are you sure you want to delete{' '}
+                <strong className="text-gray-800 font-semibold">{dishToDelete.name}</strong>?
+              </p>
+
+              <div className="flex items-center justify-center gap-2 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDeleteModalOpen(false)
+                    setDishToDelete(null)
+                  }}
+                  disabled={deleting}
+                  className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  disabled={deleting}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold shadow-md hover:bg-rose-700 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {deleting && (
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  )}
+                  Delete Dish
+                </button>
+              </div>
             </div>
           </div>,
           document.body,

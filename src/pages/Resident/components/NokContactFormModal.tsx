@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -17,10 +17,21 @@ const ACCEPTED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const PHONE_REGEX = /^[6-9]\d{9}$/
 const PHONE_MESSAGE = 'Must be a 10-digit number starting with 6, 7, 8, or 9'
 const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/
+const LETTERS_ONLY_REGEX = /^[A-Za-z\s]*$/
+const LETTERS_ONLY_MESSAGE = 'Only alphabets are allowed'
 
 const nokSchema = z.object({
-  fullName: z.string().trim().min(1, 'Full name is required').max(150, 'Full name must be 150 characters or fewer'),
-  relationship: z.string().trim().max(50, 'Relationship must be 50 characters or fewer'),
+  fullName: z
+    .string()
+    .trim()
+    .min(1, 'Full name is required')
+    .max(150, 'Full name must be 150 characters or fewer')
+    .regex(LETTERS_ONLY_REGEX, LETTERS_ONLY_MESSAGE),
+  relationship: z
+    .string()
+    .trim()
+    .max(50, 'Relationship must be 50 characters or fewer')
+    .regex(LETTERS_ONLY_REGEX, LETTERS_ONLY_MESSAGE),
   phone: z.string().trim().min(1, 'Phone is required').regex(PHONE_REGEX, PHONE_MESSAGE),
   alternatePhone: z
     .string()
@@ -41,6 +52,8 @@ const phoneDigitsOnly = (value: string) =>
     .replace(/\D/g, '')
     .replace(/^[^6-9]+/, '')
     .slice(0, 10)
+
+const lettersOnly = (value: string) => value.replace(/[^a-zA-Z\s]/g, '')
 
 interface NokContactFormModalProps {
   open: boolean
@@ -93,6 +106,20 @@ const NokContactFormModal = ({ open, onOpenChange, residentId, item }: NokContac
       ...registration,
       onChange: (e: ChangeEvent<HTMLInputElement>) => {
         e.target.value = phoneDigitsOnly(e.target.value)
+        return registration.onChange(e)
+      },
+    }
+  }
+
+  const registerLettersOnly = (name: 'fullName' | 'relationship') => {
+    const registration = register(name)
+    return {
+      ...registration,
+      onKeyDown: (e: KeyboardEvent<HTMLInputElement>) => {
+        if (/\d/.test(e.key)) e.preventDefault()
+      },
+      onChange: (e: ChangeEvent<HTMLInputElement>) => {
+        e.target.value = lettersOnly(e.target.value)
         return registration.onChange(e)
       },
     }
@@ -207,7 +234,7 @@ const NokContactFormModal = ({ open, onOpenChange, residentId, item }: NokContac
               <Label htmlFor="nok-full-name">
                 Full Name <span className="text-red-500">*</span>
               </Label>
-              <Input id="nok-full-name" placeholder="Full name" maxLength={150} {...register('fullName')} />
+              <Input id="nok-full-name" placeholder="Full name" maxLength={150} {...registerLettersOnly('fullName')} />
               {errors.fullName && <p className="text-xs text-red-500">{errors.fullName.message}</p>}
             </div>
 
@@ -217,7 +244,7 @@ const NokContactFormModal = ({ open, onOpenChange, residentId, item }: NokContac
                 id="nok-relationship"
                 placeholder="e.g. Son, Daughter, Spouse"
                 maxLength={50}
-                {...register('relationship')}
+                {...registerLettersOnly('relationship')}
               />
               {errors.relationship && <p className="text-xs text-red-500">{errors.relationship.message}</p>}
             </div>
