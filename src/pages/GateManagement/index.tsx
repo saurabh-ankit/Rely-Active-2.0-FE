@@ -360,7 +360,7 @@ export default function GateManagementPage() {
             </SelectContent>
           </Select>
 
-          <input
+          <Input
             type="date"
             lang="en-IN"
             value={dateFilter}

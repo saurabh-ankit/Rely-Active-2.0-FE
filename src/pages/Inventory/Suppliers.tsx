@@ -19,7 +19,7 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCenterData, useCenterMutation } from '@/hooks/react-query/centerInventory'
 import type { CenterAccess, CenterSupplier, SupplierListResponse } from '@/lib/types/centerInventory'
 import { ErrorNotice, FormField } from './shared'
@@ -98,18 +98,25 @@ export function SupplierList({
         }}
         searchPlaceholder="Search suppliers…"
         filterActions={
-          <NativeSelect
-            aria-label="Supplier status"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value)
+          <Select
+            value={status || 'all'}
+            onValueChange={(val) => {
+              setStatus(val === 'all' ? '' : val)
               setPagination((p) => ({ ...p, pageIndex: 0 }))
             }}
           >
-            <NativeSelectOption value="">All Status</NativeSelectOption>
-            <NativeSelectOption value="true">Active</NativeSelectOption>
-            <NativeSelectOption value="false">Inactive</NativeSelectOption>
-          </NativeSelect>
+            <SelectTrigger
+              aria-label="Supplier status"
+              className="w-auto min-w-[140px] h-9 text-xs font-semibold rounded-xl bg-white dark:bg-slate-800 border-gray-200 dark:border-gray-700"
+            >
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="true">Active</SelectItem>
+              <SelectItem value="false">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
         }
         columns={[
           {
@@ -336,14 +343,18 @@ function SupplierDialog({
                   />
                 </FormField>
                 <FormField id="supplier-active" label="Status">
-                  <NativeSelect
-                    id="supplier-active"
+                  <Select
                     value={String(form.isActive)}
-                    onChange={(e) => setForm((current) => ({ ...current, isActive: e.target.value === 'true' }))}
+                    onValueChange={(val) => setForm((current) => ({ ...current, isActive: val === 'true' }))}
                   >
-                    <NativeSelectOption value="true">Active</NativeSelectOption>
-                    <NativeSelectOption value="false">Inactive</NativeSelectOption>
-                  </NativeSelect>
+                    <SelectTrigger id="supplier-active" className="w-full h-9 text-xs">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">Active</SelectItem>
+                      <SelectItem value="false">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </FormField>
               </FieldGroup>
             )}

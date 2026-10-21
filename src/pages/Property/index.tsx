@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Building2, Edit, Eye, Layers, MapPin, Plus, Search, Trash2 } from 'lucide-react'
@@ -5,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { PROPERTY_TYPE_LABELS, type EntityInput, type Property } from './types'
 import { ENTITY_PRESETS, levelLabel } from './components/structure/entityPresets'
 import { deletePropertyAPI, getPropertiesAPI } from '@/lib/services/propertyService'
+import { refreshAccessibleLocations } from '@/hooks/useLocation'
 import { PageHeader } from '@/components/common/PageHeader'
 
 /** "tower" → "towers", "duplex" → "duplexes". */
@@ -90,6 +92,7 @@ export default function PropertyPage() {
     try {
       await deletePropertyAPI(id)
       setReloadToken((t) => t + 1)
+      await refreshAccessibleLocations()
     } catch {
       alert('Failed to delete property')
     }
@@ -166,7 +169,7 @@ export default function PropertyPage() {
       {/* ── Search ────────────────────────────────────────────────────────── */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <input
+        <Input
           type="text"
           placeholder="Search by name or city..."
           value={search}

@@ -334,12 +334,12 @@ export const ResidentBillingPage: React.FC = () => {
             <User className="w-6 h-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <label
+            <Label
               htmlFor="billing-resident-select"
               className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1"
             >
               Select Resident for Billing
-            </label>
+            </Label>
             <Select
               value={residentId || undefined}
               onValueChange={(val) => setSearchParams({ residentId: val || '' })}
@@ -365,12 +365,12 @@ export const ResidentBillingPage: React.FC = () => {
         {/* Month & Year Selectors */}
         <div className="flex items-center gap-3 shrink-0">
           <div>
-            <label
+            <Label
               htmlFor="billing-month-select"
               className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1"
             >
               Billing Month
-            </label>
+            </Label>
             <Select value={String(selectedMonth)} onValueChange={(val) => setSelectedMonth(Number(val))}>
               <SelectTrigger
                 id="billing-month-select"
@@ -389,12 +389,12 @@ export const ResidentBillingPage: React.FC = () => {
           </div>
 
           <div>
-            <label
+            <Label
               htmlFor="billing-year-select"
               className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1"
             >
               Year
-            </label>
+            </Label>
             <Select value={String(selectedYear)} onValueChange={(val) => setSelectedYear(Number(val))}>
               <SelectTrigger
                 id="billing-year-select"

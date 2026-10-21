@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import React, { useState, useMemo } from 'react'
 import { CheckCircle2, Loader2, X, Sparkles, AlertCircle } from 'lucide-react'
 import { useCompleteCareTaskMutation, useCareTaskAssignmentByIdQuery } from '@/hooks/react-query/medical'
@@ -209,12 +210,12 @@ const CompleteCareTaskDialogContent: React.FC<CompleteCareTaskDialogContentProps
         <form id="complete-care-task-form" onSubmit={handleSubmit} className="mt-4 space-y-4">
           {/* Clinical Remarks / Notes */}
           <div className="space-y-1.5">
-            <label
+            <Label
               htmlFor="completion-remarks-input"
               className="text-xs font-semibold text-gray-700 dark:text-gray-300"
             >
               Session Remarks / Observation Notes (Optional)
-            </label>
+            </Label>
             <textarea
               id="completion-remarks-input"
               rows={3}

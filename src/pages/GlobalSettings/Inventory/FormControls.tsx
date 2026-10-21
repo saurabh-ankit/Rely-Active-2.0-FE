@@ -3,7 +3,7 @@ import { Controller, useFormContext } from 'react-hook-form'
 import { Field, FieldLabel, FieldError, FieldSet, FieldLegend } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -16,6 +16,7 @@ export function FormInput({
   type = 'text',
   min,
   step,
+  placeholder,
   children,
 }: {
   name: string
@@ -23,9 +24,10 @@ export function FormInput({
   type?: string
   min?: number
   step?: number
+  placeholder?: string
   children?: ReactNode
 }) {
-  const { register, getFieldState, formState } = useFormContext()
+  const { register, getFieldState, formState, control } = useFormContext()
   const error = getFieldState(name, formState).error
   const props = {
     id: name,
@@ -39,11 +41,29 @@ export function FormInput({
         <RequiredLabel text={label} />
       </FieldLabel>
       {children ? (
-        <NativeSelect {...props}>{children}</NativeSelect>
+        <Controller
+          name={name}
+          control={control}
+          render={({ field }) => (
+            <Select
+              value={
+                field.value !== undefined && field.value !== null && field.value !== ''
+                  ? String(field.value)
+                  : undefined
+              }
+              onValueChange={(val) => field.onChange(val ?? '')}
+            >
+              <SelectTrigger id={name} aria-invalid={!!error} className="w-full">
+                <SelectValue placeholder={placeholder || 'Select an option'} />
+              </SelectTrigger>
+              <SelectContent>{children}</SelectContent>
+            </Select>
+          )}
+        />
       ) : type === 'textarea' ? (
-        <Textarea {...props} />
+        <Textarea {...props} placeholder={placeholder} />
       ) : (
-        <Input {...props} type={type} min={min} step={step} />
+        <Input {...props} type={type} min={min} step={step} placeholder={placeholder} />
       )}
       <FieldError id={`${name}-error`} errors={[error]} />
     </Field>
@@ -143,20 +163,13 @@ export function RootError() {
     </Alert>
   ) : null
 }
-export function SelectOptions({
-  values,
-  placeholder = 'Select an option',
-}: {
-  values: string[]
-  placeholder?: string
-}) {
+export function SelectOptions({ values }: { values: string[]; placeholder?: string }) {
   return (
     <>
-      <NativeSelectOption value="">{placeholder}</NativeSelectOption>
       {values.map((value) => (
-        <NativeSelectOption key={value} value={value}>
+        <SelectItem key={value} value={value}>
           {value}
-        </NativeSelectOption>
+        </SelectItem>
       ))}
     </>
   )

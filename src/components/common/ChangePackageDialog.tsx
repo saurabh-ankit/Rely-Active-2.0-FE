@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import React, { useState, useMemo, useRef, useEffect } from 'react'
 import {
   Dialog,
@@ -306,7 +307,7 @@ export const ChangePackageDialog: React.FC<ChangePackageDialogProps> = ({
                     <div className="p-2 border-b border-gray-100 dark:border-gray-800 bg-slate-50/50 dark:bg-slate-800/30">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
-                        <input
+                        <Input
                           ref={searchInputRef}
                           type="text"
                           value={searchQuery}

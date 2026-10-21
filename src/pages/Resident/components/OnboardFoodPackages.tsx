@@ -1,9 +1,11 @@
+import { Input } from '@/components/ui/input'
 import { useQuery } from '@tanstack/react-query'
 import { Check, RefreshCw, Utensils } from 'lucide-react'
 import api from '@/lib/api/axios'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { AssignedPackage } from './AssignedPackage'
+import { Label } from '@/components/ui/label'
 
 export interface FoodPackageChoice {
   /** Packages are dine-in only. */
@@ -215,11 +217,11 @@ export function OnboardFoodPackages({ locId, people, value, onChange, existing =
 
                 {choice && (
                   <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-gray-100 pt-3">
-                    <label className="block">
+                    <Label className="block">
                       <span className="mb-1 block text-[11px] font-semibold text-gray-600">
                         Start date <span className="text-rose-600">*</span>
                       </span>
-                      <input
+                      <Input
                         type="date"
                         required
                         value={choice.startDate}
@@ -232,7 +234,7 @@ export function OnboardFoodPackages({ locId, people, value, onChange, existing =
                           Current plan since {dmy(current.startDate)}
                         </span>
                       )}
-                    </label>
+                    </Label>
                   </div>
                 )}
               </>

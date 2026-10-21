@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import { useCallback, useEffect, useState, useRef } from 'react'
 import {
   Calendar as CalendarIcon,
@@ -969,7 +970,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
 
                 <div className="relative">
                   <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-2.5" />
-                  <input
+                  <Input
                     type="text"
                     placeholder="Search dishes by name..."
                     value={searchQuery}
@@ -1582,7 +1583,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
 
               <div className="relative">
                 <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-2.5" />
-                <input
+                <Input
                   type="text"
                   placeholder="Search dishes by name..."
                   value={modalSearchQuery}

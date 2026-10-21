@@ -369,7 +369,7 @@ export default function EditCompanyModal({ isOpen, onClose, company, onSave }: E
               <div className="space-y-3">
                 {customFields.map((field, idx) => (
                   <div key={idx} className="flex flex-wrap items-center gap-3 rounded-2xl bg-gray-50 p-3">
-                    <input
+                    <Input
                       type="text"
                       placeholder="Field Label"
                       value={field.fieldLabel}
@@ -394,7 +394,7 @@ export default function EditCompanyModal({ isOpen, onClose, company, onSave }: E
                       </SelectContent>
                     </Select>
 
-                    <input
+                    <Input
                       type="text"
                       placeholder="Field Value"
                       value={field.fieldValue || ''}

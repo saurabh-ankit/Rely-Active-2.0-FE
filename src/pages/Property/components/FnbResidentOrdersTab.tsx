@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
@@ -19,6 +20,7 @@ import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import { isHiddenFloor } from '@/utils/unitLabel'
 
 interface OrderDetail {
@@ -620,7 +622,7 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
           {/* Search Input */}
           <div className="relative">
             <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-2.5" />
-            <input
+            <Input
               type="text"
               placeholder="Search resident, unit, order ID..."
               value={searchQuery}
@@ -667,7 +669,7 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
 
           {/* Date Filter */}
           <div className="relative">
-            <input
+            <Input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
@@ -1123,9 +1125,9 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
 
               {/* Staff Dropdown */}
               <div className="space-y-1">
-                <label htmlFor="select-delivery-staff" className="font-extrabold text-gray-700 block">
+                <Label htmlFor="select-delivery-staff" className="font-extrabold text-gray-700 block">
                   Select F&B Delivery Employee <span className="text-rose-500">*</span>
-                </label>
+                </Label>
                 <Select value={selectedStaffId || undefined} onValueChange={(val) => setSelectedStaffId(val || '')}>
                   <SelectTrigger
                     id="select-delivery-staff"
@@ -1164,10 +1166,10 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
 
               {/* Delivery Charge Input */}
               <div className="space-y-1">
-                <label htmlFor="delivery-charge-input" className="font-extrabold text-gray-700 block">
+                <Label htmlFor="delivery-charge-input" className="font-extrabold text-gray-700 block">
                   Set Room Delivery Charge (₹)
-                </label>
-                <input
+                </Label>
+                <Input
                   id="delivery-charge-input"
                   type="number"
                   min="0"

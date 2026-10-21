@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import React, { useMemo, useState } from 'react'
 import { X, Loader2, UserCheck, Stethoscope, Heart, Search, Trash2, AlertTriangle } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
@@ -17,6 +18,7 @@ import { useUsersByRoleQuery } from '@/hooks/react-query/user'
 // ── Types ──────────────────────────────────────────────────────────────────────
 import type { CareTeamMember, CareTeamRole } from '@/lib/services/residentService'
 import type { UserItem } from '@/lib/types'
+import { Label } from '@/components/ui/label'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Props
@@ -342,7 +344,7 @@ const AssignCareTeamContent: React.FC<{
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-            <input
+            <Input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -353,10 +355,10 @@ const AssignCareTeamContent: React.FC<{
 
           {/* Optional note */}
           <div className="space-y-1">
-            <label htmlFor="care-team-note" className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+            <Label htmlFor="care-team-note" className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
               Note (optional)
-            </label>
-            <input
+            </Label>
+            <Input
               id="care-team-note"
               type="text"
               value={note}

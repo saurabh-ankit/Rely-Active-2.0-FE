@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Building2, Edit, Home, MoreVertical, Search, Trash2, UserCheck, UserPlus } from 'lucide-react'
@@ -375,7 +376,7 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-2xs">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-          <input
+          <Input
             type="text"
             className="pl-9 pr-4 py-2 w-full rounded-xl text-xs bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 shadow-2xs focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] focus:outline-none"
             placeholder="Search by name, username or flat…"

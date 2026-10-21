@@ -1,4 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import React, { useState } from 'react'
 import { ArrowLeft, Building2, Home, Layers, MapPin, Plus, Sparkles, Trash2, X, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -37,6 +39,7 @@ import { createPropertyAPI, getPropertyByIdAPI, updatePropertyAPI } from '@/lib/
 import { getAmenitiesAPI, type Amenity } from '@/lib/services/amenityService'
 import { CommonProgressBar, type ProgressBarStep } from '@/components/common/CommonProgressBar'
 import { notifyError } from '@/utils/toast'
+import { useLocationContext } from '@/hooks/useLocation'
 import { z } from 'zod'
 
 export const PINCODE_REGEX = /^[1-9][0-9]{5}$/
@@ -191,10 +194,10 @@ function InputField({
 
   return (
     <div className="space-y-1">
-      <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
+      <Label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
         {cleanLabel} {isReq && <span className="text-red-500 font-bold">*</span>}
-      </label>
-      <input
+      </Label>
+      <Input
         {...props}
         className={`w-full rounded-xl border ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white px-3.5 py-2.5 text-xs text-gray-900 placeholder-gray-400 outline-none transition focus:ring-2 disabled:bg-gray-100 disabled:opacity-75`}
       />
@@ -225,9 +228,9 @@ function SelectField({
 
   return (
     <div className="space-y-1">
-      <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
+      <Label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
         {cleanLabel} {isReq && <span className="text-red-500 font-bold">*</span>}
-      </label>
+      </Label>
       <Select value={value || undefined} onValueChange={(val) => onValueChange?.(val || '')}>
         <SelectTrigger
           className={`w-full h-auto rounded-xl border ${
@@ -256,9 +259,9 @@ function TextareaField({
 
   return (
     <div className="space-y-1">
-      <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
+      <Label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
         {cleanLabel} {isReq && <span className="text-red-500 font-bold">*</span>}
-      </label>
+      </Label>
       <textarea
         {...props}
         rows={3}
@@ -283,6 +286,7 @@ export default function CreatePropertyScreen({
   onBack,
   onSuccess,
 }: CreatePropertyScreenProps) {
+  const { refreshLocations } = useLocationContext()
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -969,8 +973,10 @@ export default function CreatePropertyScreen({
 
       if (editPropertyId) {
         await updatePropertyAPI(editPropertyId, payload)
+        await refreshLocations(editPropertyId)
       } else {
-        await createPropertyAPI(payload)
+        const created = await createPropertyAPI(payload)
+        await refreshLocations(created?.id)
       }
       onSuccess()
       onBack()
@@ -1140,13 +1146,13 @@ export default function CreatePropertyScreen({
 
                         <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                           <div>
-                            <label
+                            <Label
                               htmlFor={availableFromId}
                               className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-gray-600"
                             >
                               Available From (Optional)
-                            </label>
-                            <input
+                            </Label>
+                            <Input
                               id={availableFromId}
                               type="time"
                               value={amenity.availableFrom || ''}
@@ -1157,13 +1163,13 @@ export default function CreatePropertyScreen({
                             />
                           </div>
                           <div>
-                            <label
+                            <Label
                               htmlFor={availableToId}
                               className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-gray-600"
                             >
                               Available To (Optional)
-                            </label>
-                            <input
+                            </Label>
+                            <Input
                               id={availableToId}
                               type="time"
                               value={amenity.availableTo || ''}
@@ -1180,7 +1186,7 @@ export default function CreatePropertyScreen({
                 </div>
               )}
 
-              <input
+              <Input
                 type="text"
                 placeholder="Search amenities by name or description"
                 value={amenitySearch}
@@ -1646,7 +1652,7 @@ export default function CreatePropertyScreen({
                                   <tr>
                                     <td className="p-3 font-bold text-gray-900">{variant.type}</td>
                                     <td className="p-3">
-                                      <input
+                                      <Input
                                         type="number"
                                         min={0}
                                         aria-label={`${variant.type} carpet area`}
@@ -1665,7 +1671,7 @@ export default function CreatePropertyScreen({
                                       />
                                     </td>
                                     <td className="p-3">
-                                      <input
+                                      <Input
                                         type="number"
                                         min={0}
                                         aria-label={`${variant.type} super built-up area`}
@@ -1913,7 +1919,7 @@ export default function CreatePropertyScreen({
                                   </Select>
                                 </td>
                                 <td className="p-3">
-                                  <label className="flex items-center gap-2 cursor-pointer">
+                                  <Label className="flex items-center gap-2 cursor-pointer">
                                     <Checkbox
                                       checked={isSellable}
                                       onCheckedChange={(checked) =>
@@ -1924,7 +1930,7 @@ export default function CreatePropertyScreen({
                                     <span className="text-xs font-medium text-gray-700">
                                       {isSellable ? 'Yes' : 'No'}
                                     </span>
-                                  </label>
+                                  </Label>
                                 </td>
                               </tr>
                             )

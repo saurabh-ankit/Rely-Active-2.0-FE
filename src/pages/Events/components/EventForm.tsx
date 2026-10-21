@@ -1528,7 +1528,7 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
           {(() => {
             const posterSrc = posterPreview || eventForm.poster
             return (
-              <label
+              <Label
                 htmlFor="event-poster-input"
                 className={cn(
                   'group relative flex cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed transition-colors',
@@ -1561,7 +1561,7 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                   className="sr-only"
                   onChange={handlePosterFileChange}
                 />
-              </label>
+              </Label>
             )
           })()}
         </FormSection>

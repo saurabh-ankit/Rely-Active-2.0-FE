@@ -1,22 +1,22 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import { getMeAPI, loginAPI } from '@/lib/services/authService'
 import { unregisterWebPushTokenSafe } from '@/lib/services/webPushService'
-import { TOKEN_KEY, useUserStore } from '@/lib/stores/userStore'
+import { useUserStore } from '@/lib/stores/userStore'
+import { clearAppSession } from '@/lib/utils/session'
 import type { LoginPayload, UserAuthData } from '@/lib/types'
 
 export const useAuth = () => {
-  const { token, user, isLoading, setAuth, setUser, setToken, setIsLoading, logout: storeLogout } = useUserStore()
+  const { token, user, isLoading, setAuth, setUser, setToken, setIsLoading } = useUserStore()
 
   useEffect(() => {
-    const savedToken = localStorage.getItem(TOKEN_KEY)
-    if (savedToken && !user) {
+    if (token && !user) {
       setIsLoading(true)
-      getMeAPI(savedToken)
+      getMeAPI(token)
         .then((userData) => {
           setUser(userData)
         })
         .catch(() => {
-          storeLogout()
+          clearAppSession({ redirectToLogin: true })
         })
         .finally(() => {
           setIsLoading(false)
@@ -26,7 +26,7 @@ export const useAuth = () => {
         setIsLoading(false)
       }
     }
-  }, [user, setUser, isLoading, setIsLoading, storeLogout])
+  }, [token, user, setUser, isLoading, setIsLoading])
 
   const login = async (payload: LoginPayload): Promise<UserAuthData> => {
     setIsLoading(true)
@@ -43,8 +43,8 @@ export const useAuth = () => {
     if (token) {
       void unregisterWebPushTokenSafe(token)
     }
-    storeLogout()
-  }, [storeLogout, token])
+    clearAppSession({ redirectToLogin: true })
+  }, [token])
 
   const isSuperAdmin =
     Boolean(user?.isSuperAdmin) ||

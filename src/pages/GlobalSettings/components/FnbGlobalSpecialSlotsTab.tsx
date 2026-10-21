@@ -1,3 +1,5 @@
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useCallback, useEffect, useState } from 'react'
 import { Plus, Edit2, Trash2, Building2, CheckSquare, Square, Clock, IndianRupee } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -313,10 +315,10 @@ export default function FnbGlobalSpecialSlotsTab() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="global-special-slot-name" className="block text-xs font-bold text-gray-700 mb-1">
+                <Label htmlFor="global-special-slot-name" className="block text-xs font-bold text-gray-700 mb-1">
                   Special Slot Name <span className="text-red-500">*</span>
-                </label>
-                <input
+                </Label>
+                <Input
                   id="global-special-slot-name"
                   type="text"
                   placeholder="e.g. Festival Special, Sunday Brunch, Chef Special"
@@ -328,12 +330,12 @@ export default function FnbGlobalSpecialSlotsTab() {
               </div>
 
               <div>
-                <label htmlFor="global-special-slot-price" className="block text-xs font-bold text-gray-700 mb-1">
+                <Label htmlFor="global-special-slot-price" className="block text-xs font-bold text-gray-700 mb-1">
                   Global Base Price (₹)
-                </label>
+                </Label>
                 <div className="relative">
                   <span className="absolute left-3 top-2 text-xs text-gray-400 font-bold">₹</span>
-                  <input
+                  <Input
                     id="global-special-slot-price"
                     type="number"
                     step="0.01"
@@ -347,9 +349,9 @@ export default function FnbGlobalSpecialSlotsTab() {
               </div>
 
               <div>
-                <label htmlFor="global-special-slot-description" className="block text-xs font-bold text-gray-700 mb-1">
+                <Label htmlFor="global-special-slot-description" className="block text-xs font-bold text-gray-700 mb-1">
                   Description
-                </label>
+                </Label>
                 <textarea
                   id="global-special-slot-description"
                   rows={2}

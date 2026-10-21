@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useForm, useWatch } from 'react-hook-form'
@@ -577,10 +578,10 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
 
               {/* 1. Care Task Name (Required) */}
               <div>
-                <label htmlFor="careTaskName" className="block text-xs font-bold text-gray-700 mb-1">
+                <Label htmlFor="careTaskName" className="block text-xs font-bold text-gray-700 mb-1">
                   1. Care Task Name <span className="text-rose-500">*</span>
-                </label>
-                <input
+                </Label>
+                <Input
                   id="careTaskName"
                   type="text"
                   {...register('careTaskName')}
@@ -592,9 +593,9 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
 
               {/* 2. Care Task Description (Optional) */}
               <div>
-                <label htmlFor="careTaskDescription" className="block text-xs font-bold text-gray-700 mb-1">
+                <Label htmlFor="careTaskDescription" className="block text-xs font-bold text-gray-700 mb-1">
                   2. Care Task Description <span className="text-gray-400 font-normal">(Optional)</span>
-                </label>
+                </Label>
                 <textarea
                   id="careTaskDescription"
                   {...register('careTaskDescription')}
@@ -675,15 +676,15 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
 
                 {/* Price Input */}
                 <div className="rounded-2xl border border-gray-200 bg-gray-50/60 p-3.5">
-                  <label htmlFor="care-task-price" className="block text-xs font-bold text-gray-800 mb-1.5">
+                  <Label htmlFor="care-task-price" className="block text-xs font-bold text-gray-800 mb-1.5">
                     {watchBillingType === 'SESSION' ? 'Session Rate (₹)' : 'Monthly Rate (₹)'}{' '}
                     <span className="text-rose-500">*</span>
-                  </label>
+                  </Label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
                       ₹
                     </span>
-                    <input
+                    <Input
                       id="care-task-price"
                       type="number"
                       min="0"
@@ -702,9 +703,9 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
 
               {/* 4. Task Image (Optional) */}
               <div>
-                <label htmlFor="care-task-image-input" className="block text-xs font-bold text-gray-700 mb-1">
+                <Label htmlFor="care-task-image-input" className="block text-xs font-bold text-gray-700 mb-1">
                   4. Task Image <span className="text-gray-400 font-normal">(Optional)</span>
-                </label>
+                </Label>
                 <div className="flex items-center gap-3.5 border border-gray-200 rounded-2xl p-3 bg-gray-50/50">
                   {imagePreviewUrl ? (
                     <div className="relative group shrink-0">
@@ -738,13 +739,13 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                       onChange={handleImageChange}
                       className="hidden"
                     />
-                    <label
+                    <Label
                       htmlFor="care-task-image-input"
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer shadow-2xs"
                     >
                       <Upload className="w-3.5 h-3.5 text-[#005390]" />
                       {imageFile || imagePreviewUrl ? 'Change Image' : 'Choose Image'}
-                    </label>
+                    </Label>
                     <p className="text-[11px] text-gray-400">PNG, JPG, WEBP up to 10MB.</p>
                   </div>
                 </div>

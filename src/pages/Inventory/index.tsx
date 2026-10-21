@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import { useState, useMemo, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -21,7 +22,7 @@ import { DataTable } from '@/components/ui/data-table'
 import { InventoryTabs } from '@/components/inventory/InventoryTabs'
 import { ActiveStatus, InventoryStatus } from '@/components/inventory/InventoryStatus'
 import StatCard from '@/pages/AssetManagement/components/StatCard'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Empty, EmptyHeader, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
@@ -465,14 +466,22 @@ function SupplierFilter({
 }) {
   const suppliers = useCenterOptions(locationId, 'suppliers')
   return (
-    <NativeSelect aria-label="Filter by supplier" value={value} onChange={(e) => onChange(e.target.value)}>
-      <NativeSelectOption value="">All Suppliers</NativeSelectOption>
-      {suppliers.data?.map((s) => (
-        <NativeSelectOption key={s.id} value={s.id}>
-          {s.name}
-        </NativeSelectOption>
-      ))}
-    </NativeSelect>
+    <Select value={value || 'all'} onValueChange={(val) => onChange(val === 'all' ? '' : val)}>
+      <SelectTrigger
+        aria-label="Filter by supplier"
+        className="w-auto min-w-[140px] h-9 text-xs font-semibold rounded-xl bg-white dark:bg-slate-800 border-gray-200 dark:border-gray-700"
+      >
+        <SelectValue placeholder="All Suppliers" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All Suppliers</SelectItem>
+        {suppliers.data?.map((s) => (
+          <SelectItem key={s.id} value={s.id}>
+            {s.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }
 function ItemList({
@@ -589,16 +598,20 @@ function ItemList({
         filterActions={
           <div className="flex flex-wrap gap-3">
             <SupplierFilter locationId={locationId} value={supplierId} onChange={setSupplierId} />
-            <NativeSelect
-              aria-label="Filter by stock"
-              value={stockFilter}
-              onChange={(e) => setStockFilter(e.target.value)}
-            >
-              <NativeSelectOption value="">All Stock</NativeSelectOption>
-              <NativeSelectOption value="below_min">Below Minimum</NativeSelectOption>
-              <NativeSelectOption value="below_threshold">Below Threshold</NativeSelectOption>
-              <NativeSelectOption value="out_of_stock">Out of Stock</NativeSelectOption>
-            </NativeSelect>
+            <Select value={stockFilter || 'all'} onValueChange={(val) => setStockFilter(val === 'all' ? '' : val)}>
+              <SelectTrigger
+                aria-label="Filter by stock"
+                className="w-auto min-w-[140px] h-9 text-xs font-semibold rounded-xl bg-white dark:bg-slate-800 border-gray-200 dark:border-gray-700"
+              >
+                <SelectValue placeholder="All Stock" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Stock</SelectItem>
+                <SelectItem value="below_min">Below Minimum</SelectItem>
+                <SelectItem value="below_threshold">Below Threshold</SelectItem>
+                <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         }
 
@@ -660,14 +673,22 @@ function POList({
         filterActions={
           <div className="flex flex-wrap gap-3">
             <SupplierFilter locationId={locationId} value={supplierId} onChange={setSupplierId} />
-            <NativeSelect aria-label="Filter PO status" value={status} onChange={(e) => setStatus(e.target.value)}>
-              <NativeSelectOption value="">All Statuses</NativeSelectOption>
-              {Object.entries(poStatusLabels).map(([value, label]) => (
-                <NativeSelectOption key={value} value={value}>
-                  {label}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+            <Select value={status || 'all'} onValueChange={(val) => setStatus(val === 'all' ? '' : val)}>
+              <SelectTrigger
+                aria-label="Filter PO status"
+                className="w-auto min-w-[140px] h-9 text-xs font-semibold rounded-xl bg-white dark:bg-slate-800 border-gray-200 dark:border-gray-700"
+              >
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                {Object.entries(poStatusLabels).map(([val, label]) => (
+                  <SelectItem key={val} value={val}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         }
 
@@ -780,7 +801,7 @@ function TransactionList({
         filterActions={
           <div className="flex flex-wrap items-end gap-3">
             <SupplierFilter locationId={locationId} value={supplierId} onChange={setSupplierId} />
-            <label htmlFor="transaction-from" className="flex flex-col gap-1 text-sm">
+            <Label htmlFor="transaction-from" className="flex flex-col gap-1 text-sm">
               From
               <Input
                 id="transaction-from"
@@ -789,8 +810,8 @@ function TransactionList({
                 max={endDate || undefined}
                 onChange={(e) => setStartDate(e.target.value)}
               />
-            </label>
-            <label htmlFor="transaction-to" className="flex flex-col gap-1 text-sm">
+            </Label>
+            <Label htmlFor="transaction-to" className="flex flex-col gap-1 text-sm">
               To
               <Input
                 id="transaction-to"
@@ -799,7 +820,7 @@ function TransactionList({
                 min={startDate || undefined}
                 onChange={(e) => setEndDate(e.target.value)}
               />
-            </label>
+            </Label>
           </div>
         }
 

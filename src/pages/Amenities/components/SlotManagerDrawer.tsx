@@ -1,3 +1,5 @@
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Loader2, Search, UserRound, X } from 'lucide-react'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -466,10 +468,10 @@ export function SlotManagerDrawer({
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Bookable hours</p>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <div>
-              <label htmlFor="slot-open-time" className="mb-1 block text-xs text-gray-500">
+              <Label htmlFor="slot-open-time" className="mb-1 block text-xs text-gray-500">
                 From
-              </label>
-              <input
+              </Label>
+              <Input
                 id="slot-open-time"
                 type="time"
                 className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
@@ -482,10 +484,10 @@ export function SlotManagerDrawer({
               />
             </div>
             <div>
-              <label htmlFor="slot-close-time" className="mb-1 block text-xs text-gray-500">
+              <Label htmlFor="slot-close-time" className="mb-1 block text-xs text-gray-500">
                 To
-              </label>
-              <input
+              </Label>
+              <Input
                 id="slot-close-time"
                 type="time"
                 className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
@@ -807,7 +809,7 @@ export function SlotManagerDrawer({
                 <>
                   <div className="relative">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input
+                    <Input
                       type="text"
                       value={residentQuery}
                       onChange={(event) => setResidentQuery(event.target.value)}

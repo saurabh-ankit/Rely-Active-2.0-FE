@@ -1,3 +1,5 @@
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Building2, Check, ChevronRight, Save, ShieldCheck, X } from 'lucide-react'
@@ -350,13 +352,13 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
 
         {/* Select Location Dropdown */}
         <div className="pt-2">
-          <label
+          <Label
             htmlFor="location-select"
             className="block text-xs font-bold text-gray-700 mb-1.5 flex items-center gap-1.5"
           >
             <Building2 className="w-4 h-4 text-blue-600" />
             Select Location / Property Scope
-          </label>
+          </Label>
           <Select
             value={selectedPropertyId}
             onValueChange={(val) => setSelectedPropertyId(val)}
@@ -463,7 +465,7 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
         {/* Toolbar */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-2">
-            <input
+            <Input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}

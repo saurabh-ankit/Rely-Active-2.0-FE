@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { type FieldPath, useForm, useWatch } from 'react-hook-form'
@@ -303,7 +304,7 @@ export default function UserProfilePage() {
                     <span>{userInitial}</span>
                   )}
                 </div>
-                <label
+                <Label
                   htmlFor="user-profile-page-avatar-input"
                   className="absolute -bottom-1 -right-1 bg-white border border-gray-200 p-2 rounded-full text-gray-700 hover:text-[#005390] hover:bg-blue-50 cursor-pointer shadow-md transition-transform group-hover:scale-110"
                   title="Upload New Photo"
@@ -316,7 +317,7 @@ export default function UserProfilePage() {
                     onChange={handlePhotoChange}
                     className="hidden"
                   />
-                </label>
+                </Label>
               </div>
 
               {/* User Title & Info */}
@@ -357,10 +358,10 @@ export default function UserProfilePage() {
 
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="page-profile-first-name" className="block text-xs font-bold text-gray-700 mb-1.5">
+                    <Label htmlFor="page-profile-first-name" className="block text-xs font-bold text-gray-700 mb-1.5">
                       First Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       id="page-profile-first-name"
                       type="text"
                       {...registerFiltered('firstName', lettersOnly)}
@@ -376,10 +377,10 @@ export default function UserProfilePage() {
                   </div>
 
                   <div>
-                    <label htmlFor="page-profile-last-name" className="block text-xs font-bold text-gray-700 mb-1.5">
+                    <Label htmlFor="page-profile-last-name" className="block text-xs font-bold text-gray-700 mb-1.5">
                       Last Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       id="page-profile-last-name"
                       type="text"
                       {...registerFiltered('lastName', lettersOnly)}
@@ -395,11 +396,11 @@ export default function UserProfilePage() {
                   </div>
 
                   <div>
-                    <label htmlFor="page-profile-email" className="block text-xs font-bold text-gray-700 mb-1.5">
+                    <Label htmlFor="page-profile-email" className="block text-xs font-bold text-gray-700 mb-1.5">
                       Email Address <span className="text-red-500">*</span>
-                    </label>
+                    </Label>
                     <div className="relative">
-                      <input
+                      <Input
                         id="page-profile-email"
                         type="email"
                         {...register('email')}
@@ -415,11 +416,11 @@ export default function UserProfilePage() {
                   </div>
 
                   <div>
-                    <label htmlFor="page-profile-phone" className="block text-xs font-bold text-gray-700 mb-1.5">
+                    <Label htmlFor="page-profile-phone" className="block text-xs font-bold text-gray-700 mb-1.5">
                       Phone Number <span className="text-red-500">*</span>
-                    </label>
+                    </Label>
                     <div className="relative">
-                      <input
+                      <Input
                         id="page-profile-phone"
                         type="text"
                         {...register('phone')}

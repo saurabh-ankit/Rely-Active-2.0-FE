@@ -1,3 +1,5 @@
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -77,7 +79,7 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
                 return (
                   <tr key={unit.id ?? index}>
                     <td className="px-3 py-1.5">
-                      <input
+                      <Input
                         aria-label={`${unitName} number`}
                         value={unit.unit_number}
                         onChange={(e) => update(index, { unit_number: e.target.value })}
@@ -103,7 +105,7 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
                       </Select>
                     </td>
                     <td className="px-3 py-1.5">
-                      <input
+                      <Input
                         aria-label="Area"
                         type="number"
                         min={0}
@@ -116,7 +118,7 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
                     </td>
                     {preset.attributes.map((a) => (
                       <td key={a.key} className="px-3 py-1.5">
-                        <input
+                        <Input
                           aria-label={a.label}
                           type="number"
                           min={0}
@@ -148,10 +150,10 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
 
       <div className="flex flex-wrap items-end gap-2 rounded-xl bg-gray-50 p-3">
         <div className="space-y-1">
-          <label htmlFor={`qa-prefix-${entity.name}`} className="text-[11px] text-gray-500">
+          <Label htmlFor={`qa-prefix-${entity.name}`} className="text-[11px] text-gray-500">
             Number prefix
-          </label>
-          <input
+          </Label>
+          <Input
             id={`qa-prefix-${entity.name}`}
             value={prefix}
             onChange={(e) => setPrefix(e.target.value)}
@@ -159,10 +161,10 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
           />
         </div>
         <div className="space-y-1">
-          <label htmlFor={`qa-count-${entity.name}`} className="text-[11px] text-gray-500">
+          <Label htmlFor={`qa-count-${entity.name}`} className="text-[11px] text-gray-500">
             How many
-          </label>
-          <input
+          </Label>
+          <Input
             id={`qa-count-${entity.name}`}
             type="number"
             min={1}
@@ -216,10 +218,10 @@ export function EntityUnitsEditor({ entity, onChange, numberCounts }: EntityUnit
           <section key={floor.id ?? index} className="space-y-3 rounded-xl border border-gray-200 p-4">
             <div className="flex flex-wrap items-end gap-3">
               <div className="space-y-1">
-                <label htmlFor={`floor-no-${index}`} className="text-[11px] text-gray-500">
+                <Label htmlFor={`floor-no-${index}`} className="text-[11px] text-gray-500">
                   {floorName} no.
-                </label>
-                <input
+                </Label>
+                <Input
                   id={`floor-no-${index}`}
                   type="number"
                   value={floor.floor_number}
@@ -228,10 +230,10 @@ export function EntityUnitsEditor({ entity, onChange, numberCounts }: EntityUnit
                 />
               </div>
               <div className="min-w-40 flex-1 space-y-1">
-                <label htmlFor={`floor-name-${index}`} className="text-[11px] text-gray-500">
+                <Label htmlFor={`floor-name-${index}`} className="text-[11px] text-gray-500">
                   Name
-                </label>
-                <input
+                </Label>
+                <Input
                   id={`floor-name-${index}`}
                   value={floor.floor_name ?? ''}
                   placeholder={`${floorName} ${floor.floor_number}`}
@@ -284,10 +286,10 @@ export function EntityUnitsEditor({ entity, onChange, numberCounts }: EntityUnit
         <section key={block.id ?? index} className="space-y-3 rounded-xl border border-gray-200 p-4">
           <div className="flex flex-wrap items-end gap-3">
             <div className="min-w-48 flex-1 space-y-1">
-              <label htmlFor={`block-name-${index}`} className="text-[11px] text-gray-500">
+              <Label htmlFor={`block-name-${index}`} className="text-[11px] text-gray-500">
                 {blockName} name
-              </label>
-              <input
+              </Label>
+              <Input
                 id={`block-name-${index}`}
                 value={block.block_name}
                 onChange={(e) => patchBlock(index, { block_name: e.target.value })}

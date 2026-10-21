@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { type FieldPath, useFieldArray, useForm, useWatch, Controller } from 'react-hook-form'
@@ -1438,9 +1439,9 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
               {/* Entity (Apartment, Villa…) — only when the property has more than one */}
               {showEntityPicker && (
                 <div>
-                  <label htmlFor="select-entity" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  <Label htmlFor="select-entity" className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Type <span className="text-red-500 font-bold">*</span>
-                  </label>
+                  </Label>
                   <Select value={selectedEntityKey || undefined} onValueChange={(val) => handleEntityChange(val || '')}>
                     <SelectTrigger id="select-entity" className={cn(selectClass, 'h-auto')}>
                       <SelectValue placeholder="Select…" />
@@ -1459,9 +1460,9 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
               {/* Block (named by the entity, e.g. Tower) — skipped for entities without blocks */}
               {showBlockPicker && (
                 <div>
-                  <label htmlFor="select-block" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  <Label htmlFor="select-block" className="block text-xs font-semibold text-gray-700 mb-1.5">
                     {blockWord} <span className="text-red-500 font-bold">*</span>
-                  </label>
+                  </Label>
                   <Select
                     value={selectedBlockId || undefined}
                     disabled={showEntityPicker && !selectedEntityKey}
@@ -1486,9 +1487,9 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
               {/* Floor Selection (not shown for villas, plots… which have no floors) */}
               {!floorsHidden && (
                 <div>
-                  <label htmlFor="select-floor" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  <Label htmlFor="select-floor" className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Floor <span className="text-red-500 font-bold">*</span>
-                  </label>
+                  </Label>
                   <Select
                     value={selectedFloorId || undefined}
                     disabled={!selectedBlockId || floors.length === 0}
@@ -1518,9 +1519,9 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
 
               {/* Unit Selection */}
               <div>
-                <label htmlFor="select-unit" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                <Label htmlFor="select-unit" className="block text-xs font-semibold text-gray-700 mb-1.5">
                   {unitWord} <span className="text-red-500 font-bold">*</span>
-                </label>
+                </Label>
                 <Controller
                   control={control}
                   name="unitId"
@@ -1586,7 +1587,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
             <div className="space-y-5">
               <div className="flex flex-col gap-5 sm:flex-row">
                 <div className="relative shrink-0 self-center sm:self-start">
-                  <label
+                  <Label
                     htmlFor="main-resident-photo-upload"
                     className="flex h-24 w-24 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 transition hover:border-[#005390]"
                     title="Upload photo"
@@ -1599,7 +1600,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                         <span className="text-[10px] font-semibold text-gray-500">Add photo</span>
                       </>
                     )}
-                  </label>
+                  </Label>
                   <input
                     type="file"
                     accept="image/*"
@@ -1643,9 +1644,9 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div>
-                  <label htmlFor="resident-gender-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  <Label htmlFor="resident-gender-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Gender <span className="text-red-500 font-bold">*</span>
-                  </label>
+                  </Label>
                   <Controller
                     control={control}
                     name="gender"
@@ -1675,12 +1676,12 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                 <Input label="Date of Birth" required type="date" {...register('dob')} error={errors.dob?.message} />
 
                 <div>
-                  <label
+                  <Label
                     htmlFor="resident-blood-group-select"
                     className="block text-xs font-semibold text-gray-700 mb-1.5"
                   >
                     Blood Group
-                  </label>
+                  </Label>
                   <Controller
                     control={control}
                     name="bloodGroup"
@@ -1904,13 +1905,13 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                               }
                               className="hidden"
                             />
-                            <label
+                            <Label
                               htmlFor={`fm-photo-upload-${idx}`}
                               className="absolute -bottom-1.5 -right-1.5 bg-[#005390] text-white p-1 rounded-lg shadow-sm cursor-pointer hover:bg-[#003d6b] transition"
                               title="Upload Photo"
                             >
                               <Camera className="w-3 h-3" />
-                            </label>
+                            </Label>
                             {fm.photoUrl && (
                               <Button
                                 variant="ghost"
@@ -1931,13 +1932,13 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                             {/* Row 1: First Name & Last Name */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <div>
-                                <label
+                                <Label
                                   htmlFor={`fm-first-name-${idx}`}
                                   className="block text-xs font-semibold text-gray-700 mb-1"
                                 >
                                   First Name <span className="text-red-500 font-bold">*</span>
-                                </label>
-                                <input
+                                </Label>
+                                <Input
                                   id={`fm-first-name-${idx}`}
                                   type="text"
                                   placeholder="e.g. Ananya"
@@ -1954,13 +1955,13 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                 )}
                               </div>
                               <div>
-                                <label
+                                <Label
                                   htmlFor={`fm-last-name-${idx}`}
                                   className="block text-xs font-semibold text-gray-700 mb-1"
                                 >
                                   Last Name
-                                </label>
-                                <input
+                                </Label>
+                                <Input
                                   id={`fm-last-name-${idx}`}
                                   type="text"
                                   placeholder="e.g. Sharma"
@@ -1973,12 +1974,12 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                             {/* Row 2: Relation & Gender */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <div>
-                                <label
+                                <Label
                                   htmlFor={`fm-relation-select-${idx}`}
                                   className="block text-xs font-semibold text-gray-700 mb-1"
                                 >
                                   Relation <span className="text-red-500 font-bold">*</span>
-                                </label>
+                                </Label>
                                 <Controller
                                   control={control}
                                   name={`familyMembers.${idx}.relation` as const}
@@ -2016,12 +2017,12 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                               </div>
 
                               <div>
-                                <label
+                                <Label
                                   htmlFor={`fm-gender-select-${idx}`}
                                   className="block text-xs font-semibold text-gray-700 mb-1"
                                 >
                                   Gender <span className="text-red-500 font-bold">*</span>
-                                </label>
+                                </Label>
                                 <Controller
                                   control={control}
                                   name={`familyMembers.${idx}.gender` as const}
@@ -2057,13 +2058,13 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                             {/* Row 3: Date of Birth & Blood Group */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <div>
-                                <label
+                                <Label
                                   htmlFor={`fm-dob-input-${idx}`}
                                   className="block text-xs font-semibold text-gray-700 mb-1"
                                 >
                                   Date of Birth <span className="text-red-500 font-bold">*</span>
-                                </label>
-                                <input
+                                </Label>
+                                <Input
                                   id={`fm-dob-input-${idx}`}
                                   type="date"
                                   {...register(`familyMembers.${idx}.dob`)}
@@ -2078,12 +2079,12 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                               </div>
 
                               <div>
-                                <label
+                                <Label
                                   htmlFor={`fm-blood-group-select-${idx}`}
                                   className="block text-xs font-semibold text-gray-700 mb-1"
                                 >
                                   Blood Group
-                                </label>
+                                </Label>
                                 <Controller
                                   control={control}
                                   name={`familyMembers.${idx}.bloodGroup` as const}
@@ -2117,13 +2118,13 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                             {/* Row 4: Phone & Email */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <div>
-                                <label
+                                <Label
                                   htmlFor={`fm-phone-input-${idx}`}
                                   className="block text-xs font-semibold text-gray-700 mb-1"
                                 >
                                   Mobile number <span className="text-red-500 font-bold">*</span>
-                                </label>
-                                <input
+                                </Label>
+                                <Input
                                   id={`fm-phone-input-${idx}`}
                                   type="text"
                                   placeholder="e.g. 9876543210"
@@ -2139,13 +2140,13 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                               </div>
 
                               <div>
-                                <label
+                                <Label
                                   htmlFor={`fm-email-input-${idx}`}
                                   className="block text-xs font-semibold text-gray-700 mb-1"
                                 >
                                   Email <span className="text-red-500 font-bold">*</span>
-                                </label>
-                                <input
+                                </Label>
+                                <Input
                                   id={`fm-email-input-${idx}`}
                                   type="email"
                                   placeholder="e.g. member@example.com"
@@ -2171,7 +2172,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
 
                               return (
                                 <div className="pt-3 border-t border-gray-100">
-                                  <label
+                                  <Label
                                     htmlFor={`fm-login-access-${idx}`}
                                     className="inline-flex items-center gap-2 text-xs font-semibold text-[#005390] cursor-pointer"
                                   >
@@ -2198,18 +2199,18 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                     />
                                     <KeyRound className="w-3.5 h-3.5" />
                                     Give this member their own app login
-                                  </label>
+                                  </Label>
 
                                   {isCurrentlyEnabled && (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2.5 p-3 bg-blue-50/60 border border-blue-100 rounded-xl">
                                       <div>
-                                        <label
+                                        <Label
                                           htmlFor={`fm-username-input-${idx}`}
                                           className="block text-[10px] font-semibold text-gray-600 mb-1"
                                         >
                                           Username
-                                        </label>
-                                        <input
+                                        </Label>
+                                        <Input
                                           id={`fm-username-input-${idx}`}
                                           type="text"
                                           placeholder="e.g. priya_101"
@@ -2369,17 +2370,17 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
 
                 {watchedCarePackageId && !originalCare && (
                   <div className="flex flex-wrap items-end gap-3 border-t border-gray-100 pt-4">
-                    <label className="block text-xs">
+                    <Label className="block text-xs">
                       <span className="mb-1 block font-semibold text-gray-700">
                         Package start date <span className="text-rose-600">*</span>
                       </span>
-                      <input
+                      <Input
                         type="date"
                         {...register('carePackageStartDate')}
                         disabled={keepsCurrentCare}
                         className="h-9 rounded-lg border border-gray-200 px-3 text-xs focus:border-[#005390] focus:outline-none disabled:bg-gray-50 disabled:text-gray-500"
                       />
-                    </label>
+                    </Label>
                     <p className="pb-2 text-[11px] text-gray-500">
                       {keepsCurrentCare
                         ? 'Current package – its start date stays as it is.'

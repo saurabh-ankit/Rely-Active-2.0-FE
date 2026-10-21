@@ -1,8 +1,10 @@
+import { Input } from '@/components/ui/input'
 import { Check } from 'lucide-react'
 import type { CarePackage } from '@/lib/types/medical'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { AssignedPackage } from './AssignedPackage'
+import { Label } from '@/components/ui/label'
 
 export interface FamilyCareRow {
   /** Index in the form's familyMembers array. */
@@ -73,11 +75,11 @@ export function FamilyCarePackages({ packages, rows, onPick, onStartDate }: Fami
                   ))}
                 </div>
                 {row.carePackageId && (
-                  <label className="mt-3 block border-t border-gray-100 pt-3 text-xs">
+                  <Label className="mt-3 block border-t border-gray-100 pt-3 text-xs">
                     <span className="mb-1 block font-semibold text-gray-700">
                       Package start date <span className="text-rose-600">*</span>
                     </span>
-                    <input
+                    <Input
                       type="date"
                       value={row.startDate}
                       disabled={keepsCurrent}
@@ -89,7 +91,7 @@ export function FamilyCarePackages({ packages, rows, onPick, onStartDate }: Fami
                         Current package since {dmy(row.current!.startDate)}
                       </span>
                     )}
-                  </label>
+                  </Label>
                 )}
               </>
             )}

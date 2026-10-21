@@ -27,6 +27,7 @@ import { useLocationContext } from '@/hooks/useLocation'
 import { useDepartmentsQuery } from '@/hooks/react-query/rbac'
 import { useAuth } from '@/hooks/useAuth'
 import apiClient from '@/lib/api/axios'
+import { useTicketStore } from '@/lib/stores/ticketStore'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { getDepartmentManagerType } from '@/utils/departmentManager'
@@ -181,28 +182,13 @@ function formatTicketDateTime(dateVal?: string | Date | null) {
   return `${day} ${month}, ${time}`
 }
 
-/** Tickets the signed-in user has already opened, so the NEW tag can disappear. */
-const VIEWED_TICKETS_KEY = 'rely_viewed_tickets'
-
-const viewedTicketsStorageKey = (userId?: string | null) => `${VIEWED_TICKETS_KEY}_${userId || 'anon'}`
-
+/** Tickets the signed-in user has already opened, persisted via Zustand store. */
 const readViewedTickets = (userId?: string | null): string[] => {
-  try {
-    const raw = localStorage.getItem(viewedTicketsStorageKey(userId))
-    const parsed = raw ? JSON.parse(raw) : []
-    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : []
-  } catch {
-    return []
-  }
+  return useTicketStore.getState().getViewedTickets(userId)
 }
 
 const writeViewedTickets = (userId: string | undefined | null, ids: string[]) => {
-  try {
-    // Keep the list bounded; only recent tickets can still be new.
-    localStorage.setItem(viewedTicketsStorageKey(userId), JSON.stringify(ids.slice(-500)))
-  } catch {
-    // Private mode or storage disabled - the tag just keeps showing.
-  }
+  ids.forEach((id) => useTicketStore.getState().markTicketAsViewed(userId, id))
 }
 
 /** Used only until the real departments and job categories load. */

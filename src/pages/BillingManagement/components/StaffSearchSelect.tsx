@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import { useState } from 'react'
 import { Check, ChevronsUpDown, Loader2, Search, UserRound, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -92,7 +93,7 @@ export function StaffSearchSelect({ value, onChange, placeholder = 'Search staff
       <PopoverContent align="start" className="w-(--anchor-width) min-w-72 gap-0 p-0">
         <div className="flex items-center gap-2 border-b border-gray-100 px-3">
           <Search className="h-4 w-4 shrink-0 text-gray-400" />
-          <input
+          <Input
             // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
             value={search}

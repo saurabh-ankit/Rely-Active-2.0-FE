@@ -2,11 +2,14 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Lock, LogIn, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
+import { COMPANY_KEYS } from '@/hooks/react-query/company'
 import { getCompaniesAPI } from '@/lib/services/companyService'
 import { notifyError, notifySuccess } from '@/utils/toast'
 
 import { getDepartmentManagerType, getDepartmentManagerDefaultRoute } from '@/utils/departmentManager'
+import { Input } from '@/components/ui/input'
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -14,6 +17,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { login: authLogin } = useAuth()
 
@@ -39,17 +43,25 @@ export default function LoginPage() {
       })
       notifySuccess('Sign in successful!', 'Welcome back to Rely Active Operations.')
 
-      const companies = await getCompaniesAPI()
-
-      if (companies.length === 0) {
-        navigate('/setup')
-      } else {
-        const managerType = getDepartmentManagerType(user)
-        if (managerType) {
-          navigate(getDepartmentManagerDefaultRoute(managerType))
-        } else {
-          navigate('/dashboard')
+      try {
+        const companies = await queryClient.query({
+          queryKey: COMPANY_KEYS.all,
+          queryFn: getCompaniesAPI,
+          staleTime: 30_000,
+        })
+        if (Array.isArray(companies) && companies.length === 0) {
+          navigate('/setup')
+          return
         }
+      } catch (checkErr) {
+        console.warn('Could not verify company setup status on login:', checkErr)
+      }
+
+      const managerType = getDepartmentManagerType(user)
+      if (managerType) {
+        navigate(getDepartmentManagerDefaultRoute(managerType))
+      } else {
+        navigate('/dashboard')
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Login failed. Please check your credentials.'
@@ -88,7 +100,7 @@ export default function LoginPage() {
               Username
             </span>
             <div className="relative">
-              <input
+              <Input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -106,7 +118,7 @@ export default function LoginPage() {
               Password
             </span>
             <div className="relative">
-              <input
+              <Input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

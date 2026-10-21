@@ -1,3 +1,5 @@
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import type React from 'react'
 import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -28,9 +30,9 @@ const numberOrNull = (value: string) => (value === '' ? null : Number(value))
 function Field({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <label htmlFor={id} className="block text-[11px] font-semibold uppercase tracking-wider text-gray-600">
+      <Label htmlFor={id} className="block text-[11px] font-semibold uppercase tracking-wider text-gray-600">
         {label}
-      </label>
+      </Label>
       {children}
     </div>
   )
@@ -83,7 +85,7 @@ export function HomeEditor({
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Field id={id('number')} label={`${word} number`}>
-          <input
+          <Input
             id={id('number')}
             value={unit.unit_number}
             onChange={(e) => onChange({ ...unit, unit_number: e.target.value })}
@@ -91,7 +93,7 @@ export function HomeEditor({
           />
         </Field>
         <Field id={id('plot')} label="Plot size (sqft)">
-          <input
+          <Input
             id={id('plot')}
             type="number"
             min={0}
@@ -136,7 +138,7 @@ export function HomeEditor({
         )}
         {!isVilla && (
           <Field id={id('carpet')} label="Carpet area (sqft)">
-            <input
+            <Input
               id={id('carpet')}
               type="number"
               min={0}
@@ -161,7 +163,7 @@ export function HomeEditor({
           </Select>
         </Field>
         <Field id={id('pps')} label="Price per sqft (INR)">
-          <input
+          <Input
             id={id('pps')}
             type="number"
             min={0}

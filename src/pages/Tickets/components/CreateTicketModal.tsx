@@ -7,6 +7,7 @@ import type { TicketPriority } from '@/lib/types'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 
 const MAX_PHOTOS = 10
 
@@ -505,9 +506,9 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
             {ticketTarget === 'UNIT' && (
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="create-block-select" className="block text-xs font-bold text-gray-900 mb-1.5">
+                  <Label htmlFor="create-block-select" className="block text-xs font-bold text-gray-900 mb-1.5">
                     Select Block <span className="text-rose-500">*</span>
-                  </label>
+                  </Label>
                   <Select
                     value={selectedBlockName || undefined}
                     onValueChange={(val) => {
@@ -537,9 +538,9 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
                 </div>
 
                 <div>
-                  <label htmlFor="create-flat-select" className="block text-xs font-bold text-gray-900 mb-1.5">
+                  <Label htmlFor="create-flat-select" className="block text-xs font-bold text-gray-900 mb-1.5">
                     Select Flat <span className="text-rose-500">*</span>
-                  </label>
+                  </Label>
                   <Select
                     value={selectedFlatId || undefined}
                     onValueChange={(val) => {

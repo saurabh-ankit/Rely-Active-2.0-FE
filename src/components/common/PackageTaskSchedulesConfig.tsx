@@ -2,6 +2,7 @@ import React from 'react'
 import { Clock, Trash2, Sparkles, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export interface PackageTaskItemInfo {
   taskId: string
@@ -252,7 +253,7 @@ export const PackageTaskSchedulesConfig: React.FC<PackageTaskSchedulesConfigProp
                           )}
                         </div>
                       </div>
-                      <input
+                      <Input
                         type="time"
                         value={slotTime}
                         onChange={(e) => handleTimeChange(t.taskId, t.taskName, idx, e.target.value)}

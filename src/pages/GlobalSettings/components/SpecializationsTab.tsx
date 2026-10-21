@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useForm, useWatch } from 'react-hook-form'
@@ -376,12 +377,12 @@ export function SpecializationsTab() {
               />
 
               <div>
-                <label
+                <Label
                   htmlFor="specialization-description-input"
                   className="block text-xs font-semibold text-gray-700 mb-1.5"
                 >
                   Description
-                </label>
+                </Label>
                 <textarea
                   id="specialization-description-input"
                   rows={3}

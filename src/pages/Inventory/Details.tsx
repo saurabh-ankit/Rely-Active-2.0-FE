@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { AlertTriangle, ArrowLeft, ChevronRight, Gauge, Package, Pencil, SlidersHorizontal, Truck } from 'lucide-react'
@@ -564,7 +565,7 @@ function ItemSettings({
               ? suppliers.data
                   ?.filter((s) => s.isActive || supplierIds.includes(s.id))
                   .map((s) => (
-                    <label
+                    <Label
                       key={s.id}
                       className="flex min-w-0 items-center gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50/50 hover:bg-gray-100/50 cursor-pointer transition"
                     >
@@ -578,7 +579,7 @@ function ItemSettings({
                         }
                       />
                       <span className="text-sm font-medium text-gray-800">{s.name}</span>
-                    </label>
+                    </Label>
                   ))
               : (['minQuantity', 'maxQuantity', 'threshold'] as const).map((key, index) => (
                   <FormField

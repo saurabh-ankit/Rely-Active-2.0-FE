@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -19,6 +20,7 @@ import api from '@/lib/api/axios'
 import { getPropertiesAPI } from '@/lib/services/propertyService'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import type { GlobalMealSlot } from './FnbGlobalMealSlotsTab'
+import { Label } from '@/components/ui/label'
 
 export interface Property {
   id: string
@@ -493,10 +495,10 @@ export function FnbGlobalPackagesTab() {
                 {/* Left Column: Basic Details */}
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="pkg-name-input" className="block text-xs font-semibold text-gray-700 mb-1">
+                    <Label htmlFor="pkg-name-input" className="block text-xs font-semibold text-gray-700 mb-1">
                       Package Name <span className="text-red-500 font-bold ml-0.5">*</span>
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       id="pkg-name-input"
                       type="text"
                       value={name}

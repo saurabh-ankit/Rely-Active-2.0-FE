@@ -40,7 +40,14 @@ export default function RootRouter() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/setup" element={<SetupPage />} />
+      <Route
+        path="/setup"
+        element={
+          <ProtectedRoute>
+            <SetupPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Protected Operations Console Routes */}
       <Route

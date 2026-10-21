@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { RANGE_PRESETS, humanize, statusLabel, type DateRange } from './utils'
+import { Input } from '@/components/ui/input'
 
 /** Shared pieces for the employee activity tabs. */
 
@@ -37,7 +38,7 @@ export const RangeFilter = ({ value, onChange }: { value: DateRange; onChange: (
         ))}
       </div>
       <div className="flex items-center gap-1.5">
-        <input
+        <Input
           type="date"
           aria-label="From date"
           value={value.from}
@@ -46,7 +47,7 @@ export const RangeFilter = ({ value, onChange }: { value: DateRange; onChange: (
           className={inputCls}
         />
         <span className="text-xs text-gray-400">to</span>
-        <input
+        <Input
           type="date"
           aria-label="To date"
           value={value.to}

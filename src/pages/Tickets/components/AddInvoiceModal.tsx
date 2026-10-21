@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import React, { useState } from 'react'
 import { FileText, Upload, Check } from 'lucide-react'
 import apiClient from '@/lib/api/axios'
@@ -5,6 +6,7 @@ import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import type { Ticket } from '@/lib/types'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 
 interface Props {
   isOpen: boolean
@@ -80,10 +82,10 @@ export function AddInvoiceModal({ isOpen, onClose, ticket, locationId, onSuccess
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="inv-number" className="block text-xs font-bold text-gray-700 mb-1">
+                <Label htmlFor="inv-number" className="block text-xs font-bold text-gray-700 mb-1">
                   Invoice Number
-                </label>
-                <input
+                </Label>
+                <Input
                   id="inv-number"
                   type="text"
                   placeholder="e.g. INV-2026-001"
@@ -93,10 +95,10 @@ export function AddInvoiceModal({ isOpen, onClose, ticket, locationId, onSuccess
                 />
               </div>
               <div>
-                <label htmlFor="inv-amount" className="block text-xs font-bold text-gray-700 mb-1">
+                <Label htmlFor="inv-amount" className="block text-xs font-bold text-gray-700 mb-1">
                   Total Amount (₹) *
-                </label>
-                <input
+                </Label>
+                <Input
                   id="inv-amount"
                   type="number"
                   placeholder="0.00"
@@ -110,10 +112,10 @@ export function AddInvoiceModal({ isOpen, onClose, ticket, locationId, onSuccess
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="inv-material" className="block text-xs font-bold text-gray-700 mb-1">
+                <Label htmlFor="inv-material" className="block text-xs font-bold text-gray-700 mb-1">
                   Material Cost (₹)
-                </label>
-                <input
+                </Label>
+                <Input
                   id="inv-material"
                   type="number"
                   placeholder="0.00"
@@ -123,10 +125,10 @@ export function AddInvoiceModal({ isOpen, onClose, ticket, locationId, onSuccess
                 />
               </div>
               <div>
-                <label htmlFor="inv-labor" className="block text-xs font-bold text-gray-700 mb-1">
+                <Label htmlFor="inv-labor" className="block text-xs font-bold text-gray-700 mb-1">
                   Labor / Service Cost (₹)
-                </label>
-                <input
+                </Label>
+                <Input
                   id="inv-labor"
                   type="number"
                   placeholder="0.00"
@@ -146,20 +148,20 @@ export function AddInvoiceModal({ isOpen, onClose, ticket, locationId, onSuccess
                   className="hidden"
                   onChange={(e) => e.target.files?.[0] && setFile(e.target.files[0])}
                 />
-                <label
+                <Label
                   htmlFor="invoice-file"
                   className="cursor-pointer flex items-center justify-center gap-2 text-xs text-gray-600 font-semibold"
                 >
                   <Upload className="w-4 h-4 text-[#f28e53]" />
                   {file ? file.name : 'Click to select bill or receipt PDF/image'}
-                </label>
+                </Label>
               </div>
             </div>
 
             <div>
-              <label htmlFor="inv-notes" className="block text-xs font-bold text-gray-700 mb-1">
+              <Label htmlFor="inv-notes" className="block text-xs font-bold text-gray-700 mb-1">
                 Notes / Spare Parts Used
-              </label>
+              </Label>
               <textarea
                 id="inv-notes"
                 rows={2}
