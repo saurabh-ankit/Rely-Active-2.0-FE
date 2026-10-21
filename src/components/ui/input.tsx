@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import * as React from 'react'
 import { Input as InputPrimitive } from '@base-ui/react/input'
 import { Eye, EyeOff } from 'lucide-react'
@@ -73,9 +74,9 @@ function Input({
   return (
     <div className={cn('w-full', className)}>
       {cleanLabel && (
-        <label htmlFor={inputId} className="block text-xs font-semibold text-gray-700 mb-1.5">
+        <Label htmlFor={inputId} className="block text-xs font-semibold text-gray-700 mb-1.5">
           {cleanLabel} {isRequired && <span className="text-red-500 font-bold">*</span>}
-        </label>
+        </Label>
       )}
       <div className="relative">
         {icon && (

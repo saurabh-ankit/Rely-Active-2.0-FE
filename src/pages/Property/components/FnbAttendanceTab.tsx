@@ -20,6 +20,7 @@ import type {
   FnbPropertyMealSlot,
   FnbGuestAttendance,
 } from '@/lib/types/fnb'
+import { Label } from '@/components/ui/label'
 
 const DEFAULT_MEAL_SLOTS = [
   { key: 'breakfast', label: 'Breakfast', time: '07:30 - 09:30' },
@@ -589,7 +590,7 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
             </div>
           </div>
 
-          <label className="flex w-fit items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2">
+          <Label className="flex w-fit items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2">
             <Calendar className="h-4 w-4 text-[#005390]" />
             <span className="sr-only">Date</span>
             <input
@@ -598,7 +599,7 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
               onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
               className="cursor-pointer bg-transparent text-sm font-semibold text-gray-800 focus:outline-none"
             />
-          </label>
+          </Label>
         </div>
 
         <div className="space-y-2 border-t border-gray-100 pt-4">

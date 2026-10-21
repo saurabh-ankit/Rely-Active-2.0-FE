@@ -1,4 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
+import { Label } from '@/components/ui/label'
 import React, { useState } from 'react'
 import { ArrowLeft, Building2, Home, Layers, MapPin, Plus, Sparkles, Trash2, X, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -179,9 +180,9 @@ function InputField({
 
   return (
     <div className="space-y-1">
-      <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
+      <Label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
         {cleanLabel} {isReq && <span className="text-red-500 font-bold">*</span>}
-      </label>
+      </Label>
       <input
         {...props}
         className={`w-full rounded-xl border ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white px-3.5 py-2.5 text-xs text-gray-900 placeholder-gray-400 outline-none transition focus:ring-2 disabled:bg-gray-100 disabled:opacity-75`}
@@ -203,9 +204,9 @@ function SelectField({
 
   return (
     <div className="space-y-1">
-      <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
+      <Label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
         {cleanLabel} {isReq && <span className="text-red-500 font-bold">*</span>}
-      </label>
+      </Label>
       <select
         {...props}
         className={`w-full rounded-xl border ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white px-3.5 py-2.5 text-xs text-gray-900 outline-none transition focus:ring-2 disabled:opacity-50`}
@@ -228,9 +229,9 @@ function TextareaField({
 
   return (
     <div className="space-y-1">
-      <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
+      <Label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
         {cleanLabel} {isReq && <span className="text-red-500 font-bold">*</span>}
-      </label>
+      </Label>
       <textarea
         {...props}
         rows={3}
@@ -1107,12 +1108,12 @@ export default function CreatePropertyScreen({
 
                         <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                           <div>
-                            <label
+                            <Label
                               htmlFor={availableFromId}
                               className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-gray-600"
                             >
                               Available From (Optional)
-                            </label>
+                            </Label>
                             <input
                               id={availableFromId}
                               type="time"
@@ -1124,12 +1125,12 @@ export default function CreatePropertyScreen({
                             />
                           </div>
                           <div>
-                            <label
+                            <Label
                               htmlFor={availableToId}
                               className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-gray-600"
                             >
                               Available To (Optional)
-                            </label>
+                            </Label>
                             <input
                               id={availableToId}
                               type="time"
@@ -1858,7 +1859,7 @@ export default function CreatePropertyScreen({
                                   </select>
                                 </td>
                                 <td className="p-3">
-                                  <label className="relative inline-flex items-center cursor-pointer">
+                                  <Label className="relative inline-flex items-center cursor-pointer">
                                     <input
                                       type="checkbox"
                                       checked={isSellable}
@@ -1869,7 +1870,7 @@ export default function CreatePropertyScreen({
                                     <span className="ml-2 text-xs font-medium text-gray-700">
                                       {isSellable ? 'Yes' : 'No'}
                                     </span>
-                                  </label>
+                                  </Label>
                                 </td>
                               </tr>
                             )

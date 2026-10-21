@@ -17,6 +17,7 @@ import api from '@/lib/api/axios'
 import { getPropertiesAPI } from '@/lib/services/propertyService'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import type { GlobalMealSlot } from './FnbGlobalMealSlotsTab'
+import { Label } from '@/components/ui/label'
 
 export interface Property {
   id: string
@@ -491,9 +492,9 @@ export function FnbGlobalPackagesTab() {
                   {/* Left Column: Basic Details */}
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="pkg-name-input" className="block text-xs font-semibold text-gray-700 mb-1">
+                      <Label htmlFor="pkg-name-input" className="block text-xs font-semibold text-gray-700 mb-1">
                         Package Name <span className="text-red-500 font-bold ml-0.5">*</span>
-                      </label>
+                      </Label>
                       <input
                         id="pkg-name-input"
                         type="text"
@@ -506,9 +507,9 @@ export function FnbGlobalPackagesTab() {
                     </div>
 
                     <div>
-                      <label htmlFor="pkg-code-input" className="block text-xs font-semibold text-gray-700 mb-1">
+                      <Label htmlFor="pkg-code-input" className="block text-xs font-semibold text-gray-700 mb-1">
                         Package Code <span className="text-red-500 font-bold ml-0.5">*</span>
-                      </label>
+                      </Label>
                       <input
                         id="pkg-code-input"
                         type="text"
@@ -522,9 +523,9 @@ export function FnbGlobalPackagesTab() {
                     </div>
 
                     <div>
-                      <label htmlFor="pkg-dietary-select" className="block text-xs font-semibold text-gray-700 mb-1">
+                      <Label htmlFor="pkg-dietary-select" className="block text-xs font-semibold text-gray-700 mb-1">
                         Dietary Type
-                      </label>
+                      </Label>
                       <select
                         id="pkg-dietary-select"
                         value={dietaryType}
@@ -628,9 +629,9 @@ export function FnbGlobalPackagesTab() {
                     </div>
 
                     <div>
-                      <label htmlFor="pkg-desc-textarea" className="block text-xs font-semibold text-gray-700 mb-1">
+                      <Label htmlFor="pkg-desc-textarea" className="block text-xs font-semibold text-gray-700 mb-1">
                         Description
-                      </label>
+                      </Label>
                       <textarea
                         id="pkg-desc-textarea"
                         value={description}
@@ -683,7 +684,7 @@ export function FnbGlobalPackagesTab() {
                                 : 'border-gray-200 bg-gray-50/50 opacity-70'
                             }`}
                           >
-                            <label className="flex items-center gap-3 cursor-pointer select-none font-semibold text-gray-800 flex-1">
+                            <Label className="flex items-center gap-3 cursor-pointer select-none font-semibold text-gray-800 flex-1">
                               <input
                                 type="checkbox"
                                 checked={pa.enabled}
@@ -691,7 +692,7 @@ export function FnbGlobalPackagesTab() {
                                 className="w-4 h-4 rounded text-[#005390] focus:ring-[#005390] cursor-pointer"
                               />
                               <span>{pa.propertyName}</span>
-                            </label>
+                            </Label>
 
                             {pa.enabled && (
                               <div className="flex items-center gap-1.5">

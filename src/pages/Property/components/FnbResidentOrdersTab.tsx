@@ -19,6 +19,7 @@ import { useLocationContext } from '@/hooks/useLocation'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import { isHiddenFloor } from '@/utils/unitLabel'
 
 interface OrderDetail {
@@ -1100,9 +1101,9 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
 
                 {/* Staff Dropdown */}
                 <div className="space-y-1">
-                  <label htmlFor="select-delivery-staff" className="font-extrabold text-gray-700 block">
+                  <Label htmlFor="select-delivery-staff" className="font-extrabold text-gray-700 block">
                     Select F&B Delivery Employee <span className="text-rose-500">*</span>
-                  </label>
+                  </Label>
                   <select
                     id="select-delivery-staff"
                     value={selectedStaffId}
@@ -1139,9 +1140,9 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
 
                 {/* Delivery Charge Input */}
                 <div className="space-y-1">
-                  <label htmlFor="delivery-charge-input" className="font-extrabold text-gray-700 block">
+                  <Label htmlFor="delivery-charge-input" className="font-extrabold text-gray-700 block">
                     Set Room Delivery Charge (₹)
-                  </label>
+                  </Label>
                   <input
                     id="delivery-charge-input"
                     type="number"
@@ -1208,9 +1209,9 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                 </div>
 
                 <div className="space-y-1">
-                  <label htmlFor="proof-photo-input" className="font-extrabold text-gray-700 block">
+                  <Label htmlFor="proof-photo-input" className="font-extrabold text-gray-700 block">
                     Proof of Delivery Photo URL
-                  </label>
+                  </Label>
                   <input
                     id="proof-photo-input"
                     type="text"

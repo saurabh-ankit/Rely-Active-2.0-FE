@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import React, { useState, useMemo, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Loader2, Clock, Plus, Trash2, Search, CheckCircle2 } from 'lucide-react'
@@ -190,9 +191,9 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {/* 1. Select Resident */}
           <div className="space-y-1.5">
-            <label htmlFor="assign-resident-select" className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+            <Label htmlFor="assign-resident-select" className="text-xs font-semibold text-gray-700 dark:text-gray-300">
               1. Select Resident <span className="text-rose-500">*</span>
-            </label>
+            </Label>
             <select
               id="assign-resident-select"
               value={selectedResidentId}
@@ -217,9 +218,9 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
           {/* 2. Select Care Task */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label htmlFor="assign-task-select" className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+              <Label htmlFor="assign-task-select" className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                 2. Select Care Task <span className="text-rose-500">*</span>
-              </label>
+              </Label>
               <div className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400 font-medium">
                 {loadingTasks && <Loader2 className="w-3 h-3 animate-spin text-[#005390]" />}
                 <span>{careTasks.length} available from BE</span>
@@ -428,12 +429,12 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
           {/* 4. Dates & Notes */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <label
+              <Label
                 htmlFor="assign-start-date-input"
                 className="text-xs font-semibold text-gray-700 dark:text-gray-300"
               >
                 Start Date <span className="text-rose-500">*</span>
-              </label>
+              </Label>
               <input
                 id="assign-start-date-input"
                 type="date"
@@ -445,9 +446,9 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
             </div>
 
             <div className="space-y-1.5">
-              <label htmlFor="assign-end-date-input" className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+              <Label htmlFor="assign-end-date-input" className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                 End Date <span className="text-gray-400 font-normal">(Optional — Lifetime if empty)</span>
-              </label>
+              </Label>
               <input
                 id="assign-end-date-input"
                 type="date"
@@ -459,12 +460,12 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">
-              <label
+              <Label
                 htmlFor="assign-instructions-input"
                 className="text-xs font-semibold text-gray-700 dark:text-gray-300"
               >
                 Instructions / Clinical Notes (Optional)
-              </label>
+              </Label>
               <input
                 id="assign-instructions-input"
                 type="text"

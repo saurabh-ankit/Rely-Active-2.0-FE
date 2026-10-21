@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Edit, Eye, MoreVertical, Plus, UserCheck } from 'lucide-react'
@@ -578,12 +579,12 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
 
               {/* Manager Dropdown */}
               <div>
-                <label
+                <Label
                   htmlFor="reporting-manager-select"
                   className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5"
                 >
                   Select Reporting Manager
-                </label>
+                </Label>
                 <select
                   id="reporting-manager-select"
                   value={selectedManagerId}

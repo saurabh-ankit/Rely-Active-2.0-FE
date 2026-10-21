@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import React, { useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import {
@@ -254,7 +255,7 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({ residentId, minDate })
             </div>
             <div className="mt-3 space-y-2.5">
               {TYPE_FILTERS.map((option) => (
-                <label
+                <Label
                   key={option.value}
                   className="flex cursor-pointer items-center gap-2.5 text-xs font-medium text-gray-700 dark:text-gray-300"
                 >
@@ -263,7 +264,7 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({ residentId, minDate })
                     onCheckedChange={(checked) => toggleType(option.value, Boolean(checked))}
                   />
                   {option.label}
-                </label>
+                </Label>
               ))}
             </div>
           </div>

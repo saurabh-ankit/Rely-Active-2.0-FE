@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useForm } from 'react-hook-form'
@@ -540,9 +541,9 @@ export function GlobalServicesTab() {
                   />
 
                   <div>
-                    <label htmlFor="service-image-input" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    <Label htmlFor="service-image-input" className="block text-xs font-semibold text-gray-700 mb-1.5">
                       Service Image
-                    </label>
+                    </Label>
                     <div className="flex items-center gap-4 border border-gray-200 rounded-2xl p-4 bg-gray-50/50">
                       {imagePreviewUrl ? (
                         <img
@@ -563,13 +564,13 @@ export function GlobalServicesTab() {
                           onChange={handleImageChange}
                           className="hidden"
                         />
-                        <label
+                        <Label
                           htmlFor="service-image-input"
                           className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer shadow-2xs"
                         >
                           <Upload className="w-3.5 h-3.5 text-[#005390]" />
                           {imageFile ? 'Change Uploaded File' : 'Choose Image File'}
-                        </label>
+                        </Label>
                         <p className="text-[11px] text-gray-400">PNG, JPG, WEBP up to 10MB.</p>
                       </div>
                     </div>
@@ -631,7 +632,7 @@ export function GlobalServicesTab() {
                               : 'border-gray-200 bg-gray-50/50 opacity-70'
                           }`}
                         >
-                          <label className="flex items-center gap-3 cursor-pointer select-none font-semibold text-gray-800">
+                          <Label className="flex items-center gap-3 cursor-pointer select-none font-semibold text-gray-800">
                             <input
                               type="checkbox"
                               checked={pa.enabled}
@@ -639,7 +640,7 @@ export function GlobalServicesTab() {
                               className="w-4 h-4 rounded text-[#005390] focus:ring-[#005390] cursor-pointer"
                             />
                             <span>{pa.propertyName}</span>
-                          </label>
+                          </Label>
 
                           {pa.enabled && (
                             <div className="flex items-center gap-2 pl-7">

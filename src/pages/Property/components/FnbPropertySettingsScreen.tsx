@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
@@ -1652,9 +1653,9 @@ export function FnbPropertySettingsScreen({
               <form onSubmit={handleSaveMealSlotOverride} className="space-y-4 text-xs pt-1">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label htmlFor="slot-start-time" className="font-bold text-gray-700 block mb-1">
+                    <Label htmlFor="slot-start-time" className="font-bold text-gray-700 block mb-1">
                       Start Time (24h)
-                    </label>
+                    </Label>
                     <input
                       id="slot-start-time"
                       type="time"
@@ -1665,9 +1666,9 @@ export function FnbPropertySettingsScreen({
                     />
                   </div>
                   <div>
-                    <label htmlFor="slot-end-time" className="font-bold text-gray-700 block mb-1">
+                    <Label htmlFor="slot-end-time" className="font-bold text-gray-700 block mb-1">
                       End Time (24h)
-                    </label>
+                    </Label>
                     <input
                       id="slot-end-time"
                       type="time"
@@ -1690,9 +1691,9 @@ export function FnbPropertySettingsScreen({
                 )}
 
                 <div>
-                  <label htmlFor="slot-price" className="font-bold text-gray-700 block mb-1">
+                  <Label htmlFor="slot-price" className="font-bold text-gray-700 block mb-1">
                     Property Override Price (₹)
-                  </label>
+                  </Label>
                   <input
                     id="slot-price"
                     type="number"
@@ -1764,9 +1765,9 @@ export function FnbPropertySettingsScreen({
 
               <form onSubmit={handleSavePricing} className="space-y-4">
                 <div>
-                  <label htmlFor="monthly-price-input" className="block text-xs font-semibold text-gray-700 mb-1">
+                  <Label htmlFor="monthly-price-input" className="block text-xs font-semibold text-gray-700 mb-1">
                     Monthly Package Price (₹) <span className="text-red-500 font-bold ml-0.5">*</span>
-                  </label>
+                  </Label>
                   <input
                     id="monthly-price-input"
                     type="number"
@@ -1864,9 +1865,9 @@ export function FnbPropertySettingsScreen({
 
                 {/* Select New Package (Excludes Currently Subscribed Package) */}
                 <div>
-                  <label htmlFor="new-pkg-select" className="block text-xs font-semibold text-gray-700 mb-1">
+                  <Label htmlFor="new-pkg-select" className="block text-xs font-semibold text-gray-700 mb-1">
                     Select New Food Package <span className="text-red-500 font-bold">*</span>
-                  </label>
+                  </Label>
                   <select
                     id="new-pkg-select"
                     value={newPropertyPkgId}
@@ -1893,9 +1894,9 @@ export function FnbPropertySettingsScreen({
 
                 {/* Allergies / Special Notes */}
                 <div>
-                  <label htmlFor="change-notes-input" className="block text-xs font-semibold text-gray-700 mb-1">
+                  <Label htmlFor="change-notes-input" className="block text-xs font-semibold text-gray-700 mb-1">
                     Allergies & Special Instructions
-                  </label>
+                  </Label>
                   <input
                     id="change-notes-input"
                     type="text"
@@ -1956,9 +1957,9 @@ export function FnbPropertySettingsScreen({
 
               <form onSubmit={handleSaveSpecialSlotPrice} className="space-y-4 text-xs pt-1">
                 <div>
-                  <label htmlFor="special-slot-price" className="font-bold text-gray-700 block mb-1">
+                  <Label htmlFor="special-slot-price" className="font-bold text-gray-700 block mb-1">
                     Property Special Price (₹)
-                  </label>
+                  </Label>
                   <div className="relative">
                     <span className="absolute left-3 top-2 text-xs text-gray-400 font-bold">₹</span>
                     <input

@@ -16,6 +16,7 @@ import { useUsersByRoleQuery } from '@/hooks/react-query/user'
 // ── Types ──────────────────────────────────────────────────────────────────────
 import type { CareTeamMember, CareTeamRole } from '@/lib/services/residentService'
 import type { UserItem } from '@/lib/types'
+import { Label } from '@/components/ui/label'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Props
@@ -341,9 +342,9 @@ const AssignCareTeamContent: React.FC<{
 
           {/* Optional note */}
           <div className="space-y-1">
-            <label htmlFor="care-team-note" className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+            <Label htmlFor="care-team-note" className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
               Note (optional)
-            </label>
+            </Label>
             <input
               id="care-team-note"
               type="text"

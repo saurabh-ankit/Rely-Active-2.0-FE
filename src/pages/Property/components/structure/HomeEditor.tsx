@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import type React from 'react'
 import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -27,9 +28,9 @@ const numberOrNull = (value: string) => (value === '' ? null : Number(value))
 function Field({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <label htmlFor={id} className="block text-[11px] font-semibold uppercase tracking-wider text-gray-600">
+      <Label htmlFor={id} className="block text-[11px] font-semibold uppercase tracking-wider text-gray-600">
         {label}
-      </label>
+      </Label>
       {children}
     </div>
   )

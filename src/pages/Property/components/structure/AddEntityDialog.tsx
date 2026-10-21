@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -79,9 +80,9 @@ export function AddEntityDialog({ onOpenChange, onCreate }: AddEntityDialogProps
           </div>
 
           <div className="space-y-1">
-            <label htmlFor="entity-name" className="text-xs font-semibold text-gray-700">
+            <Label htmlFor="entity-name" className="text-xs font-semibold text-gray-700">
               Name
-            </label>
+            </Label>
             <input
               id="entity-name"
               value={name}
@@ -136,9 +137,9 @@ export function AddEntityDialog({ onOpenChange, onCreate }: AddEntityDialogProps
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               {levels.map((level) => (
                 <div key={level} className="space-y-1">
-                  <label htmlFor={`label-${level}`} className="text-[11px] text-gray-500">
+                  <Label htmlFor={`label-${level}`} className="text-[11px] text-gray-500">
                     {LEVEL_NAMES[level]}
-                  </label>
+                  </Label>
                   <input
                     id={`label-${level}`}
                     value={labels[level] ?? ''}

@@ -4,6 +4,7 @@ import { z } from 'zod'
 import apiClient from '@/lib/api/axios'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import type { TicketPriority } from '@/lib/types'
+import { Label } from '@/components/ui/label'
 
 const MAX_PHOTOS = 10
 
@@ -498,9 +499,9 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
           {ticketTarget === 'UNIT' && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="create-block-select" className="block text-xs font-bold text-gray-900 mb-1.5">
+                <Label htmlFor="create-block-select" className="block text-xs font-bold text-gray-900 mb-1.5">
                   Select Block <span className="text-rose-500">*</span>
-                </label>
+                </Label>
                 <select
                   id="create-block-select"
                   value={selectedBlockName}
@@ -526,9 +527,9 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
               </div>
 
               <div>
-                <label htmlFor="create-flat-select" className="block text-xs font-bold text-gray-900 mb-1.5">
+                <Label htmlFor="create-flat-select" className="block text-xs font-bold text-gray-900 mb-1.5">
                   Select Flat <span className="text-rose-500">*</span>
-                </label>
+                </Label>
                 <select
                   id="create-flat-select"
                   value={selectedFlatId}
@@ -603,9 +604,9 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
 
           {/* Assign Role Category Dropdown */}
           <div>
-            <label htmlFor="create-role-cat" className="block text-xs font-bold text-gray-900 mb-1.5">
+            <Label htmlFor="create-role-cat" className="block text-xs font-bold text-gray-900 mb-1.5">
               Assign Role Category <span className="text-rose-500">*</span>
-            </label>
+            </Label>
             <select
               id="create-role-cat"
               value={jobCategoryId}
@@ -682,9 +683,9 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
           {/* Add Description * (Positioned at the bottom with integrated File & Voice Note icons) */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label htmlFor="create-description-text" className="block text-xs font-bold text-gray-900">
+              <Label htmlFor="create-description-text" className="block text-xs font-bold text-gray-900">
                 Add description <span className="text-rose-500">*</span>
-              </label>
+              </Label>
 
               {/* Inline Action Toolbar Icons (Paperclip / Photo + Voice Note Mic) */}
               <div className="flex items-center gap-2">

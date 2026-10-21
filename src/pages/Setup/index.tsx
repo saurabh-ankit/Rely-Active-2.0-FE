@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
@@ -251,12 +252,12 @@ export default function SetupPage() {
                       accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                       className="hidden"
                     />
-                    <label
+                    <Label
                       htmlFor="document"
                       className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
                     >
                       Choose File
-                    </label>
+                    </Label>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
@@ -362,7 +363,7 @@ export default function SetupPage() {
                       </button>
                     </div>
                   ) : (
-                    <label
+                    <Label
                       htmlFor="accountant_signature"
                       className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer block"
                     >
@@ -371,7 +372,7 @@ export default function SetupPage() {
                       <span className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                         Choose File
                       </span>
-                    </label>
+                    </Label>
                   )}
                 </div>
               </div>

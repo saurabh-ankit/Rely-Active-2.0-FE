@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useForm } from 'react-hook-form'
@@ -723,9 +724,9 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
 
                 {/* 1. Package Name */}
                 <div>
-                  <label htmlFor="packageName" className="block text-xs font-bold text-gray-700 mb-1.5">
+                  <Label htmlFor="packageName" className="block text-xs font-bold text-gray-700 mb-1.5">
                     1. Package Name <span className="text-red-500">*</span>
-                  </label>
+                  </Label>
                   <input
                     id="packageName"
                     type="text"
@@ -742,9 +743,9 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* 2. Package Cost */}
                   <div>
-                    <label htmlFor="packageCost" className="block text-xs font-bold text-gray-700 mb-1.5">
+                    <Label htmlFor="packageCost" className="block text-xs font-bold text-gray-700 mb-1.5">
                       2. Package Cost (₹) <span className="text-red-500">*</span>
-                    </label>
+                    </Label>
                     <div className="relative">
                       <ReceiptIndianRupee className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input
@@ -782,9 +783,9 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
 
                 {/* Description */}
                 <div>
-                  <label htmlFor="packageDescription" className="block text-xs font-bold text-gray-700 mb-1.5">
+                  <Label htmlFor="packageDescription" className="block text-xs font-bold text-gray-700 mb-1.5">
                     Description <span className="text-gray-400 font-normal">(Optional)</span>
-                  </label>
+                  </Label>
                   <textarea
                     id="packageDescription"
                     rows={2}

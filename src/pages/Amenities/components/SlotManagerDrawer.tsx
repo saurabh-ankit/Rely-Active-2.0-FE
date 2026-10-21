@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Loader2, Search, UserRound, X } from 'lucide-react'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -464,9 +465,9 @@ export function SlotManagerDrawer({
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Bookable hours</p>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <div>
-              <label htmlFor="slot-open-time" className="mb-1 block text-xs text-gray-500">
+              <Label htmlFor="slot-open-time" className="mb-1 block text-xs text-gray-500">
                 From
-              </label>
+              </Label>
               <input
                 id="slot-open-time"
                 type="time"
@@ -480,9 +481,9 @@ export function SlotManagerDrawer({
               />
             </div>
             <div>
-              <label htmlFor="slot-close-time" className="mb-1 block text-xs text-gray-500">
+              <Label htmlFor="slot-close-time" className="mb-1 block text-xs text-gray-500">
                 To
-              </label>
+              </Label>
               <input
                 id="slot-close-time"
                 type="time"

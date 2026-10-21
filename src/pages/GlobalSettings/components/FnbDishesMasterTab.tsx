@@ -21,6 +21,7 @@ import { getPropertiesAPI } from '@/lib/services/propertyService'
 import { useLocationContext } from '@/hooks/useLocation'
 import { notifySuccess } from '@/utils/toast'
 import { useScrollLock } from '@/hooks/useScrollLock'
+import { Label } from '@/components/ui/label'
 
 const DISH_CATEGORIES = [
   { key: 'breakfast', label: 'Breakfast', icon: '🌅' },
@@ -622,9 +623,9 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                 </div>
 
                 <div>
-                  <label htmlFor="override-price-input" className="block text-xs font-semibold text-gray-700 mb-1">
+                  <Label htmlFor="override-price-input" className="block text-xs font-semibold text-gray-700 mb-1">
                     Location Specific Price (₹) <span className="text-red-500 font-bold ml-0.5">*</span>
-                  </label>
+                  </Label>
                   <input
                     id="override-price-input"
                     type="number"
@@ -698,9 +699,9 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {/* Dish Name */}
                   <div className="sm:col-span-2">
-                    <label htmlFor="dish-name-input" className="block text-xs font-semibold text-gray-700 mb-1">
+                    <Label htmlFor="dish-name-input" className="block text-xs font-semibold text-gray-700 mb-1">
                       Dish Name <span className="text-red-500 font-bold ml-0.5">*</span>
-                    </label>
+                    </Label>
                     <input
                       id="dish-name-input"
                       type="text"
@@ -714,9 +715,9 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
 
                   {/* Category (Enum based) */}
                   <div>
-                    <label htmlFor="dish-category-select" className="block text-xs font-semibold text-gray-700 mb-1">
+                    <Label htmlFor="dish-category-select" className="block text-xs font-semibold text-gray-700 mb-1">
                       Category
-                    </label>
+                    </Label>
                     <select
                       id="dish-category-select"
                       value={category}
@@ -733,9 +734,9 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
 
                   {/* Dietary Type */}
                   <div>
-                    <label htmlFor="dish-dietary-select" className="block text-xs font-semibold text-gray-700 mb-1">
+                    <Label htmlFor="dish-dietary-select" className="block text-xs font-semibold text-gray-700 mb-1">
                       Dietary Type
-                    </label>
+                    </Label>
                     <select
                       id="dish-dietary-select"
                       value={dietaryType}
@@ -752,9 +753,9 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
 
                   {/* Base Price */}
                   <div>
-                    <label htmlFor="dish-base-price-input" className="block text-xs font-semibold text-gray-700 mb-1">
+                    <Label htmlFor="dish-base-price-input" className="block text-xs font-semibold text-gray-700 mb-1">
                       Base Price (₹) for A-La-Carte
-                    </label>
+                    </Label>
                     <input
                       id="dish-base-price-input"
                       type="number"
@@ -768,9 +769,9 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
 
                   {/* Description */}
                   <div>
-                    <label htmlFor="dish-desc-input" className="block text-xs font-semibold text-gray-700 mb-1">
+                    <Label htmlFor="dish-desc-input" className="block text-xs font-semibold text-gray-700 mb-1">
                       Description / Ingredients
-                    </label>
+                    </Label>
                     <input
                       id="dish-desc-input"
                       type="text"
@@ -783,9 +784,9 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
 
                   {/* File Upload for Image (FormData) */}
                   <div className="sm:col-span-2">
-                    <label htmlFor="dish-image-input" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    <Label htmlFor="dish-image-input" className="block text-xs font-semibold text-gray-700 mb-1.5">
                       Upload Dish Image
-                    </label>
+                    </Label>
                     <div className="flex items-center gap-4 border border-gray-200 rounded-2xl p-4 bg-gray-50/50">
                       {imagePreviewUrl ? (
                         <img
@@ -806,13 +807,13 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                           onChange={handleImageChange}
                           className="hidden"
                         />
-                        <label
+                        <Label
                           htmlFor="dish-image-input"
                           className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer shadow-2xs"
                         >
                           <Upload className="w-3.5 h-3.5 text-[#005390]" />
                           {imageFile ? 'Change Uploaded File' : 'Choose Image File'}
-                        </label>
+                        </Label>
                         <p className="text-[11px] text-gray-400">PNG, JPG, WEBP up to 10MB.</p>
                       </div>
                     </div>

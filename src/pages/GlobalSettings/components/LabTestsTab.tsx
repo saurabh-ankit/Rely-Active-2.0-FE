@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { AlertCircle, Edit2, FlaskConical, Plus, Trash2, Upload, X } from 'lucide-react'
@@ -306,9 +307,9 @@ export function LabTestsTab() {
               />
 
               <div>
-                <label htmlFor="lab-test-description" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                <Label htmlFor="lab-test-description" className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Description *
-                </label>
+                </Label>
                 <textarea
                   id="lab-test-description"
                   rows={3}
@@ -354,9 +355,9 @@ export function LabTestsTab() {
               </div>
 
               <div>
-                <label htmlFor="lab-test-instructions" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                <Label htmlFor="lab-test-instructions" className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Instructions
-                </label>
+                </Label>
                 <textarea
                   id="lab-test-instructions"
                   rows={3}

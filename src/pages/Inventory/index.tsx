@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import { useState, useMemo, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -776,7 +777,7 @@ function TransactionList({
         filterActions={
           <div className="flex flex-wrap items-end gap-3">
             <SupplierFilter locationId={locationId} value={supplierId} onChange={setSupplierId} />
-            <label htmlFor="transaction-from" className="flex flex-col gap-1 text-sm">
+            <Label htmlFor="transaction-from" className="flex flex-col gap-1 text-sm">
               From
               <Input
                 id="transaction-from"
@@ -785,8 +786,8 @@ function TransactionList({
                 max={endDate || undefined}
                 onChange={(e) => setStartDate(e.target.value)}
               />
-            </label>
-            <label htmlFor="transaction-to" className="flex flex-col gap-1 text-sm">
+            </Label>
+            <Label htmlFor="transaction-to" className="flex flex-col gap-1 text-sm">
               To
               <Input
                 id="transaction-to"
@@ -795,7 +796,7 @@ function TransactionList({
                 min={startDate || undefined}
                 onChange={(e) => setEndDate(e.target.value)}
               />
-            </label>
+            </Label>
           </div>
         }
 

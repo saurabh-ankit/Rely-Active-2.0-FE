@@ -332,12 +332,12 @@ export const ResidentBillingPage: React.FC = () => {
             <User className="w-6 h-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <label
+            <Label
               htmlFor="billing-resident-select"
               className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1"
             >
               Select Resident for Billing
-            </label>
+            </Label>
             <select
               id="billing-resident-select"
               value={residentId}
@@ -357,12 +357,12 @@ export const ResidentBillingPage: React.FC = () => {
         {/* Month & Year Selectors */}
         <div className="flex items-center gap-3 shrink-0">
           <div>
-            <label
+            <Label
               htmlFor="billing-month-select"
               className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1"
             >
               Billing Month
-            </label>
+            </Label>
             <select
               id="billing-month-select"
               value={selectedMonth}
@@ -378,12 +378,12 @@ export const ResidentBillingPage: React.FC = () => {
           </div>
 
           <div>
-            <label
+            <Label
               htmlFor="billing-year-select"
               className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1"
             >
               Year
-            </label>
+            </Label>
             <select
               id="billing-year-select"
               value={selectedYear}

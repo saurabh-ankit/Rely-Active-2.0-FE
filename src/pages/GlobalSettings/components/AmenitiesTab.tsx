@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useForm } from 'react-hook-form'
@@ -268,24 +269,24 @@ export function AmenitiesTab() {
 
               <div className="grid gap-4">
                 <div>
-                  <label
+                  <Label
                     htmlFor="amenity-name"
                     className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-600"
                   >
                     Amenity Name *
-                  </label>
+                  </Label>
                   <Input id="amenity-name" {...register('name')} placeholder="e.g. Swimming Pool" />
                   {errors.name && <p className="mt-1 text-[11px] font-medium text-rose-600">{errors.name.message}</p>}
                 </div>
               </div>
 
               <div>
-                <label
+                <Label
                   htmlFor="amenity-description"
                   className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-600"
                 >
                   Description
-                </label>
+                </Label>
                 <textarea
                   id="amenity-description"
                   {...register('description')}

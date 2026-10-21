@@ -342,7 +342,7 @@ export function RecordPaymentModal({ invoice, onOpenChange }: RecordPaymentModal
                   </button>
                 </div>
               ) : (
-                <label className="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 text-sm text-gray-600 hover:border-[#2b4f7e] hover:bg-[#2b4f7e]/[0.03]">
+                <Label className="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 text-sm text-gray-600 hover:border-[#2b4f7e] hover:bg-[#2b4f7e]/[0.03]">
                   <Paperclip className="h-4 w-4 shrink-0" />
                   <span className="truncate">Attach cheque / slip</span>
                   <input
@@ -358,7 +358,7 @@ export function RecordPaymentModal({ invoice, onOpenChange }: RecordPaymentModal
                       setImage(file)
                     }}
                   />
-                </label>
+                </Label>
               )}
             </div>
           </div>

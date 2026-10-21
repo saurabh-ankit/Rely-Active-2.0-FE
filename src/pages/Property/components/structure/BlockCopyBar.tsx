@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 import { Layers, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -16,9 +17,9 @@ export function BulkAddControl({ label, onAdd }: BulkAddProps) {
   const valid = Number.isInteger(count) && count >= 1 && count <= 50
   return (
     <div className="flex items-center gap-1.5 px-1 py-1">
-      <label htmlFor="bulk-add-count" className="sr-only">
+      <Label htmlFor="bulk-add-count" className="sr-only">
         How many {plural(label, 2)} to add
-      </label>
+      </Label>
       <input
         id="bulk-add-count"
         type="number"

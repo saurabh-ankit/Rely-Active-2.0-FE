@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import { useEffect, useState, type ChangeEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useForm, useWatch, Controller } from 'react-hook-form'
@@ -904,9 +905,9 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                 error={errors.dateOfJoining?.message}
               />
               <div>
-                <label htmlFor="gender-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                <Label htmlFor="gender-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Gender
-                </label>
+                </Label>
                 <select
                   id="gender-select"
                   {...register('gender')}
@@ -979,9 +980,9 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label htmlFor="bloodgroup-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                <Label htmlFor="bloodgroup-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Blood Group
-                </label>
+                </Label>
                 <select
                   id="bloodgroup-select"
                   {...register('bloodGroup')}
@@ -1037,7 +1038,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
               <span className="block text-xs font-semibold text-gray-700">Weekoff days</span>
               <div className="flex flex-wrap gap-2">
                 {WEEK_DAYS.map((day) => (
-                  <label
+                  <Label
                     key={day}
                     className="flex items-center gap-1.5 text-xs capitalize border rounded px-2 py-1 cursor-pointer"
                   >
@@ -1051,7 +1052,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                       }}
                     />
                     {day.slice(0, 3)}
-                  </label>
+                  </Label>
                 ))}
               </div>
               {errors.weekOffDays && <p className="text-xs font-semibold text-red-500">{errors.weekOffDays.message}</p>}
@@ -1070,9 +1071,9 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
 
             <div className="space-y-4">
               <div>
-                <label htmlFor="role-select-page" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                <Label htmlFor="role-select-page" className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Assigned System Role <span className="text-red-500 font-bold">*</span>
-                </label>
+                </Label>
                 <select
                   id="role-select-page"
                   {...register('selectedRoleCode')}
@@ -1095,9 +1096,9 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label htmlFor="dept-select-page" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                      <Label htmlFor="dept-select-page" className="block text-xs font-semibold text-gray-700 mb-1.5">
                         Assign Operational Department <span className="text-red-500 font-bold">*</span>
-                      </label>
+                      </Label>
                       <select
                         id="dept-select-page"
                         {...register('selectedDepartmentId')}
@@ -1117,9 +1118,9 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                     </div>
 
                     <div>
-                      <label htmlFor="job-cat-select-page" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                      <Label htmlFor="job-cat-select-page" className="block text-xs font-semibold text-gray-700 mb-1.5">
                         Select Job Category <span className="text-red-500 font-bold">*</span>
-                      </label>
+                      </Label>
                       <select
                         id="job-cat-select-page"
                         {...register('selectedJobCategoryId')}
@@ -1199,12 +1200,12 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
 
                       {selectedSpecializationIds.length > 1 && (
                         <div className="mt-3 max-w-xs">
-                          <label
+                          <Label
                             htmlFor="primary-specialization-select"
                             className="block text-xs font-semibold text-gray-700 mb-1.5"
                           >
                             Primary Specialization
-                          </label>
+                          </Label>
                           <select
                             id="primary-specialization-select"
                             value={primarySpecializationId}

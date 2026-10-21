@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Activity, AlertCircle, Edit2, Plus, Trash2, Upload, X } from 'lucide-react'
@@ -516,9 +517,9 @@ export function VitalsTab() {
             <form onSubmit={onSubmit} noValidate className="space-y-5 overflow-y-auto px-1 flex-1">
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label htmlFor="vital-name" className="block text-xs font-semibold text-gray-700">
+                  <Label htmlFor="vital-name" className="block text-xs font-semibold text-gray-700">
                     Vital Name *
-                  </label>
+                  </Label>
                   {!editing && (
                     <button
                       type="button"
@@ -596,9 +597,9 @@ export function VitalsTab() {
               </div>
 
               <div>
-                <label htmlFor="vital-description" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                <Label htmlFor="vital-description" className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Description
-                </label>
+                </Label>
                 <textarea
                   id="vital-description"
                   rows={3}
@@ -634,12 +635,12 @@ export function VitalsTab() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {THRESHOLD_FIELDS.map((field) => (
                     <div key={field}>
-                      <label
+                      <Label
                         htmlFor={`vital-threshold-${field}`}
                         className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1"
                       >
                         {getThresholdLabel(field, formData.name)}
-                      </label>
+                      </Label>
                       <input
                         id={`vital-threshold-${field}`}
                         type="number"
