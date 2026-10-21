@@ -323,7 +323,6 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
                       fnbSubscriptions={fnbSubscriptions}
                       getSlotDisplayName={getSlotDisplayName}
                       canUpdateResident={canUpdateResident}
-                      onAssignFoodPackage={() => navigate(editUrl)}
                     />
                   ),
                 },
