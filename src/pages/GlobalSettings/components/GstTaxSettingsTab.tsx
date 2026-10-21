@@ -5,6 +5,7 @@ import type { TaxSettings } from '@/lib/services/billingService'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 
 const GST_PRESETS = [0, 5, 12, 18, 28]
 
@@ -110,23 +111,12 @@ const GstTaxSettingsForm: React.FC<{ initial?: TaxSettings }> = ({ initial }) =>
               When enabled, invoices will automatically include GST, CGST, and SGST breakdowns.
             </p>
           </div>
-          <Button
-            type="button"
-            role="switch"
-            variant="ghost"
-            aria-checked={gstEnabled}
+          <Switch
+            checked={gstEnabled}
+            onCheckedChange={setGstEnabled}
             aria-label="Enable GST Invoicing"
-            onClick={() => setGstEnabled(!gstEnabled)}
-            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out p-0 hover:bg-transparent ${
-              gstEnabled ? 'bg-[#005390] hover:bg-[#005390]' : 'bg-gray-300 hover:bg-gray-300'
-            }`}
-          >
-            <span
-              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                gstEnabled ? 'translate-x-5' : 'translate-x-0'
-              }`}
-            />
-          </Button>
+            className="data-checked:bg-[#005390]"
+          />
         </div>
 
         {/* Company GSTIN */}
