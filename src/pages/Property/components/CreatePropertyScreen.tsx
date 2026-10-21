@@ -35,6 +35,7 @@ import { createPropertyAPI, getPropertyByIdAPI, updatePropertyAPI } from '@/lib/
 import { getAmenitiesAPI, type Amenity } from '@/lib/services/amenityService'
 import { CommonProgressBar, type ProgressBarStep } from '@/components/common/CommonProgressBar'
 import { notifyError } from '@/utils/toast'
+import { useLocationContext } from '@/hooks/useLocation'
 import { z } from 'zod'
 
 export const PINCODE_REGEX = /^[1-9][0-9]{5}$/
@@ -254,6 +255,7 @@ export default function CreatePropertyScreen({
   onBack,
   onSuccess,
 }: CreatePropertyScreenProps) {
+  const { refreshLocations } = useLocationContext()
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -940,8 +942,10 @@ export default function CreatePropertyScreen({
 
       if (editPropertyId) {
         await updatePropertyAPI(editPropertyId, payload)
+        await refreshLocations(editPropertyId)
       } else {
-        await createPropertyAPI(payload)
+        const created = await createPropertyAPI(payload)
+        await refreshLocations(created?.id)
       }
       onSuccess()
       onBack()
