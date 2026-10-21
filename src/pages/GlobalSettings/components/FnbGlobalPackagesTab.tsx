@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Plus,
   Edit2,
@@ -221,9 +222,9 @@ export function FnbGlobalPackagesTab() {
     }
   }
 
-  const togglePropertyAssignment = (index: number) => {
+  const togglePropertyAssignment = (index: number, nextEnabled?: boolean) => {
     const updated = [...propertyAssignments]
-    updated[index].enabled = !updated[index].enabled
+    updated[index].enabled = nextEnabled !== undefined ? nextEnabled : !updated[index].enabled
     setPropertyAssignments(updated)
   }
 
@@ -686,11 +687,10 @@ export function FnbGlobalPackagesTab() {
                           }`}
                         >
                           <label className="flex items-center gap-3 cursor-pointer select-none font-semibold text-gray-800 flex-1">
-                            <input
-                              type="checkbox"
+                            <Checkbox
                               checked={pa.enabled}
-                              onChange={() => togglePropertyAssignment(idx)}
-                              className="w-4 h-4 rounded text-[#005390] focus:ring-[#005390] cursor-pointer"
+                              onCheckedChange={(checked) => togglePropertyAssignment(idx, checked === true)}
+                              className="data-checked:border-[#005390] data-checked:bg-[#005390] data-checked:text-white"
                             />
                             <span>{pa.propertyName}</span>
                           </label>

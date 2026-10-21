@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -1106,13 +1107,12 @@ export default function GateManagementPage() {
                     key={item.id as string}
                     className="flex items-center gap-3 bg-card p-3 border rounded-xl shadow-xs"
                   >
-                    <input
+                    <Checkbox
                       id={`verify-item-${item.id}`}
-                      type="checkbox"
-                      className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                      className="data-checked:bg-indigo-600 data-checked:border-indigo-600 data-checked:text-white"
                       checked={checkedItems.includes(item.id as string)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
+                      onCheckedChange={(checked) => {
+                        if (checked) {
                           setCheckedItems([...checkedItems, item.id as string])
                         } else {
                           setCheckedItems(checkedItems.filter((id) => id !== item.id))

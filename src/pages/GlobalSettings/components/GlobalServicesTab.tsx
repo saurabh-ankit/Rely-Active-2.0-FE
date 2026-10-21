@@ -22,6 +22,7 @@ import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { z } from 'zod'
 
 const propertyAssignmentFormSchema = z.object({
@@ -220,11 +221,12 @@ export function GlobalServicesTab() {
     setIsModalOpen(true)
   }
 
-  const togglePropertyAssignment = (index: number) => {
+  const togglePropertyAssignment = (index: number, nextEnabled?: boolean) => {
     const updated = [...propertyAssignments]
+    const willBeEnabled = nextEnabled !== undefined ? nextEnabled : !updated[index].enabled
     updated[index] = {
       ...updated[index],
-      enabled: !updated[index].enabled,
+      enabled: willBeEnabled,
     }
     if (updated[index].enabled && (!updated[index].price || Number(updated[index].price) === 0)) {
       updated[index].price = basePrice || 0
@@ -633,11 +635,10 @@ export function GlobalServicesTab() {
                           }`}
                         >
                           <label className="flex items-center gap-3 cursor-pointer select-none font-semibold text-gray-800">
-                            <input
-                              type="checkbox"
+                            <Checkbox
                               checked={pa.enabled}
-                              onChange={() => togglePropertyAssignment(idx)}
-                              className="w-4 h-4 rounded text-[#005390] focus:ring-[#005390] cursor-pointer"
+                              onCheckedChange={(checked) => togglePropertyAssignment(idx, checked === true)}
+                              className="data-checked:border-[#005390] data-checked:bg-[#005390] data-checked:text-white"
                             />
                             <span>{pa.propertyName}</span>
                           </label>

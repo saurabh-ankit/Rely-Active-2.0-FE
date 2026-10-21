@@ -39,6 +39,7 @@ import { useLocationContext } from '@/hooks/useLocation'
 import { z } from 'zod'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { PageHeader } from '@/components/common/PageHeader'
 import { cn, getFileUrl } from '@/lib/utils'
 import { floorLabel, isHiddenFloor } from '@/utils/unitLabel'
@@ -2098,14 +2099,13 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                     htmlFor={`fm-login-access-${idx}`}
                                     className="inline-flex items-center gap-2 text-xs font-semibold text-[#005390] cursor-pointer"
                                   >
-                                    <input
+                                    <Checkbox
                                       id={`fm-login-access-${idx}`}
-                                      type="checkbox"
                                       checked={isCurrentlyEnabled}
-                                      onChange={(e) => {
-                                        const checked = e.target.checked
-                                        setEnabledFmLogins((prev) => ({ ...prev, [idx]: checked }))
-                                        if (checked) {
+                                      onCheckedChange={(checked) => {
+                                        const isChecked = checked === true
+                                        setEnabledFmLogins((prev) => ({ ...prev, [idx]: isChecked }))
+                                        if (isChecked) {
                                           if (!fm?.username) {
                                             setValue(
                                               `familyMembers.${idx}.username`,
@@ -2118,7 +2118,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                           setValue(`familyMembers.${idx}.password`, '', { shouldValidate: true })
                                         }
                                       }}
-                                      className="rounded border-gray-300 text-[#005390] focus:ring-[#005390]"
+                                      className="data-checked:border-[#005390] data-checked:bg-[#005390] data-checked:text-white"
                                     />
                                     <KeyRound className="w-3.5 h-3.5" />
                                     Give this member their own app login
