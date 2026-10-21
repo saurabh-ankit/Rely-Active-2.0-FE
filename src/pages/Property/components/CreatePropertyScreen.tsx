@@ -35,6 +35,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { createPropertyAPI, getPropertyByIdAPI, updatePropertyAPI } from '@/lib/services/propertyService'
 import { getAmenitiesAPI, type Amenity } from '@/lib/services/amenityService'
 import { CommonProgressBar, type ProgressBarStep } from '@/components/common/CommonProgressBar'
@@ -1632,26 +1633,26 @@ export default function CreatePropertyScreen({
 
                     {activeBlock.bhk_templates && activeBlock.bhk_templates.length > 0 && (
                       <div className="rounded-2xl border border-gray-200 overflow-hidden">
-                        <table className="w-full text-left text-xs border-collapse">
-                          <thead className="bg-gray-50 border-b border-gray-200 text-gray-700 font-bold">
-                            <tr>
-                              <th className="p-3">Type</th>
-                              <th className="p-3">Carpet</th>
-                              <th className="p-3">SBA</th>
-                              <th className="p-3">Price</th>
-                              <th className="p-3">Layout</th>
-                              <th className="p-3 text-right">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100">
+                        <Table className="w-full text-left text-xs border-collapse">
+                          <TableHeader className="bg-gray-50 border-b border-gray-200 text-gray-700 font-bold">
+                            <TableRow>
+                              <TableHead className="p-3">Type</TableHead>
+                              <TableHead className="p-3">Carpet</TableHead>
+                              <TableHead className="p-3">SBA</TableHead>
+                              <TableHead className="p-3">Price</TableHead>
+                              <TableHead className="p-3">Layout</TableHead>
+                              <TableHead className="p-3 text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody className="divide-y divide-gray-100">
                             {activeBlock.bhk_templates.map((variant, vIdx) => {
                               const isAssignExpanded = expandedAssignVariantIndex === vIdx
 
                               return (
                                 <React.Fragment key={vIdx}>
-                                  <tr>
-                                    <td className="p-3 font-bold text-gray-900">{variant.type}</td>
-                                    <td className="p-3">
+                                  <TableRow>
+                                    <TableCell className="p-3 font-bold text-gray-900">{variant.type}</TableCell>
+                                    <TableCell className="p-3">
                                       <Input
                                         type="number"
                                         min={0}
@@ -1669,8 +1670,8 @@ export default function CreatePropertyScreen({
                                             : 'border-red-400 bg-red-50',
                                         )}
                                       />
-                                    </td>
-                                    <td className="p-3">
+                                    </TableCell>
+                                    <TableCell className="p-3">
                                       <Input
                                         type="number"
                                         min={0}
@@ -1688,11 +1689,11 @@ export default function CreatePropertyScreen({
                                             : 'border-red-400 bg-red-50',
                                         )}
                                       />
-                                    </td>
-                                    <td className="p-3 whitespace-nowrap font-semibold text-gray-900">
+                                    </TableCell>
+                                    <TableCell className="p-3 whitespace-nowrap font-semibold text-gray-900">
                                       {formatLakh(unitPrice(variant.super_built_up_area, activeBlock.price_per_sqft))}
-                                    </td>
-                                    <td className="p-3">
+                                    </TableCell>
+                                    <TableCell className="p-3">
                                       <Button
                                         type="button"
                                         variant="outline"
@@ -1701,8 +1702,8 @@ export default function CreatePropertyScreen({
                                       >
                                         Assign ({variant.positions.length})
                                       </Button>
-                                    </td>
-                                    <td className="p-3 text-right">
+                                    </TableCell>
+                                    <TableCell className="p-3 text-right">
                                       <Button
                                         type="button"
                                         variant="ghost"
@@ -1713,12 +1714,12 @@ export default function CreatePropertyScreen({
                                       >
                                         <Trash2 className="h-4 w-4" />
                                       </Button>
-                                    </td>
-                                  </tr>
+                                    </TableCell>
+                                  </TableRow>
 
                                   {isAssignExpanded && (
-                                    <tr>
-                                      <td colSpan={6} className="bg-gray-50/70 p-4 border-b border-gray-200">
+                                    <TableRow>
+                                      <TableCell colSpan={6} className="bg-gray-50/70 p-4 border-b border-gray-200">
                                         <div className="space-y-3">
                                           <div className="grid grid-cols-3 gap-3">
                                             {(() => {
@@ -1794,14 +1795,14 @@ export default function CreatePropertyScreen({
                                             </SelectField>
                                           </div>
                                         </div>
-                                      </td>
-                                    </tr>
+                                      </TableCell>
+                                    </TableRow>
                                   )}
                                 </React.Fragment>
                               )
                             })}
-                          </tbody>
-                        </table>
+                          </TableBody>
+                        </Table>
                       </div>
                     )}
 
@@ -1852,15 +1853,15 @@ export default function CreatePropertyScreen({
                       <h4 className="text-xs font-bold text-gray-900">Floor preview</h4>
                     </div>
                     <div className="rounded-2xl border border-gray-200 overflow-hidden">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead className="bg-gray-50 border-b border-gray-200 font-bold text-gray-700">
-                          <tr>
-                            <th className="p-3">Floor #</th>
-                            <th className="p-3">Floor type</th>
-                            <th className="p-3">Sellable</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
+                      <Table className="w-full text-left text-xs border-collapse">
+                        <TableHeader className="bg-gray-50 border-b border-gray-200 font-bold text-gray-700">
+                          <TableRow>
+                            <TableHead className="p-3">Floor #</TableHead>
+                            <TableHead className="p-3">Floor type</TableHead>
+                            <TableHead className="p-3">Sellable</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody className="divide-y divide-gray-100">
                           {Array.from({ length: activeBlock.total_floors || 3 }).map((_, fI) => {
                             const floorNum = fI + 1
                             const isGround = floorNum === 1
@@ -1899,9 +1900,9 @@ export default function CreatePropertyScreen({
                             }
 
                             return (
-                              <tr key={floorNum}>
-                                <td className="p-3 font-bold text-gray-900">{floorNum}</td>
-                                <td className="p-3">
+                              <TableRow key={floorNum}>
+                                <TableCell className="p-3 font-bold text-gray-900">{floorNum}</TableCell>
+                                <TableCell className="p-3">
                                   <Select
                                     value={currentFloorType || undefined}
                                     onValueChange={(val) => updateFloorConfig({ floor_type: val || '' })}
@@ -1917,8 +1918,8 @@ export default function CreatePropertyScreen({
                                       ))}
                                     </SelectContent>
                                   </Select>
-                                </td>
-                                <td className="p-3">
+                                </TableCell>
+                                <TableCell className="p-3">
                                   <Label className="flex items-center gap-2 cursor-pointer">
                                     <Checkbox
                                       checked={isSellable}
@@ -1931,12 +1932,12 @@ export default function CreatePropertyScreen({
                                       {isSellable ? 'Yes' : 'No'}
                                     </span>
                                   </Label>
-                                </td>
-                              </tr>
+                                </TableCell>
+                              </TableRow>
                             )
                           })}
-                        </tbody>
-                      </table>
+                        </TableBody>
+                      </Table>
                     </div>
                     <p className="text-[10px] text-gray-400">Units are generated only for floors marked as sellable.</p>
                   </div>
@@ -1960,36 +1961,38 @@ export default function CreatePropertyScreen({
 
                     {previewGenerated && activeBlock.floors && activeBlock.floors.length > 0 && (
                       <div className="rounded-2xl border border-gray-200 overflow-hidden max-h-64 overflow-y-auto">
-                        <table className="w-full text-left text-xs border-collapse">
-                          <thead className="bg-gray-50 border-b border-gray-200 font-bold text-gray-700 sticky top-0">
-                            <tr>
-                              <th className="p-2.5">Unit</th>
-                              <th className="p-2.5">Floor</th>
-                              <th className="p-2.5">Type</th>
-                              <th className="p-2.5">Area</th>
-                              <th className="p-2.5">Price</th>
-                              <th className="p-2.5">Dir/View</th>
-                              <th className="p-2.5">Sellable</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100">
+                        <Table className="w-full text-left text-xs border-collapse">
+                          <TableHeader className="bg-gray-50 border-b border-gray-200 font-bold text-gray-700 sticky top-0">
+                            <TableRow>
+                              <TableHead className="p-2.5">Unit</TableHead>
+                              <TableHead className="p-2.5">Floor</TableHead>
+                              <TableHead className="p-2.5">Type</TableHead>
+                              <TableHead className="p-2.5">Area</TableHead>
+                              <TableHead className="p-2.5">Price</TableHead>
+                              <TableHead className="p-2.5">Dir/View</TableHead>
+                              <TableHead className="p-2.5">Sellable</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody className="divide-y divide-gray-100">
                             {activeBlock.floors.flatMap((f) =>
                               (f.units || []).map((u, uI) => (
-                                <tr key={`${f.floor_number}-${uI}`}>
-                                  <td className="p-2.5 font-bold text-gray-900">{u.unit_number}</td>
-                                  <td className="p-2.5">{f.floor_number}</td>
-                                  <td className="p-2.5 font-semibold text-blue-600">{u.unit_type}</td>
-                                  <td className="p-2.5">{u.built_up_area} sqft</td>
-                                  <td className="p-2.5 whitespace-nowrap">{u.price ? formatLakh(u.price) : '—'}</td>
-                                  <td className="p-2.5 text-gray-500">
+                                <TableRow key={`${f.floor_number}-${uI}`}>
+                                  <TableCell className="p-2.5 font-bold text-gray-900">{u.unit_number}</TableCell>
+                                  <TableCell className="p-2.5">{f.floor_number}</TableCell>
+                                  <TableCell className="p-2.5 font-semibold text-blue-600">{u.unit_type}</TableCell>
+                                  <TableCell className="p-2.5">{u.built_up_area} sqft</TableCell>
+                                  <TableCell className="p-2.5 whitespace-nowrap">
+                                    {u.price ? formatLakh(u.price) : '—'}
+                                  </TableCell>
+                                  <TableCell className="p-2.5 text-gray-500">
                                     {u.direction || 'North-East'} / {u.view_facing || 'Garden View'}
-                                  </td>
-                                  <td className="p-2.5 text-emerald-600 font-bold">Yes</td>
-                                </tr>
+                                  </TableCell>
+                                  <TableCell className="p-2.5 text-emerald-600 font-bold">Yes</TableCell>
+                                </TableRow>
                               )),
                             )}
-                          </tbody>
-                        </table>
+                          </TableBody>
+                        </Table>
                       </div>
                     )}
                   </div>

@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import type { BlockInput, EntityInput, FloorInput, UnitInput, UnitType } from '../../types'
@@ -55,30 +56,30 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
           No {unitName.toLowerCase()}s yet. Add some below.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-gray-200">
-          <table className="w-full min-w-[520px] text-left text-xs">
-            <thead className="bg-gray-50 text-[11px] font-semibold text-gray-500">
-              <tr>
-                <th className="px-3 py-2">{unitName} no.</th>
-                <th className="px-3 py-2">Type</th>
-                <th className="px-3 py-2">Area (sqft)</th>
+        <div className="overflow-hidden rounded-xl border border-gray-200">
+          <Table className="min-w-[520px] text-left text-xs">
+            <TableHeader className="bg-gray-50 text-[11px] font-semibold text-gray-500">
+              <TableRow>
+                <TableHead className="px-3 py-2">{unitName} no.</TableHead>
+                <TableHead className="px-3 py-2">Type</TableHead>
+                <TableHead className="px-3 py-2">Area (sqft)</TableHead>
                 {preset.attributes.map((a) => (
-                  <th key={a.key} className="px-3 py-2">
+                  <TableHead key={a.key} className="px-3 py-2">
                     {a.label}
                     {a.suffix ? ` (${a.suffix})` : ''}
-                  </th>
+                  </TableHead>
                 ))}
-                <th className="w-10 px-3 py-2">
+                <TableHead className="w-10 px-3 py-2">
                   <span className="sr-only">Remove</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-gray-100">
               {units.map((unit, index) => {
                 const duplicate = (numberCounts.get(unit.unit_number.trim().toLowerCase()) ?? 0) > 1
                 return (
-                  <tr key={unit.id ?? index}>
-                    <td className="px-3 py-1.5">
+                  <TableRow key={unit.id ?? index}>
+                    <TableCell className="px-3 py-1.5">
                       <Input
                         aria-label={`${unitName} number`}
                         value={unit.unit_number}
@@ -86,8 +87,8 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
                         className={cn(inputClass, duplicate && 'border-red-400 bg-red-50')}
                         title={duplicate ? 'This number is already used in the property' : undefined}
                       />
-                    </td>
-                    <td className="px-3 py-1.5">
+                    </TableCell>
+                    <TableCell className="px-3 py-1.5">
                       <Select
                         value={unit.unit_type || undefined}
                         onValueChange={(val) => update(index, { unit_type: val as UnitType })}
@@ -103,8 +104,8 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
                           ))}
                         </SelectContent>
                       </Select>
-                    </td>
-                    <td className="px-3 py-1.5">
+                    </TableCell>
+                    <TableCell className="px-3 py-1.5">
                       <Input
                         aria-label="Area"
                         type="number"
@@ -115,9 +116,9 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
                         }
                         className={inputClass}
                       />
-                    </td>
+                    </TableCell>
                     {preset.attributes.map((a) => (
-                      <td key={a.key} className="px-3 py-1.5">
+                      <TableCell key={a.key} className="px-3 py-1.5">
                         <Input
                           aria-label={a.label}
                           type="number"
@@ -126,9 +127,9 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
                           onChange={(e) => updateAttribute(index, a.key, e.target.value)}
                           className={inputClass}
                         />
-                      </td>
+                      </TableCell>
                     ))}
-                    <td className="px-3 py-1.5 text-right">
+                    <TableCell className="px-3 py-1.5 text-right">
                       <Button
                         type="button"
                         variant="ghost"
@@ -139,12 +140,12 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
 

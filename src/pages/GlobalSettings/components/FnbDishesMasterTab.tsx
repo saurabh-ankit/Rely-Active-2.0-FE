@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   Plus,
   Edit2,
@@ -472,20 +473,20 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                         No dishes listed in this category yet.
                       </div>
                     ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs text-gray-600 border-collapse">
-                          <thead className="bg-gray-50/50 text-gray-400 uppercase tracking-wider font-bold text-[10px] border-b border-gray-100">
-                            <tr>
-                              <th className="px-5 py-3">Dish Name & Description</th>
-                              <th className="px-5 py-3">Dietary Type</th>
-                              <th className="px-5 py-3">
+                      <div className="overflow-hidden">
+                        <Table className="w-full text-left text-xs text-gray-600 border-collapse">
+                          <TableHeader className="bg-gray-50/50 text-gray-400 uppercase tracking-wider font-bold text-[10px] border-b border-gray-100">
+                            <TableRow>
+                              <TableHead className="px-5 py-3">Dish Name & Description</TableHead>
+                              <TableHead className="px-5 py-3">Dietary Type</TableHead>
+                              <TableHead className="px-5 py-3">
                                 {isLocationMode ? 'Price (in this property)' : 'Base Price'}
-                              </th>
-                              {!isLocationMode && <th className="px-5 py-3">Assigned Properties</th>}
-                              <th className="px-5 py-3 text-right">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100">
+                              </TableHead>
+                              {!isLocationMode && <TableHead className="px-5 py-3">Assigned Properties</TableHead>}
+                              <TableHead className="px-5 py-3 text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody className="divide-y divide-gray-100">
                             {categoryDishes.map((dish) => {
                               const pd = locId ? dish.propertyDishes?.find((p) => p.locId === locId) : null
                               const effectivePrice = isLocationMode && pd ? pd.price : dish.basePrice
@@ -497,8 +498,8 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                               const isVeg = dish.dietaryType === 'veg'
 
                               return (
-                                <tr key={dish.id} className="hover:bg-gray-50/60 transition-colors">
-                                  <td className="px-5 py-3.5">
+                                <TableRow key={dish.id} className="hover:bg-gray-50/60 transition-colors">
+                                  <TableCell className="px-5 py-3.5">
                                     <div className="flex items-center gap-3">
                                       {dish.imageUrl ? (
                                         <img
@@ -520,8 +521,8 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                                         )}
                                       </div>
                                     </div>
-                                  </td>
-                                  <td className="px-5 py-3.5">
+                                  </TableCell>
+                                  <TableCell className="px-5 py-3.5">
                                     <span
                                       className={`px-2.5 py-1 rounded-full font-semibold capitalize text-[11px] border inline-block ${
                                         isNonVeg
@@ -533,12 +534,12 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                                     >
                                       {dish.dietaryType.replace('_', ' ')}
                                     </span>
-                                  </td>
-                                  <td className="px-5 py-3.5 font-extrabold text-gray-900 text-xs">
+                                  </TableCell>
+                                  <TableCell className="px-5 py-3.5 font-extrabold text-gray-900 text-xs">
                                     ₹{Number(effectivePrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                  </td>
+                                  </TableCell>
                                   {!isLocationMode && (
-                                    <td className="px-5 py-3.5">
+                                    <TableCell className="px-5 py-3.5">
                                       {assignedPropsCount === 0 ? (
                                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-gray-50 text-gray-400 border border-gray-200 italic">
                                           <Building2 className="w-3 h-3 text-gray-300" /> No Properties
@@ -562,9 +563,9 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                                             })}
                                         </div>
                                       )}
-                                    </td>
+                                    </TableCell>
                                   )}
-                                  <td className="px-5 py-3.5 text-right">
+                                  <TableCell className="px-5 py-3.5 text-right">
                                     {canUpdateFnb && (
                                       <Button
                                         type="button"
@@ -576,12 +577,12 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                                         {isLocationMode ? 'Edit Price' : 'Edit'}
                                       </Button>
                                     )}
-                                  </td>
-                                </tr>
+                                  </TableCell>
+                                </TableRow>
                               )
                             })}
-                          </tbody>
-                        </table>
+                          </TableBody>
+                        </Table>
                       </div>
                     )}
                   </div>

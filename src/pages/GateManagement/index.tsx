@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   Dialog,
   DialogContent,
@@ -428,35 +429,35 @@ export default function GateManagementPage() {
           </Tabs>
         </div>
 
-        <div className="p-6 overflow-x-auto">
+        <div className="p-6 overflow-hidden">
           {isLoading ? (
             <div className="text-center py-12 text-gray-500 font-semibold">Loading data...</div>
           ) : activeTab === 'ENTRIES' ? (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200 text-xs text-gray-500 uppercase">
-                  <th className="pb-3 px-2 font-semibold">Visitor</th>
-                  <th className="pb-3 px-2 font-semibold">Details</th>
-                  <th className="pb-3 px-2 font-semibold">Type</th>
-                  <th className="pb-3 px-2 font-semibold">Source</th>
-                  <th className="pb-3 px-2 font-semibold">Status</th>
-                  <th className="pb-3 px-2 font-semibold">Raised By</th>
-                  <th className="pb-3 px-2 font-semibold">Approved By</th>
-                  <th className="pb-3 px-2 font-semibold">Time</th>
-                  <th className="pb-3 px-2 font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
+            <Table className="w-full text-left border-collapse">
+              <TableHeader>
+                <TableRow className="border-b border-gray-200 text-xs text-gray-500 uppercase">
+                  <TableHead className="pb-3 px-2 font-semibold">Visitor</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Details</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Type</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Source</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Status</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Raised By</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Approved By</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Time</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-gray-100">
                 {filteredEntries.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="py-8 text-center text-sm text-gray-500 font-medium">
+                  <TableRow>
+                    <TableCell colSpan={9} className="py-8 text-center text-sm text-gray-500 font-medium">
                       No entries found
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   filteredEntries.map((entry) => (
-                    <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="py-4 px-2">
+                    <TableRow key={entry.id} className="hover:bg-gray-50 transition-colors">
+                      <TableCell className="py-4 px-2">
                         <div className="flex items-center gap-3">
                           {entry.visitorPhotos && entry.visitorPhotos.length > 0 ? (
                             <div
@@ -493,8 +494,8 @@ export default function GateManagementPage() {
                             <p className="text-xs text-gray-500">{entry.visitorPhone || 'N/A'}</p>
                           </div>
                         </div>
-                      </td>
-                      <td className="py-4 px-2 text-xs text-gray-600 space-y-0.5">
+                      </TableCell>
+                      <TableCell className="py-4 px-2 text-xs text-gray-600 space-y-0.5">
                         {entry.unit?.unit_number && (
                           <div>
                             <span className="font-semibold text-gray-500">Flat:</span> {entry.unit.unit_number}
@@ -567,13 +568,13 @@ export default function GateManagementPage() {
                           !entry.notes &&
                           (!entry.items || (entry.items as any[]).length === 0) &&
                           !entry.preapproved?.scheduleType && <span className="text-gray-400">-</span>}
-                      </td>
-                      <td className="py-4 px-2">
+                      </TableCell>
+                      <TableCell className="py-4 px-2">
                         <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-md font-semibold">
                           {entry.visitorType}
                         </span>
-                      </td>
-                      <td className="py-4 px-2">
+                      </TableCell>
+                      <TableCell className="py-4 px-2">
                         <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
                           {entry.entrySource === 'Preapproved' ? (
                             <QrCode className="w-3.5 h-3.5" />
@@ -582,8 +583,8 @@ export default function GateManagementPage() {
                           )}
                           {entry.entrySource}
                         </div>
-                      </td>
-                      <td className="py-4 px-2">
+                      </TableCell>
+                      <TableCell className="py-4 px-2">
                         <span
                           className={`px-2 py-1 text-xs rounded-md font-bold ${
                             entry.status === 'Inside'
@@ -597,14 +598,14 @@ export default function GateManagementPage() {
                         >
                           {entry.status}
                         </span>
-                      </td>
-                      <td className="py-4 px-2 text-xs">
+                      </TableCell>
+                      <TableCell className="py-4 px-2 text-xs">
                         <RaisedByCell entry={entry} />
-                      </td>
-                      <td className="py-4 px-2 text-xs">
+                      </TableCell>
+                      <TableCell className="py-4 px-2 text-xs">
                         <ApprovedByCell entry={entry} />
-                      </td>
-                      <td className="py-4 px-2 text-xs text-gray-600 font-medium">
+                      </TableCell>
+                      <TableCell className="py-4 px-2 text-xs text-gray-600 font-medium">
                         {entry.createdAt && (
                           <div className="text-blue-600 mb-1 font-semibold whitespace-nowrap">
                             Entry: {formatDateTime(entry.createdAt)}
@@ -619,8 +620,8 @@ export default function GateManagementPage() {
                         {entry.clockedOutAt && entry.clockedOutByUser && (
                           <span className="text-gray-400"> by {staffUserName(entry.clockedOutByUser)}</span>
                         )}
-                      </td>
-                      <td className="py-4 px-2">
+                      </TableCell>
+                      <TableCell className="py-4 px-2">
                         {canUpdateGNS && entry.status === 'PendingApproval' && (
                           <div className="flex gap-2">
                             <Button
@@ -675,36 +676,36 @@ export default function GateManagementPage() {
                             )}
                           </div>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200 text-xs text-gray-500 uppercase">
-                  <th className="pb-3 px-2 font-semibold">Visitor</th>
-                  <th className="pb-3 px-2 font-semibold">Details</th>
-                  <th className="pb-3 px-2 font-semibold">Type</th>
-                  <th className="pb-3 px-2 font-semibold">Pre-Approved By</th>
-                  <th className="pb-3 px-2 font-semibold">Expected</th>
-                  <th className="pb-3 px-2 font-semibold">Status</th>
-                  <th className="pb-3 px-2 font-semibold">QR Code</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
+            <Table className="w-full text-left border-collapse">
+              <TableHeader>
+                <TableRow className="border-b border-gray-200 text-xs text-gray-500 uppercase">
+                  <TableHead className="pb-3 px-2 font-semibold">Visitor</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Details</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Type</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Pre-Approved By</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Expected</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Status</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">QR Code</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-gray-100">
                 {filteredPreapproved.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-sm text-gray-500 font-medium">
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-8 text-center text-sm text-gray-500 font-medium">
                       No preapproved found
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   filteredPreapproved.map((preapproved) => (
-                    <tr key={preapproved.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="py-4 px-2">
+                    <TableRow key={preapproved.id} className="hover:bg-gray-50 transition-colors">
+                      <TableCell className="py-4 px-2">
                         <div className="flex items-center gap-3">
                           {preapproved.visitorPhotos && preapproved.visitorPhotos.length > 0 ? (
                             <div
@@ -741,8 +742,8 @@ export default function GateManagementPage() {
                             <p className="text-xs text-gray-500">{preapproved.visitorPhone || 'N/A'}</p>
                           </div>
                         </div>
-                      </td>
-                      <td className="py-4 px-2 text-xs text-gray-600 space-y-0.5">
+                      </TableCell>
+                      <TableCell className="py-4 px-2 text-xs text-gray-600 space-y-0.5">
                         {preapproved.unit?.unit_number && (
                           <div>
                             <span className="font-semibold text-gray-500">Flat:</span> {preapproved.unit.unit_number}
@@ -782,16 +783,16 @@ export default function GateManagementPage() {
                           !preapproved.personToMeet &&
                           !preapproved.notes &&
                           !preapproved.scheduleType && <span className="text-gray-400">-</span>}
-                      </td>
-                      <td className="py-4 px-2 text-xs">
+                      </TableCell>
+                      <TableCell className="py-4 px-2 text-xs">
                         <PreapprovedByCell preapproved={preapproved} />
-                      </td>
-                      <td className="py-4 px-2">
+                      </TableCell>
+                      <TableCell className="py-4 px-2">
                         <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-md font-semibold border border-blue-200">
                           {preapproved.visitorType}
                         </span>
-                      </td>
-                      <td className="py-4 px-2 text-xs text-gray-600 font-medium space-y-1">
+                      </TableCell>
+                      <TableCell className="py-4 px-2 text-xs text-gray-600 font-medium space-y-1">
                         {preapproved.startDate && (
                           <div>
                             <span className="font-semibold text-gray-500">
@@ -820,8 +821,8 @@ export default function GateManagementPage() {
                           !preapproved.endDate &&
                           !preapproved.startTime &&
                           !preapproved.endTime && <span className="text-gray-400">N/A</span>}
-                      </td>
-                      <td className="py-4 px-2">
+                      </TableCell>
+                      <TableCell className="py-4 px-2">
                         <span
                           className={`px-2 py-1 text-xs rounded-md font-bold ${
                             preapproved.status === 'Pending'
@@ -833,8 +834,8 @@ export default function GateManagementPage() {
                         >
                           {preapproved.status}
                         </span>
-                      </td>
-                      <td className="py-4 px-2">
+                      </TableCell>
+                      <TableCell className="py-4 px-2">
                         {preapproved.qrCodeImage ? (
                           <div
                             className="relative group inline-flex flex-col items-center gap-1 cursor-pointer"
@@ -856,12 +857,12 @@ export default function GateManagementPage() {
                         ) : (
                           <span className="text-xs font-mono font-bold text-gray-500">{preapproved.qrCode || '-'}</span>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           )}
         </div>
 

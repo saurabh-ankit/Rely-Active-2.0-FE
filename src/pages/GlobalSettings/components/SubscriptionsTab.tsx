@@ -19,6 +19,7 @@ import { formatDisplayDate } from '@/lib/utils'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { ChangePackageDialog } from '@/components/common/ChangePackageDialog'
 import { Button } from '@/components/ui/button'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 interface SubscriptionsTabProps {
   isPropertyMode?: boolean
@@ -280,21 +281,21 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                 {/* Subscriptions Table Inside Accordion */}
                 {isResidentExpanded && (
                   <div className="p-4 sm:p-6 space-y-6">
-                    <div className="overflow-x-auto rounded-2xl border border-gray-200 shadow-2xs">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead>
-                          <tr className="bg-gray-100/80 border-b border-gray-200 text-gray-600 font-bold uppercase tracking-wider text-[11px]">
-                            <th className="py-3 px-3 w-10 text-center"></th>
-                            <th className="py-3 px-4">Package Name</th>
-                            <th className="py-3 px-4">Start Date</th>
-                            <th className="py-3 px-4">End Date</th>
-                            <th className="py-3 px-4">Status</th>
-                            <th className="py-3 px-4">Days Utilized</th>
-                            <th className="py-3 px-4">Costed</th>
-                            <th className="py-3 px-4 text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 bg-white">
+                    <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-2xs">
+                      <Table className="w-full text-left text-xs border-collapse">
+                        <TableHeader>
+                          <TableRow className="bg-gray-100/80 border-b border-gray-200 text-gray-600 font-bold uppercase tracking-wider text-[11px]">
+                            <TableHead className="py-3 px-3 w-10 text-center"></TableHead>
+                            <TableHead className="py-3 px-4">Package Name</TableHead>
+                            <TableHead className="py-3 px-4">Start Date</TableHead>
+                            <TableHead className="py-3 px-4">End Date</TableHead>
+                            <TableHead className="py-3 px-4">Status</TableHead>
+                            <TableHead className="py-3 px-4">Days Utilized</TableHead>
+                            <TableHead className="py-3 px-4">Costed</TableHead>
+                            <TableHead className="py-3 px-4 text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody className="divide-y divide-gray-100 bg-white">
                           {resSubs.map((sub) => {
                             const isRowExpanded = expandedRows.has(sub.id)
                             const isActive = sub.status === 'ACTIVE'
@@ -303,9 +304,9 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
 
                             return (
                               <React.Fragment key={sub.id}>
-                                <tr className="hover:bg-gray-50/80 transition-colors">
+                                <TableRow className="hover:bg-gray-50/80 transition-colors">
                                   {/* Expand Chevron */}
-                                  <td className="py-3 px-3 text-center">
+                                  <TableCell className="py-3 px-3 text-center">
                                     <Button
                                       type="button"
                                       variant="ghost"
@@ -320,10 +321,10 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                                         <ChevronRight className="w-4 h-4" />
                                       )}
                                     </Button>
-                                  </td>
+                                  </TableCell>
 
                                   {/* Package Name & Cost */}
-                                  <td className="py-3 px-4">
+                                  <TableCell className="py-3 px-4">
                                     <div className="font-bold text-gray-900">
                                       {sub.carePackage?.name || sub.carePackage?.packageName || 'Unnamed Package'}
                                     </div>
@@ -339,18 +340,18 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                                         sub.carePackage?.cost || sub.carePackage?.packageCost || sub.totalCost || 0,
                                       ).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </div>
-                                  </td>
+                                  </TableCell>
 
                                   {/* Start Date */}
-                                  <td className="py-3 px-4">
+                                  <TableCell className="py-3 px-4">
                                     <div className="flex items-center gap-1.5 text-gray-700">
                                       <Calendar className="w-3.5 h-3.5 text-gray-400" />
                                       <span>{formatDisplayDate(sub.startDate)}</span>
                                     </div>
-                                  </td>
+                                  </TableCell>
 
                                   {/* End Date */}
-                                  <td className="py-3 px-4">
+                                  <TableCell className="py-3 px-4">
                                     {sub.endDate ? (
                                       <div className="flex items-center gap-1.5 text-gray-700">
                                         <Calendar className="w-3.5 h-3.5 text-gray-400" />
@@ -359,27 +360,27 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                                     ) : (
                                       <span className="text-gray-400 font-medium">N/A</span>
                                     )}
-                                  </td>
+                                  </TableCell>
 
                                   {/* Status */}
-                                  <td className="py-3 px-4">{getStatusBadge(sub.status)}</td>
+                                  <TableCell className="py-3 px-4">{getStatusBadge(sub.status)}</TableCell>
 
                                   {/* Days Utilized */}
-                                  <td className="py-3 px-4 font-semibold text-gray-800">
+                                  <TableCell className="py-3 px-4 font-semibold text-gray-800">
                                     {sub.daysUtilized !== undefined ? `${sub.daysUtilized} days` : 'N/A'}
-                                  </td>
+                                  </TableCell>
 
                                   {/* Costed */}
-                                  <td className="py-3 px-4 font-bold text-gray-900">
+                                  <TableCell className="py-3 px-4 font-bold text-gray-900">
                                     ₹
                                     {Number(sub.costed || 0).toLocaleString('en-IN', {
                                       minimumFractionDigits: 2,
                                       maximumFractionDigits: 2,
                                     })}
-                                  </td>
+                                  </TableCell>
 
                                   {/* Actions */}
-                                  <td className="py-3 px-4 text-right">
+                                  <TableCell className="py-3 px-4 text-right">
                                     <div className="inline-flex items-center gap-2 justify-end">
                                       {isActive && (
                                         <Button
@@ -414,13 +415,13 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                                         </Button>
                                       )}
                                     </div>
-                                  </td>
-                                </tr>
+                                  </TableCell>
+                                </TableRow>
 
                                 {/* Expanded Row for Features */}
                                 {isRowExpanded && (
-                                  <tr>
-                                    <td colSpan={8} className="p-0">
+                                  <TableRow>
+                                    <TableCell colSpan={8} className="p-0">
                                       <div className="p-4 sm:p-5 bg-gray-50/90 border-t border-b border-gray-200 space-y-4">
                                         <div className="flex items-center gap-2">
                                           <IndianRupee className="h-4 w-4 text-gray-500" />
@@ -509,14 +510,14 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                                           )}
                                         </div>
                                       </div>
-                                    </td>
-                                  </tr>
+                                    </TableCell>
+                                  </TableRow>
                                 )}
                               </React.Fragment>
                             )
                           })}
-                        </tbody>
-                      </table>
+                        </TableBody>
+                      </Table>
                     </div>
 
                     {/* Additional Tasks Done Section Matching Screenshot 2 */}

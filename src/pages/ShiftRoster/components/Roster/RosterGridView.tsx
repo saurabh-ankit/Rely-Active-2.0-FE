@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Download, Eye, EyeOff, X } from 'lucide-reac
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { EmployeeShiftAssignment, ShiftEmployeeDate, ShiftV2 } from '@/lib/services/rosterService'
 import { useListEmployeeShifts, useListShiftEmployeeDates, useListShifts } from '@/hooks/react-query/roster'
 import {
@@ -276,11 +277,11 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
         </div>
       )}
 
-      <div className="overflow-x-auto border border-gray-300 rounded-lg shadow-sm bg-white mb-8">
-        <table className="border-collapse text-xs w-full select-none" style={{ minWidth: '1180px' }}>
-          <thead>
-            <tr className="bg-[#2a517c] text-white border-b border-white/20">
-              <th
+      <div className="overflow-hidden border border-gray-300 rounded-lg shadow-sm bg-white mb-8">
+        <Table className="border-collapse text-xs w-full select-none" style={{ minWidth: '1180px' }}>
+          <TableHeader>
+            <TableRow className="bg-[#2a517c] text-white border-b border-white/20">
+              <TableHead
                 rowSpan={2}
                 className="sticky left-0 z-30 bg-[#2a517c] text-white px-2.5 py-2 text-left font-bold border-r border-b border-white/20 min-w-[160px] max-w-[160px]"
               >
@@ -297,17 +298,17 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                   />
                   <span>Employee Name</span>
                 </div>
-              </th>
-              <th
+              </TableHead>
+              <TableHead
                 rowSpan={2}
                 className="sticky left-[160px] z-30 bg-[#2a517c] text-white px-2.5 py-2 text-left font-semibold border-r border-b border-white/20 min-w-[110px]"
               >
                 Location
-              </th>
+              </TableHead>
               {dates.map((date, idx) => {
                 const ds = dateStrs[idx]!
                 return (
-                  <th
+                  <TableHead
                     key={`day-${ds}`}
                     onClick={() => onSelectDate(ds)}
                     className={`px-1 py-1.5 text-center font-bold border-r border-white/20 min-w-[118px] cursor-pointer hover:bg-white/20 transition-colors ${
@@ -316,22 +317,22 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                     title={`View rosters for ${date.toLocaleDateString()}`}
                   >
                     {DAY_NAMES[date.getDay()]}
-                  </th>
+                  </TableHead>
                 )
               })}
-              <th
+              <TableHead
                 rowSpan={2}
                 className="bg-[#2a517c] text-white px-2 py-2 text-center font-bold border-r border-b border-white/20 min-w-[95px]"
                 title="Working days / week offs & leave in this 7-day period"
               >
                 Days / Off
-              </th>
-            </tr>
-            <tr className="bg-[#1e3a5a] text-white border-b border-gray-300">
+              </TableHead>
+            </TableRow>
+            <TableRow className="bg-[#1e3a5a] text-white border-b border-gray-300">
               {dates.map((date, idx) => {
                 const ds = dateStrs[idx]!
                 return (
-                  <th
+                  <TableHead
                     key={`date-${ds}`}
                     onClick={() => onSelectDate(ds)}
                     className={`px-1 py-1 text-center font-extrabold text-sm border-r border-white/20 min-w-[118px] cursor-pointer hover:bg-white/20 transition-colors ${
@@ -340,31 +341,31 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                     title={`View rosters for ${date.toLocaleDateString()}`}
                   >
                     {date.getDate()}
-                  </th>
+                  </TableHead>
                 )
               })}
-            </tr>
-          </thead>
+            </TableRow>
+          </TableHeader>
 
-          <tbody>
+          <TableBody>
             {displayedEmployees.length === 0 ? (
-              <tr>
-                <td colSpan={3 + DAYS_IN_VIEW} className="text-center py-12 text-gray-400 italic">
+              <TableRow>
+                <TableCell colSpan={3 + DAYS_IN_VIEW} className="text-center py-12 text-gray-400 italic">
                   No employee shift assignments found for the current selection.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               displayedEmployees.map((employee, rowIdx) => {
                 const isSelected = selectedEmpIds.has(employee.id)
                 const empStat = stats.empStats[employee.id]
                 return (
-                  <tr
+                  <TableRow
                     key={employee.id}
                     className={`border-b border-gray-300 transition-colors ${
                       isSelected ? 'bg-sky-50/70' : rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'
                     }`}
                   >
-                    <td
+                    <TableCell
                       className={`sticky left-0 z-20 px-2.5 py-1.5 font-bold border-r whitespace-nowrap min-w-[160px] max-w-[160px] ${
                         isSelected
                           ? 'bg-sky-100 text-sky-950 border-sky-200'
@@ -381,15 +382,15 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                         />
                         <span className="truncate">{employee.name}</span>
                       </div>
-                    </td>
-                    <td
+                    </TableCell>
+                    <TableCell
                       className={`sticky left-[160px] z-20 px-2.5 py-1.5 font-medium border-r border-gray-300 whitespace-nowrap min-w-[110px] max-w-[160px] truncate ${
                         isSelected ? 'bg-sky-50 text-sky-900' : 'bg-white text-gray-800'
                       }`}
                       title={employee.location}
                     >
                       {employee.location}
-                    </td>
+                    </TableCell>
 
                     {dates.map((date, idx) => {
                       const ds = dateStrs[idx]!
@@ -398,7 +399,7 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
 
                       if (entries.length === 0) {
                         return (
-                          <td
+                          <TableCell
                             key={ds}
                             onClick={() => onSelectDate(ds)}
                             className={`p-0 text-center border-r border-gray-300 min-w-[118px] h-10 align-middle text-gray-300 cursor-pointer hover:bg-slate-100 transition-colors ${
@@ -407,13 +408,13 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                             title={`View rosters for ${date.toLocaleDateString()}`}
                           >
                             —
-                          </td>
+                          </TableCell>
                         )
                       }
 
                       if (isGridCellOff(entries)) {
                         return (
-                          <td
+                          <TableCell
                             key={ds}
                             onClick={() => onSelectDate(ds)}
                             className={`p-0 border-r border-gray-300 min-w-[118px] h-8 align-middle cursor-pointer ${
@@ -429,12 +430,12 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                                 {entries[0]?.shiftName || 'Day off'}
                               </span>
                             </div>
-                          </td>
+                          </TableCell>
                         )
                       }
 
                       return (
-                        <td
+                        <TableCell
                           key={ds}
                           className={`p-0 border-r border-gray-300 min-w-[118px] h-8 align-middle ${
                             isToday ? 'ring-1 ring-sky-400' : ''
@@ -461,11 +462,11 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                               </Button>
                             ))}
                           </div>
-                        </td>
+                        </TableCell>
                       )
                     })}
 
-                    <td className="px-2 py-1.5 text-center font-semibold text-xs border-r border-gray-300 bg-slate-50/70 whitespace-nowrap min-w-[95px]">
+                    <TableCell className="px-2 py-1.5 text-center font-semibold text-xs border-r border-gray-300 bg-slate-50/70 whitespace-nowrap min-w-[95px]">
                       <span className="font-bold text-slate-800" title={`${empStat?.workDays ?? 0} working days`}>
                         {empStat?.workDays ?? 0}d
                       </span>
@@ -473,8 +474,8 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                       <span className="font-bold text-red-600" title={`${empStat?.offDays ?? 0} days off`}>
                         {empStat?.offDays ?? 0} off
                       </span>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )
               })
             )}
@@ -484,8 +485,11 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                 {shiftMetaList.map((meta) => {
                   const tooltip = meta.shiftTime ? `${meta.shiftName} (${meta.shiftTime})` : meta.shiftName
                   return (
-                    <tr key={`count-${meta.label}`} className="bg-slate-100 font-semibold border-b border-slate-200">
-                      <td
+                    <TableRow
+                      key={`count-${meta.label}`}
+                      className="bg-slate-100 font-semibold border-b border-slate-200"
+                    >
+                      <TableCell
                         className="sticky left-0 z-20 bg-slate-100 px-2.5 py-1.5 border-r border-slate-200 font-bold text-slate-800 whitespace-nowrap min-w-[160px] max-w-[160px] truncate"
                         title={tooltip}
                       >
@@ -494,62 +498,62 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                           <span className="truncate text-xs font-bold text-slate-800">{meta.shiftName}</span>
                           <span className="text-[10px] font-medium text-slate-500 shrink-0">on shift</span>
                         </div>
-                      </td>
-                      <td className="sticky left-[160px] z-20 bg-slate-100 border-r border-slate-200 min-w-[110px] px-2.5 text-[11px] font-medium tabular-nums text-slate-500">
+                      </TableCell>
+                      <TableCell className="sticky left-[160px] z-20 bg-slate-100 border-r border-slate-200 min-w-[110px] px-2.5 text-[11px] font-medium tabular-nums text-slate-500">
                         {meta.shiftTime.replace(' - ', '–')}
-                      </td>
+                      </TableCell>
                       {dateStrs.map((ds) => {
                         const count = stats.countsByDate[ds]?.[meta.label] ?? 0
                         return (
-                          <td
+                          <TableCell
                             key={`count-${meta.label}-${ds}`}
                             onClick={() => onSelectDate(ds)}
                             className="px-1 py-1.5 text-center font-bold text-slate-800 border-r border-slate-200 text-xs cursor-pointer hover:bg-slate-200 transition-colors"
                             title={`${count} assigned to ${meta.shiftName}`}
                           >
                             {count}
-                          </td>
+                          </TableCell>
                         )
                       })}
-                      <td
+                      <TableCell
                         className="px-2 py-1.5 text-center font-bold text-slate-800 border-r border-slate-200 text-xs bg-slate-100"
                         title={`${stats.totalByLabel[meta.label] ?? 0} ${meta.shiftName} shifts in this 7-day period`}
                       >
                         {stats.totalByLabel[meta.label] ?? 0}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   )
                 })}
 
-                <tr className="bg-[#2a517c] text-white font-extrabold border-t-2 border-slate-300">
-                  <td className="sticky left-0 z-20 bg-[#2a517c] px-2.5 py-1.5 border-r border-[#1e3a5a] font-black text-white whitespace-nowrap min-w-[160px] max-w-[160px] uppercase text-xs tracking-wider">
+                <TableRow className="bg-[#2a517c] text-white font-extrabold border-t-2 border-slate-300">
+                  <TableCell className="sticky left-0 z-20 bg-[#2a517c] px-2.5 py-1.5 border-r border-[#1e3a5a] font-black text-white whitespace-nowrap min-w-[160px] max-w-[160px] uppercase text-xs tracking-wider">
                     Total
-                  </td>
-                  <td className="sticky left-[160px] z-20 bg-[#2a517c] border-r border-[#1e3a5a] min-w-[110px]" />
+                  </TableCell>
+                  <TableCell className="sticky left-[160px] z-20 bg-[#2a517c] border-r border-[#1e3a5a] min-w-[110px]" />
                   {dateStrs.map((ds) => {
                     const total = stats.totalByDate[ds] ?? 0
                     return (
-                      <td
+                      <TableCell
                         key={`total-${ds}`}
                         onClick={() => onSelectDate(ds)}
                         className="px-1 py-1.5 text-center font-black text-white border-r border-[#1e3a5a] text-xs bg-[#1e3a5a] cursor-pointer hover:bg-blue-900 transition-colors"
                         title={`${total} staff scheduled`}
                       >
                         {total}
-                      </td>
+                      </TableCell>
                     )
                   })}
-                  <td
+                  <TableCell
                     className="px-2 py-1.5 text-center font-black text-white border-r border-[#1e3a5a] text-xs bg-[#1e3a5a] whitespace-nowrap"
                     title={`${stats.grandTotalWorkDays} working days, ${stats.grandTotalOffDays} days off across all staff`}
                   >
                     {stats.grandTotalWorkDays}d / {stats.grandTotalOffDays} off
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               </>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   )

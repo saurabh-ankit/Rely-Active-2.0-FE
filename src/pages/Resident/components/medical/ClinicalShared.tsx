@@ -1,5 +1,6 @@
 import React from 'react'
 import { Loader2, type LucideIcon } from 'lucide-react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatDisplayDateTime } from '@/lib/utils'
 
 interface ClinicalCardProps {
@@ -79,44 +80,42 @@ export const ClinicalTable: React.FC<ClinicalTableProps> = ({
   children,
 }) => (
   <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs dark:border-gray-800 dark:bg-slate-900">
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-xs text-gray-600 dark:text-gray-300">
-        <thead className="border-b border-gray-200 bg-slate-50/70 text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:border-gray-800 dark:bg-slate-800/40 dark:text-gray-400">
-          <tr>
-            {columns.map((col) => (
-              <th key={col.label} className={`px-4 py-3.5 ${col.className || ''}`}>
-                {col.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-          {isLoading ? (
-            <tr>
-              <td colSpan={columns.length}>
-                <ClinicalLoadingState label={loadingLabel} />
-              </td>
-            </tr>
-          ) : isEmpty ? (
-            <tr>
-              <td colSpan={columns.length}>
-                <ClinicalEmptyState {...empty} />
-              </td>
-            </tr>
-          ) : (
-            children
-          )}
-        </tbody>
-      </table>
-    </div>
+    <Table className="w-full text-left text-xs text-gray-600 dark:text-gray-300">
+      <TableHeader className="border-b border-gray-200 bg-slate-50/70 text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:border-gray-800 dark:bg-slate-800/40 dark:text-gray-400">
+        <TableRow>
+          {columns.map((col) => (
+            <TableHead key={col.label} className={`px-4 py-3.5 ${col.className || ''}`}>
+              {col.label}
+            </TableHead>
+          ))}
+        </TableRow>
+      </TableHeader>
+      <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
+        {isLoading ? (
+          <TableRow>
+            <TableCell colSpan={columns.length}>
+              <ClinicalLoadingState label={loadingLabel} />
+            </TableCell>
+          </TableRow>
+        ) : isEmpty ? (
+          <TableRow>
+            <TableCell colSpan={columns.length}>
+              <ClinicalEmptyState {...empty} />
+            </TableCell>
+          </TableRow>
+        ) : (
+          children
+        )}
+      </TableBody>
+    </Table>
   </div>
 )
 
 export const ClinicalAddedByCell: React.FC<{ name: string | null; createdAt: string }> = ({ name, createdAt }) => (
-  <td className="px-4 py-3.5 whitespace-nowrap">
+  <TableCell className="px-4 py-3.5 whitespace-nowrap">
     <div className="font-semibold text-gray-900 dark:text-white">{name || '-'}</div>
     <div className="text-[11px] text-gray-400">{formatDisplayDateTime(createdAt)}</div>
-  </td>
+  </TableCell>
 )
 
 export const ClinicalErrorBanner: React.FC<{ message: string }> = ({ message }) => (

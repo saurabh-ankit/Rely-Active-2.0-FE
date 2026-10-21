@@ -20,6 +20,7 @@ import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Label } from '@/components/ui/label'
 import { isHiddenFloor } from '@/utils/unitLabel'
 
@@ -700,20 +701,20 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                   </p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-gray-50/80 border-b border-gray-200 text-[11px] font-extrabold text-gray-500 uppercase tracking-wider">
-                        <th className="py-3 px-4">Order ID & Date</th>
-                        <th className="py-3 px-4">Resident / Unit</th>
-                        <th className="py-3 px-4">Type & Mode</th>
-                        <th className="py-3 px-4">Items / Details</th>
-                        <th className="py-3 px-4">Total Amount</th>
-                        <th className="py-3 px-4">Status</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 text-xs">
+                <div className="overflow-hidden">
+                  <Table className="w-full text-left border-collapse">
+                    <TableHeader>
+                      <TableRow className="bg-gray-50/80 border-b border-gray-200 text-[11px] font-extrabold text-gray-500 uppercase tracking-wider">
+                        <TableHead className="py-3 px-4">Order ID & Date</TableHead>
+                        <TableHead className="py-3 px-4">Resident / Unit</TableHead>
+                        <TableHead className="py-3 px-4">Type & Mode</TableHead>
+                        <TableHead className="py-3 px-4">Items / Details</TableHead>
+                        <TableHead className="py-3 px-4">Total Amount</TableHead>
+                        <TableHead className="py-3 px-4">Status</TableHead>
+                        <TableHead className="py-3 px-4 text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="divide-y divide-gray-100 text-xs">
                       {paginatedOrders.map((order) => {
                         const resObj = order.resident || order.familyMember?.resident
                         const resName = resObj
@@ -722,9 +723,9 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                         const isFam = Boolean(order.familyMemberId)
 
                         return (
-                          <tr key={order.id} className="hover:bg-blue-50/40 transition-colors">
+                          <TableRow key={order.id} className="hover:bg-blue-50/40 transition-colors">
                             {/* Order ID & Date */}
-                            <td className="py-3.5 px-4 font-bold text-gray-900">
+                            <TableCell className="py-3.5 px-4 font-bold text-gray-900">
                               <div className="font-extrabold text-[#005390]">#{order.id.slice(0, 8)}</div>
                               <div className="text-[10px] text-gray-400 font-medium mt-0.5">
                                 {new Date(order.createdAt).toLocaleString('en-IN', {
@@ -732,10 +733,10 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                   timeStyle: 'short',
                                 })}
                               </div>
-                            </td>
+                            </TableCell>
 
                             {/* Resident & Unit */}
-                            <td className="py-3.5 px-4">
+                            <TableCell className="py-3.5 px-4">
                               <div className="font-extrabold text-gray-900 flex items-center gap-1.5">
                                 <User className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                                 {resName}
@@ -749,10 +750,10 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                 <Building2 className="w-3.5 h-3.5 text-[#005390] shrink-0" />
                                 <span>{getFullLocationString(resObj?.unit)}</span>
                               </div>
-                            </td>
+                            </TableCell>
 
                             {/* Order Type & Service Type */}
-                            <td className="py-3.5 px-4 space-y-1">
+                            <TableCell className="py-3.5 px-4 space-y-1">
                               <div>{getTypeBadge(order)}</div>
                               <div>{getServiceTypeBadge(order.serviceType)}</div>
                               {(() => {
@@ -771,10 +772,10 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                 }
                                 return null
                               })()}
-                            </td>
+                            </TableCell>
 
                             {/* Items Summary & Meal Slot */}
-                            <td className="py-3.5 px-4">
+                            <TableCell className="py-3.5 px-4">
                               <div className="space-y-1 max-w-xs">
                                 {getMealSlotBadge(order) && <div>{getMealSlotBadge(order)}</div>}
                                 {order.details && order.details.length > 0 ? (
@@ -792,10 +793,10 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                   <span className="text-gray-400 italic text-xs block">Entire Slot Order</span>
                                 )}
                               </div>
-                            </td>
+                            </TableCell>
 
                             {/* Total Amount */}
-                            <td className="py-3.5 px-4">
+                            <TableCell className="py-3.5 px-4">
                               <div className="font-black text-emerald-700 text-sm">
                                 ₹{Number(order.totalAmount || 0).toFixed(2)}
                               </div>
@@ -809,13 +810,13 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                   + ₹{order.deliveryCharge} Delivery
                                 </div>
                               )}
-                            </td>
+                            </TableCell>
 
                             {/* Status */}
-                            <td className="py-3.5 px-4">{getStatusBadge(order)}</td>
+                            <TableCell className="py-3.5 px-4">{getStatusBadge(order)}</TableCell>
 
                             {/* Actions */}
-                            <td className="py-3.5 px-4 text-right">
+                            <TableCell className="py-3.5 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5 flex-wrap">
                                 <Button
                                   type="button"
@@ -935,12 +936,12 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
 
                                 {/* 5. Delivering to Room: Delivery employee will deliver & complete from L3 mobile app */}
                               </div>
-                            </td>
-                          </tr>
+                            </TableCell>
+                          </TableRow>
                         )
                       })}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </div>

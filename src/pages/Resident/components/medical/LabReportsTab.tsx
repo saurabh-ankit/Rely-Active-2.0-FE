@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { ExternalLink, FlaskConical, Plus, Receipt } from 'lucide-react'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import { Button } from '@/components/ui/button'
+import { TableCell, TableRow } from '@/components/ui/table'
 import { useDeleteResidentLabReportMutation } from '@/hooks/react-query/resident'
 import type { LabReportSeverity, ResidentLabReportItem } from '@/lib/types/resident'
 import { cn, formatDisplayDate, getFileUrl } from '@/lib/utils'
@@ -68,9 +69,11 @@ export const LabReportsTab: React.FC<LabReportsTabProps> = ({ residentId, canUpd
           empty={{ icon: FlaskConical, title: 'No lab reports', description: 'Uploaded lab reports appear here.' }}
         >
           {reports.map((report) => (
-            <tr key={report.id} className="align-top hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
-              <td className="px-4 py-3.5 font-semibold text-gray-900 dark:text-white">{report.labTestName || '-'}</td>
-              <td className="px-4 py-3.5">
+            <TableRow key={report.id} className="align-top hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+              <TableCell className="px-4 py-3.5 font-semibold text-gray-900 dark:text-white">
+                {report.labTestName || '-'}
+              </TableCell>
+              <TableCell className="px-4 py-3.5">
                 <span
                   className={cn(
                     'rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize',
@@ -79,17 +82,17 @@ export const LabReportsTab: React.FC<LabReportsTabProps> = ({ residentId, canUpd
                 >
                   {report.severity}
                 </span>
-              </td>
-              <td className="px-4 py-3.5 whitespace-nowrap">{formatDisplayDate(report.reportDate)}</td>
-              <td className="px-4 py-3.5 max-w-xs whitespace-pre-wrap">{report.notes || '-'}</td>
-              <td className="px-4 py-3.5 whitespace-nowrap">
+              </TableCell>
+              <TableCell className="px-4 py-3.5 whitespace-nowrap">{formatDisplayDate(report.reportDate)}</TableCell>
+              <TableCell className="px-4 py-3.5 max-w-xs whitespace-pre-wrap">{report.notes || '-'}</TableCell>
+              <TableCell className="px-4 py-3.5 whitespace-nowrap">
                 <div>{formatCost(report.cost)}</div>
                 {report.paymentMethod && (
                   <div className="text-[11px] text-gray-400">{report.paymentMethod.replace(/_/g, ' ')}</div>
                 )}
-              </td>
+              </TableCell>
               <ClinicalAddedByCell name={report.createdByName} createdAt={report.createdAt} />
-              <td className="px-4 py-3.5">
+              <TableCell className="px-4 py-3.5">
                 <div className="flex flex-col items-end gap-1.5">
                   <a
                     href={getFileUrl(report.reportFileUrl)}
@@ -110,17 +113,17 @@ export const LabReportsTab: React.FC<LabReportsTabProps> = ({ residentId, canUpd
                     </a>
                   )}
                 </div>
-              </td>
+              </TableCell>
               {canUpdateResident && (
-                <td className="px-4 py-2.5">
+                <TableCell className="px-4 py-2.5">
                   <ClinicalRowActions
                     label="lab report"
                     onEdit={() => setFormTarget({ item: report })}
                     onDelete={() => setDeleting(report)}
                   />
-                </td>
+                </TableCell>
               )}
-            </tr>
+            </TableRow>
           ))}
         </ClinicalTable>
       </ClinicalCard>

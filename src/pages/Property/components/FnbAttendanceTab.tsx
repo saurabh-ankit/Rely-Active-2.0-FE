@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { fnbService, fnbAttendanceService } from '@/lib/services/fnbService'
 import type {
   FnbFoodAttendanceMember,
@@ -835,35 +836,33 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
         emptyState('No members match the selected filters.')
       ) : (
         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xs">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
-                  <th className="px-4 py-3">Member</th>
-                  <th className="px-4 py-3">Flat</th>
-                  <th className="px-4 py-3">Package</th>
-                  <th className="px-4 py-3">{isAllSlots ? 'Meal slots' : selectedSlotLabel}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
-                {filteredMembers.map((member) => (
-                  <tr key={member.memberId} className="transition-colors hover:bg-gray-50/50">
-                    <td className="px-4 py-3">
-                      <p className="font-semibold text-gray-900">{member.fullName}</p>
-                      <p className="text-[11px] text-gray-500">
-                        {member.memberType === 'resident' ? 'Primary resident' : member.relation || 'Family'}
-                      </p>
-                    </td>
-                    <td className="px-4 py-3 font-medium text-gray-800">{member.fullLocation}</td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {member.packageName || member.package?.packageName || 'No package'}
-                    </td>
-                    <td className="px-4 py-3">{renderStatus(getSlotResults(member))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table className="w-full text-left">
+            <TableHeader>
+              <TableRow className="border-b border-gray-100 bg-gray-50 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                <TableHead className="px-4 py-3">Member</TableHead>
+                <TableHead className="px-4 py-3">Flat</TableHead>
+                <TableHead className="px-4 py-3">Package</TableHead>
+                <TableHead className="px-4 py-3">{isAllSlots ? 'Meal slots' : selectedSlotLabel}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-gray-100 text-xs text-gray-700">
+              {filteredMembers.map((member) => (
+                <TableRow key={member.memberId} className="transition-colors hover:bg-gray-50/50">
+                  <TableCell className="px-4 py-3">
+                    <p className="font-semibold text-gray-900">{member.fullName}</p>
+                    <p className="text-[11px] text-gray-500">
+                      {member.memberType === 'resident' ? 'Primary resident' : member.relation || 'Family'}
+                    </p>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 font-medium text-gray-800">{member.fullLocation}</TableCell>
+                  <TableCell className="px-4 py-3 text-gray-600">
+                    {member.packageName || member.package?.packageName || 'No package'}
+                  </TableCell>
+                  <TableCell className="px-4 py-3">{renderStatus(getSlotResults(member))}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

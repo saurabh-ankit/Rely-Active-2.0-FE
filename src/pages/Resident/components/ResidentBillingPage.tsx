@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from 'sonner'
 import { residentService, type ResidentBillingData } from '@/lib/services/residentService'
 import type { ResidentItem } from '@/lib/types/resident'
@@ -520,48 +521,50 @@ export const ResidentBillingPage: React.FC = () => {
               </Button>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50/70 text-xs font-bold text-gray-600 uppercase tracking-wider">
-                    <th className="py-3.5 px-6">Service</th>
-                    <th className="py-3.5 px-6">Description</th>
-                    <th className="py-3.5 px-6 text-right">Quantity</th>
-                    <th className="py-3.5 px-6 text-right">Price</th>
-                    <th className="py-3.5 px-6 text-right">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 text-sm">
+            <div className="overflow-hidden">
+              <Table className="w-full border-collapse text-left">
+                <TableHeader>
+                  <TableRow className="border-b border-gray-200 bg-gray-50/70 text-xs font-bold text-gray-600 uppercase tracking-wider">
+                    <TableHead className="py-3.5 px-6">Service</TableHead>
+                    <TableHead className="py-3.5 px-6">Description</TableHead>
+                    <TableHead className="py-3.5 px-6 text-right">Quantity</TableHead>
+                    <TableHead className="py-3.5 px-6 text-right">Price</TableHead>
+                    <TableHead className="py-3.5 px-6 text-right">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-gray-100 text-sm">
                   {/* ── Section 1: Current Month Charges (Advance) ── */}
                   {currentMonthCharges.length > 0 && (
                     <>
-                      <tr className="bg-emerald-50/60">
-                        <td
+                      <TableRow className="bg-emerald-50/60">
+                        <TableCell
                           colSpan={5}
                           className="py-2.5 px-6 text-xs font-black text-emerald-700 uppercase tracking-wider"
                         >
                           Current Month Charges (Advance)
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                       {currentMonthCharges.map((svc) => (
-                        <tr key={svc.id} className="hover:bg-gray-50/70 transition-colors">
-                          <td className="py-3.5 px-6 font-bold text-gray-900">
+                        <TableRow key={svc.id} className="hover:bg-gray-50/70 transition-colors">
+                          <TableCell className="py-3.5 px-6 font-bold text-gray-900">
                             <div className="flex items-center gap-2">
                               <span>{svc.name}</span>
                               <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full uppercase">
                                 Advance
                               </span>
                             </div>
-                          </td>
-                          <td className="py-3.5 px-6 text-gray-600 text-xs">{svc.description}</td>
-                          <td className="py-3.5 px-6 text-right text-gray-900 font-semibold">{svc.quantity}</td>
-                          <td className="py-3.5 px-6 text-right font-semibold text-gray-900">
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-gray-600 text-xs">{svc.description}</TableCell>
+                          <TableCell className="py-3.5 px-6 text-right text-gray-900 font-semibold">
+                            {svc.quantity}
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-right font-semibold text-gray-900">
                             ₹{Number(svc.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="py-3.5 px-6 text-right font-bold text-gray-900">
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-right font-bold text-gray-900">
                             ₹{Number(svc.total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       ))}
                     </>
                   )}
@@ -569,17 +572,17 @@ export const ResidentBillingPage: React.FC = () => {
                   {/* ── Section 2: Refunds & Adjustments (Credit) ── */}
                   {refundCharges.length > 0 && (
                     <>
-                      <tr className="bg-teal-50/70">
-                        <td
+                      <TableRow className="bg-teal-50/70">
+                        <TableCell
                           colSpan={5}
                           className="py-2.5 px-6 text-xs font-black text-teal-800 uppercase tracking-wider"
                         >
                           Refunds & Adjustments (Credit)
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                       {refundCharges.map((svc) => (
-                        <tr key={svc.id} className="bg-teal-50/20 hover:bg-teal-50/50 transition-colors">
-                          <td className="py-3.5 px-6 font-bold text-gray-900">
+                        <TableRow key={svc.id} className="bg-teal-50/20 hover:bg-teal-50/50 transition-colors">
+                          <TableCell className="py-3.5 px-6 font-bold text-gray-900">
                             <div className="flex flex-col gap-0.5">
                               <div className="flex items-center gap-2">
                                 <span>{svc.name}</span>
@@ -591,47 +594,52 @@ export const ResidentBillingPage: React.FC = () => {
                                 Credit — unused period refund
                               </span>
                             </div>
-                          </td>
-                          <td className="py-3.5 px-6 text-gray-600 text-xs italic">{svc.description}</td>
-                          <td className="py-3.5 px-6 text-right text-gray-900 font-semibold">{svc.quantity}</td>
-                          <td className="py-3.5 px-6 text-right font-semibold text-emerald-700">
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-gray-600 text-xs italic">{svc.description}</TableCell>
+                          <TableCell className="py-3.5 px-6 text-right text-gray-900 font-semibold">
+                            {svc.quantity}
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-right font-semibold text-emerald-700">
                             ₹{Number(svc.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="py-3.5 px-6 text-right font-bold">
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-right font-bold">
                             <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200">
                               - ₹{Math.abs(Number(svc.total)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </span>
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       ))}
                     </>
                   )}
 
                   {/* ── Section 3: Additional Tasks Done (exclusive of subscribed package) / Add-ons ── */}
-                  <tr className="bg-orange-50/60">
-                    <td colSpan={5} className="py-2.5 px-6 text-xs font-black text-orange-700 uppercase tracking-wider">
+                  <TableRow className="bg-orange-50/60">
+                    <TableCell
+                      colSpan={5}
+                      className="py-2.5 px-6 text-xs font-black text-orange-700 uppercase tracking-wider"
+                    >
                       Additional Tasks Done (exclusive of subscribed package) — Add-ons
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
 
                   {addonTasks.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-4 px-6 text-xs text-gray-500 italic bg-gray-50/30">
+                    <TableRow>
+                      <TableCell colSpan={5} className="py-4 px-6 text-xs text-gray-500 italic bg-gray-50/30">
                         No additional tasks (exclusive of package) recorded for this billing cycle.
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ) : (
                     addonTasks.map((svc) => (
-                      <tr key={svc.id} className="hover:bg-orange-50/30 transition-colors">
-                        <td className="py-3.5 px-6 font-bold text-gray-900">
+                      <TableRow key={svc.id} className="hover:bg-orange-50/30 transition-colors">
+                        <TableCell className="py-3.5 px-6 font-bold text-gray-900">
                           <div className="flex items-center gap-2">
                             <span>{svc.name}</span>
                             <span className="text-[10px] font-black text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full uppercase">
                               Add-on
                             </span>
                           </div>
-                        </td>
-                        <td className="py-3.5 px-6 text-gray-600 text-xs">
+                        </TableCell>
+                        <TableCell className="py-3.5 px-6 text-gray-600 text-xs">
                           <div className="font-medium text-gray-800">{svc.description}</div>
                           {(svc.formattedDate || svc.date) && (
                             <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5">
@@ -640,23 +648,25 @@ export const ResidentBillingPage: React.FC = () => {
                               {svc.nurseName && <span className="ml-1">• By: {svc.nurseName}</span>}
                             </div>
                           )}
-                        </td>
-                        <td className="py-3.5 px-6 text-right text-gray-900 font-semibold">{svc.quantity}</td>
-                        <td className="py-3.5 px-6 text-right font-semibold text-gray-900">
+                        </TableCell>
+                        <TableCell className="py-3.5 px-6 text-right text-gray-900 font-semibold">
+                          {svc.quantity}
+                        </TableCell>
+                        <TableCell className="py-3.5 px-6 text-right font-semibold text-gray-900">
                           ₹{Number(svc.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="py-3.5 px-6 text-right font-bold text-gray-900">
+                        </TableCell>
+                        <TableCell className="py-3.5 px-6 text-right font-bold text-gray-900">
                           ₹{Number(svc.total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))
                   )}
 
                   {/* ── Section 4: Inventory & Consumables Issued (Assigned Items) ── */}
                   {inventoryCharges.length > 0 && (
                     <>
-                      <tr className="bg-indigo-50/60">
-                        <td
+                      <TableRow className="bg-indigo-50/60">
+                        <TableCell
                           colSpan={5}
                           className="py-2.5 px-6 text-xs font-black text-indigo-700 uppercase tracking-wider"
                         >
@@ -664,19 +674,19 @@ export const ResidentBillingPage: React.FC = () => {
                             <Package className="w-3.5 h-3.5 text-indigo-600" />
                             <span>Inventory & Consumables Issued (Assigned Items)</span>
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                       {inventoryCharges.map((svc) => (
-                        <tr key={svc.id} className="hover:bg-indigo-50/30 transition-colors">
-                          <td className="py-3.5 px-6 font-bold text-gray-900">
+                        <TableRow key={svc.id} className="hover:bg-indigo-50/30 transition-colors">
+                          <TableCell className="py-3.5 px-6 font-bold text-gray-900">
                             <div className="flex items-center gap-2">
                               <span>{svc.name}</span>
                               <span className="text-[10px] font-black text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full uppercase">
                                 Inventory
                               </span>
                             </div>
-                          </td>
-                          <td className="py-3.5 px-6 text-gray-600 text-xs">
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-gray-600 text-xs">
                             <div className="font-medium text-gray-800">{svc.description}</div>
                             {(svc.formattedDate || svc.date) && (
                               <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5">
@@ -684,15 +694,17 @@ export const ResidentBillingPage: React.FC = () => {
                                 <span>{svc.formattedDate || svc.date}</span>
                               </div>
                             )}
-                          </td>
-                          <td className="py-3.5 px-6 text-right text-gray-900 font-semibold">{svc.quantity}</td>
-                          <td className="py-3.5 px-6 text-right font-semibold text-gray-900">
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-right text-gray-900 font-semibold">
+                            {svc.quantity}
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-right font-semibold text-gray-900">
                             ₹{Number(svc.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="py-3.5 px-6 text-right font-bold text-gray-900">
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-right font-bold text-gray-900">
                             ₹{Number(svc.total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       ))}
                     </>
                   )}
@@ -700,17 +712,17 @@ export const ResidentBillingPage: React.FC = () => {
                   {/* ── Section 5: Miscellaneous Services ── */}
                   {miscServices.length > 0 && (
                     <>
-                      <tr className="bg-purple-50/60">
-                        <td
+                      <TableRow className="bg-purple-50/60">
+                        <TableCell
                           colSpan={5}
                           className="py-2.5 px-6 text-xs font-black text-purple-700 uppercase tracking-wider"
                         >
                           Miscellaneous Services & Fees
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                       {miscServices.map((misc) => (
-                        <tr key={misc.id} className="hover:bg-gray-50/70 transition-colors">
-                          <td className="py-3.5 px-6 font-bold text-gray-900">
+                        <TableRow key={misc.id} className="hover:bg-gray-50/70 transition-colors">
+                          <TableCell className="py-3.5 px-6 font-bold text-gray-900">
                             <div className="flex items-center gap-2">
                               <span>{misc.name}</span>
                               <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full uppercase">
@@ -728,21 +740,23 @@ export const ResidentBillingPage: React.FC = () => {
                                 <Trash2 className="w-3.5 h-3.5" />
                               </Button>
                             </div>
-                          </td>
-                          <td className="py-3.5 px-6 text-gray-600 text-xs">{misc.description}</td>
-                          <td className="py-3.5 px-6 text-right text-gray-900 font-semibold">{misc.quantity}</td>
-                          <td className="py-3.5 px-6 text-right font-semibold text-gray-900">
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-gray-600 text-xs">{misc.description}</TableCell>
+                          <TableCell className="py-3.5 px-6 text-right text-gray-900 font-semibold">
+                            {misc.quantity}
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-right font-semibold text-gray-900">
                             ₹{Number(misc.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="py-3.5 px-6 text-right font-bold text-gray-900">
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-right font-bold text-gray-900">
                             ₹{Number(misc.total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       ))}
                     </>
                   )}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
 
             {/* ── Summary & Discounts Footer ── */}
