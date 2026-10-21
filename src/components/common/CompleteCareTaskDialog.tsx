@@ -1,4 +1,5 @@
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import React, { useState, useMemo } from 'react'
 import { CheckCircle2, Loader2, X, Sparkles, AlertCircle } from 'lucide-react'
 import { useCompleteCareTaskMutation, useCareTaskAssignmentByIdQuery } from '@/hooks/react-query/medical'
@@ -216,7 +217,7 @@ const CompleteCareTaskDialogContent: React.FC<CompleteCareTaskDialogContentProps
             >
               Session Remarks / Observation Notes (Optional)
             </Label>
-            <textarea
+            <Textarea
               id="completion-remarks-input"
               rows={3}
               value={notes}

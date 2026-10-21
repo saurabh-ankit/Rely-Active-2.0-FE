@@ -7,6 +7,7 @@ import type { Ticket } from '@/lib/types'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 interface Props {
   isOpen: boolean
@@ -162,13 +163,13 @@ export function AddInvoiceModal({ isOpen, onClose, ticket, locationId, onSuccess
               <Label htmlFor="inv-notes" className="block text-xs font-bold text-gray-700 mb-1">
                 Notes / Spare Parts Used
               </Label>
-              <textarea
+              <Textarea
                 id="inv-notes"
                 rows={2}
                 placeholder="Provide breakdown of replacement parts or service comments..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full p-3 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#f28e53] resize-none"
+                className="w-full p-3 border border-gray-200 rounded-xl text-xs font-medium focus-visible:outline-none focus-visible:border-[#f28e53] resize-none"
               />
             </div>
 

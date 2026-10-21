@@ -34,6 +34,7 @@ import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { z } from 'zod'
 
 export type Task = CareTask
@@ -795,7 +796,7 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                   <Label htmlFor="packageDescription" className="block text-xs font-bold text-gray-700 mb-1.5">
                     Description <span className="text-gray-400 font-normal">(Optional)</span>
                   </Label>
-                  <textarea
+                  <Textarea
                     id="packageDescription"
                     rows={2}
                     {...register('description')}

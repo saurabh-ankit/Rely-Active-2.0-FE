@@ -1,5 +1,6 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Plus,
@@ -525,13 +526,13 @@ export default function FnbGlobalMealSlotsTab() {
                     >
                       Description
                     </Label>
-                    <textarea
+                    <Textarea
                       id="global-meal-slot-description"
                       rows={2}
                       placeholder="Optional notes or details about this meal slot"
                       value={formData.description}
                       onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2 text-xs font-medium text-gray-900 focus:outline-none focus:border-[#005390] focus:bg-white transition-all"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2 text-xs font-medium text-gray-900 focus-visible:outline-none focus-visible:border-[#005390] focus-visible:bg-white transition-all"
                     />
                   </div>
 

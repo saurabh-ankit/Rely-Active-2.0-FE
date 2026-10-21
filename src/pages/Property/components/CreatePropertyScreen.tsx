@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import React, { useState } from 'react'
 import { ArrowLeft, Building2, Home, Layers, MapPin, Plus, Sparkles, Trash2, X, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -263,10 +264,10 @@ function TextareaField({
       <Label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
         {cleanLabel} {isReq && <span className="text-red-500 font-bold">*</span>}
       </Label>
-      <textarea
+      <Textarea
         {...props}
         rows={3}
-        className={`w-full rounded-xl border ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white px-3.5 py-2.5 text-xs text-gray-900 placeholder-gray-400 outline-none transition focus:ring-2 resize-none`}
+        className={`w-full rounded-xl border ${error ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20' : 'border-gray-200 focus-visible:border-[#005390] focus-visible:ring-[#005390]/20'} bg-white px-3.5 py-2.5 text-xs text-gray-900 placeholder-gray-400 outline-none transition focus-visible:ring-2 resize-none`}
       />
       {error && <p className="mt-1 text-xs font-semibold text-red-500">{error}</p>}
     </div>

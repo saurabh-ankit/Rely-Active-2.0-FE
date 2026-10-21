@@ -31,6 +31,7 @@ import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { z } from 'zod'
 
 export type { BillingType, CareTask, Task }
@@ -596,7 +597,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                 <Label htmlFor="careTaskDescription" className="block text-xs font-bold text-gray-700 mb-1">
                   2. Care Task Description <span className="text-gray-400 font-normal">(Optional)</span>
                 </Label>
-                <textarea
+                <Textarea
                   id="careTaskDescription"
                   {...register('careTaskDescription')}
                   rows={3}

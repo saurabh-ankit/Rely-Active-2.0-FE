@@ -1,4 +1,5 @@
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useForm, useWatch } from 'react-hook-form'
@@ -383,12 +384,12 @@ export function SpecializationsTab() {
                 >
                   Description
                 </Label>
-                <textarea
+                <Textarea
                   id="specialization-description-input"
                   rows={3}
                   {...register('description')}
                   placeholder="What this specialization covers"
-                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-hidden focus:ring-2 focus:ring-[#005390]/30 focus:border-[#005390]"
+                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#005390]/30 focus-visible:border-[#005390]"
                 />
                 {errors.description?.message && (
                   <p className="text-[11px] text-rose-600 mt-1">{errors.description.message}</p>

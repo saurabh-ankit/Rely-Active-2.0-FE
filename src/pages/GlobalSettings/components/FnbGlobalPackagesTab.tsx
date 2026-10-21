@@ -21,6 +21,7 @@ import { getPropertiesAPI } from '@/lib/services/propertyService'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import type { GlobalMealSlot } from './FnbGlobalMealSlotsTab'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 export interface Property {
   id: string
@@ -639,16 +640,16 @@ export function FnbGlobalPackagesTab() {
                   </div>
 
                   <div>
-                    <label htmlFor="pkg-desc-textarea" className="block text-xs font-semibold text-gray-700 mb-1">
+                    <Label htmlFor="pkg-desc-textarea" className="block text-xs font-semibold text-gray-700 mb-1">
                       Description
-                    </label>
-                    <textarea
+                    </Label>
+                    <Textarea
                       id="pkg-desc-textarea"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       rows={3}
                       placeholder="Optional details about this package template..."
-                      className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390]"
+                      className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#005390]"
                     />
                   </div>
                 </div>

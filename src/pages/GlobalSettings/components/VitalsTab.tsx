@@ -1,4 +1,5 @@
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Activity, AlertCircle, Edit2, Plus, Trash2, Upload } from 'lucide-react'
@@ -604,13 +605,13 @@ export function VitalsTab() {
                 <Label htmlFor="vital-description" className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Description
                 </Label>
-                <textarea
+                <Textarea
                   id="vital-description"
                   rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
                   placeholder="Describe what this vital measures"
-                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-hidden focus:ring-2 focus:ring-[#005390]/30 focus:border-[#005390]"
+                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#005390]/30 focus-visible:border-[#005390]"
                 />
               </div>
 

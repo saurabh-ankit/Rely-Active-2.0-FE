@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 const MAX_PHOTOS = 10
 
@@ -832,7 +833,7 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
                 </div>
               )}
 
-              <textarea
+              <Textarea
                 id="create-description-text"
                 rows={3}
                 value={description}
@@ -843,10 +844,10 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
                   }
                 }}
                 placeholder="Describe the issue or service request in detail (or record voice note using the mic icon)..."
-                className={`w-full p-3.5 bg-white border rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 resize-none ${
+                className={`w-full p-3.5 bg-white border rounded-xl text-sm text-gray-800 focus-visible:outline-none focus-visible:ring-2 resize-none ${
                   fieldErrors.description
-                    ? 'border-rose-500 focus:ring-rose-500/20'
-                    : 'border-gray-200 focus:ring-[#005390]/20 focus:border-[#005390]'
+                    ? 'border-rose-500 focus-visible:ring-rose-500/20'
+                    : 'border-gray-200 focus-visible:ring-[#005390]/20 focus-visible:border-[#005390]'
                 }`}
               />
               {fieldErrors.description && (

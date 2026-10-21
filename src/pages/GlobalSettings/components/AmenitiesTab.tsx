@@ -1,4 +1,5 @@
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useForm } from 'react-hook-form'
@@ -293,11 +294,11 @@ export function AmenitiesTab() {
                 >
                   Description
                 </Label>
-                <textarea
+                <Textarea
                   id="amenity-description"
                   {...register('description')}
                   rows={3}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus-visible:border-[#005390] focus-visible:ring-2 focus-visible:ring-[#005390]/20"
                   placeholder="Optional details for admins and staff"
                 />
                 {errors.description && (

@@ -42,6 +42,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
 
 interface ParsedCompletion {
   notes: string | null
@@ -1211,11 +1212,11 @@ export default function TicketsPage() {
 
                 {/* Readonly Description Box */}
                 <div className="pt-2">
-                  <textarea
+                  <Textarea
                     rows={2}
                     readOnly
                     value={selectedTicket.title || selectedTicket.description || 'Hello'}
-                    className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-800 focus:outline-none resize-none shadow-2xs"
+                    className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-800 focus-visible:outline-none focus-visible:ring-0 resize-none shadow-2xs"
                   />
                 </div>
 
