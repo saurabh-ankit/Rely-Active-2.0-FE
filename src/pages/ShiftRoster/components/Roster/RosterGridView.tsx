@@ -322,7 +322,7 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
               <th
                 rowSpan={2}
                 className="bg-[#2a517c] text-white px-2 py-2 text-center font-bold border-r border-b border-white/20 min-w-[95px]"
-                title="Working days / days off in this 7-day period"
+                title="Working days / week offs & leave in this 7-day period"
               >
                 Days / Off
               </th>

@@ -71,7 +71,12 @@ export interface EmployeeShiftAssignment {
     id: string
     email?: string
     username?: string
-    profile?: { firstName?: string; lastName?: string }
+    profile?: {
+      firstName?: string
+      lastName?: string
+      weekOffDays?: WeekDay[] | null
+      week_off_days?: WeekDay[] | null
+    }
   }
   shift?: {
     id: string
