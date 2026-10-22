@@ -43,15 +43,25 @@ if (firebaseConfig) {
       actionValue = payload.data.actionValue
     }
 
-    self.registration.showNotification(title, {
-      body: body,
-      icon: '/R_Logo.svg',
-      badge: '/favicon-32x32.png',
-      data: {
-        actionValue: actionValue,
-      },
-      tag: payload.data && payload.data.notificationId ? payload.data.notificationId : undefined,
-    })
+    // Browsers can't play a custom sound on a system notification, so an open tab plays it
+    // (src/utils/notificationSound.ts); with no tab open the system's default sound plays.
+    return Promise.all([
+      self.registration.showNotification(title, {
+        body: body,
+        icon: '/R_Logo.svg',
+        badge: '/favicon-32x32.png',
+        silent: false,
+        data: {
+          actionValue: actionValue,
+        },
+        tag: payload.data && payload.data.notificationId ? payload.data.notificationId : undefined,
+      }),
+      clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+        clientList.forEach(function (client) {
+          client.postMessage({ type: 'RELY_PLAY_NOTIFICATION_SOUND' })
+        })
+      }),
+    ])
   })
 }
 
