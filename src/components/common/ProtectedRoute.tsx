@@ -3,6 +3,12 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocationContext } from '@/hooks/useLocation'
 
+import {
+  getDepartmentManagerType,
+  getDepartmentManagerDefaultRoute,
+  isDepartmentManagerAllowedRoute,
+} from '@/utils/departmentManager'
+
 export interface ProtectedRouteProps {
   permission?: string
   permissions?: string[]
@@ -20,7 +26,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireSuperAdmin = false,
   children,
 }) => {
-  const { isAuthenticated, isLoading, hasPermission, hasAnyPermission, isSuperAdmin } = useAuth()
+  const { user, isAuthenticated, isLoading, hasPermission, hasAnyPermission, isSuperAdmin } = useAuth()
   const { hasResourcePermission, isLoadingPermissions } = useLocationContext()
   const location = useLocation()
 
@@ -41,6 +47,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (isSuperAdmin) {
     return <>{children}</>
+  }
+
+  const managerType = getDepartmentManagerType(user)
+  if (managerType && !isDepartmentManagerAllowedRoute(user, location.pathname)) {
+    const defaultRoute = getDepartmentManagerDefaultRoute(managerType)
+    return <Navigate to={defaultRoute} replace />
   }
 
   if (requireSuperAdmin) {

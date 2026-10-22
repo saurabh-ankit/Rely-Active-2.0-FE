@@ -1,24 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Building2,
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Edit,
-  Home,
-  MoreVertical,
-  Search,
-  Trash2,
-  UserCheck,
-  UserPlus,
-} from 'lucide-react'
+import { Building2, Edit, Home, MoreVertical, Search, Trash2, UserCheck, UserPlus } from 'lucide-react'
 import type { Property, ResidentItem } from '@/lib/types'
 import { getPropertiesAPI } from '@/lib/services/propertyService'
 import { residentService } from '@/lib/services/residentService'
 import { useLocationContext } from '@/hooks/useLocation'
 import { Button } from '@/components/ui/button'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import {
   Pagination,
@@ -30,17 +17,47 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination'
 import { notifyError, notifySuccess } from '@/utils/toast'
-import { getFileUrl } from '@/lib/utils'
+import { cn, getFileUrl } from '@/lib/utils'
+import { floorLabel as floorText } from '@/utils/unitLabel'
 
 interface FlatGroup {
   unitId: string
   unitNumber: string
   floorLabel: string
+  /** Entity the home is in, e.g. "Apartment" or "Villa". */
+  entityName: string | null
+  entityType: string | null
   propertyName: string
   residingTenant?: ResidentItem
   residingOwner?: ResidentItem
   offsiteOwner?: ResidentItem
   allOccupants: ResidentItem[]
+}
+
+const LIVING_BADGES = {
+  here: { label: 'Residing', className: 'border-emerald-200 bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' },
+  elsewhere: {
+    label: 'Off-site Resident',
+    className: 'border-amber-200 bg-amber-50 text-amber-700',
+    dot: 'bg-amber-500',
+  },
+  not: { label: 'Off-site Resident', className: 'border-amber-200 bg-amber-50 text-amber-700', dot: 'bg-amber-500' },
+} as const
+
+/** Whether a person actually lives in the flat. */
+const LivingBadge = ({ status }: { status: keyof typeof LIVING_BADGES }) => {
+  const badge = LIVING_BADGES[status]
+  return (
+    <span
+      className={cn(
+        'inline-flex w-32 items-center justify-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold',
+        badge.className,
+      )}
+    >
+      <span className={cn('h-1.5 w-1.5 rounded-full', badge.dot)} />
+      {badge.label}
+    </span>
+  )
 }
 
 export interface ResidentListScreenProps {
@@ -65,11 +82,10 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>('')
   const [filterType, setFilterType] = useState<string>('ALL')
   const [filterResiding, setFilterResiding] = useState<string>('ALL')
-  const [expandedUnitIds, setExpandedUnitIds] = useState<Set<string>>(new Set())
 
-  // Pagination State
+  // Pagination State — one page holds whole flats
   const [currentPage, setCurrentPage] = useState<number>(0)
-  const pageSize = 10
+  const pageSize = 8
 
   // Load properties list if in Global Mode
   useEffect(() => {
@@ -102,13 +118,6 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
         isResiding: residing !== 'ALL' ? residing : undefined,
       })
       setResidents(resList)
-
-      // Expand all flat groups by default
-      const allUnitIds = new Set<string>()
-      resList.forEach((r) => {
-        if (r.unitId) allUnitIds.add(r.unitId)
-      })
-      setExpandedUnitIds(allUnitIds)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to load resident records'
       setError(msg)
@@ -138,11 +147,6 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
         if (!isCancelled) {
           setResidents(resList)
           setError(null)
-          const allUnitIds = new Set<string>()
-          resList.forEach((r) => {
-            if (r.unitId) allUnitIds.add(r.unitId)
-          })
-          setExpandedUnitIds(allUnitIds)
         }
       } catch (err: unknown) {
         if (!isCancelled) {
@@ -177,18 +181,6 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
     }
   }
 
-  const toggleAccordion = (unitId: string) => {
-    setExpandedUnitIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(unitId)) {
-        next.delete(unitId)
-      } else {
-        next.add(unitId)
-      }
-      return next
-    })
-  }
-
   // Group residents by Flat / Unit
   const groupedFlats = useMemo(() => {
     const map = new Map<string, ResidentItem[]>()
@@ -204,11 +196,14 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
     map.forEach((occupants, unitId) => {
       const firstOcc = occupants[0]
       const firstUnit = firstOcc?.unit
-      const floorNum = firstUnit?.floor?.floor_number
-      const floorLabel =
-        firstUnit?.floor?.floor_name ||
-        (floorNum ? (floorNum === 1 ? 'Ground Floor' : `Floor ${floorNum}`) : 'Main Level')
-      const unitNumber = firstUnit?.unit_number ? `Unit ${firstUnit.unit_number}` : 'Unassigned Flat'
+      const block = firstUnit?.floor?.block
+      // Where in the entity: "Tower B · Floor 2"; empty for villas (their block is hidden).
+      const floorLabel = [block && !block.is_virtual ? block.block_name : null, floorText(firstUnit?.floor)]
+        .filter(Boolean)
+        .join(' · ')
+      const unitNumber = firstUnit?.unit_number ?? 'Unassigned'
+      const entityName = block?.entity?.name ?? (block?.is_virtual ? block.block_name : null)
+      const entityType = block?.entity?.entity_type ?? null
       const propertyName = firstOcc?.property?.property_name || firstOcc?.property?.name || 'Property'
 
       const residingTenant = occupants.find((r) => r.residentType === 'TENANT' && r.isResiding)
@@ -219,6 +214,8 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
         unitId,
         unitNumber,
         floorLabel,
+        entityName,
+        entityType,
         propertyName,
         residingTenant,
         residingOwner,
@@ -230,13 +227,45 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
     return groups
   }, [residents])
 
-  // Pagination Calculations
-  const totalGroups = groupedFlats.length
+  /**
+   * Flats in reading order (property -> floor -> unit) with their occupants
+   * sorted so the OWNER of the flat is always the first line and the other
+   * members follow underneath.
+   */
+  const orderedFlats = useMemo(() => {
+    const sortedFlats = [...groupedFlats].sort((a, b) =>
+      `${a.propertyName}|${a.floorLabel}|${a.unitNumber}`.localeCompare(
+        `${b.propertyName}|${b.floorLabel}|${b.unitNumber}`,
+        undefined,
+        { numeric: true },
+      ),
+    )
+
+    return sortedFlats.map((flat) => ({
+      ...flat,
+      allOccupants: [...flat.allOccupants].sort((a, b) => {
+        if (a.residentType !== b.residentType) return a.residentType === 'OWNER' ? -1 : 1
+        if (a.isResiding !== b.isResiding) return a.isResiding ? -1 : 1
+        return `${a.firstName} ${a.lastName || ''}`.localeCompare(`${b.firstName} ${b.lastName || ''}`)
+      }),
+    }))
+  }, [groupedFlats])
+
+  // Pagination Calculations — a page holds whole flats so a unit never splits
+  const totalGroups = orderedFlats.length
+  const totalRows = residents.length
   const pageCount = Math.ceil(totalGroups / pageSize) || 1
-  const paginatedGroups = useMemo(() => {
-    const start = currentPage * pageSize
-    return groupedFlats.slice(start, start + pageSize)
-  }, [groupedFlats, currentPage, pageSize])
+  /** Deleting or filtering can shrink the list past the current page. */
+  const activePage = Math.min(currentPage, pageCount - 1)
+  const paginatedFlats = useMemo(() => {
+    const start = activePage * pageSize
+    return orderedFlats.slice(start, start + pageSize)
+  }, [orderedFlats, activePage, pageSize])
+
+  const goToResident = (residentId: string) =>
+    navigate(
+      isGlobalMode ? `/global-settings/residents/details/${residentId}` : `/admin/residents/details/${residentId}`,
+    )
 
   // Filter Controls Bar
   const filterControls = (
@@ -253,10 +282,10 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
           aria-label="Property Location"
           className="h-9 px-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-2xs cursor-pointer"
         >
-          <option value="ALL">Property: All Properties ({properties.length})</option>
+          <option value="ALL">All properties ({properties.length})</option>
           {properties.map((p) => (
             <option key={p.id} value={p.id}>
-              Property: {p.property_name || (p as { name?: string }).name || 'Property'}
+              {p.property_name || (p as { name?: string }).name || 'Property'}
             </option>
           ))}
         </select>
@@ -273,9 +302,9 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
         aria-label="Resident Type"
         className="h-9 px-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-2xs cursor-pointer"
       >
-        <option value="ALL">Resident Type: All Types (Owner, Tenant)</option>
-        <option value="OWNER">Resident Type: Owner Only</option>
-        <option value="TENANT">Resident Type: Tenant Only</option>
+        <option value="ALL">Owners & tenants</option>
+        <option value="OWNER">Owners only</option>
+        <option value="TENANT">Tenants only</option>
       </select>
 
       {/* Residing Status Filter */}
@@ -289,9 +318,9 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
         aria-label="Residing Status"
         className="h-9 px-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-2xs cursor-pointer"
       >
-        <option value="ALL">Residing Status: All Occupants</option>
-        <option value="RESIDING">Residing Status: Physically Residing</option>
-        <option value="OFFSITE">Residing Status: Off-site Landlord</option>
+        <option value="ALL">Everyone</option>
+        <option value="RESIDING">Residing</option>
+        <option value="OFFSITE">Off-site Resident</option>
       </select>
     </div>
   )
@@ -330,7 +359,7 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
           <input
             type="text"
             className="pl-9 pr-4 py-2 w-full rounded-xl text-xs bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 shadow-2xs focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] focus:outline-none"
-            placeholder="Search Name, username, Unit #..."
+            placeholder="Search by name, username or flat…"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
           />
@@ -349,401 +378,225 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-2xs dark:border-gray-800 dark:bg-slate-900">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-gray-50/90 text-gray-700 font-semibold border-b border-gray-200 dark:bg-gray-800/80 dark:border-gray-800 dark:text-gray-200 uppercase text-[10px] tracking-wider">
-                  <TableRow>
-                    <TableHead className="w-10 pl-4"></TableHead>
-                    <TableHead
-                      colSpan={7}
-                      className="py-3 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider"
-                    >
-                      {isGlobalMode ? 'PROPERTY & FLAT / UNIT' : 'FLAT / UNIT'}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedGroups.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="p-12 text-center text-sm text-gray-400">
-                        No resident records found.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    paginatedGroups.map((group) => {
-                      const isExpanded = expandedUnitIds.has(group.unitId)
-
-                      return (
-                        <React.Fragment key={group.unitId}>
-                          {/* Main Flat Summary Row */}
-                          <TableRow className="bg-gray-50/70 hover:bg-gray-100/70 dark:bg-slate-800/60 dark:hover:bg-slate-800 transition-colors border-b border-gray-200 dark:border-gray-800">
-                            {/* Expander Chevron Column */}
-                            <TableCell className="w-10 py-3.5 pl-4">
-                              <button
-                                type="button"
-                                onClick={() => toggleAccordion(group.unitId)}
-                                className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-500 transition cursor-pointer"
-                                title={isExpanded ? 'Collapse flat details' : 'Expand flat details'}
-                              >
-                                {isExpanded ? (
-                                  <ChevronUp className="w-4 h-4 text-[#005390]" />
-                                ) : (
-                                  <ChevronDown className="w-4 h-4 text-gray-400" />
-                                )}
-                              </button>
-                            </TableCell>
-
-                            {/* Property & Flat / Unit Column */}
-                            <TableCell className="py-3.5">
-                              <div
-                                role="button"
-                                tabIndex={0}
-                                className="flex flex-wrap items-center gap-2 cursor-pointer outline-none"
-                                onClick={() => toggleAccordion(group.unitId)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault()
-                                    toggleAccordion(group.unitId)
-                                  }
-                                }}
-                              >
-                                {isGlobalMode && (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#005390]/10 text-[#005390] border border-[#005390]/20">
-                                    <Building2 className="w-3.5 h-3.5" />
-                                    {group.propertyName}
-                                  </span>
-                                )}
-                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-xs font-bold shadow-2xs">
-                                  <Home className="w-3.5 h-3.5 text-[#005390]" />
-                                  {group.floorLabel} — {group.unitNumber}
-                                </div>
-                              </div>
-                            </TableCell>
-
-                            {/* Resident Column (Tenant Name & Owner Name) */}
-                            <TableCell className="py-3.5">
-                              <div
-                                role="button"
-                                tabIndex={0}
-                                className="space-y-1 cursor-pointer outline-none"
-                                onClick={() => toggleAccordion(group.unitId)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault()
-                                    toggleAccordion(group.unitId)
-                                  }
-                                }}
-                              >
-                                {group.residingTenant && (
-                                  <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900 dark:text-white">
-                                    <span className="text-purple-700 dark:text-purple-400 font-semibold text-[10px] bg-purple-50 dark:bg-purple-950 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-800">
-                                      Tenant:
-                                    </span>
-                                    {group.residingTenant.photoUrl && (
-                                      <img
-                                        src={getFileUrl(group.residingTenant.photoUrl)}
-                                        alt={group.residingTenant.firstName}
-                                        className="w-4 h-4 rounded-full object-cover shrink-0 border border-purple-200"
-                                      />
-                                    )}
-                                    {group.residingTenant.firstName} {group.residingTenant.lastName || ''}
-                                  </div>
-                                )}
-                                {group.offsiteOwner && (
-                                  <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900 dark:text-white">
-                                    <span className="text-amber-700 dark:text-amber-400 font-semibold text-[10px] bg-amber-50 dark:bg-amber-950 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800">
-                                      Owner:
-                                    </span>
-                                    {group.offsiteOwner.photoUrl && (
-                                      <img
-                                        src={getFileUrl(group.offsiteOwner.photoUrl)}
-                                        alt={group.offsiteOwner.firstName}
-                                        className="w-4 h-4 rounded-full object-cover shrink-0 border border-amber-200"
-                                      />
-                                    )}
-                                    {group.offsiteOwner.firstName} {group.offsiteOwner.lastName || ''}
-                                  </div>
-                                )}
-                                {group.residingOwner && !group.residingTenant && (
-                                  <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900 dark:text-white">
-                                    <span className="text-blue-700 dark:text-blue-400 font-semibold text-[10px] bg-blue-50 dark:bg-blue-950 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800">
-                                      Owner:
-                                    </span>
-                                    {group.residingOwner.photoUrl && (
-                                      <img
-                                        src={getFileUrl(group.residingOwner.photoUrl)}
-                                        alt={group.residingOwner.firstName}
-                                        className="w-4 h-4 rounded-full object-cover shrink-0 border border-blue-200"
-                                      />
-                                    )}
-                                    {group.residingOwner.firstName} {group.residingOwner.lastName || ''}
-                                  </div>
-                                )}
-                              </div>
-                            </TableCell>
-
-                            {/* Clean empty space on main flat header row */}
-                            <TableCell
-                              colSpan={5}
-                              role="button"
-                              tabIndex={0}
-                              className="py-3.5 cursor-pointer outline-none"
-                              onClick={() => toggleAccordion(group.unitId)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault()
-                                  toggleAccordion(group.unitId)
-                                }
-                              }}
-                            ></TableCell>
-                          </TableRow>
-
-                          {/* Accordion Sub-row Directly Inside Table */}
-                          {isExpanded && (
-                            <TableRow className="bg-slate-50/80 dark:bg-slate-800/40 border-b border-gray-200/80">
-                              <TableCell colSpan={8} className="p-0">
-                                <div className="bg-slate-50/90 dark:bg-slate-800/60 px-4 py-3 border-y border-gray-200/80 dark:border-gray-700">
-                                  <table className="w-full text-left border-collapse">
-                                    <thead>
-                                      <tr className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider border-b border-gray-200/60 dark:border-gray-700/60 pb-1">
-                                        <th className="py-2 pl-4 font-bold">Occupant Name</th>
-                                        <th className="py-2 font-bold">Type</th>
-                                        <th className="py-2 font-bold">Residing Status</th>
-                                        <th className="py-2 font-bold">Mobile Handle</th>
-                                        <th className="py-2 font-bold">Contact</th>
-                                        <th className="py-2 font-bold">Rent & Billing</th>
-                                        <th className="py-2 font-bold text-right pr-4">Actions</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200/50 dark:divide-gray-700/50">
-                                      {group.allOccupants.map((occ) => {
-                                        const fullName = `${occ.firstName} ${occ.lastName || ''}`.trim()
-                                        return (
-                                          <tr
-                                            key={occ.id}
-                                            className="hover:bg-white/60 dark:hover:bg-slate-900/60 transition-colors"
-                                          >
-                                            {/* Occupant Name & Family Members */}
-                                            <td className="py-2.5 pl-4">
-                                              <div
-                                                role="button"
-                                                tabIndex={0}
-                                                className="flex items-center gap-2.5 cursor-pointer group/occ outline-none"
-                                                onClick={() =>
-                                                  navigate(
-                                                    isGlobalMode
-                                                      ? `/global-settings/residents/details/${occ.id}`
-                                                      : `/admin/residents/details/${occ.id}`,
-                                                  )
-                                                }
-                                                onKeyDown={(e) => {
-                                                  if (e.key === 'Enter' || e.key === ' ') {
-                                                    e.preventDefault()
-                                                    navigate(
-                                                      isGlobalMode
-                                                        ? `/global-settings/residents/details/${occ.id}`
-                                                        : `/admin/residents/details/${occ.id}`,
-                                                    )
-                                                  }
-                                                }}
-                                                title="Click to view resident profile details"
-                                              >
-                                                <div className="w-8 h-8 rounded-full bg-[#005390]/10 text-[#005390] group-hover/occ:border-[#005390] overflow-hidden border border-gray-200/80 transition-colors flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
-                                                  {occ.photoUrl ? (
-                                                    <img
-                                                      src={getFileUrl(occ.photoUrl)}
-                                                      alt={fullName}
-                                                      className="w-full h-full object-cover"
-                                                    />
-                                                  ) : (
-                                                    <span>{occ.firstName[0]?.toUpperCase()}</span>
-                                                  )}
-                                                </div>
-                                                <div>
-                                                  <div className="font-bold text-gray-900 dark:text-white text-xs group-hover/occ:text-[#005390] transition-colors">
-                                                    {fullName}
-                                                  </div>
-                                                  {occ.email && (
-                                                    <div className="text-[10px] text-gray-400">{occ.email}</div>
-                                                  )}
-                                                  {occ.familyMembers && occ.familyMembers.length > 0 && (
-                                                    <div className="mt-1 flex flex-wrap gap-1">
-                                                      {occ.familyMembers.map((fm) => (
-                                                        <span
-                                                          key={fm.id || fm.firstName}
-                                                          className="inline-flex items-center gap-1 text-[9px] font-medium bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
-                                                        >
-                                                          {fm.photoUrl ? (
-                                                            <img
-                                                              src={getFileUrl(fm.photoUrl)}
-                                                              alt={fm.firstName}
-                                                              className="w-3.5 h-3.5 rounded-full object-cover shrink-0"
-                                                            />
-                                                          ) : null}
-                                                          {fm.firstName} {fm.lastName || ''} (
-                                                          {fm.relation || 'Relative'})
-                                                        </span>
-                                                      ))}
-                                                    </div>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            </td>
-
-                                            {/* Type Badge */}
-                                            <td className="py-2.5">
-                                              <span
-                                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                                  occ.residentType === 'OWNER'
-                                                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950 dark:text-blue-300'
-                                                    : 'bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950 dark:text-purple-300'
-                                                }`}
-                                              >
-                                                {occ.residentType}
-                                              </span>
-                                            </td>
-
-                                            {/* Residing Status */}
-                                            <td className="py-2.5">
-                                              {occ.isResiding ? (
-                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300">
-                                                  <Check className="w-3 h-3" /> Physically Residing
-                                                </span>
-                                              ) : (
-                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950 dark:text-amber-300">
-                                                  Off-site Landlord
-                                                </span>
-                                              )}
-                                            </td>
-
-                                            {/* Mobile Handle */}
-                                            <td className="py-2.5">
-                                              {occ.username ? (
-                                                <span className="text-[#005390] font-semibold text-xs font-mono">
-                                                  ({occ.username})
-                                                </span>
-                                              ) : (
-                                                <span className="text-gray-400 text-xs">-</span>
-                                              )}
-                                            </td>
-
-                                            {/* Contact Phone */}
-                                            <td className="py-2.5">
-                                              <span className="text-xs text-gray-800 dark:text-gray-200 font-semibold">
-                                                {occ.phone || 'N/A'}
-                                              </span>
-                                            </td>
-
-                                            {/* Rent & Billing */}
-                                            <td className="py-2.5">
-                                              {occ.residentType === 'TENANT' ? (
-                                                <div className="flex flex-col gap-0.5">
-                                                  <span className="text-xs font-extrabold text-gray-900 dark:text-white">
-                                                    {occ.rentAmount !== undefined && occ.rentAmount !== null
-                                                      ? `₹${Number(occ.rentAmount).toLocaleString('en-IN')}`
-                                                      : 'Rent Not Set'}
-                                                  </span>
-                                                  {occ.payRentToCompany ? (
-                                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-md dark:bg-blue-950 dark:text-blue-300 w-max">
-                                                      Company Billing
-                                                    </span>
-                                                  ) : (
-                                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md dark:bg-amber-950 dark:text-amber-300 w-max">
-                                                      Direct to Owner
-                                                    </span>
-                                                  )}
-                                                </div>
-                                              ) : (
-                                                <span className="text-gray-400 text-xs">-</span>
-                                              )}
-                                            </td>
-
-                                            {/* Actions Dropdown / Menu */}
-                                            <td className="py-2.5 text-right pr-4">
-                                              <DropdownMenu>
-                                                <DropdownMenuTrigger
-                                                  className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-[#005390] hover:bg-[#005390]/10 hover:text-[#005390] transition-colors cursor-pointer shadow-2xs dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
-                                                  title="Actions"
-                                                >
-                                                  <MoreVertical className="h-3.5 w-3.5" />
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent
-                                                  align="end"
-                                                  className="w-48 rounded-xl p-1 shadow-xl border border-gray-100 bg-white dark:bg-slate-900 dark:border-gray-800"
-                                                >
-                                                  {canViewResident && (
-                                                    <DropdownMenuItem
-                                                      onClick={() =>
-                                                        navigate(
-                                                          isGlobalMode
-                                                            ? `/global-settings/residents/details/${occ.id}`
-                                                            : `/admin/residents/details/${occ.id}`,
-                                                        )
-                                                      }
-                                                      className="flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-lg px-2.5 py-1.5 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
-                                                    >
-                                                      <UserCheck className="h-3.5 w-3.5 text-[#005390]" />
-                                                      View Profile
-                                                    </DropdownMenuItem>
-                                                  )}
-
-                                                  {canUpdateResident && (
-                                                    <DropdownMenuItem
-                                                      onClick={() =>
-                                                        navigate(
-                                                          isGlobalMode
-                                                            ? `/global-settings/residents/edit/${occ.id}`
-                                                            : `/admin/residents/edit/${occ.id}`,
-                                                        )
-                                                      }
-                                                      className="flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-lg px-2.5 py-1.5 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
-                                                    >
-                                                      <Edit className="h-3.5 w-3.5 text-[#005390]" />
-                                                      Edit Profile
-                                                    </DropdownMenuItem>
-                                                  )}
-
-                                                  {canDeleteResident && (
-                                                    <DropdownMenuItem
-                                                      onClick={() => handleDelete(occ.id, fullName)}
-                                                      className="flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-lg px-2.5 py-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50"
-                                                    >
-                                                      <Trash2 className="h-3.5 w-3.5 text-rose-600" />
-                                                      Remove Resident
-                                                    </DropdownMenuItem>
-                                                  )}
-                                                </DropdownMenuContent>
-                                              </DropdownMenu>
-                                            </td>
-                                          </tr>
-                                        )
-                                      })}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </React.Fragment>
-                      )
-                    })
-                  )}
-                </TableBody>
-              </Table>
+          {paginatedFlats.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center text-sm text-gray-400 dark:border-gray-800 dark:bg-slate-900">
+              No residents found.
             </div>
-          </div>
+          ) : (
+            paginatedFlats.map((flat) => {
+              const livingCount = flat.allOccupants.reduce(
+                (n, occ) =>
+                  n +
+                  (occ.isResiding ? 1 : 0) +
+                  (occ.familyMembers || []).filter((fm) => fm.isResiding !== false).length,
+                0,
+              )
+              return (
+                <div
+                  key={flat.unitId}
+                  className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xs dark:border-gray-800 dark:bg-slate-900"
+                >
+                  {/* Flat header */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 bg-gray-50/70 px-4 py-3 dark:border-gray-800 dark:bg-slate-800/50">
+                    <div className="flex items-center gap-3">
+                      {(() => {
+                        const EntityIcon = flat.entityType === 'apartment' ? Building2 : Home
+                        return (
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#005390]/10 text-[#005390]">
+                            <EntityIcon className="h-4 w-4" />
+                          </div>
+                        )
+                      })()}
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-sm font-bold text-gray-900 dark:text-white">{flat.unitNumber}</h3>
+                          {flat.entityName && (
+                            <span className="rounded-full border border-[#005390]/20 bg-[#005390]/5 px-2 py-px text-[10px] font-semibold text-[#005390]">
+                              {flat.entityName}
+                            </span>
+                          )}
+                        </div>
+                        {(flat.floorLabel || isGlobalMode) && (
+                          <p className="text-[11px] text-gray-500">
+                            {[flat.floorLabel, isGlobalMode ? flat.propertyName : null].filter(Boolean).join(' · ')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <span className="rounded-full border border-gray-200 bg-white px-2.5 py-0.5 text-[11px] font-semibold text-gray-600">
+                      {livingCount} residing
+                    </span>
+                  </div>
 
+                  {/* People: each resident, with their family indented underneath */}
+                  <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+                    {flat.allOccupants.map((occ) => {
+                      const fullName = `${occ.firstName} ${occ.lastName || ''}`.trim()
+                      const family = occ.familyMembers || []
+                      const isTenant = occ.residentType === 'TENANT'
+                      return (
+                        <li key={occ.id}>
+                          <div className="flex flex-col gap-2 px-4 py-3 transition-colors hover:bg-[#005390]/[0.03] md:flex-row md:items-center">
+                            <button
+                              type="button"
+                              onClick={() => goToResident(occ.id)}
+                              className="group flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left"
+                              title="View profile"
+                            >
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#005390]/10 text-xs font-bold text-[#005390]">
+                                {occ.photoUrl ? (
+                                  <img
+                                    src={getFileUrl(occ.photoUrl)}
+                                    alt={fullName}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  occ.firstName[0]?.toUpperCase()
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-gray-900 group-hover:text-[#005390] dark:text-white">
+                                  {fullName}
+                                  <span
+                                    className={cn(
+                                      'rounded-full border px-2 py-px text-[10px] font-semibold',
+                                      isTenant
+                                        ? 'border-purple-200 bg-purple-50 text-purple-700'
+                                        : 'border-blue-200 bg-blue-50 text-blue-700',
+                                    )}
+                                  >
+                                    {isTenant ? 'Tenant' : 'Owner'}
+                                  </span>
+                                </p>
+                                {occ.email && <p className="truncate text-xs text-gray-500">{occ.email}</p>}
+                              </div>
+                            </button>
+
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pl-12 text-xs md:pl-0">
+                              <LivingBadge status={occ.isResiding ? 'here' : 'elsewhere'} />
+                              <span className="w-28 text-gray-700 dark:text-gray-300">{occ.phone || '—'}</span>
+                              <span className="w-36">
+                                {isTenant ? (
+                                  <>
+                                    <span className="font-semibold text-gray-900 dark:text-white">
+                                      {occ.rentAmount != null
+                                        ? `₹${Number(occ.rentAmount).toLocaleString('en-IN')}/mo`
+                                        : 'Rent not set'}
+                                    </span>
+                                    <span className="block text-[10px] text-gray-500">
+                                      {occ.payRentToCompany ? 'Paid via company' : 'Paid to owner'}
+                                    </span>
+                                  </>
+                                ) : null}
+                              </span>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger
+                                  className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-[#005390] dark:hover:bg-gray-800"
+                                  title="Actions"
+                                  aria-label={`Actions for ${fullName}`}
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-44 rounded-xl p-1 shadow-xl">
+                                  {canViewResident && (
+                                    <DropdownMenuItem
+                                      onClick={() => goToResident(occ.id)}
+                                      className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold"
+                                    >
+                                      <UserCheck className="h-3.5 w-3.5 text-[#005390]" />
+                                      View Profile
+                                    </DropdownMenuItem>
+                                  )}
+                                  {canUpdateResident && (
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        navigate(
+                                          isGlobalMode
+                                            ? `/global-settings/residents/edit/${occ.id}`
+                                            : `/admin/residents/edit/${occ.id}`,
+                                        )
+                                      }
+                                      className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold"
+                                    >
+                                      <Edit className="h-3.5 w-3.5 text-[#005390]" />
+                                      Edit Profile
+                                    </DropdownMenuItem>
+                                  )}
+                                  {canDeleteResident && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleDelete(occ.id, fullName)}
+                                      className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                      Remove
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </div>
+
+                          {family.length > 0 && (
+                            <ul className="border-t border-dashed border-gray-100 bg-slate-50/50 dark:border-gray-800 dark:bg-slate-800/20">
+                              {family.map((fm, fmIndex) => {
+                                const fmName = `${fm.firstName} ${fm.lastName || ''}`.trim()
+                                return (
+                                  <li
+                                    key={fm.id || `${occ.id}-${fmIndex}`}
+                                    className="flex flex-col gap-1.5 py-2 pl-10 pr-4 md:flex-row md:items-center"
+                                  >
+                                    <div className="flex min-w-0 flex-1 items-center gap-3 border-l-2 border-gray-200 pl-3 dark:border-gray-700">
+                                      <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-violet-100 text-[11px] font-bold text-violet-700">
+                                        {fm.photoUrl ? (
+                                          <img
+                                            src={getFileUrl(fm.photoUrl)}
+                                            alt={fmName}
+                                            className="h-full w-full object-cover"
+                                          />
+                                        ) : (
+                                          fm.firstName[0]?.toUpperCase()
+                                        )}
+                                      </div>
+                                      <p className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-gray-800 dark:text-gray-100">
+                                        {fmName}
+                                        <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-px text-[10px] font-semibold capitalize text-violet-700">
+                                          {fm.relation || 'Family'}
+                                        </span>
+                                      </p>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pl-10 text-xs md:pl-0">
+                                      <LivingBadge status={fm.isResiding === false ? 'not' : 'here'} />
+                                      <span className="w-28 text-gray-600 dark:text-gray-300">{fm.phone || '—'}</span>
+                                      <span className="w-36" />
+                                      <span className="w-8" />
+                                    </div>
+                                  </li>
+                                )
+                              })}
+                            </ul>
+                          )}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              )
+            })
+          )}
           {/* Pagination Footer */}
           {totalGroups > 0 && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-3 px-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xs">
               <div className="flex items-center gap-3 text-xs text-gray-500 font-medium">
                 <span>
-                  Total <span className="font-bold text-gray-900 dark:text-white">{totalGroups}</span> flat(s) (
-                  <span className="font-bold text-[#005390]">{residents.length}</span> total resident records)
+                  Showing flats{' '}
+                  <span className="font-bold text-gray-900 dark:text-white">
+                    {activePage * pageSize + 1}–{Math.min((activePage + 1) * pageSize, totalGroups)}
+                  </span>{' '}
+                  of <span className="font-bold text-gray-900 dark:text-white">{totalGroups}</span> (
+                  <span className="font-bold text-[#005390]">{totalRows}</span> residents)
                 </span>
                 <span>
-                  • Page <span className="font-bold text-gray-900 dark:text-white">{currentPage + 1}</span> of{' '}
+                  • Page <span className="font-bold text-gray-900 dark:text-white">{activePage + 1}</span> of{' '}
                   <span className="font-bold text-gray-900 dark:text-white">{Math.max(1, pageCount)}</span>
                 </span>
               </div>
@@ -755,10 +608,10 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                       href="#"
                       onClick={(e) => {
                         e.preventDefault()
-                        if (currentPage > 0) setCurrentPage((prev) => prev - 1)
+                        if (activePage > 0) setCurrentPage(activePage - 1)
                       }}
                       className={
-                        currentPage === 0
+                        activePage === 0
                           ? 'pointer-events-none opacity-50 bg-gray-50 text-gray-400 border-gray-200 dark:bg-gray-800 dark:text-gray-500'
                           : 'cursor-pointer bg-white text-gray-700 hover:bg-gray-50 border-gray-200 dark:bg-gray-800 dark:text-gray-200'
                       }
@@ -766,12 +619,12 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                   </PaginationItem>
 
                   {Array.from({ length: pageCount }).map((_, idx) => {
-                    if (idx === 0 || idx === pageCount - 1 || (idx >= currentPage - 1 && idx <= currentPage + 1)) {
+                    if (idx === 0 || idx === pageCount - 1 || (idx >= activePage - 1 && idx <= activePage + 1)) {
                       return (
                         <PaginationItem key={idx}>
                           <PaginationLink
                             href="#"
-                            isActive={idx === currentPage}
+                            isActive={idx === activePage}
                             onClick={(e) => {
                               e.preventDefault()
                               setCurrentPage(idx)
@@ -782,10 +635,7 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                           </PaginationLink>
                         </PaginationItem>
                       )
-                    } else if (
-                      (idx === 1 && currentPage > 2) ||
-                      (idx === pageCount - 2 && currentPage < pageCount - 3)
-                    ) {
+                    } else if ((idx === 1 && activePage > 2) || (idx === pageCount - 2 && activePage < pageCount - 3)) {
                       return (
                         <PaginationItem key={idx}>
                           <PaginationEllipsis />
@@ -800,10 +650,10 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                       href="#"
                       onClick={(e) => {
                         e.preventDefault()
-                        if (currentPage < pageCount - 1) setCurrentPage((prev) => prev + 1)
+                        if (activePage < pageCount - 1) setCurrentPage(activePage + 1)
                       }}
                       className={
-                        currentPage >= pageCount - 1
+                        activePage >= pageCount - 1
                           ? 'pointer-events-none opacity-50 bg-gray-50 text-gray-400 border-gray-200 dark:bg-gray-800 dark:text-gray-500'
                           : 'cursor-pointer bg-white text-gray-700 hover:bg-gray-50 border-gray-200 dark:bg-gray-800 dark:text-gray-200'
                       }

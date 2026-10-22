@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
+import type React from 'react'
+import { CalendarPlus, Clock, MapPin, Users, type LucideIcon } from 'lucide-react'
 import { Controller, useForm } from 'react-hook-form'
 /* eslint-disable react-hooks/incompatible-library -- react-hook-form watch() */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Combobox,
   ComboboxChip,
@@ -45,7 +46,9 @@ import {
   getUserSpecializationLabel,
   hasWindowStartPassedOnDate,
   isMedicalDepartment,
+  isMedicalNoAssignRosterRole,
   isMedicalRosterDoctorRole,
+  isMedicalUnitOnlyRosterRole,
   isSlotWithinShift,
   medicalRosterRoleEmptyLabel,
   parseLocalYmd,
@@ -62,6 +65,7 @@ import {
   useListShifts,
 } from '@/hooks/react-query/roster'
 import EmployeeAvailabilityDialog from './EmployeeAvailabilityDialog'
+import { floorLabel } from '@/utils/unitLabel'
 
 interface AssignShiftDialogProps {
   open: boolean
@@ -70,6 +74,37 @@ interface AssignShiftDialogProps {
 }
 
 const FULL_SHIFT_VALUE = '__full__'
+
+/** A numbered step of the form, so the dialog reads Who → When → Where. */
+const FormSection = ({
+  step,
+  icon: Icon,
+  title,
+  hint,
+  children,
+}: {
+  step: number
+  icon: LucideIcon
+  title: string
+  hint: string
+  children: React.ReactNode
+}) => (
+  <section className="rounded-xl border border-gray-200 bg-white">
+    <div className="flex items-start gap-3 border-b border-gray-100 px-4 py-3">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#2a517c] text-[11px] font-bold text-white">
+        {step}
+      </span>
+      <div className="min-w-0">
+        <h3 className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+          <Icon className="h-4 w-4 text-[#2a517c]" />
+          {title}
+        </h3>
+        <p className="text-xs text-gray-500">{hint}</p>
+      </div>
+    </div>
+    <div className="space-y-4 p-4">{children}</div>
+  </section>
+)
 
 type AreaOption = { id: string; areaName: string }
 type BlockOption = {
@@ -196,6 +231,11 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
   )
   const isMedicalDept = isMedicalDepartment(selectedDepartment)
   const canSelectEmployees = !!departmentId && (!isMedicalDept || !!roleCode)
+  /** Medical Nurse / In-house Doctor: Assign to Unit only (no Area). */
+  const isMedicalUnitOnly = isMedicalDept && isMedicalUnitOnlyRosterRole(roleCode || '')
+  /** Medical Visiting Doctor: no Area/Unit assignment at all. */
+  const isMedicalNoAssign = isMedicalDept && isMedicalNoAssignRosterRole(roleCode || '')
+  const showAssignTo = !isMedicalNoAssign
 
   const medicalJobCategoryCatalog = useMemo(() => {
     const fromSelected = selectedDepartment?.jobCategories || []
@@ -225,13 +265,13 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
     const selectedFloors = availableFloors.filter((f) => floorIds.includes(f.id))
     const flats: FlatOption[] = []
     for (const floor of selectedFloors) {
-      const floorLabel = floor.floor_name || `Floor ${floor.floor_number}`
+      const floorText = floorLabel(floor)
       for (const unit of floor.units || []) {
         flats.push({
           id: unit.id,
           unit_number: unit.unit_number,
           floorId: floor.id,
-          floorLabel: `${floor.blockName} · ${floorLabel}`,
+          floorLabel: [floor.blockName, floorText].filter(Boolean).join(' · '),
         })
       }
     }
@@ -342,6 +382,24 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
     setValue('employeeIds', [], { shouldValidate: true })
   }, [roleCode, setValue])
 
+  // Medical role → location assignment rules (Medical only)
+  useEffect(() => {
+    if (!isMedicalDept) return
+
+    if (isMedicalNoAssignRosterRole(roleCode || '')) {
+      setValue('areaIds', [], { shouldValidate: true })
+      setValue('blockIds', [], { shouldValidate: true })
+      setValue('floorIds', [], { shouldValidate: true })
+      setValue('unitIds', [], { shouldValidate: true })
+      return
+    }
+
+    if (isMedicalUnitOnlyRosterRole(roleCode || '')) {
+      setValue('targetType', 'unit', { shouldValidate: true })
+      setValue('areaIds', [], { shouldValidate: true })
+    }
+  }, [isMedicalDept, roleCode, setValue])
+
   useEffect(() => {
     setValue('slotValue', FULL_SHIFT_VALUE, { shouldValidate: true })
   }, [selectedShiftId, setValue])
@@ -370,7 +428,11 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
     setValue('workingDays', next, { shouldValidate: true })
   }
 
-  const locationTargetValid = targetType === 'area' ? areaIds.length > 0 : blockIds.length > 0
+  const locationTargetValid = isMedicalNoAssign
+    ? true
+    : targetType === 'area'
+      ? areaIds.length > 0
+      : blockIds.length > 0
 
   const selectedSlotRange = slotValue === FULL_SHIFT_VALUE ? null : slotValue
 
@@ -456,6 +518,9 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
     }
 
     const slotRange = values.slotValue === FULL_SHIFT_VALUE ? null : values.slotValue
+    const skipLocation = isMedicalDepartment(selectedDept) && isMedicalNoAssignRosterRole(values.roleCode || '')
+    const forceUnit = isMedicalDepartment(selectedDept) && isMedicalUnitOnlyRosterRole(values.roleCode || '')
+    const effectiveTargetType = skipLocation ? null : forceUnit ? 'unit' : values.targetType
 
     try {
       await createBulk.mutateAsync({
@@ -465,10 +530,10 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
         endDate: values.endDate,
         notes: values.notes?.trim() || null,
         workingDays: values.workingDays,
-        areaIds: values.targetType === 'area' ? values.areaIds : undefined,
-        blockIds: values.targetType === 'unit' ? values.blockIds : undefined,
-        floorIds: values.targetType === 'unit' && values.floorIds.length > 0 ? values.floorIds : undefined,
-        unitIds: values.targetType === 'unit' && values.unitIds.length > 0 ? values.unitIds : undefined,
+        areaIds: effectiveTargetType === 'area' ? values.areaIds : undefined,
+        blockIds: effectiveTargetType === 'unit' ? values.blockIds : undefined,
+        floorIds: effectiveTargetType === 'unit' && values.floorIds.length > 0 ? values.floorIds : undefined,
+        unitIds: effectiveTargetType === 'unit' && values.unitIds.length > 0 ? values.unitIds : undefined,
         slotTimeRange: slotRange,
       })
       onOpenChange(false)
@@ -479,590 +544,713 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
 
   const pending = createBulk.isPending
 
+  // Plain-language line above the buttons: what pressing Create will do.
+  const rosterSummary = (() => {
+    if (employeeIds.length === 0 || !selectedShift) return 'Choose employees and a shift to see the roster summary.'
+    const who = `${employeeIds.length} employee${employeeIds.length === 1 ? '' : 's'}`
+    const when =
+      startDate && endDate ? (startDate === endDate ? `on ${startDate}` : `from ${startDate} to ${endDate}`) : ''
+    const days = workingDays.length ? `, ${workingDays.length} day${workingDays.length === 1 ? '' : 's'} a week` : ''
+    return `${who} on ${selectedShift.name} (${selectedShift.startTime}–${selectedShift.endTime}) ${when}${days}.`
+  })()
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create Roster</DialogTitle>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-0 gap-0">
+          <DialogHeader className="border-b border-gray-100 px-6 pt-5 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#2a517c]/10 text-[#2a517c]">
+                <CalendarPlus className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle>Create Roster</DialogTitle>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  Put employees on a shift for a range of dates, and say where they will work.
+                </p>
+              </div>
+            </div>
           </DialogHeader>
-          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-            <div className="space-y-2">
-              <Label>Department</Label>
-              <Controller
-                name="departmentId"
-                control={control}
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activeDepartments.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
-                          {d.name}
-                          {d.code ? ` (${d.code})` : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.departmentId && <p className="text-sm text-red-600">{errors.departmentId.message}</p>}
-            </div>
-
-            {isMedicalDept && (
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <Controller
-                  name="roleCode"
-                  control={control}
-                  render={({ field }) => (
-                    <Select value={field.value || undefined} onValueChange={field.onChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MEDICAL_ROSTER_ROLE_OPTIONS.map((role) => (
-                          <SelectItem key={role.code} value={role.code}>
-                            {role.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {errors.roleCode && <p className="text-sm text-red-600">{errors.roleCode.message}</p>}
-                <p className="text-xs text-gray-500">
-                  Select Nurse, Visiting Doctor, or In-house Doctor before choosing employees.
-                </p>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label>Employees</Label>
-              <Controller
-                name="employeeIds"
-                control={control}
-                render={({ field }) => {
-                  const selected = employeesInDepartment.filter((emp) => field.value.includes(emp.id))
-                  const employeePlaceholder = !departmentId
-                    ? 'Select a department first'
-                    : isMedicalDept && !roleCode
-                      ? 'Select a role first'
-                      : 'Select employees...'
-                  const searchPlaceholder = !departmentId
-                    ? 'Select a department first'
-                    : isMedicalDept && !roleCode
-                      ? 'Select a role first'
-                      : 'Search employees...'
-                  return (
-                    <div className="space-y-1.5">
-                      <Combobox
-                        multiple
-                        items={employeesInDepartment}
-                        value={selected}
-                        onValueChange={(vals: UserItem[]) => field.onChange(vals.map((emp) => emp.id))}
-                        itemToStringLabel={(item) => getUserDisplayName(item)}
-                        isItemEqualToValue={(a, b) => a.id === b.id}
-                        disabled={!canSelectEmployees}
-                      >
-                        <ComboboxChips ref={employeeChipsAnchor} className="w-full min-h-9 rounded-md">
-                          {selected.length === 0 && (
-                            <span className="flex-1 text-sm text-muted-foreground">{employeePlaceholder}</span>
-                          )}
-                          {selected.map((emp) => (
-                            <ComboboxChip key={emp.id}>{getUserDisplayName(emp)}</ComboboxChip>
-                          ))}
-                          <ComboboxTrigger className="ml-auto shrink-0 self-center" disabled={!canSelectEmployees} />
-                        </ComboboxChips>
-                        <ComboboxContent
-                          anchor={employeeChipsAnchor}
-                          side="bottom"
-                          align="start"
-                          className="w-[var(--anchor-width)]"
-                        >
-                          <ComboboxInput
-                            placeholder={searchPlaceholder}
-                            disabled={!canSelectEmployees}
-                            showTrigger={false}
-                            className="w-full"
-                          />
-                          <ComboboxList className="max-h-60">
-                            {(emp: UserItem) => {
-                              const specialization = isMedicalRosterDoctorRole(roleCode || '')
-                                ? getUserSpecializationLabel(emp)
-                                : ''
-                              const jobCatLabel = isMedicalRosterDoctorRole(roleCode || '')
-                                ? getUserJobCategoryLabel(emp, departmentId, medicalJobCategoryCatalog)
-                                : ''
-                              const roleLabel = !isMedicalRosterDoctorRole(roleCode || '') ? getUserRoleLabel(emp) : ''
-                              const subLabel = [jobCatLabel, specialization || roleLabel].filter(Boolean).join(' · ')
-                              return (
-                                <ComboboxItem key={emp.id} value={emp} className="py-2">
-                                  <div className="flex flex-col gap-0.5 min-w-0 pr-6">
-                                    <span className="font-semibold text-sm text-gray-900">
-                                      {getUserDisplayName(emp)}
-                                    </span>
-                                    {subLabel ? <span className="text-xs text-[#5b8ab8]">{subLabel}</span> : null}
-                                  </div>
-                                </ComboboxItem>
-                              )
-                            }}
-                          </ComboboxList>
-                          <ComboboxEmpty className="text-xs text-gray-500 py-2">No employees found</ComboboxEmpty>
-                        </ComboboxContent>
-                      </Combobox>
-                      {selected.length > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {selected.length} employee{selected.length === 1 ? '' : 's'} selected
-                        </p>
-                      )}
-                    </div>
-                  )
-                }}
-              />
-              {errors.employeeIds && <p className="text-sm text-red-600">{errors.employeeIds.message}</p>}
-              {canSelectEmployees && employeesInDepartment.length === 0 && (
-                <p className="text-xs text-gray-500">
-                  {isMedicalDept
-                    ? `No ${medicalRosterRoleEmptyLabel(roleCode || '')} found in this department.`
-                    : 'No employees found in this department.'}
-                </p>
-              )}
-            </div>
-
-            {!shift && (
-              <div className="space-y-2">
-                <Label>Shift</Label>
-                <Controller
-                  name="shiftId"
-                  control={control}
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select shift" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {shifts.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.name} ({s.startTime} – {s.endTime})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {errors.shiftId && <p className="text-sm text-red-600">{errors.shiftId.message}</p>}
-              </div>
-            )}
-
-            {shift && (
-              <p className="text-sm text-gray-600">
-                Shift: <span className="font-medium text-gray-900">{shift.name}</span>
-              </p>
-            )}
-
-            <div className="space-y-2">
-              <Label>Slot (optional)</Label>
-              <Controller
-                name="slotValue"
-                control={control}
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange} disabled={!selectedShift}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Full shift" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={FULL_SHIFT_VALUE}>
-                        Full shift
-                        {selectedShift ? ` (${selectedShift.startTime} – ${selectedShift.endTime})` : ''}
-                      </SelectItem>
-                      {slots.map((s) => (
-                        <SelectItem key={s.value} value={s.value}>
-                          {s.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              <p className="text-xs text-gray-500">
-                Leave as full shift to assign the complete shift window. Pick a slot to assign only that time range.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Start date</Label>
-                <Input
-                  type="date"
-                  min={today}
-                  {...register('startDate', {
-                    onChange: (e) => {
-                      const next = e.target.value
-                      if (endDate && next && endDate < next) {
-                        setValue('endDate', next, { shouldValidate: true })
-                      }
-                    },
-                  })}
-                />
-                {errors.startDate && <p className="text-sm text-red-600">{errors.startDate.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label>End date</Label>
-                <Input type="date" min={startDate || today} {...register('endDate')} />
-                {errors.endDate && <p className="text-sm text-red-600">{errors.endDate.message}</p>}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Assign to</Label>
-              <Controller
-                name="targetType"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value}
-                    onValueChange={(v) => {
-                      field.onChange(v as 'area' | 'unit')
-                      setValue('areaIds', [], { shouldValidate: true })
-                      setValue('blockIds', [], { shouldValidate: true })
-                      setValue('floorIds', [], { shouldValidate: true })
-                      setValue('unitIds', [], { shouldValidate: true })
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="area">Area</SelectItem>
-                      <SelectItem value="unit">Unit</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-
-            {targetType === 'area' ? (
-              <div className="space-y-2">
-                <Label>Area</Label>
-                <Controller
-                  name="areaIds"
-                  control={control}
-                  render={({ field }) => {
-                    const selected = areas.filter((a) => field.value.includes(a.id))
-                    return (
-                      <div className="space-y-1.5">
-                        <Combobox
-                          multiple
-                          items={areas}
-                          value={selected}
-                          onValueChange={(vals: AreaOption[]) => field.onChange(vals.map((a) => a.id))}
-                          itemToStringLabel={(item) => item.areaName}
-                          isItemEqualToValue={(a, b) => a.id === b.id}
-                        >
-                          <ComboboxChips ref={areaChipsAnchor} className="w-full min-h-9 rounded-md">
-                            {selected.length === 0 && (
-                              <span className="flex-1 text-sm text-muted-foreground">Select areas...</span>
-                            )}
-                            {selected.map((a) => (
-                              <ComboboxChip key={a.id}>{a.areaName}</ComboboxChip>
-                            ))}
-                            <ComboboxTrigger className="ml-auto shrink-0 self-center" />
-                          </ComboboxChips>
-                          <ComboboxContent
-                            anchor={areaChipsAnchor}
-                            side="bottom"
-                            align="start"
-                            className="w-[var(--anchor-width)]"
-                          >
-                            <ComboboxInput placeholder="Search areas..." showTrigger={false} className="w-full" />
-                            <ComboboxList className="max-h-60">
-                              {(a: AreaOption) => (
-                                <ComboboxItem key={a.id} value={a}>
-                                  {a.areaName}
-                                </ComboboxItem>
-                              )}
-                            </ComboboxList>
-                            <ComboboxEmpty className="text-xs text-gray-500 py-2">No areas found</ComboboxEmpty>
-                          </ComboboxContent>
-                        </Combobox>
-                        {selected.length > 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            {selected.length} area{selected.length === 1 ? '' : 's'} selected
-                          </p>
-                        )}
-                      </div>
-                    )
-                  }}
-                />
-                {errors.areaIds && <p className="text-sm text-red-600">{errors.areaIds.message}</p>}
-              </div>
-            ) : (
-              <div className="space-y-3">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate>
+            <div className="space-y-4 px-6 py-5">
+              <FormSection step={1} icon={Users} title="Who" hint="Pick the department, then the employees to roster.">
                 <div className="space-y-2">
-                  <Label>Block</Label>
+                  <Label>Department *</Label>
                   <Controller
-                    name="blockIds"
+                    name="departmentId"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {activeDepartments.map((d) => (
+                            <SelectItem key={d.id} value={d.id}>
+                              {d.name}
+                              {d.code ? ` (${d.code})` : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.departmentId && <p className="text-sm text-red-600">{errors.departmentId.message}</p>}
+                </div>
+
+                {isMedicalDept && (
+                  <div className="space-y-2">
+                    <Label>Role *</Label>
+                    <Controller
+                      name="roleCode"
+                      control={control}
+                      render={({ field }) => (
+                        <Select value={field.value || undefined} onValueChange={field.onChange}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MEDICAL_ROSTER_ROLE_OPTIONS.map((role) => (
+                              <SelectItem key={role.code} value={role.code}>
+                                {role.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    {errors.roleCode && <p className="text-sm text-red-600">{errors.roleCode.message}</p>}
+                    <p className="text-xs text-gray-500">
+                      Select Nurse, Visiting Doctor, or In-house Doctor before choosing employees.
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Employees *</Label>
+                  <Controller
+                    name="employeeIds"
                     control={control}
                     render={({ field }) => {
-                      const selected = blocks.filter((b) => field.value.includes(b.id))
+                      const selected = employeesInDepartment.filter((emp) => field.value.includes(emp.id))
+                      const employeePlaceholder = !departmentId
+                        ? 'Select a department first'
+                        : isMedicalDept && !roleCode
+                          ? 'Select a role first'
+                          : 'Select employees...'
+                      const searchPlaceholder = !departmentId
+                        ? 'Select a department first'
+                        : isMedicalDept && !roleCode
+                          ? 'Select a role first'
+                          : 'Search employees...'
                       return (
                         <div className="space-y-1.5">
                           <Combobox
                             multiple
-                            items={blocks}
+                            items={employeesInDepartment}
                             value={selected}
-                            onValueChange={(vals: BlockOption[]) => {
-                              field.onChange(vals.map((b) => b.id))
-                            }}
-                            itemToStringLabel={(item) => item.block_name}
+                            onValueChange={(vals: UserItem[]) => field.onChange(vals.map((emp) => emp.id))}
+                            itemToStringLabel={(item) => getUserDisplayName(item)}
                             isItemEqualToValue={(a, b) => a.id === b.id}
+                            disabled={!canSelectEmployees}
                           >
-                            <ComboboxChips ref={blockChipsAnchor} className="w-full min-h-9 rounded-md">
+                            <ComboboxChips ref={employeeChipsAnchor} className="w-full min-h-9 rounded-md">
                               {selected.length === 0 && (
-                                <span className="flex-1 text-sm text-muted-foreground">Select blocks...</span>
+                                <span className="flex-1 text-sm text-muted-foreground">{employeePlaceholder}</span>
                               )}
-                              {selected.map((b) => (
-                                <ComboboxChip key={b.id}>{b.block_name}</ComboboxChip>
+                              {selected.map((emp) => (
+                                <ComboboxChip key={emp.id}>{getUserDisplayName(emp)}</ComboboxChip>
                               ))}
-                              <ComboboxTrigger className="ml-auto shrink-0 self-center" />
+                              <ComboboxTrigger
+                                className="ml-auto shrink-0 self-center"
+                                disabled={!canSelectEmployees}
+                              />
                             </ComboboxChips>
                             <ComboboxContent
-                              anchor={blockChipsAnchor}
+                              anchor={employeeChipsAnchor}
                               side="bottom"
                               align="start"
                               className="w-[var(--anchor-width)]"
                             >
-                              <ComboboxInput placeholder="Search blocks..." showTrigger={false} className="w-full" />
+                              <ComboboxInput
+                                placeholder={searchPlaceholder}
+                                disabled={!canSelectEmployees}
+                                showTrigger={false}
+                                className="w-full"
+                              />
                               <ComboboxList className="max-h-60">
-                                {(b: BlockOption) => (
-                                  <ComboboxItem key={b.id} value={b}>
-                                    {b.block_name}
-                                  </ComboboxItem>
-                                )}
+                                {(emp: UserItem) => {
+                                  const specialization = isMedicalRosterDoctorRole(roleCode || '')
+                                    ? getUserSpecializationLabel(emp)
+                                    : ''
+                                  const jobCatLabel = isMedicalRosterDoctorRole(roleCode || '')
+                                    ? getUserJobCategoryLabel(emp, departmentId, medicalJobCategoryCatalog)
+                                    : ''
+                                  const roleLabel = !isMedicalRosterDoctorRole(roleCode || '')
+                                    ? getUserRoleLabel(emp)
+                                    : ''
+                                  const subLabel = [jobCatLabel, specialization || roleLabel]
+                                    .filter(Boolean)
+                                    .join(' · ')
+                                  return (
+                                    <ComboboxItem key={emp.id} value={emp} className="py-2">
+                                      <div className="flex flex-col gap-0.5 min-w-0 pr-6">
+                                        <span className="font-semibold text-sm text-gray-900">
+                                          {getUserDisplayName(emp)}
+                                        </span>
+                                        {subLabel ? <span className="text-xs text-[#5b8ab8]">{subLabel}</span> : null}
+                                      </div>
+                                    </ComboboxItem>
+                                  )
+                                }}
                               </ComboboxList>
-                              <ComboboxEmpty className="text-xs text-gray-500 py-2">No blocks found</ComboboxEmpty>
+                              <ComboboxEmpty className="text-xs text-gray-500 py-2">No employees found</ComboboxEmpty>
                             </ComboboxContent>
                           </Combobox>
                           {selected.length > 0 && (
                             <p className="text-xs text-muted-foreground">
-                              {selected.length} block{selected.length === 1 ? '' : 's'} selected
+                              {selected.length} employee{selected.length === 1 ? '' : 's'} selected
                             </p>
                           )}
                         </div>
                       )
                     }}
                   />
-                  {errors.blockIds && <p className="text-sm text-red-600">{errors.blockIds.message}</p>}
+                  {errors.employeeIds && <p className="text-sm text-red-600">{errors.employeeIds.message}</p>}
+                  {canSelectEmployees && employeesInDepartment.length === 0 && (
+                    <p className="text-xs text-gray-500">
+                      {isMedicalDept
+                        ? `No ${medicalRosterRoleEmptyLabel(roleCode || '')} found in this department.`
+                        : 'No employees found in this department.'}
+                    </p>
+                  )}
+                </div>
+              </FormSection>
+
+              <FormSection
+                step={2}
+                icon={Clock}
+                title="When"
+                hint="The shift, the dates it runs between, and the days of the week."
+              >
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {!shift && (
+                    <div className="space-y-2">
+                      <Label>Shift *</Label>
+                      <Controller
+                        name="shiftId"
+                        control={control}
+                        render={({ field }) => (
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select shift" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {shifts.map((s) => (
+                                <SelectItem key={s.id} value={s.id}>
+                                  {s.name} ({s.startTime} – {s.endTime})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      {errors.shiftId && <p className="text-sm text-red-600">{errors.shiftId.message}</p>}
+                    </div>
+                  )}
+
+                  {shift && (
+                    <div className="space-y-2">
+                      <Label>Shift</Label>
+                      <p className="flex h-9 items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm font-medium text-gray-900">
+                        {shift.name}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label>Time slot</Label>
+                    <Controller
+                      name="slotValue"
+                      control={control}
+                      render={({ field }) => (
+                        <Select value={field.value} onValueChange={field.onChange} disabled={!selectedShift}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Full shift" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={FULL_SHIFT_VALUE}>
+                              Full shift
+                              {selectedShift ? ` (${selectedShift.startTime} – ${selectedShift.endTime})` : ''}
+                            </SelectItem>
+                            {slots.map((s) => (
+                              <SelectItem key={s.value} value={s.value}>
+                                {s.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    <p className="text-xs text-gray-500">Full shift, or only part of it.</p>
+                  </div>
                 </div>
 
-                {blockIds.length > 0 && (
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label>Floor (optional)</Label>
-                    <Controller
-                      name="floorIds"
-                      control={control}
-                      render={({ field }) => {
-                        const selected = availableFloors.filter((f) => field.value.includes(f.id))
-                        return (
-                          <div className="space-y-1.5">
-                            <Combobox
-                              multiple
-                              items={availableFloors}
-                              value={selected}
-                              onValueChange={(vals: FloorOption[]) => field.onChange(vals.map((f) => f.id))}
-                              itemToStringLabel={(item) =>
-                                `${item.blockName} · ${item.floor_name || `Floor ${item.floor_number}`}`
-                              }
-                              isItemEqualToValue={(a, b) => a.id === b.id}
-                            >
-                              <ComboboxChips ref={floorChipsAnchor} className="w-full min-h-9 rounded-md">
-                                {selected.length === 0 && (
-                                  <span className="flex-1 text-sm text-muted-foreground">
-                                    Entire selected block(s)...
-                                  </span>
-                                )}
-                                {selected.map((f) => (
-                                  <ComboboxChip key={f.id}>
-                                    {f.blockName} · {f.floor_name || `Floor ${f.floor_number}`}
-                                  </ComboboxChip>
-                                ))}
-                                <ComboboxTrigger className="ml-auto shrink-0 self-center" />
-                              </ComboboxChips>
-                              <ComboboxContent
-                                anchor={floorChipsAnchor}
-                                side="bottom"
-                                align="start"
-                                className="w-[var(--anchor-width)]"
-                              >
-                                <ComboboxInput placeholder="Search floors..." showTrigger={false} className="w-full" />
-                                <ComboboxList className="max-h-60">
-                                  {(f: FloorOption) => (
-                                    <ComboboxItem key={f.id} value={f}>
-                                      {f.blockName} · {f.floor_name || `Floor ${f.floor_number}`}
-                                    </ComboboxItem>
-                                  )}
-                                </ComboboxList>
-                                <ComboboxEmpty className="text-xs text-gray-500 py-2">No floors found</ComboboxEmpty>
-                              </ComboboxContent>
-                            </Combobox>
-                            {selected.length > 0 ? (
-                              <p className="text-xs text-muted-foreground">
-                                {selected.length} floor{selected.length === 1 ? '' : 's'} selected
-                              </p>
-                            ) : (
-                              <p className="text-xs text-gray-500">
-                                Leave empty to cover the complete selected block(s).
-                              </p>
-                            )}
-                          </div>
-                        )
-                      }}
+                    <Label>From *</Label>
+                    <Input
+                      type="date"
+                      min={today}
+                      {...register('startDate', {
+                        onChange: (e) => {
+                          const next = e.target.value
+                          if (endDate && next && endDate < next) {
+                            setValue('endDate', next, { shouldValidate: true })
+                          }
+                        },
+                      })}
                     />
+                    {errors.startDate && <p className="text-sm text-red-600">{errors.startDate.message}</p>}
                   </div>
-                )}
-
-                {blockIds.length > 0 && floorIds.length > 0 && (
                   <div className="space-y-2">
-                    <Label>Flat (optional)</Label>
-                    <Controller
-                      name="unitIds"
-                      control={control}
-                      render={({ field }) => {
-                        const selected = availableFlats.filter((u) => field.value.includes(u.id))
-                        return (
-                          <div className="space-y-1.5">
-                            <Combobox
-                              multiple
-                              items={availableFlats}
-                              value={selected}
-                              onValueChange={(vals: FlatOption[]) => field.onChange(vals.map((u) => u.id))}
-                              itemToStringLabel={(item) => `${item.floorLabel} · ${item.unit_number}`}
-                              isItemEqualToValue={(a, b) => a.id === b.id}
-                            >
-                              <ComboboxChips ref={flatChipsAnchor} className="w-full min-h-9 rounded-md">
-                                {selected.length === 0 && (
-                                  <span className="flex-1 text-sm text-muted-foreground">
-                                    Entire selected floor(s)...
-                                  </span>
-                                )}
-                                {selected.map((u) => (
-                                  <ComboboxChip key={u.id}>
-                                    {u.floorLabel} · {u.unit_number}
-                                  </ComboboxChip>
-                                ))}
-                                <ComboboxTrigger className="ml-auto shrink-0 self-center" />
-                              </ComboboxChips>
-                              <ComboboxContent
-                                anchor={flatChipsAnchor}
-                                side="bottom"
-                                align="start"
-                                className="w-[var(--anchor-width)]"
-                              >
-                                <ComboboxInput placeholder="Search flats..." showTrigger={false} className="w-full" />
-                                <ComboboxList className="max-h-60">
-                                  {(u: FlatOption) => (
-                                    <ComboboxItem key={u.id} value={u}>
-                                      {u.floorLabel} · {u.unit_number}
-                                    </ComboboxItem>
-                                  )}
-                                </ComboboxList>
-                                <ComboboxEmpty className="text-xs text-gray-500 py-2">No flats found</ComboboxEmpty>
-                              </ComboboxContent>
-                            </Combobox>
-                            {selected.length > 0 ? (
-                              <p className="text-xs text-muted-foreground">
-                                {selected.length} flat{selected.length === 1 ? '' : 's'} selected
-                              </p>
-                            ) : (
-                              <p className="text-xs text-gray-500">
-                                Leave empty to cover the complete selected floor(s).
-                              </p>
-                            )}
-                          </div>
-                        )
-                      }}
-                    />
+                    <Label>To *</Label>
+                    <Input type="date" min={startDate || today} {...register('endDate')} />
+                    {errors.endDate && <p className="text-sm text-red-600">{errors.endDate.message}</p>}
                   </div>
-                )}
-              </div>
-            )}
+                </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <Label>Working days</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-7 px-2 text-xs"
-                  disabled={employeeIds.length === 0}
-                  onClick={() => setAvailabilityOpen(true)}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label>Working days *</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-[#2a517c] hover:bg-[#2a517c]/5"
+                      disabled={employeeIds.length === 0}
+                      onClick={() => setAvailabilityOpen(true)}
+                    >
+                      See who's off
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-7 gap-1.5">
+                    {WEEK_DAYS.map((day) => {
+                      const inRange = availableWorkingDays.includes(day)
+                      const isWeekOff = blockedWeekOffDays.has(day)
+                      const disabled = !inRange || isWeekOff
+                      const checked = workingDays.includes(day)
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          disabled={disabled}
+                          aria-pressed={checked}
+                          onClick={() => toggleDay(day)}
+                          title={
+                            isWeekOff
+                              ? 'None of the selected employees work this day'
+                              : !inRange
+                                ? 'Not within the selected dates'
+                                : undefined
+                          }
+                          className={`h-9 rounded-lg border text-xs font-semibold capitalize transition-colors ${
+                            disabled
+                              ? 'cursor-not-allowed border-dashed border-gray-200 text-gray-300'
+                              : checked
+                                ? 'cursor-pointer border-[#2a517c] bg-[#2a517c] text-white'
+                                : 'cursor-pointer border-gray-200 bg-white text-gray-600 hover:border-[#2a517c]/40'
+                          }`}
+                        >
+                          {day.slice(0, 3)}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {errors.workingDays && <p className="text-sm text-red-600">{errors.workingDays.message}</p>}
+                  <p className="text-xs text-gray-500">
+                    Greyed-out days are outside the dates or a day off for every selected employee.
+                  </p>
+                </div>
+              </FormSection>
+
+              {showAssignTo && (
+                <FormSection
+                  step={3}
+                  icon={MapPin}
+                  title="Where"
+                  hint="A common area, or specific blocks, floors and flats."
                 >
-                  View
+                  {showAssignTo && (
+                    <div className="space-y-2">
+                      <Label>Assign to *</Label>
+                      <Controller
+                        name="targetType"
+                        control={control}
+                        render={({ field }) => {
+                          const current = isMedicalUnitOnly ? 'unit' : field.value
+                          const choose = (v: 'area' | 'unit') => {
+                            if (v === current) return
+                            field.onChange(v)
+                            setValue('areaIds', [], { shouldValidate: true })
+                            setValue('blockIds', [], { shouldValidate: true })
+                            setValue('floorIds', [], { shouldValidate: true })
+                            setValue('unitIds', [], { shouldValidate: true })
+                          }
+                          const options: Array<{ value: 'area' | 'unit'; label: string; hint: string }> = [
+                            { value: 'area', label: 'Common area', hint: 'e.g. lobby, gate, kitchen' },
+                            { value: 'unit', label: 'Flats & units', hint: 'Blocks, floors or specific flats' },
+                          ]
+                          return (
+                            <div className="grid grid-cols-2 gap-2">
+                              {options.map((o) => {
+                                const disabled = isMedicalUnitOnly && o.value === 'area'
+                                const active = current === o.value
+                                return (
+                                  <button
+                                    key={o.value}
+                                    type="button"
+                                    disabled={disabled}
+                                    aria-pressed={active}
+                                    onClick={() => choose(o.value)}
+                                    className={`rounded-lg border px-3 py-2 text-left transition-colors ${
+                                      disabled
+                                        ? 'cursor-not-allowed border-dashed border-gray-200 opacity-50'
+                                        : active
+                                          ? 'cursor-pointer border-[#2a517c] bg-[#2a517c]/5 ring-1 ring-[#2a517c]'
+                                          : 'cursor-pointer border-gray-200 hover:border-[#2a517c]/40'
+                                    }`}
+                                  >
+                                    <p
+                                      className={`text-sm font-semibold ${active ? 'text-[#2a517c]' : 'text-gray-800'}`}
+                                    >
+                                      {o.label}
+                                    </p>
+                                    <p className="text-[11px] text-gray-500">{o.hint}</p>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          )
+                        }}
+                      />
+                      {errors.targetType && <p className="text-sm text-red-600">{errors.targetType.message}</p>}
+                      {isMedicalUnitOnly && (
+                        <p className="text-xs text-gray-500">
+                          For Nurse and In-house Doctor, assignment must be to a Unit.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {showAssignTo && targetType === 'area' && !isMedicalUnitOnly ? (
+                    <div className="space-y-2">
+                      <Label>Area</Label>
+                      <Controller
+                        name="areaIds"
+                        control={control}
+                        render={({ field }) => {
+                          const selected = areas.filter((a) => field.value.includes(a.id))
+                          return (
+                            <div className="space-y-1.5">
+                              <Combobox
+                                multiple
+                                items={areas}
+                                value={selected}
+                                onValueChange={(vals: AreaOption[]) => field.onChange(vals.map((a) => a.id))}
+                                itemToStringLabel={(item) => item.areaName}
+                                isItemEqualToValue={(a, b) => a.id === b.id}
+                              >
+                                <ComboboxChips ref={areaChipsAnchor} className="w-full min-h-9 rounded-md">
+                                  {selected.length === 0 && (
+                                    <span className="flex-1 text-sm text-muted-foreground">Select areas...</span>
+                                  )}
+                                  {selected.map((a) => (
+                                    <ComboboxChip key={a.id}>{a.areaName}</ComboboxChip>
+                                  ))}
+                                  <ComboboxTrigger className="ml-auto shrink-0 self-center" />
+                                </ComboboxChips>
+                                <ComboboxContent
+                                  anchor={areaChipsAnchor}
+                                  side="bottom"
+                                  align="start"
+                                  className="w-[var(--anchor-width)]"
+                                >
+                                  <ComboboxInput placeholder="Search areas..." showTrigger={false} className="w-full" />
+                                  <ComboboxList className="max-h-60">
+                                    {(a: AreaOption) => (
+                                      <ComboboxItem key={a.id} value={a}>
+                                        {a.areaName}
+                                      </ComboboxItem>
+                                    )}
+                                  </ComboboxList>
+                                  <ComboboxEmpty className="text-xs text-gray-500 py-2">No areas found</ComboboxEmpty>
+                                </ComboboxContent>
+                              </Combobox>
+                              {selected.length > 0 && (
+                                <p className="text-xs text-muted-foreground">
+                                  {selected.length} area{selected.length === 1 ? '' : 's'} selected
+                                </p>
+                              )}
+                            </div>
+                          )
+                        }}
+                      />
+                      {errors.areaIds && <p className="text-sm text-red-600">{errors.areaIds.message}</p>}
+                    </div>
+                  ) : showAssignTo && (targetType === 'unit' || isMedicalUnitOnly) ? (
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label>Block{isMedicalUnitOnly ? ' *' : ''}</Label>
+                        <Controller
+                          name="blockIds"
+                          control={control}
+                          render={({ field }) => {
+                            const selected = blocks.filter((b) => field.value.includes(b.id))
+                            return (
+                              <div className="space-y-1.5">
+                                <Combobox
+                                  multiple
+                                  items={blocks}
+                                  value={selected}
+                                  onValueChange={(vals: BlockOption[]) => {
+                                    field.onChange(vals.map((b) => b.id))
+                                  }}
+                                  itemToStringLabel={(item) => item.block_name}
+                                  isItemEqualToValue={(a, b) => a.id === b.id}
+                                >
+                                  <ComboboxChips ref={blockChipsAnchor} className="w-full min-h-9 rounded-md">
+                                    {selected.length === 0 && (
+                                      <span className="flex-1 text-sm text-muted-foreground">Select blocks...</span>
+                                    )}
+                                    {selected.map((b) => (
+                                      <ComboboxChip key={b.id}>{b.block_name}</ComboboxChip>
+                                    ))}
+                                    <ComboboxTrigger className="ml-auto shrink-0 self-center" />
+                                  </ComboboxChips>
+                                  <ComboboxContent
+                                    anchor={blockChipsAnchor}
+                                    side="bottom"
+                                    align="start"
+                                    className="w-[var(--anchor-width)]"
+                                  >
+                                    <ComboboxInput
+                                      placeholder="Search blocks..."
+                                      showTrigger={false}
+                                      className="w-full"
+                                    />
+                                    <ComboboxList className="max-h-60">
+                                      {(b: BlockOption) => (
+                                        <ComboboxItem key={b.id} value={b}>
+                                          {b.block_name}
+                                        </ComboboxItem>
+                                      )}
+                                    </ComboboxList>
+                                    <ComboboxEmpty className="text-xs text-gray-500 py-2">
+                                      No blocks found
+                                    </ComboboxEmpty>
+                                  </ComboboxContent>
+                                </Combobox>
+                                {selected.length > 0 && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {selected.length} block{selected.length === 1 ? '' : 's'} selected
+                                  </p>
+                                )}
+                              </div>
+                            )
+                          }}
+                        />
+                        {errors.blockIds && <p className="text-sm text-red-600">{errors.blockIds.message}</p>}
+                      </div>
+
+                      {blockIds.length > 0 && (
+                        <div className="space-y-2">
+                          <Label>Floor (optional)</Label>
+                          <Controller
+                            name="floorIds"
+                            control={control}
+                            render={({ field }) => {
+                              const selected = availableFloors.filter((f) => field.value.includes(f.id))
+                              return (
+                                <div className="space-y-1.5">
+                                  <Combobox
+                                    multiple
+                                    items={availableFloors}
+                                    value={selected}
+                                    onValueChange={(vals: FloorOption[]) => field.onChange(vals.map((f) => f.id))}
+                                    itemToStringLabel={(item) =>
+                                      `${item.blockName} · ${floorLabel(item) ?? 'All units'}`
+                                    }
+                                    isItemEqualToValue={(a, b) => a.id === b.id}
+                                  >
+                                    <ComboboxChips ref={floorChipsAnchor} className="w-full min-h-9 rounded-md">
+                                      {selected.length === 0 && (
+                                        <span className="flex-1 text-sm text-muted-foreground">
+                                          Entire selected block(s)...
+                                        </span>
+                                      )}
+                                      {selected.map((f) => (
+                                        <ComboboxChip key={f.id}>
+                                          {f.blockName} · {floorLabel(f) ?? 'All units'}
+                                        </ComboboxChip>
+                                      ))}
+                                      <ComboboxTrigger className="ml-auto shrink-0 self-center" />
+                                    </ComboboxChips>
+                                    <ComboboxContent
+                                      anchor={floorChipsAnchor}
+                                      side="bottom"
+                                      align="start"
+                                      className="w-[var(--anchor-width)]"
+                                    >
+                                      <ComboboxInput
+                                        placeholder="Search floors..."
+                                        showTrigger={false}
+                                        className="w-full"
+                                      />
+                                      <ComboboxList className="max-h-60">
+                                        {(f: FloorOption) => (
+                                          <ComboboxItem key={f.id} value={f}>
+                                            {f.blockName} · {floorLabel(f) ?? 'All units'}
+                                          </ComboboxItem>
+                                        )}
+                                      </ComboboxList>
+                                      <ComboboxEmpty className="text-xs text-gray-500 py-2">
+                                        No floors found
+                                      </ComboboxEmpty>
+                                    </ComboboxContent>
+                                  </Combobox>
+                                  {selected.length > 0 ? (
+                                    <p className="text-xs text-muted-foreground">
+                                      {selected.length} floor{selected.length === 1 ? '' : 's'} selected
+                                    </p>
+                                  ) : (
+                                    <p className="text-xs text-gray-500">
+                                      Leave empty to cover the complete selected block(s).
+                                    </p>
+                                  )}
+                                </div>
+                              )
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {blockIds.length > 0 && floorIds.length > 0 && (
+                        <div className="space-y-2">
+                          <Label>Flat (optional)</Label>
+                          <Controller
+                            name="unitIds"
+                            control={control}
+                            render={({ field }) => {
+                              const selected = availableFlats.filter((u) => field.value.includes(u.id))
+                              return (
+                                <div className="space-y-1.5">
+                                  <Combobox
+                                    multiple
+                                    items={availableFlats}
+                                    value={selected}
+                                    onValueChange={(vals: FlatOption[]) => field.onChange(vals.map((u) => u.id))}
+                                    itemToStringLabel={(item) => `${item.floorLabel} · ${item.unit_number}`}
+                                    isItemEqualToValue={(a, b) => a.id === b.id}
+                                  >
+                                    <ComboboxChips ref={flatChipsAnchor} className="w-full min-h-9 rounded-md">
+                                      {selected.length === 0 && (
+                                        <span className="flex-1 text-sm text-muted-foreground">
+                                          Entire selected floor(s)...
+                                        </span>
+                                      )}
+                                      {selected.map((u) => (
+                                        <ComboboxChip key={u.id}>
+                                          {u.floorLabel} · {u.unit_number}
+                                        </ComboboxChip>
+                                      ))}
+                                      <ComboboxTrigger className="ml-auto shrink-0 self-center" />
+                                    </ComboboxChips>
+                                    <ComboboxContent
+                                      anchor={flatChipsAnchor}
+                                      side="bottom"
+                                      align="start"
+                                      className="w-[var(--anchor-width)]"
+                                    >
+                                      <ComboboxInput
+                                        placeholder="Search flats..."
+                                        showTrigger={false}
+                                        className="w-full"
+                                      />
+                                      <ComboboxList className="max-h-60">
+                                        {(u: FlatOption) => (
+                                          <ComboboxItem key={u.id} value={u}>
+                                            {u.floorLabel} · {u.unit_number}
+                                          </ComboboxItem>
+                                        )}
+                                      </ComboboxList>
+                                      <ComboboxEmpty className="text-xs text-gray-500 py-2">
+                                        No flats found
+                                      </ComboboxEmpty>
+                                    </ComboboxContent>
+                                  </Combobox>
+                                  {selected.length > 0 ? (
+                                    <p className="text-xs text-muted-foreground">
+                                      {selected.length} flat{selected.length === 1 ? '' : 's'} selected
+                                    </p>
+                                  ) : (
+                                    <p className="text-xs text-gray-500">
+                                      Leave empty to cover the complete selected floor(s).
+                                    </p>
+                                  )}
+                                </div>
+                              )
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </FormSection>
+              )}
+
+              <div className="space-y-2">
+                <Label>
+                  Notes <span className="font-normal text-gray-400">(optional)</span>
+                </Label>
+                <Textarea
+                  {...register('notes')}
+                  rows={2}
+                  placeholder="Anything the team should know about this roster"
+                />
+                {errors.notes && <p className="text-sm text-red-600">{errors.notes.message}</p>}
+              </div>
+
+              {(timeValidationError || overlapValidationError) && (
+                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {timeValidationError || overlapValidationError}
+                </p>
+              )}
+            </div>
+
+            <DialogFooter className="sticky bottom-0 flex-col gap-3 border-t border-gray-100 bg-white px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-gray-500">{rosterSummary}</p>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={
+                    pending ||
+                    !selectedShiftId ||
+                    !departmentId ||
+                    (isMedicalDept && !roleCode) ||
+                    employeeIds.length === 0 ||
+                    !locationTargetValid ||
+                    !!timeValidationError ||
+                    !!overlapValidationError
+                  }
+                  className="bg-[#2a517c] hover:bg-[#476587] text-white"
+                >
+                  {pending ? 'Creating…' : 'Create Roster'}
                 </Button>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {WEEK_DAYS.map((day) => {
-                  const inRange = availableWorkingDays.includes(day)
-                  const isWeekOff = blockedWeekOffDays.has(day)
-                  const disabled = !inRange || isWeekOff
-                  return (
-                    <label
-                      key={day}
-                      className={`flex items-center gap-1.5 text-xs capitalize border rounded px-2 py-1 ${
-                        disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
-                      }`}
-                      title={isWeekOff ? 'No selected employee available' : undefined}
-                    >
-                      <Checkbox
-                        checked={workingDays.includes(day)}
-                        disabled={disabled}
-                        onCheckedChange={() => toggleDay(day)}
-                      />
-                      {day.slice(0, 3)}
-                    </label>
-                  )
-                })}
-              </div>
-              {errors.workingDays && <p className="text-sm text-red-600">{errors.workingDays.message}</p>}
-              <p className="text-xs text-gray-500">
-                Days with at least one available employee can be selected. Use View to see who is off.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Notes</Label>
-              <Textarea {...register('notes')} rows={2} />
-              {errors.notes && <p className="text-sm text-red-600">{errors.notes.message}</p>}
-            </div>
-
-            {(timeValidationError || overlapValidationError) && (
-              <p className="text-sm text-red-600">{timeValidationError || overlapValidationError}</p>
-            )}
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={
-                  pending ||
-                  !selectedShiftId ||
-                  !departmentId ||
-                  (isMedicalDept && !roleCode) ||
-                  employeeIds.length === 0 ||
-                  !locationTargetValid ||
-                  !!timeValidationError ||
-                  !!overlapValidationError
-                }
-                className="bg-[#2a517c] hover:bg-[#476587] text-white"
-              >
-                {pending ? 'Creating…' : 'Create Roster'}
-              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -1072,6 +1260,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
         onOpenChange={setAvailabilityOpen}
         employees={selectedEmployees}
         days={availableWorkingDays}
+        selectedDays={workingDays}
       />
     </>
   )

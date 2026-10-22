@@ -57,21 +57,30 @@ export function FormSection({
   description,
   children,
   action,
+  icon: Icon,
 }: {
   title?: string
   description?: string
   children: ReactNode
   action?: ReactNode
+  icon?: LucideIcon
 }) {
   return (
-    <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+    <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xs">
       {(title || action || description) && (
-        <div className="mb-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {title && <h2 className="text-lg font-bold text-gray-900">{title}</h2>}
-            {action}
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 pb-4">
+          <div className="flex items-start gap-3">
+            {Icon && (
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#005390]/10 text-[#005390]">
+                <Icon className="size-4.5" />
+              </span>
+            )}
+            <div>
+              {title && <h2 className="text-base font-bold text-gray-900">{title}</h2>}
+              {description && <p className="mt-0.5 text-xs text-gray-500">{description}</p>}
+            </div>
           </div>
-          {description && <p className="text-xs text-gray-500 mt-1">{description}</p>}
+          {action}
         </div>
       )}
       {children}

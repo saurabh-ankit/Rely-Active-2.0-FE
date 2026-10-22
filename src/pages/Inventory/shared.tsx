@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { InventoryStatus } from '@/components/inventory/InventoryStatus'
 import { poStatusLabels, type POStatus } from '@/lib/types/centerInventory'
+import { RequiredLabel } from '@/components/inventory/InventoryCells'
 export function ErrorNotice({ error, retry }: { error: unknown; retry?: () => void }) {
   return (
     <Alert variant="destructive">
@@ -36,7 +37,7 @@ export function FormField({ label, id, children }: { label: string; id: string; 
   return (
     <div className="space-y-1.5">
       <label htmlFor={id} className="block text-xs font-semibold text-gray-700">
-        {label}
+        <RequiredLabel text={label} />
       </label>
       {children}
     </div>

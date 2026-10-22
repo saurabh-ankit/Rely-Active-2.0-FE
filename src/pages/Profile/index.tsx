@@ -20,6 +20,7 @@ import api from '@/lib/api/axios'
 import { useAuth } from '@/hooks/useAuth'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { cn } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_REGEX = /^[6-9][0-9]{9}$/
@@ -444,55 +445,25 @@ export default function UserProfilePage() {
                   </p>
 
                   <div className="space-y-4 pt-1">
-                    <div>
-                      <label
-                        htmlFor="page-profile-new-password"
-                        className="block text-xs font-bold text-gray-700 mb-1.5"
-                      >
-                        New Password
-                      </label>
-                      <div className="relative">
-                        <input
-                          id="page-profile-new-password"
-                          type="password"
-                          {...register('password')}
-                          placeholder="Enter new password"
-                          className={cn(
-                            'w-full pl-10 pr-4 py-3 text-xs font-semibold border rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#005390] bg-gray-50/50 focus:bg-white transition-all',
-                            errors.password ? 'border-red-500 focus:ring-red-500/20' : 'border-gray-200',
-                          )}
-                        />
-                        <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
-                      </div>
-                      {errors.password && (
-                        <p className="mt-1 text-xs font-semibold text-red-500">{errors.password.message}</p>
-                      )}
-                    </div>
+                    <Input
+                      id="page-profile-new-password"
+                      label="New Password"
+                      type="password"
+                      {...register('password')}
+                      placeholder="Enter new password"
+                      error={errors.password?.message}
+                      icon={<Lock className="w-4 h-4 text-gray-400" />}
+                    />
 
-                    <div>
-                      <label
-                        htmlFor="page-profile-confirm-password"
-                        className="block text-xs font-bold text-gray-700 mb-1.5"
-                      >
-                        Confirm New Password
-                      </label>
-                      <div className="relative">
-                        <input
-                          id="page-profile-confirm-password"
-                          type="password"
-                          {...register('confirmPassword')}
-                          placeholder="Confirm new password"
-                          className={cn(
-                            'w-full pl-10 pr-4 py-3 text-xs font-semibold border rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#005390] bg-gray-50/50 focus:bg-white transition-all',
-                            errors.confirmPassword ? 'border-red-500 focus:ring-red-500/20' : 'border-gray-200',
-                          )}
-                        />
-                        <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
-                      </div>
-                      {errors.confirmPassword && (
-                        <p className="mt-1 text-xs font-semibold text-red-500">{errors.confirmPassword.message}</p>
-                      )}
-                    </div>
+                    <Input
+                      id="page-profile-confirm-password"
+                      label="Confirm New Password"
+                      type="password"
+                      {...register('confirmPassword')}
+                      placeholder="Confirm new password"
+                      error={errors.confirmPassword?.message}
+                      icon={<Lock className="w-4 h-4 text-gray-400" />}
+                    />
                   </div>
                 </div>
 

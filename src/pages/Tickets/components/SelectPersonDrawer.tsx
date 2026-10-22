@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Loader2, Check, CalendarClock, MapPin, ChevronDown, UserCheck } from 'lucide-react'
+import { X, Loader2, Check, CalendarClock, MapPin, ChevronDown, UserCheck, Users } from 'lucide-react'
 import apiClient from '@/lib/api/axios'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import { useAuth } from '@/hooks/useAuth'
@@ -101,6 +101,8 @@ export function SelectPersonDrawer({ isOpen, ticket, locationId, onClose, onAssi
   const [employees, setEmployees] = useState<AssignableEmployee[]>([])
   const [selectedUserId, setSelectedUserId] = useState<string>(SELF_ID)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  /** Staff outside the ticket's department stay collapsed until asked for. */
+  const [showOtherStaff, setShowOtherStaff] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -112,6 +114,7 @@ export function SelectPersonDrawer({ isOpen, ticket, locationId, onClose, onAssi
       setIsLoading(true)
       setSelectedUserId(SELF_ID)
       setExpandedId(null)
+      setShowOtherStaff(false)
       try {
         const url = API_ENDPOINTS.tickets.assignableEmployees(
           locationId,
@@ -151,6 +154,20 @@ export function SelectPersonDrawer({ isOpen, ticket, locationId, onClose, onAssi
 
   const onShiftCount = otherEmployees.filter((emp) => emp.shift?.isOnShift).length
 
+  // The API tags each staff member against the ticket's department / job
+  // category; group by that so the right people are offered first.
+  const categoryMatches = otherEmployees.filter((emp) => emp.matchLevel === 'JOB_CATEGORY')
+  const departmentMates = otherEmployees.filter((emp) => emp.matchLevel === 'DEPARTMENT')
+  const otherStaff = otherEmployees.filter((emp) => !emp.matchLevel || emp.matchLevel === 'OTHER')
+  const inDepartmentCount = categoryMatches.length + departmentMates.length
+
+  const departmentName = ticket.department?.name || null
+  const jobCategoryName = ticket.jobCategory?.name || null
+
+  /** "Concierge · Laundry" — where this staff member is posted. */
+  const postingLabel = (emp: AssignableEmployee) =>
+    [emp.department?.name, emp.jobCategory?.name].filter(Boolean).join(' · ') || 'No department assigned'
+
   const handleAssign = async () => {
     setIsSubmitting(true)
     try {
@@ -180,6 +197,7 @@ export function SelectPersonDrawer({ isOpen, ticket, locationId, onClose, onAssi
     closedCount: number
     shift?: EmployeeShiftInfo | null
     subtitle?: string
+    meta?: string
   }) => {
     const isSelected = selectedUserId === options.id
     const isExpanded = expandedId === options.id
@@ -213,6 +231,13 @@ export function SelectPersonDrawer({ isOpen, ticket, locationId, onClose, onAssi
 
             {options.subtitle && <div className="text-[11px] text-gray-500 mt-0.5">{options.subtitle}</div>}
 
+            {options.meta && (
+              <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md bg-gray-100 text-[10px] font-bold text-gray-600">
+                <Users className="w-3 h-3 text-gray-400" />
+                {options.meta}
+              </div>
+            )}
+
             <div className="flex flex-wrap items-center gap-2 mt-1.5">
               <span className="text-[11px] font-semibold text-gray-600">{options.totalAssigned} assigned</span>
               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100">
@@ -238,6 +263,37 @@ export function SelectPersonDrawer({ isOpen, ticket, locationId, onClose, onAssi
     )
   }
 
+  /** A titled block of staff cards; renders nothing when the group is empty. */
+  const renderGroup = (group: AssignableEmployee[], title: string, hint: string) => {
+    if (group.length === 0) return null
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-baseline justify-between gap-2 px-1 pt-1">
+          <h3 className="text-[11px] font-bold uppercase tracking-wide text-gray-700">
+            {title} <span className="text-gray-400">({group.length})</span>
+          </h3>
+          <span className="text-[10px] font-medium text-gray-400 truncate">{hint}</span>
+        </div>
+
+        {group.map((emp) =>
+          renderCard({
+            id: emp.id,
+            name: emp.name,
+            initials: emp.initials,
+            avatarClass: emp.shift?.isOnShift ? 'bg-emerald-600' : 'bg-gray-400',
+            totalAssigned: emp.totalAssigned,
+            openCount: emp.openCount,
+            closedCount: emp.closedCount,
+            shift: emp.shift,
+            subtitle: emp.email,
+            meta: postingLabel(emp),
+          }),
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[85vh]">
@@ -249,8 +305,11 @@ export function SelectPersonDrawer({ isOpen, ticket, locationId, onClose, onAssi
               Assign Ticket
             </h2>
             <p className="text-xs text-gray-500 mt-1">
-              <span className="font-mono font-bold text-gray-700">{ticket.ticketNumber}</span> · Tap a staff member to
-              see their shift details
+              <span className="font-mono font-bold text-gray-700">{ticket.ticketNumber}</span>
+              {[departmentName, jobCategoryName].filter(Boolean).length > 0
+                ? ` · ${[departmentName, jobCategoryName].filter(Boolean).join(' · ')}`
+                : ''}
+              {!isLoading && inDepartmentCount > 0 ? ` · ${inDepartmentCount} in this department` : ''}
               {!isLoading && otherEmployees.length > 0 ? ` · ${onShiftCount} on shift now` : ''}
             </p>
           </div>
@@ -284,19 +343,38 @@ export function SelectPersonDrawer({ isOpen, ticket, locationId, onClose, onAssi
                 subtitle: user?.email || undefined,
               })}
 
-              {otherEmployees.map((emp) =>
-                renderCard({
-                  id: emp.id,
-                  name: emp.name,
-                  initials: emp.initials,
-                  avatarClass: emp.shift?.isOnShift ? 'bg-emerald-600' : 'bg-gray-400',
-                  totalAssigned: emp.totalAssigned,
-                  openCount: emp.openCount,
-                  closedCount: emp.closedCount,
-                  shift: emp.shift,
-                  subtitle: emp.email,
-                }),
+              {renderGroup(
+                categoryMatches,
+                jobCategoryName ? `${jobCategoryName} specialists` : 'Matching category',
+                'Posted to this ticket\u2019s category',
               )}
+
+              {renderGroup(
+                departmentMates,
+                departmentName ? `${departmentName} \u2014 other categories` : 'Same department',
+                'Same department, a different category',
+              )}
+
+              {inDepartmentCount === 0 && otherStaff.length > 0 && (departmentName || jobCategoryName) && (
+                <p className="px-1 py-2 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-xl">
+                  No staff are posted to{' '}
+                  {[jobCategoryName, departmentName].filter(Boolean).join(' in ') || 'this ticket\u2019s category'}.
+                  Showing everyone at this property instead.
+                </p>
+              )}
+
+              {otherStaff.length > 0 &&
+                (inDepartmentCount === 0 || showOtherStaff ? (
+                  renderGroup(otherStaff, 'Other departments', 'Outside this ticket\u2019s department')
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowOtherStaff(true)}
+                    className="w-full py-2.5 rounded-xl border border-dashed border-gray-300 text-[11px] font-bold text-gray-500 hover:text-gray-700 hover:border-gray-400 transition-colors cursor-pointer"
+                  >
+                    Show staff from other departments ({otherStaff.length})
+                  </button>
+                ))}
 
               {otherEmployees.length === 0 && (
                 <p className="py-8 text-center text-xs font-semibold text-gray-400">

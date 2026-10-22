@@ -1,14 +1,21 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 /* eslint-disable react-hooks/incompatible-library -- react-hook-form watch() */
 import { zodResolver } from '@hookform/resolvers/zod'
+import { RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import type { ShiftV2 } from '@/lib/services/rosterService'
-import { createShiftFormDefaultValues, createShiftFormSchema, type CreateShiftFormValues } from '@/utils/roster.utils'
+import {
+  createShiftFormDefaultValues,
+  createShiftFormSchema,
+  generateShiftCode,
+  randomShiftCodeDigits,
+  type CreateShiftFormValues,
+} from '@/utils/roster.utils'
 import { useCreateShift, useUpdateShift } from '@/hooks/react-query/roster'
 
 interface CreateShiftDialogProps {
@@ -21,12 +28,15 @@ const CreateShiftDialog = ({ open, onOpenChange, shift }: CreateShiftDialogProps
   const createShift = useCreateShift()
   const updateShift = useUpdateShift()
   const isEdit = !!shift
+  const codeEditedRef = useRef(false)
+  const codeDigitsRef = useRef(randomShiftCodeDigits())
 
   const {
     register,
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<CreateShiftFormValues>({
     resolver: zodResolver(createShiftFormSchema),
@@ -35,11 +45,15 @@ const CreateShiftDialog = ({ open, onOpenChange, shift }: CreateShiftDialogProps
   })
 
   const name = watch('name')
+  const shiftCode = watch('shiftCode')
 
   useEffect(() => {
     if (open) {
+      codeEditedRef.current = false
+      codeDigitsRef.current = randomShiftCodeDigits()
       reset({
         name: shift?.name || '',
+        shiftCode: shift ? shift.shiftCode || generateShiftCode(shift.name, codeDigitsRef.current) : '',
         description: shift?.description || '',
         startTime: shift?.startTime || '08:00',
         endTime: shift?.endTime || '16:00',
@@ -47,9 +61,29 @@ const CreateShiftDialog = ({ open, onOpenChange, shift }: CreateShiftDialogProps
     }
   }, [open, shift, reset])
 
+  useEffect(() => {
+    if (!open || isEdit || codeEditedRef.current) return
+    const trimmed = (name || '').trim()
+    setValue('shiftCode', trimmed ? generateShiftCode(trimmed, codeDigitsRef.current) : '', {
+      shouldValidate: !!trimmed,
+    })
+  }, [name, open, isEdit, setValue])
+
+  const regenerateCode = () => {
+    codeEditedRef.current = false
+    codeDigitsRef.current = randomShiftCodeDigits()
+    setValue('shiftCode', generateShiftCode(name, codeDigitsRef.current), {
+      shouldValidate: true,
+      shouldDirty: true,
+    })
+  }
+
+  const shiftCodeField = register('shiftCode')
+
   const onSubmit = async (values: CreateShiftFormValues) => {
     const payload = {
       name: values.name.trim(),
+      shiftCode: values.shiftCode.trim().toUpperCase(),
       description: values.description?.trim() || '',
       startTime: values.startTime,
       endTime: values.endTime,
@@ -77,6 +111,35 @@ const CreateShiftDialog = ({ open, onOpenChange, shift }: CreateShiftDialogProps
             {errors.name && <p className="text-sm text-red-600">{errors.name.message}</p>}
           </div>
           <div className="space-y-2">
+            <Label htmlFor="shift-code">Shift Code</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="shift-code"
+                {...shiftCodeField}
+                onChange={(e) => {
+                  e.target.value = e.target.value.toUpperCase()
+                  codeEditedRef.current = true
+                  shiftCodeField.onChange(e)
+                }}
+                placeholder="Auto-generated from name"
+                maxLength={20}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="shrink-0"
+                onClick={regenerateCode}
+                disabled={!name?.trim()}
+                title="Regenerate code"
+                aria-label="Regenerate shift code"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
+            {errors.shiftCode && <p className="text-sm text-red-600">{errors.shiftCode.message}</p>}
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="shift-desc">Description</Label>
             <Textarea id="shift-desc" {...register('description')} rows={2} placeholder="Optional notes" />
             {errors.description && <p className="text-sm text-red-600">{errors.description.message}</p>}
@@ -99,7 +162,7 @@ const CreateShiftDialog = ({ open, onOpenChange, shift }: CreateShiftDialogProps
             </Button>
             <Button
               type="submit"
-              disabled={pending || !name.trim()}
+              disabled={pending || !name.trim() || !shiftCode?.trim()}
               className="bg-[#2a517c] hover:bg-[#476587] text-white"
             >
               {pending ? 'Saving…' : isEdit ? 'Update' : 'Create'}

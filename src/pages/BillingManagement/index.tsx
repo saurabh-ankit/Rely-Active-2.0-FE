@@ -1,12 +1,12 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { FlatsDirectoryScreen } from './components/FlatsDirectoryScreen'
-import { FlatBillingDashboard } from './components/FlatBillingDashboard'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import BillingFlatsPage from './BillingFlatsPage'
+import InvoicePage from './InvoicePage'
 
 export default function BillingManagementPage() {
   return (
     <Routes>
-      <Route index element={<FlatsDirectoryScreen />} />
-      <Route path="unit/:unitId" element={<FlatBillingDashboard />} />
+      <Route index element={<BillingFlatsPage />} />
+      <Route path="invoice/:unitId" element={<InvoicePage />} />
       <Route path="*" element={<Navigate to="" replace />} />
     </Routes>
   )

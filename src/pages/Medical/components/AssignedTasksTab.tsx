@@ -7,7 +7,6 @@ import {
   HeartHandshake,
   Loader2,
   Plus,
-  RefreshCw,
   Search,
   StopCircle,
   Trash2,
@@ -371,8 +370,6 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
     }
   }
 
-  const isLoading = activeTab === 'COMPLETED' ? isLoadingCompletions : isLoadingAssignments
-
   return (
     <div className="space-y-6">
       {/* ── Summary Matrix Cards (if not compact) ─────────────────────────── */}
@@ -514,16 +511,6 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
             <option value="CANCELLED">Cancelled</option>
           </select>
         )}
-
-        {/* Refresh Button */}
-        <button
-          type="button"
-          onClick={handleRefresh}
-          className="rounded-xl border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-400 dark:hover:bg-slate-800 cursor-pointer"
-          title="Refresh List"
-        >
-          <RefreshCw className={cn('size-3.5', isLoading && 'animate-spin')} />
-        </button>
       </div>
 
       {/* ── Tables Container ──────────────────────────────────────────────── */}
@@ -568,9 +555,13 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                 ) : (
                   completions.map((completion) => {
                     const taskName = completion.task?.careTaskName || 'Care Task'
-                    const resName =
+                    const residentOnly =
                       `${completion.resident?.firstName || ''} ${completion.resident?.lastName || ''}`.trim() ||
                       'Resident'
+                    // A family member's task shows their name (and whose family they are).
+                    const resName = completion.familyMember
+                      ? `${`${completion.familyMember.firstName} ${completion.familyMember.lastName || ''}`.trim()} (${completion.familyMember.relation || 'Family member'} of ${residentOnly})`
+                      : residentOnly
                     const nurseUser = completion.completedByUser
                     const nurseName =
                       `${nurseUser?.profile?.firstName || ''} ${nurseUser?.profile?.lastName || ''}`.trim() ||
@@ -723,8 +714,12 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                   </tr>
                 ) : (
                   displayedGroupedAssignments.map((group, groupIndex) => {
-                    const resName =
+                    const residentOnly =
                       `${group.resident?.firstName || ''} ${group.resident?.lastName || ''}`.trim() || 'Resident'
+                    // A family member's task shows their name (and whose family they are).
+                    const resName = group.familyMember
+                      ? `${group.familyMember.name} (${group.familyMember.relation || 'Family member'} of ${residentOnly})`
+                      : residentOnly
                     const taskName = group.task?.careTaskName || 'Care Task'
                     const isPackageTask =
                       group.source === 'PACKAGE' ||
@@ -985,7 +980,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => setCompletingAssignment(firstSlot.rawAssignment)}
-                                  className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-900/60 cursor-pointer shadow-2xs transition-colors"
+                                  className="inline-flex min-w-[112px] items-center justify-center gap-1.5 rounded-md border border-emerald-700 bg-emerald-600 px-3 py-1.5 text-[11px] font-extrabold text-white shadow-sm transition-colors hover:bg-emerald-700 dark:border-emerald-500 dark:bg-emerald-600 dark:hover:bg-emerald-500 cursor-pointer"
                                 >
                                   <CheckCircle2 className="size-3" />
                                   Complete Task
@@ -1069,7 +1064,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                                     <button
                                       type="button"
                                       onClick={() => setCompletingAssignment(slot.rawAssignment)}
-                                      className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-900/60 cursor-pointer shadow-2xs transition-colors"
+                                      className="inline-flex min-w-[112px] items-center justify-center gap-1.5 rounded-md border border-emerald-700 bg-emerald-600 px-3 py-1.5 text-[11px] font-extrabold text-white shadow-sm transition-colors hover:bg-emerald-700 dark:border-emerald-500 dark:bg-emerald-600 dark:hover:bg-emerald-500 cursor-pointer"
                                     >
                                       <CheckCircle2 className="size-3" />
                                       Complete Task

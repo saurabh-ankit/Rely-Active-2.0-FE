@@ -1,8 +1,6 @@
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { DataTable } from '@/components/ui/data-table'
 import {
   Dialog,
   DialogContent,
@@ -15,7 +13,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { EventsPermission } from '@/pages/Events/components/EventsPermission'
+import { OpenAttendanceAccordion } from '@/pages/Events/components/OpenAttendanceAccordion'
+import { ReservationAccordion } from '@/pages/Events/components/ReservationAccordion'
 import {
   useGetEventById,
   useGetEventCapacity,
@@ -23,11 +22,10 @@ import {
   useUpdateRegistrationStatus,
 } from '@/hooks/react-query/events'
 import type { EventRegistration, RegistrationStatus } from '@/lib/services/eventService'
-import type { ColumnDef, PaginationState } from '@tanstack/react-table'
-import { ArrowLeft, CheckCircle2, Mail, Phone, TrendingUp, UserX, Users, XCircle } from 'lucide-react'
+import type { PaginationState } from '@tanstack/react-table'
+import { ArrowLeft, TrendingUp, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { formatDisplayDate } from '@/lib/utils/dateUtils'
 
 const EventRegistrationsPage = () => {
   const navigate = useNavigate()
@@ -44,16 +42,20 @@ const EventRegistrationsPage = () => {
   const [statusNotes, setStatusNotes] = useState('')
 
   const { data: eventData } = useGetEventById(eventId || '', !!eventId)
+  const loadedEvent = eventData?.data?.event || eventData?.data
+  // No reservations: open to every residing resident; staff mark each person who came.
+  const isOpen = !!loadedEvent && loadedEvent.allowReservation === false && !loadedEvent.fromResidentRequest
   const { data: capacityData } = useGetEventCapacity(eventId || '')
   const { data: registrationsData } = useGetEventRegistrations(eventId || '', {
-    page: pagination.pageIndex + 1,
-    limit: pagination.pageSize,
+    // Open events are grouped by flat, so load everyone who came at once.
+    page: isOpen ? 1 : pagination.pageIndex + 1,
+    limit: isOpen ? 1000 : pagination.pageSize,
     search: searchTerm || undefined,
-    status: statusFilter !== 'all' ? statusFilter : undefined,
+    status: isOpen ? 'ATTENDED' : statusFilter !== 'all' ? statusFilter : undefined,
   })
   const updateStatusMutation = useUpdateRegistrationStatus()
 
-  const event = eventData?.data?.event || eventData?.data
+  const event = loadedEvent
   const capacity = capacityData?.data
   const registrations = Array.isArray(registrationsData?.data?.registrations)
     ? registrationsData.data.registrations
@@ -124,160 +126,15 @@ const EventRegistrationsPage = () => {
     setIsStatusDialogOpen(true)
   }
 
-  const columns: ColumnDef<EventRegistration>[] = [
-    {
-      accessorKey: 'patient',
-      header: 'Patient',
-      cell: ({ row }) => {
-        const patient = row.original.patient
-        return (
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={patient.profilePhoto} alt={patient.fullName} />
-              <AvatarFallback>
-                {patient.firstName[0]}
-                {patient.lastName[0]}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="font-medium text-gray-900">{patient.fullName}</div>
-              <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
-                {patient.contact_email && (
-                  <span className="flex items-center gap-1">
-                    <Mail className="h-3 w-3" />
-                    {patient.contact_email}
-                  </span>
-                )}
-                {patient.contact_phone && (
-                  <span className="flex items-center gap-1">
-                    <Phone className="h-3 w-3" />
-                    {patient.contact_phone}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        )
-      },
-    },
-    {
-      accessorKey: 'status',
-      header: 'Status',
-      cell: ({ row }) => getStatusBadge(row.original.status),
-    },
-    {
-      accessorKey: 'seatCount',
-      header: 'Seats',
-      cell: ({ row }) => <div className="text-sm font-semibold text-gray-900">{row.original.seatCount ?? 1}</div>,
-    },
-    {
-      accessorKey: 'attendingOn',
-      header: 'Attending On',
-      cell: ({ row }) => {
-        const registration = row.original
-        return (
-          <div className="text-sm">
-            <div className="text-gray-900 font-medium">
-              {formatDisplayDate(
-                registration.attendingOn || registration.event?.startDate || registration.registeredAt,
-              )}
-            </div>
-            {registration.event?.startDate && (
-              <div className="text-gray-500 text-xs mt-1">Event: {formatDisplayDate(registration.event.startDate)}</div>
-            )}
-          </div>
-        )
-      },
-    },
-    {
-      accessorKey: 'registeredAt',
-      header: 'Registered At',
-      cell: ({ row }) => {
-        return (
-          <div className="text-sm">
-            <div className="text-gray-900">{formatDisplayDate(row.original.registeredAt)}</div>
-          </div>
-        )
-      },
-    },
-    {
-      accessorKey: 'attendedAt',
-      header: 'Attended At',
-      cell: ({ row }) => {
-        const attendedAt = row.original.attendedAt
-        if (!attendedAt) return <span className="text-gray-400">-</span>
-        return (
-          <div className="text-sm">
-            <div className="text-gray-900">{formatDisplayDate(attendedAt)}</div>
-          </div>
-        )
-      },
-    },
-    {
-      accessorKey: 'notes',
-      header: 'Notes',
-      cell: ({ row }) => {
-        const notes = row.original.notes
-        return <div className="max-w-xs truncate text-sm text-gray-600">{notes || '-'}</div>
-      },
-    },
-    {
-      id: 'actions',
-      header: 'Actions',
-      cell: ({ row }) => {
-        const registration = row.original
-        return (
-          <div className="flex items-center gap-2">
-            <EventsPermission action="update">
-              {registration.status !== 'ATTENDED' && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => openStatusDialog(registration, 'ATTENDED')}
-                  className="h-8"
-                >
-                  <CheckCircle2 className="h-4 w-4 mr-1" />
-                  Mark Attended
-                </Button>
-              )}
-              {registration.status !== 'NO_SHOW' && registration.status === 'CONFIRMED' && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => openStatusDialog(registration, 'NO_SHOW')}
-                  className="h-8"
-                >
-                  <UserX className="h-4 w-4 mr-1" />
-                  No Show
-                </Button>
-              )}
-              {registration.status !== 'CANCELLED' && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => openStatusDialog(registration, 'CANCELLED')}
-                  className="h-8"
-                >
-                  <XCircle className="h-4 w-4 mr-1" />
-                  Cancel
-                </Button>
-              )}
-            </EventsPermission>
-          </div>
-        )
-      },
-    },
-  ]
-
   return (
     <div>
-      <div className="container mx-auto  space-y-4">
+      <div className="w-full space-y-4">
         {/* Header */}
         <Button variant="ghost" onClick={() => navigate('/admin/events/list')} className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Events
         </Button>
-        <h1 className="text-3xl font-bold text-gray-900">Event Registrations</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{isOpen ? 'Event Attendance' : 'Event Registrations'}</h1>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div>
@@ -291,8 +148,47 @@ const EventRegistrationsPage = () => {
           </div>
         </div>
 
+        {/* Attendance is marked by Attendance staff from the L3 app, and only for staff-created events. */}
+        {event && (
+          <p
+            className={
+              event.fromResidentRequest
+                ? 'rounded-xl border border-purple-200 bg-purple-50 px-4 py-2.5 text-sm text-purple-800'
+                : 'rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-sky-800'
+            }
+          >
+            {event.fromResidentRequest
+              ? 'Requested by a resident – attendance is not marked for this event.'
+              : isOpen
+                ? 'No reservations: this event is open to every residing resident. Attendance staff mark each person who came (resident or family member) in the L3 app.'
+                : 'Attendance is marked by Attendance staff in the L3 app. Attended and no-show residents appear here with who marked them.'}
+          </p>
+        )}
+
+        {/* Open event: how many people came */}
+        {isOpen && (
+          <Card>
+            <CardContent className="flex flex-wrap items-center gap-6 pt-6">
+              <div className="flex items-center gap-3">
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                  <Users className="h-5 w-5" />
+                </span>
+                <div>
+                  <div className="text-sm font-medium text-gray-600">People came</div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {registrationsData?.data?.pagination?.totalCount ?? capacity?.attendedRegistrations ?? 0}
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-gray-500">
+                Each person (resident or family member) is listed with who marked them.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Capacity Dashboard */}
-        {capacity && (
+        {capacity && !isOpen && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -379,7 +275,7 @@ const EventRegistrationsPage = () => {
                   }}
                 />
               </div>
-              <div className="w-full md:w-48">
+              <div className={isOpen ? 'hidden' : 'w-full md:w-48'}>
                 <Select
                   value={statusFilter}
                   onValueChange={(value) => {
@@ -407,10 +303,22 @@ const EventRegistrationsPage = () => {
         {/* Registrations Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Registrations</CardTitle>
+            <CardTitle>{isOpen ? 'People who came, by flat' : 'Registrations'}</CardTitle>
           </CardHeader>
           <CardContent>
-            <DataTable columns={columns} data={registrations} pageSize={pagination.pageSize} />
+            {!isOpen ? (
+              <ReservationAccordion
+                registrations={registrations}
+                statusBadge={getStatusBadge}
+                onCancel={(reg) => openStatusDialog(reg, 'CANCELLED')}
+                pageIndex={pagination.pageIndex}
+                pageCount={registrationsData?.data?.pagination?.totalPages || 1}
+                totalCount={registrationsData?.data?.pagination?.totalCount ?? registrations.length}
+                onPageChange={(pageIndex) => setPagination((p) => ({ ...p, pageIndex }))}
+              />
+            ) : (
+              <OpenAttendanceAccordion registrations={registrations} />
+            )}
           </CardContent>
         </Card>
 

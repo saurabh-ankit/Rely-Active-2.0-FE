@@ -9,6 +9,7 @@ import GlobalSettingsPage from '@/pages/GlobalSettings'
 import LoginPage from '@/pages/Login'
 import PropertyPage from '@/pages/Property'
 import CreatePropertyPage from '@/pages/Property/CreatePropertyPage'
+import PropertyDetailsPage from '@/pages/Property/PropertyDetailsPage'
 import ResidentPage, { ResidentBillingPage } from '@/pages/Resident'
 import SectionPage from '@/pages/SectionPage'
 import SetupPage from '@/pages/Setup'
@@ -25,9 +26,14 @@ import BillingManagementPage from '@/pages/BillingManagement'
 import SettingsPage from '@/pages/Settings'
 import MedicalPage from '@/pages/Medical'
 import AppointmentBookingsPage from '@/pages/Medical/components/appointments/AppointmentBookings'
+import AmenitiesPage from '@/pages/Amenities'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
 const InventoryPage = lazy(() => import('@/pages/Inventory'))
+const FeedbackPage = lazy(() => import('@/pages/Feedback'))
+const AdvertisementsPage = lazy(() => import('@/pages/Feedback/AdvertisementsPage'))
+const FeedbackFormBuilder = lazy(() => import('@/pages/Feedback/FormBuilder'))
+const FeedbackFormResponses = lazy(() => import('@/pages/Feedback/FormResponses'))
 const InventorySettings = lazy(() => import('@/pages/GlobalSettings/Inventory'))
 
 export default function RootRouter() {
@@ -52,6 +58,7 @@ export default function RootRouter() {
         <Route path="property" element={<PropertyPage />} />
         <Route path="property/create" element={<CreatePropertyPage />} />
         <Route path="property/edit/:id" element={<CreatePropertyPage />} />
+        <Route path="property/:id" element={<PropertyDetailsPage />} />
         <Route
           path="global-settings/inventory/*"
           element={
@@ -161,6 +168,14 @@ export default function RootRouter() {
           element={
             <ProtectedRoute requireSuperAdmin>
               <GlobalSettingsPage initialView="gst-tax" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="global-settings/amenities"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <GlobalSettingsPage initialView="amenities" />
             </ProtectedRoute>
           }
         />
@@ -288,9 +303,17 @@ export default function RootRouter() {
           }
         />
         <Route
+          path="admin/amenities"
+          element={
+            <ProtectedRoute>
+              <AmenitiesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="admin/employees"
           element={
-            <ProtectedRoute resourceKey="EMPLOYEE" action="view">
+            <ProtectedRoute resourceKey="EMPLOYEE.DIRECTORY" action="view">
               <EmployeeDirectoryPage initialView="list" />
             </ProtectedRoute>
           }
@@ -298,7 +321,7 @@ export default function RootRouter() {
         <Route
           path="admin/employees/create"
           element={
-            <ProtectedRoute resourceKey="EMPLOYEE" action="create">
+            <ProtectedRoute resourceKey="EMPLOYEE.DIRECTORY" action="create">
               <EmployeeDirectoryPage initialView="create" />
             </ProtectedRoute>
           }
@@ -306,7 +329,7 @@ export default function RootRouter() {
         <Route
           path="admin/employees/edit/:id"
           element={
-            <ProtectedRoute resourceKey="EMPLOYEE" action="update">
+            <ProtectedRoute resourceKey="EMPLOYEE.DIRECTORY" action="update">
               <EmployeeDirectoryPage initialView="edit" />
             </ProtectedRoute>
           }
@@ -426,6 +449,46 @@ export default function RootRouter() {
         <Route path="admin/events/create" element={<Navigate to="/admin/events" replace />} />
         <Route path="admin/events/edit/:eventId" element={<EventForm />} />
         <Route path="admin/events/:eventId/registrations" element={<EventRegistrationsPage />} />
+        <Route
+          path="admin/settings/feedback"
+          element={
+            <ProtectedRoute resourceKey="SETTINGS" action="view">
+              <FeedbackPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/settings/advertisements"
+          element={
+            <ProtectedRoute resourceKey="SETTINGS" action="view">
+              <AdvertisementsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/settings/feedback/forms/create"
+          element={
+            <ProtectedRoute resourceKey="SETTINGS" action="create">
+              <FeedbackFormBuilder />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/settings/feedback/forms/edit/:id"
+          element={
+            <ProtectedRoute resourceKey="SETTINGS" action="view">
+              <FeedbackFormBuilder />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/settings/feedback/forms/:id/responses"
+          element={
+            <ProtectedRoute resourceKey="SETTINGS" action="view">
+              <FeedbackFormResponses />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="admin/fnb-history"
           element={

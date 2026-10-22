@@ -1,6 +1,10 @@
 export interface LoginPayload {
   username: string
   password: string
+  fcmToken?: string
+  deviceId?: string
+  platform?: 'WEB' | 'ANDROID' | 'IOS'
+  appVersion?: string
 }
 
 export interface UserProfileData {
@@ -20,6 +24,22 @@ export interface UserProfileData {
   dateOfJoining?: string | null
 }
 
+export interface UserDepartmentData {
+  id?: string
+  code?: string
+  name?: string
+}
+
+export interface UserScopeData {
+  roleCode?: string
+  roleName?: string
+  companyId?: string | null
+  locationId?: string | null
+  departmentId?: string | null
+  departmentCode?: string | null
+  departmentName?: string | null
+}
+
 export interface UserAuthData {
   id: string
   username?: string | null
@@ -33,6 +53,12 @@ export interface UserAuthData {
   isSuperAdmin: boolean
   roles: string[]
   permissions: string[]
+  scopes?: UserScopeData[]
+  department?: UserDepartmentData | null
+  userLocations?: Array<{
+    role?: { id?: string; code?: string; name?: string }
+    department?: { id?: string; code?: string; name?: string }
+  }>
 }
 
 export interface LoginResponseData {

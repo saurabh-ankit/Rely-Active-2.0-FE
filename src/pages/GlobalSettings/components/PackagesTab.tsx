@@ -12,7 +12,6 @@ import {
   Boxes,
   CalendarClock,
   ReceiptIndianRupee,
-  Building2,
   CheckSquare,
   Gift,
   Minus,
@@ -79,7 +78,7 @@ const fieldInputClass =
   'w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-900 placeholder:text-gray-400 focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20'
 
 export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false, forcedPropertyId = null }) => {
-  const { selectedLocationId, selectedLocationName } = useLocationContext()
+  const { selectedLocationId } = useLocationContext()
   const effectivePropertyId = forcedPropertyId || selectedLocationId
 
   const [errorMsg, setErrorMsg] = useState('')
@@ -622,17 +621,9 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                 <Boxes className="w-5 h-5" />
               </div>
               <h2 className="text-xl font-bold text-gray-900">Packages</h2>
-              {isPropertyMode && selectedLocationName && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  <Building2 className="w-3 h-3 text-emerald-600" />
-                  {selectedLocationName}
-                </span>
-              )}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              {isPropertyMode
-                ? `Configure and manage Care Packages bundled with complimentary tasks and duration for ${selectedLocationName || 'this property'}.`
-                : 'Configure and manage Global Care Packages with bundled complimentary tasks, cost, and duration.'}
+              Configure and manage Care Packages with bundled complimentary tasks, cost, and duration.
             </p>
           </div>
 
@@ -708,11 +699,7 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                   <h3 className="text-base font-extrabold text-gray-900">
                     {editingPackage ? 'Edit Care Package' : 'Create Care Package'}
                   </h3>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {isPropertyMode
-                      ? `Configure package specifications for ${selectedLocationName || 'active property'}`
-                      : 'Define global care package template'}
-                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">Configure package specifications</p>
                 </div>
               </div>
               <button

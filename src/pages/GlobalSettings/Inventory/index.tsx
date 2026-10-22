@@ -6,7 +6,6 @@ import { Routes, Route, Link, useNavigate, useParams, useSearchParams, useLocati
 import type { ColumnDef, PaginationState, SortingState, Updater } from '@tanstack/react-table'
 import {
   FolderOpen,
-  Building2,
   Plus,
   MoreHorizontal,
   Pencil,
@@ -15,12 +14,21 @@ import {
   ArrowUpDown,
   Briefcase,
   Package,
+  Gauge,
+  Power,
+  Truck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
 import { InventoryTabs } from '@/components/inventory/InventoryTabs'
 import { ActiveStatus } from '@/components/inventory/InventoryStatus'
+import {
+  ContactCell,
+  CountBadge,
+  EntityCell,
+  LocationChips,
+  RowActionButtons,
+} from '@/components/inventory/InventoryCells'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -171,7 +179,7 @@ function GlobalInventory() {
   return (
     <InventoryPage
       title="Global Inventory Management"
-      description="Manage categories, vendors and availability across your locations."
+      description="Manage categories, suppliers and availability across your locations."
       onBack={() => navigate('/global-settings')}
       backLabel="Back to Global Settings"
       icon={Briefcase}
@@ -185,22 +193,14 @@ function GlobalInventory() {
             label: 'Categories',
             shortLabel: 'Categories',
             icon: FolderOpen,
-            content: (
-              <FormSection title="Categories">
-                <MasterList kind="categories" />
-              </FormSection>
-            ),
+            content: <MasterList kind="categories" />,
           },
           {
             value: 'vendors',
-            label: 'Vendors',
-            shortLabel: 'Vendors',
+            label: 'Suppliers',
+            shortLabel: 'Suppliers',
             icon: Users,
-            content: (
-              <FormSection title="Vendors">
-                <MasterList kind="vendors" />
-              </FormSection>
-            ),
+            content: <MasterList kind="vendors" />,
           },
         ]}
       />
@@ -215,39 +215,38 @@ function MasterList({ kind, returnTo }: { returnTo?: string; kind: 'categories' 
   const { search } = useLocation()
   const target = (path: string) => (returnTo ? withInventoryReturn(`${path}${search}`, returnTo) : `${path}${search}`)
   type Master = InventoryCategory | InventoryVendor
+  const properties = useInventoryProperties()
+  const locationNames = (ids: string[]) => {
+    const byId = new Map((properties.data ?? []).map((p) => [p.id, p.property_name]))
+    return ids.map((id) => byId.get(id) ?? 'Unknown location')
+  }
   const columns: ColumnDef<Master>[] = [
     {
       accessorKey: 'name',
       header: nameHeader as ColumnDef<Master>['header'],
       cell: ({ row }) => {
         const record = row.original
-        return (
-          <div className="flex items-center gap-3">
-            {'image' in record && record.image ? (
-              <img src={record.image} alt="" className="size-10 rounded-lg object-cover" />
-            ) : kind === 'categories' ? (
-              <FolderOpen className="size-8 text-muted-foreground" />
-            ) : (
-              <Building2 className="size-8 text-muted-foreground" />
-            )}
-            <div>
-              {kind === 'categories' ? (
-                <Link
-                  className="font-semibold hover:underline"
-                  to={`${categoryPath(record.id)}?${new URLSearchParams({ origin: search })}`}
-                >
-                  {record.name}
-                </Link>
-              ) : (
-                <span className="font-semibold">{record.name}</span>
-              )}
-              {'description' in record && record.description ? (
-                <p className="max-w-sm truncate text-xs text-muted-foreground">{record.description}</p>
-              ) : 'contactPerson' in record && record.contactPerson ? (
-                <p className="text-xs text-muted-foreground">Contact: {record.contactPerson}</p>
-              ) : null}
-            </div>
-          </div>
+        return kind === 'categories' ? (
+          <EntityCell
+            icon={FolderOpen}
+            image={'image' in record ? record.image : null}
+            title={
+              <Link
+                className="hover:text-[#005390] hover:underline"
+                to={`${categoryPath(record.id)}?${new URLSearchParams({ origin: search })}`}
+              >
+                {record.name}
+              </Link>
+            }
+            subtitle={'description' in record ? record.description : null}
+          />
+        ) : (
+          <EntityCell
+            icon={Truck}
+            tone="amber"
+            title={record.name}
+            subtitle={'address' in record && record.address ? record.address : null}
+          />
         )
       },
     },
@@ -256,70 +255,87 @@ function MasterList({ kind, returnTo }: { returnTo?: string; kind: 'categories' 
           {
             id: 'items',
             header: 'Items',
-            cell: ({ row }: { row: { original: Master } }) =>
-              'itemCount' in row.original ? row.original.itemCount : 0,
+            cell: ({ row }: { row: { original: Master } }) => (
+              <CountBadge count={'itemCount' in row.original ? row.original.itemCount : 0} noun="item" />
+            ),
           },
         ]
       : [
           {
             id: 'contact',
-            header: 'Contact Info',
+            header: 'Contact',
             cell: ({ row }: { row: { original: Master } }) =>
               'email' in row.original ? (
-                <div className="flex flex-col gap-1">
-                  <span>{row.original.email || '—'}</span>
-                  <span>{row.original.phone || '—'}</span>
-                </div>
+                <ContactCell
+                  person={row.original.contactPerson}
+                  email={row.original.email}
+                  phone={row.original.phone}
+                />
               ) : null,
           },
         ]),
-    ...(kind === 'vendors' ? [{ accessorKey: 'address', header: 'Address' }] : []),
+    {
+      id: 'locations',
+      header: kind === 'categories' ? 'Available at' : 'Serves locations',
+      cell: ({ row }) => <LocationChips names={locationNames(row.original.locationIds)} />,
+    },
     { accessorKey: 'isActive', header: 'Status', cell: ({ row }) => <ActiveStatus active={row.original.isActive} /> },
     {
       id: 'actions',
-      header: 'Actions',
-      cell: ({ row }) => (
-        <RowActions
-          name={row.original.name}
-          actions={[
-            ...(kind === 'categories'
-              ? [
-                  {
-                    label: 'View Inventory',
-                    icon: FolderOpen,
-                    onClick: () =>
-                      navigate(`${categoryPath(row.original.id)}?${new URLSearchParams({ origin: search })}`),
-                  },
-                ]
-              : []),
-            {
-              label: 'Edit',
-              icon: Pencil,
-              onClick: () => navigate(target(`${inventoryBase}/${kind}/${row.original.id}/edit`)),
-            },
-            ...(kind === 'vendors'
-              ? [
-                  {
-                    label: row.original.isActive ? 'Deactivate' : 'Reactivate',
-                    icon: Pencil,
-                    onClick: () => {
-                      if (!statusMutation.isPending)
-                        void statusMutation
-                          .mutateAsync({ id: row.original.id, isActive: !row.original.isActive })
-                          .then(() => toast.success('Supplier status updated'))
-                          .catch(() => toast.error('Unable to update supplier status'))
-                    },
-                  },
-                ]
-              : []),
-            {
-              label: 'Manage Locations',
-              icon: MapPin,
-              onClick: () => navigate(target(`${inventoryBase}/${kind}/${row.original.id}/locations`)),
-            },
-          ]}
-        />
-      ),
+      header: () => <span className="block text-right">Actions</span>,
+      cell: ({ row }) =>
+        kind === 'vendors' ? (
+          // Suppliers: the few actions are shown as buttons rather than hidden in a menu.
+          <RowActionButtons
+            actions={[
+              {
+                label: 'Edit',
+                icon: Pencil,
+                onClick: () => navigate(target(`${inventoryBase}/${kind}/${row.original.id}/edit`)),
+              },
+              {
+                label: 'Locations',
+                icon: MapPin,
+                onClick: () => navigate(target(`${inventoryBase}/${kind}/${row.original.id}/locations`)),
+              },
+              {
+                label: row.original.isActive ? 'Deactivate' : 'Reactivate',
+                icon: Power,
+                tone: row.original.isActive ? 'danger' : 'default',
+                disabled: statusMutation.isPending,
+                onClick: () =>
+                  void statusMutation
+                    .mutateAsync({ id: row.original.id, isActive: !row.original.isActive })
+                    .then(() => toast.success('Supplier status updated'))
+                    .catch(() => toast.error('Unable to update supplier status')),
+              },
+            ]}
+          />
+        ) : (
+          <div className="flex justify-end">
+            <RowActions
+              name={row.original.name}
+              actions={[
+                {
+                  label: 'View Inventory',
+                  icon: FolderOpen,
+                  onClick: () =>
+                    navigate(`${categoryPath(row.original.id)}?${new URLSearchParams({ origin: search })}`),
+                },
+                {
+                  label: 'Edit',
+                  icon: Pencil,
+                  onClick: () => navigate(target(`${inventoryBase}/${kind}/${row.original.id}/edit`)),
+                },
+                {
+                  label: 'Manage Locations',
+                  icon: MapPin,
+                  onClick: () => navigate(target(`${inventoryBase}/${kind}/${row.original.id}/locations`)),
+                },
+              ]}
+            />
+          </div>
+        ),
     },
   ]
   return (
@@ -346,7 +362,7 @@ function MasterList({ kind, returnTo }: { returnTo?: string; kind: 'categories' 
             onClick={() => navigate(target(`${inventoryBase}/${kind}/new`))}
           >
             <Plus className="w-4 h-4 mr-1" />
-            Add {kind === 'categories' ? 'Category' : 'Vendor'}
+            Add {kind === 'categories' ? 'Category' : 'Supplier'}
           </Button>
         </>
       }
@@ -376,28 +392,28 @@ function CategoryItems() {
   if (category.isError) return <InventoryLoadError retry={() => void category.refetch()} />
   const editParams = new URLSearchParams(search)
   editParams.set('returnTo', 'category')
+  const formulationField = category.data.fieldDefinitions.find((f) => f.fieldName.toLowerCase() === 'formulation')
   const columns: ColumnDef<InventoryItem>[] = [
     {
       accessorKey: 'name',
       header: nameHeader as ColumnDef<InventoryItem>['header'],
       cell: ({ row }) => (
-        <Link
-          className="font-semibold hover:underline"
-          to={`${categoryPath(categoryId)}/items/${row.original.id}${search}`}
-        >
-          {row.original.name}
-          {category.data.fieldDefinitions.some((f) => f.fieldName.toLowerCase() === 'formulation') && (
-            <span className="block text-xs font-normal text-muted-foreground">
-              {String(
-                row.original.customFields.find(
-                  (v) =>
-                    v.fieldDefinitionId ===
-                    category.data.fieldDefinitions.find((f) => f.fieldName.toLowerCase() === 'formulation')?.id,
-                )?.value ?? '',
-              )}
-            </span>
-          )}
-        </Link>
+        <EntityCell
+          icon={Package}
+          title={
+            <Link
+              className="hover:text-[#005390] hover:underline"
+              to={`${categoryPath(categoryId)}/items/${row.original.id}${search}`}
+            >
+              {row.original.name}
+            </Link>
+          }
+          subtitle={
+            formulationField
+              ? String(row.original.customFields.find((v) => v.fieldDefinitionId === formulationField.id)?.value ?? '')
+              : null
+          }
+        />
       ),
     },
     ...(category.data.fieldDefinitions.some((f) => f.fieldName.toLowerCase() === 'type')
@@ -419,67 +435,67 @@ function CategoryItems() {
     {
       id: 'package',
       header: 'Package',
-      cell: ({ row }) => `${row.original.packQuantity} ${row.original.packUnit} per ${row.original.packType}`,
-    },
-    {
-      id: 'vendors',
-      header: 'Vendors',
       cell: ({ row }) => (
-        <div className="flex flex-wrap gap-1">
-          {row.original.vendorAssignments.length ? (
-            [...new Set(row.original.vendorAssignments.map((a) => a.vendorId))].map((id) => (
-              <Badge key={id} variant="outline">
-                {vendors.data?.find((v) => v.id === id)?.name ?? 'Vendor'}
-              </Badge>
-            ))
-          ) : (
-            <span className="text-muted-foreground">No vendors</span>
-          )}
+        <div className="whitespace-nowrap">
+          <p className="text-sm font-semibold text-gray-900 tabular-nums">
+            {row.original.packQuantity} {row.original.packUnit}
+          </p>
+          <p className="text-xs text-gray-500">per {row.original.packType}</p>
         </div>
       ),
     },
     {
-      id: 'locations',
-      header: 'Locations',
+      id: 'vendors',
+      header: 'Suppliers',
       cell: ({ row }) => (
-        <div className="flex flex-wrap gap-1">
-          {row.original.locationIds.length ? (
-            row.original.locationIds.map((id) => (
-              <Badge key={id} variant="outline">
-                {properties.data?.find((p) => p.id === id)?.property_name ?? 'Location'}
-              </Badge>
-            ))
-          ) : (
-            <span className="text-muted-foreground">No locations</span>
+        <LocationChips
+          icon={Truck}
+          iconClass="text-amber-600"
+          empty="No suppliers"
+          names={[...new Set(row.original.vendorAssignments.map((a) => a.vendorId))].map(
+            (id) => vendors.data?.find((v) => v.id === id)?.name ?? 'Vendor',
           )}
-        </div>
+        />
+      ),
+    },
+    {
+      id: 'locations',
+      header: 'Stocked at',
+      cell: ({ row }) => (
+        <LocationChips
+          names={row.original.locationIds.map(
+            (id) => properties.data?.find((p) => p.id === id)?.property_name ?? 'Location',
+          )}
+        />
       ),
     },
     { accessorKey: 'isActive', header: 'Status', cell: ({ row }) => <ActiveStatus active={row.original.isActive} /> },
     {
       id: 'actions',
-      header: 'Actions',
+      header: () => <span className="block text-right">Actions</span>,
       cell: ({ row }) => (
-        <RowActions
-          name={row.original.name}
-          actions={[
-            {
-              label: 'Edit',
-              icon: Pencil,
-              onClick: () => navigate(`${categoryPath(categoryId)}/items/${row.original.id}/edit${search}`),
-            },
-            {
-              label: 'Manage Thresholds',
-              icon: Pencil,
-              onClick: () => navigate(`${categoryPath(categoryId)}/items/${row.original.id}/thresholds${search}`),
-            },
-            {
-              label: 'Manage Suppliers',
-              icon: Users,
-              onClick: () => navigate(`${categoryPath(categoryId)}/items/${row.original.id}/vendors${search}`),
-            },
-          ]}
-        />
+        <div className="flex justify-end">
+          <RowActions
+            name={row.original.name}
+            actions={[
+              {
+                label: 'Edit',
+                icon: Pencil,
+                onClick: () => navigate(`${categoryPath(categoryId)}/items/${row.original.id}/edit${search}`),
+              },
+              {
+                label: 'Manage Thresholds',
+                icon: Gauge,
+                onClick: () => navigate(`${categoryPath(categoryId)}/items/${row.original.id}/thresholds${search}`),
+              },
+              {
+                label: 'Manage Suppliers',
+                icon: Truck,
+                onClick: () => navigate(`${categoryPath(categoryId)}/items/${row.original.id}/vendors${search}`),
+              },
+            ]}
+          />
+        </div>
       ),
     },
   ]
@@ -528,7 +544,11 @@ function CategoryItems() {
             shortLabel: 'Items',
             icon: Package,
             content: (
-              <FormSection title="Inventory Items">
+              <FormSection
+                icon={Package}
+                title="Inventory Items"
+                description="Items in this category: their package size, who supplies them and which properties stock them."
+              >
                 <DataTable
                   columns={columns}
                   data={items.data?.records ?? []}
@@ -598,7 +618,7 @@ function CategoryItems() {
             shortLabel: 'Suppliers',
             icon: Users,
             content: (
-              <FormSection title="Suppliers">
+              <FormSection icon={Users} title="Suppliers" description="Suppliers and the properties they serve.">
                 <MasterList kind="vendors" returnTo={`${categoryPath(categoryId)}${search}`} />
               </FormSection>
             ),

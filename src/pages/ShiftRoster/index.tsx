@@ -2,6 +2,8 @@ import { lazy, Suspense, useMemo } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 import PageLoader from '@/components/shared/PageLoader'
 import { RosterPermission } from './components/RosterPermission'
+import { PageHeader } from '@/components/common/PageHeader'
+import { CalendarClock } from 'lucide-react'
 
 const ShiftsPage = lazy(() => import('./components/Shifts'))
 const EmployeeDetail = lazy(() => import('./components/Employees/EmployeeDetail'))
@@ -62,10 +64,11 @@ const ShiftRosterPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex-1 min-w-0">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Shift & Roster Management</h1>
-        <p className="text-gray-600 mt-1 text-sm sm:text-base">Schedule staff shifts, roster coverage, and areas</p>
-      </div>
+      <PageHeader
+        icon={CalendarClock}
+        title="Shift & Roster Management"
+        description="Schedule staff shifts, roster coverage, and areas."
+      />
 
       <RosterPermission
         action="view"

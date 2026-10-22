@@ -18,5 +18,8 @@ export const useDashboardStatsQuery = (
     queryFn: () => getDashboardStatsAPI(locationId, params),
     enabled,
     staleTime: 30_000,
+    // Keep the dashboard live while it is open.
+    refetchInterval: 60_000,
+    placeholderData: (previous) => previous,
   })
 }

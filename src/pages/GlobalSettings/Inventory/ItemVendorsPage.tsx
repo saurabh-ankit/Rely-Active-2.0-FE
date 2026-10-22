@@ -20,6 +20,8 @@ import { InventoryPage, FormSection, InventoryLoading, InventoryLoadError } from
 import { FormActions, RootError } from './FormControls'
 import { categoryPath, useInventoryNavigation } from './navigation'
 import { setInventoryFormError } from './formErrors'
+import { brandCheckbox } from '@/components/inventory/brand'
+import { Truck } from 'lucide-react'
 export function ItemVendorsPage() {
   const { itemId = '', categoryId = '' } = useParams()
   const item = useInventoryDetail('items', itemId)
@@ -73,7 +75,7 @@ function ItemVendorsEditor({
   })
   return (
     <InventoryPage
-      title="Manage Vendors"
+      title="Manage Suppliers"
       description={record.name}
       onBack={() => {
         if (!mutation.isPending) back()
@@ -84,7 +86,7 @@ function ItemVendorsEditor({
           onSubmit={form.handleSubmit(async (data) => {
             try {
               await mutation.mutateAsync(data.assignments)
-              toast.success('Vendor assignments saved')
+              toast.success('Supplier assignments saved')
               back()
             } catch (error) {
               setInventoryFormError(form, error)
@@ -93,8 +95,9 @@ function ItemVendorsEditor({
         >
           <fieldset disabled={mutation.isPending} className="flex min-w-0 flex-col gap-6">
             <FormSection
-              title="Vendors by Location"
-              description="Select vendors for each of the item's assigned locations."
+              icon={Truck}
+              title="Suppliers by location"
+              description="Select suppliers for each of the item's assigned locations."
             >
               <Controller
                 name="assignments"
@@ -141,7 +144,7 @@ function ItemVendorsEditor({
                           { accessorKey: 'name', header: 'Location' },
                           {
                             id: 'vendors',
-                            header: 'Vendors',
+                            header: 'Suppliers',
                             cell: ({ row }) => {
                               const available = vendors.filter(
                                 (v) =>
@@ -152,6 +155,7 @@ function ItemVendorsEditor({
                                   {available.map((v) => (
                                     <Field key={v.id} orientation="horizontal">
                                       <Checkbox
+                                        className={brandCheckbox}
                                         id={`${row.original.id}-${v.id}`}
                                         checked={has(v.id, row.original.id)}
                                         aria-label={`${v.name} at ${row.original.name}`}
@@ -173,7 +177,7 @@ function ItemVendorsEditor({
                                   ))}
                                 </div>
                               ) : (
-                                <span className="text-muted-foreground">No vendors available for this location</span>
+                                <span className="text-muted-foreground">No suppliers available for this location</span>
                               )
                             },
                           },

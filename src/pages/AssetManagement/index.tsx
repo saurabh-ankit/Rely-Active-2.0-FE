@@ -19,6 +19,9 @@ import { Badge } from '@/components/ui/badge'
 import { useGetAssetStats } from '@/hooks/react-query/assetManagement'
 import StatCard from './components/StatCard'
 import StatsGrid from './components/StatsGrid'
+import { PageHeader } from '@/components/common/PageHeader'
+import { useResourceAccess } from '@/hooks/useResourceAccess'
+import { RESOURCE } from '@/lib/permissions/resourceKeys'
 
 // Dynamic imports for better code splitting
 const AssetCategories = lazy(() => import('./components/AssetCategories'))
@@ -30,7 +33,19 @@ const AssetMaintenance = lazy(() => import('./components/AssetMaintenance'))
 const AssetCompliance = lazy(() => import('./components/AssetCompliance'))
 
 const AssetManagementPage = () => {
-  const [activeTab, setActiveTab] = useState('overview')
+  const [chosenTab, setActiveTab] = useState('overview')
+  // Each tab is an Asset sub-module; users only see the tabs they can view.
+  const tabAccess: Record<string, boolean> = {
+    overview: useResourceAccess(RESOURCE.ASSET_ASSETS).canView,
+    categories: useResourceAccess(RESOURCE.ASSET_CATEGORIES).canView,
+    vendors: useResourceAccess(RESOURCE.ASSET_VENDORS).canView,
+    items: useResourceAccess(RESOURCE.ASSET_ITEMS).canView,
+    assignments: useResourceAccess(RESOURCE.ASSET_ASSIGNMENTS).canView,
+    maintenance: useResourceAccess(RESOURCE.ASSET_MAINTENANCE).canView,
+    compliance: useResourceAccess(RESOURCE.ASSET_COMPLIANCE).canView,
+  }
+  const firstAllowed = Object.keys(tabAccess).find((t) => tabAccess[t])
+  const activeTab = tabAccess[chosenTab] ? chosenTab : (firstAllowed ?? chosenTab)
 
   const { data: statsData, isLoading: statsLoading } = useGetAssetStats()
   const stats = statsData?.data || {
@@ -47,24 +62,22 @@ const AssetManagementPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Asset Management</h1>
-          <p className="text-sm md:text-base text-gray-600 mt-1">
-            Track and manage your assets, assignments, and maintenance
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {stats.maintenanceAssets > 0 && (
-            <Badge className="bg-orange-100 text-orange-800 border-orange-200 px-3 py-1">
-              <Wrench className="h-4 w-4 mr-1" />
-              <span className="hidden sm:inline">{stats.maintenanceAssets} In Maintenance</span>
-              <span className="sm:hidden">{stats.maintenanceAssets}</span>
-            </Badge>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        icon={Box}
+        title="Asset Management"
+        description="Track and manage your assets, assignments, and maintenance."
+        actions={
+          <>
+            {stats.maintenanceAssets > 0 && (
+              <Badge className="bg-orange-100 text-orange-800 border-orange-200 px-3 py-1">
+                <Wrench className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">{stats.maintenanceAssets} In Maintenance</span>
+                <span className="sm:hidden">{stats.maintenanceAssets}</span>
+              </Badge>
+            )}
+          </>
+        }
+      />
 
       {/* Stats Overview */}
       <StatsGrid>
@@ -218,8 +231,16 @@ const AssetManagementPage = () => {
                 </Suspense>
               ),
             },
-          ]}
+          ].filter((tab) => tabAccess[tab.value])}
         />
+        {!firstAllowed && (
+          <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center">
+            <p className="text-sm font-semibold text-gray-600">
+              You don&apos;t have access to any Asset sections here.
+            </p>
+            <p className="mt-1 text-xs text-gray-400">Ask a super admin to grant access in Module Permissions.</p>
+          </div>
+        )}
       </PermissionGuard>
     </div>
   )

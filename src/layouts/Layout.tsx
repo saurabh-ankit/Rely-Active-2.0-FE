@@ -4,6 +4,7 @@ import { ShieldAlert } from 'lucide-react'
 import SetupStatusGuard from '@/components/common/SetupStatusGuard'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocationContext } from '@/hooks/useLocation'
+import { getDepartmentManagerType } from '@/utils/departmentManager'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
 
@@ -22,6 +23,8 @@ export default function Layout() {
   }
 
   const { user } = useAuth()
+  const managerType = getDepartmentManagerType(user)
+  const isDeptManager = Boolean(managerType)
   const isAdminRole =
     isSuperAdmin ||
     user?.roles?.includes('ADMIN') ||
@@ -31,6 +34,7 @@ export default function Layout() {
   // If user is regular employee/staff with a selected location, but permissions array is empty (no modules assigned), show full white screen
   const hasNoModulesAssigned =
     !isAdminRole &&
+    !isDeptManager &&
     selectedLocationId &&
     !isLoadingLocations &&
     !isLoadingPermissions &&
@@ -70,14 +74,14 @@ export default function Layout() {
     <div className="h-screen flex flex-col overflow-hidden bg-[#DEDDE1] font-sans text-slate-800">
       <Header onMenuClick={toggleSidebar} showMenuButton={true} />
 
-      <div className="flex overflow-hidden flex-1">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
 
         <main
           data-scroll-container
-          className="h-[calc(100vh-4rem)] flex-1 bg-white/30 rounded-lg shadow-[2px_3px_6px_0px_rgba(0,0,0,0.06),inset_1px_1px_2px_0px_#FFFFFF] backdrop-blur-[10px] overflow-x-hidden overflow-y-auto m-1 md:m-2 lg:m-3"
+          className="min-h-0 min-w-0 flex-1 bg-white/30 rounded-lg shadow-[2px_3px_6px_0px_rgba(0,0,0,0.06),inset_1px_1px_2px_0px_#FFFFFF] backdrop-blur-[10px] overflow-x-hidden overflow-y-auto m-1 md:m-2 lg:m-3"
         >
-          <div className="w-full h-full flex flex-col p-2 md:p-3 lg:p-6">
+          <div className="w-full min-h-full flex flex-col p-2 md:p-3 lg:p-6">
             <SetupStatusGuard>
               <Outlet />
             </SetupStatusGuard>

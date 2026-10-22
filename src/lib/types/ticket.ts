@@ -44,6 +44,12 @@ export interface EmployeeShiftInfo {
   endDate: string | null
 }
 
+/**
+ * How closely a staff member's posting matches the ticket being assigned.
+ * Drives the grouping in the assign modal.
+ */
+export type EmployeeMatchLevel = 'JOB_CATEGORY' | 'DEPARTMENT' | 'OTHER'
+
 export interface AssignableEmployee {
   id: string
   name: string
@@ -54,6 +60,22 @@ export interface AssignableEmployee {
   closedCount: number
   /** Null when the staff member has no roster entry covering today. */
   shift?: EmployeeShiftInfo | null
+  /** The department/category the staff member is posted to, not the ticket's. */
+  department?: { id: string; name: string } | null
+  jobCategory?: { id: string; name: string } | null
+  matchLevel?: EmployeeMatchLevel
+}
+
+export type TicketFeedbackRating = 'GOOD' | 'AVERAGE' | 'POOR'
+
+/** One per ticket; re-submitting from the app replaces it. */
+export interface TicketFeedback {
+  id: string
+  rating: TicketFeedbackRating
+  comment?: string | null
+  createdAt: string
+  resident?: { id: string; firstName: string; lastName?: string | null } | null
+  familyMember?: { id: string; firstName: string; lastName?: string | null; relation?: string | null } | null
 }
 
 export interface TicketPropertyRef {
@@ -174,6 +196,8 @@ export interface Ticket {
   verifiedAt?: string | null
   verifiedByUserId?: string | null
   verificationNotes?: string | null
+  /** Resident's rating of the finished work, left from the resident app. */
+  feedback?: TicketFeedback | null
   resolutionNotes?: string | null
   attachments?: string[] | Record<string, unknown> | null
   createdAt: string
@@ -181,6 +205,8 @@ export interface Ticket {
   property?: TicketPropertyRef | null
   unit?: TicketUnitRef | null
   resident?: TicketResidentRef | null
+  /** Set when a family member raised the ticket from the resident app. */
+  familyMember?: { id: string; firstName: string; lastName?: string | null; relation?: string | null } | null
   department?: TicketDepartmentRef | null
   jobCategory?: TicketJobCategoryRef | null
   categoryObj?: TicketCategoryMaster | null

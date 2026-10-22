@@ -1,5 +1,5 @@
 import { lazy, Suspense, useMemo, useState } from 'react'
-import { Calendar, CalendarDays, List, MapPin, Plus, Ticket } from 'lucide-react'
+import { Calendar, CalendarCheck, CalendarDays, List, MapPin, Plus, Ticket } from 'lucide-react'
 import { ResponsiveTabs } from '@/components/common/ResponsiveTabs'
 import PageLoader from '@/components/shared/PageLoader'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,7 @@ import type { Event } from '@/lib/services/eventService'
 import CreateEventModal from './components/CreateEventModal'
 import { useSearchParams } from 'react-router-dom'
 import { eventOverlapsLocalMonth, eventStartsOnOrAfterLocalDay } from '@/utils/event.utils'
+import { PageHeader } from '@/components/common/PageHeader'
 
 const EventsCalendar = lazy(() => import('./components/EventsCalendar'))
 const EventsListPage = lazy(() => import('./components/EventsList'))
@@ -82,24 +83,25 @@ const EventsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Events</h1>
-          <p className="text-sm md:text-base text-gray-600 mt-1">Plan events, manage venues, and track registrations</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <EventsPermission action="create">
-            <Button
-              onClick={() => setIsCreateEventOpen(true)}
-              size="sm"
-              className="bg-[#2a517c] hover:bg-[#476587] text-white"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create Event
-            </Button>
-          </EventsPermission>
-        </div>
-      </div>
+      <PageHeader
+        icon={CalendarCheck}
+        title="Events"
+        description="Plan events, manage venues, and track registrations."
+        actions={
+          <>
+            <EventsPermission action="create">
+              <Button
+                onClick={() => setIsCreateEventOpen(true)}
+                size="sm"
+                className="bg-[#2a517c] hover:bg-[#476587] text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Event
+              </Button>
+            </EventsPermission>
+          </>
+        }
+      />
 
       <StatsGrid>
         <StatCard

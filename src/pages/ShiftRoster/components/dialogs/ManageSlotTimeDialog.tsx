@@ -29,6 +29,14 @@ interface ManageSlotTimeDialogProps {
   shift: ShiftV2 | null
 }
 
+/** 480 → "8 h", 90 → "1 h 30 min", 45 → "45 min". */
+const formatMinutes = (total: number): string => {
+  const hours = Math.floor(total / 60)
+  const minutes = total % 60
+  if (!hours) return `${minutes} min`
+  return minutes ? `${hours} h ${minutes} min` : `${hours} h`
+}
+
 const parsePositiveInt = (raw: string): number | null => {
   if (raw.trim() === '') return null
   const n = Number(raw)
@@ -154,41 +162,55 @@ const ManageSlotTimeDialog = ({ open, onOpenChange, shift }: ManageSlotTimeDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Manage SlotTime — {shift?.name}</DialogTitle>
+          <DialogTitle>Manage Slots — {shift?.name}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-          <p className="text-sm text-gray-600">
-            Shift window:{' '}
-            <span className="font-medium text-gray-900">
-              {shift?.startTime} – {shift?.endTime}
-            </span>
-            {shiftMinutes != null ? <span className="text-gray-500"> ({shiftMinutes} min)</span> : null}
-          </p>
-
-          <div className="space-y-2">
-            <Label>Slot generate</Label>
-            <Controller
-              name="mode"
-              control={control}
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={(v) => handleModeChange(v as SlotMode)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select mode" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Auto Generate">Auto fills</SelectItem>
-                    <SelectItem value="Manual">Manual</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            {errors.mode && <p className="text-sm text-red-600">{errors.mode.message}</p>}
+          <div className="grid grid-cols-3 divide-x divide-blue-100 rounded-xl border border-blue-100 bg-blue-50/60 text-center">
+            <div className="px-3 py-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Shift window</p>
+              <p className="mt-0.5 font-mono text-sm font-bold text-gray-900">
+                {shift?.startTime} – {shift?.endTime}
+              </p>
+            </div>
+            <div className="px-3 py-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Duration</p>
+              <p className="mt-0.5 text-sm font-bold text-gray-900">
+                {shiftMinutes != null ? formatMinutes(shiftMinutes) : '—'}
+              </p>
+            </div>
+            <div className="px-3 py-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Slots</p>
+              <p className="mt-0.5 text-sm font-bold text-gray-900">
+                {numberOfSlots ?? '—'}
+                {slotDuration ? <span className="font-medium text-gray-500"> × {slotDuration} min</span> : null}
+              </p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label>Slot generation</Label>
+              <Controller
+                name="mode"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={(v) => handleModeChange(v as SlotMode)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Auto Generate">Auto fills</SelectItem>
+                      <SelectItem value="Manual">Manual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.mode && <p className="text-sm text-red-600">{errors.mode.message}</p>}
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="no-of-slots">No. of slots</Label>
               <Input
@@ -204,7 +226,7 @@ const ManageSlotTimeDialog = ({ open, onOpenChange, shift }: ManageSlotTimeDialo
               {errors.numberOfSlotsInput && <p className="text-sm text-red-600">{errors.numberOfSlotsInput.message}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="slot-time">SlotTime (min)</Label>
+              <Label htmlFor="slot-time">Slot length (min)</Label>
               <Input
                 id="slot-time"
                 type="text"
@@ -218,12 +240,36 @@ const ManageSlotTimeDialog = ({ open, onOpenChange, shift }: ManageSlotTimeDialo
               {errors.slotDurationInput && <p className="text-sm text-red-600">{errors.slotDurationInput.message}</p>}
             </div>
           </div>
+          <p className="-mt-2 text-xs text-gray-500">
+            {mode === 'Auto Generate'
+              ? 'Auto fills: set the number of slots and the slot length is worked out for you.'
+              : 'Manual: set the slot length and the number of slots is worked out for you.'}
+          </p>
 
           <div className="space-y-2">
-            <Label>Slot preview</Label>
+            <div className="flex items-center justify-between">
+              <Label>Slot preview</Label>
+              {previewSlots.length > 0 && (
+                <span className="text-xs text-gray-500">
+                  {previewSlots.length} slot{previewSlots.length === 1 ? '' : 's'}
+                </span>
+              )}
+            </div>
             {previewSlots.length > 0 ? (
-              <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800">
-                {previewSlots.map((s) => `(${s.start}-${s.end})`).join(', ')}
+              <div className="grid max-h-64 grid-cols-2 gap-2 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50/70 p-3 sm:grid-cols-3 md:grid-cols-4">
+                {previewSlots.map((slot, index) => (
+                  <div
+                    key={`${slot.start}-${slot.end}`}
+                    className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2.5 py-2 shadow-2xs"
+                  >
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#005390]/10 text-[11px] font-bold text-[#005390]">
+                      {index + 1}
+                    </span>
+                    <span className="font-mono text-xs font-semibold text-gray-800 whitespace-nowrap">
+                      {slot.start} – {slot.end}
+                    </span>
+                  </div>
+                ))}
               </div>
             ) : (
               <p className="text-sm text-amber-700">
@@ -245,7 +291,7 @@ const ManageSlotTimeDialog = ({ open, onOpenChange, shift }: ManageSlotTimeDialo
               disabled={!canSave || updateShift.isPending}
               className="bg-[#2a517c] hover:bg-[#476587] text-white"
             >
-              {updateShift.isPending ? 'Saving…' : 'Save SlotTime'}
+              {updateShift.isPending ? 'Saving…' : 'Save Slots'}
             </Button>
           </DialogFooter>
         </form>

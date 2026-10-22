@@ -5,7 +5,7 @@ export function InventoryTabs(props: Omit<ComponentProps<typeof ResponsiveTabs>,
   return (
     <ResponsiveTabs
       {...props}
-      className="w-full min-w-0 gap-6 [&_[role=tab][data-active]]:bg-primary [&_[role=tab][data-active]]:text-primary-foreground [&_[role=tab]:focus-visible]:outline-2 [&_[role=tab]:focus-visible]:outline-offset-2 [&_[role=tab]:focus-visible]:outline-ring"
+      className="w-full min-w-0 gap-6 [&_[role=tab][data-active]]:bg-[#005390] [&_[role=tab][data-active]]:text-white [&_[role=tab]:focus-visible]:outline-2 [&_[role=tab]:focus-visible]:outline-offset-2 [&_[role=tab]:focus-visible]:outline-ring"
     />
   )
 }

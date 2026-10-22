@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { useMutation } from '@tanstack/react-query'
-import { FieldGroup } from '@/components/ui/field'
+import { Boxes, Gauge, MapPin, Package, SlidersHorizontal } from 'lucide-react'
 import { NativeSelectOption } from '@/components/ui/native-select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
@@ -117,6 +117,8 @@ export function ItemEditor({
     },
   })
   const packType = useWatch({ control: form.control, name: 'packType' })
+  const packQuantity = useWatch({ control: form.control, name: 'packQuantity' })
+  const packUnit = useWatch({ control: form.control, name: 'packUnit' })
   return (
     <InventoryPage
       title={record ? 'Edit Inventory Item' : 'Add Inventory Item'}
@@ -152,14 +154,21 @@ export function ItemEditor({
           })}
         >
           <fieldset disabled={mutation.isPending} className="flex min-w-0 flex-col gap-6">
-            <FormSection title="Basic Information">
-              <FieldGroup>
+            <FormSection icon={Package} title="Item details" description="Fields marked * are required.">
+              <div className="grid gap-5 md:grid-cols-2 md:items-start">
                 <FormInput name="name" label="Item Name *" />
-                <FormCheck name="isActive" label="Active" />
-              </FieldGroup>
+                <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                  <FormCheck name="isActive" label="Active" />
+                  <p className="mt-1 pl-6 text-xs text-gray-500">Inactive items can't be ordered or issued.</p>
+                </div>
+              </div>
             </FormSection>
-            <FormSection title="Packaging">
-              <FieldGroup>
+            <FormSection
+              icon={Boxes}
+              title="Packaging"
+              description="How the item is bought, e.g. 25 kg per bag. Stock levels below are counted in these packages."
+            >
+              <div className="grid gap-5 md:grid-cols-3">
                 <FormInput name="packType" label="Package Type *">
                   <SelectOptions values={options.packageTypes} />
                 </FormInput>
@@ -167,43 +176,66 @@ export function ItemEditor({
                 <FormInput name="packUnit" label="Pack Unit *">
                   <SelectOptions values={options.allowedUnitsByPackageType[packType] ?? []} />
                 </FormInput>
-              </FieldGroup>
+              </div>
+              {packType && packUnit && Number(packQuantity) > 0 && (
+                <p className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#005390]/5 px-3 py-1.5 text-xs text-[#005390]">
+                  <Package className="size-3.5" />
+                  One {packType} holds{' '}
+                  <span className="font-semibold">
+                    {packQuantity} {packUnit}
+                  </span>
+                </p>
+              )}
             </FormSection>
             <FormSection
-              title="Stock Thresholds"
+              icon={Gauge}
+              title="Stock levels"
               description={
                 mixedThresholds
-                  ? 'Locations currently have different thresholds. Values shown are from the first location by name. Saving applies these values to all selected locations.'
-                  : 'Enter whole package counts. Saving applies these values to all selected locations.'
+                  ? 'Locations currently have different levels; the values shown are from the first location by name. Saving applies these values to all selected locations.'
+                  : `Counted in whole ${packType || 'package'}s. Saving applies these values to all selected locations.`
               }
             >
-              <FieldGroup>
-                <FormInput
-                  name="minQuantity"
-                  label={`Min Quantity${packType ? ` (${packType})` : ''} *`}
-                  type="number"
-                  min={0}
-                  step={1}
-                />
-                <FormInput
-                  name="maxQuantity"
-                  label={`Max Quantity${packType ? ` (${packType})` : ''} *`}
-                  type="number"
-                  min={0}
-                  step={1}
-                />
-                <FormInput
-                  name="threshold"
-                  label={`Threshold${packType ? ` (${packType})` : ''} *`}
-                  type="number"
-                  min={0}
-                  step={1}
-                />
-              </FieldGroup>
+              <div className="grid gap-5 md:grid-cols-3">
+                <div>
+                  <FormInput
+                    name="minQuantity"
+                    label={`Min Quantity${packType ? ` (${packType})` : ''} *`}
+                    type="number"
+                    min={0}
+                    step={1}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">The least a property should keep in stock.</p>
+                </div>
+                <div>
+                  <FormInput
+                    name="threshold"
+                    label={`Threshold${packType ? ` (${packType})` : ''} *`}
+                    type="number"
+                    min={0}
+                    step={1}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">At or below this the item shows as Low Stock.</p>
+                </div>
+                <div>
+                  <FormInput
+                    name="maxQuantity"
+                    label={`Max Quantity${packType ? ` (${packType})` : ''} *`}
+                    type="number"
+                    min={0}
+                    step={1}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">The most a property should hold.</p>
+                </div>
+              </div>
             </FormSection>
             {category.fieldDefinitions.length > 0 && (
-              <FormSection title="Additional Information">
-                <FieldGroup>
+              <FormSection
+                icon={SlidersHorizontal}
+                title="Additional information"
+                description={`Extra details recorded for every ${category.name} item.`}
+              >
+                <div className="grid gap-5 md:grid-cols-2">
                   {category.fieldDefinitions.map((f) => (
                     <FormInput
                       key={f.id}
@@ -222,10 +254,14 @@ export function ItemEditor({
                       ) : undefined}
                     </FormInput>
                   ))}
-                </FieldGroup>
+                </div>
               </FormSection>
             )}
-            <FormSection title="Locations" description="Select from the locations assigned to this category.">
+            <FormSection
+              icon={MapPin}
+              title="Stocked at"
+              description="The properties that keep this item. Only properties that use this category can be picked."
+            >
               <LocationTable options={locations} />
               {!locations.some((l) => !l.disabled) && (
                 <p className="mt-3 text-sm">

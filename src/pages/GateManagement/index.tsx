@@ -12,7 +12,10 @@ import {
   Home,
   ChevronLeft,
   ChevronRight,
+  Search,
+  ShieldCheck,
 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 import { useLocationContext } from '@/hooks/useLocation'
 import {
   getGateStats,
@@ -22,6 +25,8 @@ import {
   addGateEntryItems,
 } from '@/lib/services/gateService'
 import type { GateEntry, GatePreapproved, GateStats } from '@/lib/types'
+import type { GateStaffUser } from '@/lib/types/gate'
+import { PageHeader } from '@/components/common/PageHeader'
 
 interface StatCardProps {
   title: string
@@ -44,6 +49,94 @@ const StatCard = ({ title, value, icon: Icon, colorClass }: StatCardProps) => (
   </div>
 )
 
+const staffUserName = (u?: GateStaffUser | null) =>
+  u ? `${u.profile?.firstName ?? ''} ${u.profile?.lastName ?? ''}`.trim() || u.username || u.email || 'Staff' : ''
+
+const APPROVER_BADGES: Record<string, { label: string; cls: string }> = {
+  RESIDENT: { label: 'Resident', cls: 'bg-violet-50 text-violet-700 border-violet-200' },
+  FAMILY_MEMBER: { label: 'Family member', cls: 'bg-violet-50 text-violet-700 border-violet-200' },
+  STAFF: { label: 'Staff', cls: 'bg-sky-50 text-sky-700 border-sky-200' },
+}
+
+/** Who approved (or rejected) the entry, what kind of person they are, and when. */
+const ApprovedByCell = ({ entry }: { entry: GateEntry }) => {
+  // A pre-approved pass is approved by the resident who raised it (see Raised By); only a
+  // staff decision at the gate (e.g. rejecting the pass) is shown here.
+  if (entry.entrySource === 'Preapproved' && entry.approverType !== 'STAFF') {
+    return <span className="text-gray-400">— Pre-approved</span>
+  }
+  if (!entry.approverType) {
+    return entry.status === 'PendingApproval' ? (
+      <span className="font-semibold text-purple-700">Awaiting approval</span>
+    ) : (
+      <span className="text-gray-400">Not recorded</span>
+    )
+  }
+  const badge = APPROVER_BADGES[entry.approverType]
+  return (
+    <div className="space-y-1">
+      <p className="font-bold text-gray-900">{entry.approverName || 'Unknown'}</p>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {badge && (
+          <span className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${badge.cls}`}>{badge.label}</span>
+        )}
+        {entry.status === 'Rejected' && <span className="text-[10px] font-bold text-red-600">Rejected</span>}
+      </div>
+      {entry.approvedAt && (
+        <p className="text-[11px] text-gray-500 whitespace-nowrap">{new Date(entry.approvedAt).toLocaleString()}</p>
+      )}
+    </div>
+  )
+}
+
+const personName = (p?: { firstName?: string; lastName?: string | null } | null) =>
+  p ? `${p.firstName ?? ''} ${p.lastName ?? ''}`.trim() : ''
+
+const PersonBadge = ({ type }: { type?: string | null }) => {
+  const badge = type ? APPROVER_BADGES[type] : undefined
+  return badge ? (
+    <span className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${badge.cls}`}>{badge.label}</span>
+  ) : null
+}
+
+/** Who raised the entry: the resident behind a pre-approval, or the guard who raised a walk-in. */
+const RaisedByCell = ({ entry }: { entry: GateEntry }) => {
+  const r = entry.raisedBy
+  if (!r) return <span className="text-gray-400">Not recorded</span>
+  return (
+    <div className="space-y-1">
+      <p className="font-bold text-gray-900">{r.name || 'Unknown'}</p>
+      <PersonBadge type={r.type} />
+      {r.type === 'FAMILY_MEMBER' && r.residentName && (
+        <p className="text-[11px] text-gray-500">Household of {r.residentName}</p>
+      )}
+      {entry.createdAt && (
+        <p className="text-[11px] text-gray-500 whitespace-nowrap">
+          {/* A pre-approval was raised when the resident made the pass, not when the visitor arrived. */}
+          {new Date(entry.preapproved?.createdAt || entry.createdAt).toLocaleString()}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** The resident (or family member) who made the pre-approval. */
+const PreapprovedByCell = ({ preapproved }: { preapproved: GatePreapproved }) => {
+  const resident = personName(preapproved.resident)
+  const member = personName(preapproved.createdByFamilyMember)
+  if (!resident && !member) return <span className="text-gray-400">Not recorded</span>
+  return (
+    <div className="space-y-1">
+      <p className="font-bold text-gray-900">{member || resident}</p>
+      <PersonBadge type={member ? 'FAMILY_MEMBER' : 'RESIDENT'} />
+      {member && resident && <p className="text-[11px] text-gray-500">Household of {resident}</p>}
+      {preapproved.unit?.unit_number && (
+        <p className="text-[11px] text-gray-500">Flat {preapproved.unit.unit_number}</p>
+      )}
+    </div>
+  )
+}
+
 export default function GateManagementPage() {
   const { selectedLocationId, hasResourcePermission } = useLocationContext()
   const canUpdateGNS = hasResourcePermission('GNS', 'update')
@@ -53,6 +146,7 @@ export default function GateManagementPage() {
   const [activeTab, setActiveTab] = useState<'ENTRIES' | 'INVITES'>('ENTRIES')
   const [isLoading, setIsLoading] = useState(false)
 
+  const [searchTerm, setSearchTerm] = useState('')
   const [entriesPage, setEntriesPage] = useState(1)
   const [entriesTotalPages, setEntriesTotalPages] = useState(1)
   const [preapprovedPage, setPreapprovedPage] = useState(1)
@@ -149,33 +243,54 @@ export default function GateManagementPage() {
     }
   }
 
+  const filteredEntries = entries.filter((entry) => {
+    if (!searchTerm.trim()) return true
+    const term = searchTerm.toLowerCase()
+    return (
+      entry.visitorName?.toLowerCase().includes(term) ||
+      entry.visitorPhone?.toLowerCase().includes(term) ||
+      entry.vehicleNumber?.toLowerCase().includes(term) ||
+      entry.unit?.unit_number?.toLowerCase().includes(term) ||
+      entry.company?.toLowerCase().includes(term) ||
+      entry.personToMeet?.toLowerCase().includes(term)
+    )
+  })
+
+  const filteredPreapproved = preapproved.filter((item) => {
+    if (!searchTerm.trim()) return true
+    const term = searchTerm.toLowerCase()
+    return (
+      item.visitorName?.toLowerCase().includes(term) ||
+      item.visitorPhone?.toLowerCase().includes(term) ||
+      item.vehicleNumber?.toLowerCase().includes(term) ||
+      item.unit?.unit_number?.toLowerCase().includes(term) ||
+      item.company?.toLowerCase().includes(term) ||
+      item.personToMeet?.toLowerCase().includes(term)
+    )
+  })
+
   return (
     <div className="space-y-6 pb-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Visitors & Gate Management</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Track visitors, manage walk-in approvals, and monitor gate operations.
-          </p>
+      <PageHeader
+        icon={ShieldCheck}
+        title="Visitors & Gate Management"
+        description="Track visitors, manage walk-in approvals, and monitor gate operations."
+      />
+
+      {/* Top Search & Filter Container Bar (Matching Image 1) */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 p-3.5 rounded-2xl shadow-2xs">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+          <Input
+            type="text"
+            className="pl-9 pr-4 py-2 h-9 w-full rounded-xl text-xs bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-700 shadow-2xs focus:ring-2 focus:ring-[#005390]/20"
+            placeholder="Search visitors by name, vehicle, unit..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
 
-        <div className="flex items-center gap-3">
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value)
-              setEntriesPage(1)
-              setPreapprovedPage(1)
-            }}
-            className="p-2 border border-gray-200 rounded-lg text-sm text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">All Statuses</option>
-            <option value="Inside">Inside</option>
-            <option value="Completed">Completed</option>
-            <option value="PendingApproval">Walk-ins (Pending)</option>
-            <option value="Rejected">Rejected</option>
-            <option value="Expired">Expired</option>
-          </select>
+        <div className="flex items-center gap-2 flex-wrap">
           <select
             value={visitorTypeFilter}
             onChange={(e) => {
@@ -183,15 +298,33 @@ export default function GateManagementPage() {
               setEntriesPage(1)
               setPreapprovedPage(1)
             }}
-            className="p-2 border border-gray-200 rounded-lg text-sm text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
           >
-            <option value="">All Types</option>
-            <option value="Guest">Guest</option>
-            <option value="Delivery">Delivery</option>
-            <option value="Cab">Cab</option>
-            <option value="Office">Office</option>
-            <option value="Other">Other</option>
+            <option value="">Visitor Type: All Types</option>
+            <option value="Guest">Visitor Type: Guest</option>
+            <option value="Delivery">Visitor Type: Delivery</option>
+            <option value="Cab">Visitor Type: Cab</option>
+            <option value="Office">Visitor Type: Office</option>
+            <option value="Other">Visitor Type: Other</option>
           </select>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value)
+              setEntriesPage(1)
+              setPreapprovedPage(1)
+            }}
+            className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
+          >
+            <option value="">Status: All Statuses</option>
+            <option value="Inside">Status: Inside</option>
+            <option value="Completed">Status: Completed</option>
+            <option value="PendingApproval">Status: Walk-ins (Pending)</option>
+            <option value="Rejected">Status: Rejected</option>
+            <option value="Expired">Status: Expired</option>
+          </select>
+
           <input
             type="date"
             value={dateFilter}
@@ -200,7 +333,7 @@ export default function GateManagementPage() {
               setEntriesPage(1)
               setPreapprovedPage(1)
             }}
-            className="p-2 border border-gray-200 rounded-lg text-sm text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
           />
         </div>
       </div>
@@ -255,7 +388,7 @@ export default function GateManagementPage() {
                 : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-transparent'
             }`}
           >
-            Pre-Approved (L1 App)
+            Pre-Approved (by Resident)
           </button>
         </div>
 
@@ -271,19 +404,21 @@ export default function GateManagementPage() {
                   <th className="pb-3 px-2 font-semibold">Type</th>
                   <th className="pb-3 px-2 font-semibold">Source</th>
                   <th className="pb-3 px-2 font-semibold">Status</th>
+                  <th className="pb-3 px-2 font-semibold">Raised By</th>
+                  <th className="pb-3 px-2 font-semibold">Approved By</th>
                   <th className="pb-3 px-2 font-semibold">Time</th>
                   <th className="pb-3 px-2 font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {entries.length === 0 ? (
+                {filteredEntries.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-sm text-gray-500 font-medium">
+                    <td colSpan={9} className="py-8 text-center text-sm text-gray-500 font-medium">
                       No entries found
                     </td>
                   </tr>
                 ) : (
-                  entries.map((entry) => (
+                  filteredEntries.map((entry) => (
                     <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
                       <td className="py-4 px-2">
                         <div className="flex items-center gap-3">
@@ -357,22 +492,6 @@ export default function GateManagementPage() {
                             </span>
                           </div>
                         )}
-                        {(entry.createdByUser as any) && (
-                          <div>
-                            <span className="font-semibold text-gray-500 text-[10px] uppercase">Requested By:</span>{' '}
-                            <span className="text-gray-700 text-xs">
-                              {(entry.createdByUser as any).username || (entry.createdByUser as any).email}
-                            </span>
-                          </div>
-                        )}
-                        {(entry.approvedByUser as any) && (
-                          <div>
-                            <span className="font-semibold text-gray-500 text-[10px] uppercase">Approved By:</span>{' '}
-                            <span className="text-gray-700 text-xs">
-                              {(entry.approvedByUser as any).username || (entry.approvedByUser as any).email}
-                            </span>
-                          </div>
-                        )}
                         {entry.items && (entry.items as any[]).length > 0 && (
                           <div className="mt-2 bg-white rounded border border-gray-200 p-1.5 shadow-sm">
                             <p className="text-[10px] uppercase font-bold text-gray-400 mb-1 border-b pb-0.5">
@@ -410,8 +529,6 @@ export default function GateManagementPage() {
                           !entry.vehicleNumber &&
                           !entry.personToMeet &&
                           !entry.notes &&
-                          !entry.createdByUser &&
-                          !entry.approvedByUser &&
                           (!entry.items || (entry.items as any[]).length === 0) &&
                           !entry.preapproved?.scheduleType && <span className="text-gray-400">-</span>}
                       </td>
@@ -445,14 +562,27 @@ export default function GateManagementPage() {
                           {entry.status}
                         </span>
                       </td>
+                      <td className="py-4 px-2 text-xs">
+                        <RaisedByCell entry={entry} />
+                      </td>
+                      <td className="py-4 px-2 text-xs">
+                        <ApprovedByCell entry={entry} />
+                      </td>
                       <td className="py-4 px-2 text-xs text-gray-600 font-medium">
                         {entry.createdAt && (
                           <div className="text-blue-600 mb-1 font-semibold whitespace-nowrap">
                             Entry: {new Date(entry.createdAt).toLocaleString()}
                           </div>
                         )}
-                        {entry.clockedInAt ? `In: ${new Date(entry.clockedInAt).toLocaleTimeString()}` : '-'} <br />
+                        {entry.clockedInAt ? `In: ${new Date(entry.clockedInAt).toLocaleTimeString()}` : '-'}
+                        {entry.clockedInAt && entry.clockedInByUser && (
+                          <span className="text-gray-400"> by {staffUserName(entry.clockedInByUser)}</span>
+                        )}
+                        <br />
                         {entry.clockedOutAt ? `Out: ${new Date(entry.clockedOutAt).toLocaleTimeString()}` : ''}
+                        {entry.clockedOutAt && entry.clockedOutByUser && (
+                          <span className="text-gray-400"> by {staffUserName(entry.clockedOutByUser)}</span>
+                        )}
                       </td>
                       <td className="py-4 px-2">
                         {canUpdateGNS && entry.status === 'PendingApproval' && (
@@ -508,20 +638,21 @@ export default function GateManagementPage() {
                   <th className="pb-3 px-2 font-semibold">Visitor</th>
                   <th className="pb-3 px-2 font-semibold">Details</th>
                   <th className="pb-3 px-2 font-semibold">Type</th>
+                  <th className="pb-3 px-2 font-semibold">Pre-Approved By</th>
                   <th className="pb-3 px-2 font-semibold">Expected</th>
                   <th className="pb-3 px-2 font-semibold">Status</th>
                   <th className="pb-3 px-2 font-semibold">QR Code</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {preapproved.length === 0 ? (
+                {filteredPreapproved.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-sm text-gray-500 font-medium">
+                    <td colSpan={7} className="py-8 text-center text-sm text-gray-500 font-medium">
                       No preapproved found
                     </td>
                   </tr>
                 ) : (
-                  preapproved.map((preapproved) => (
+                  filteredPreapproved.map((preapproved) => (
                     <tr key={preapproved.id} className="hover:bg-gray-50 transition-colors">
                       <td className="py-4 px-2">
                         <div className="flex items-center gap-3">
@@ -601,6 +732,9 @@ export default function GateManagementPage() {
                           !preapproved.personToMeet &&
                           !preapproved.notes &&
                           !preapproved.scheduleType && <span className="text-gray-400">-</span>}
+                      </td>
+                      <td className="py-4 px-2 text-xs">
+                        <PreapprovedByCell preapproved={preapproved} />
                       </td>
                       <td className="py-4 px-2">
                         <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-md font-semibold border border-blue-200">

@@ -156,13 +156,13 @@ export function DataTable<TData, TValue>({
     <div className="flex flex-col gap-4">
       {/* Top Search Bar & Filters */}
       {(showSearchBar || filterActions) && (
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 p-3.5 rounded-2xl shadow-2xs">
           {showSearchBar ? (
             <div className="relative w-full max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               <Input
                 type="text"
-                className="pl-9 pr-4 py-2 w-full rounded-xl text-xs bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 shadow-2xs focus:ring-2 focus:ring-[#005390]/20"
+                className="pl-9 pr-4 py-2 h-9 w-full rounded-xl text-xs bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-700 shadow-2xs focus:ring-2 focus:ring-[#005390]/20"
                 placeholder={searchPlaceholder}
                 value={
                   onSearchChange !== undefined

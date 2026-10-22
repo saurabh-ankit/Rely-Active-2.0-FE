@@ -1,98 +1,81 @@
 import { useState } from 'react'
-import { Utensils, Calendar, Users, Clock, ShoppingBag, ClipboardCheck } from 'lucide-react'
+import { Utensils, Calendar, Users, Clock, ShoppingBag, ClipboardCheck, Lock } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
+import { useResourceAccess } from '@/hooks/useResourceAccess'
+import { RESOURCE, type ResourceKey } from '@/lib/permissions/resourceKeys'
 import { FnbMenuPlannerScreen } from '../Property/components/FnbMenuPlannerScreen'
 import { FnbPropertySettingsScreen } from '../Property/components/FnbPropertySettingsScreen'
 import { FnbDishesMasterTab } from '../GlobalSettings/components/FnbDishesMasterTab'
 import { FnbResidentOrdersTab } from '../Property/components/FnbResidentOrdersTab'
 import { FnbAttendanceTab } from '../Property/components/FnbAttendanceTab'
+import { PageHeader } from '@/components/common/PageHeader'
+
+type FnbTab = 'planner' | 'packages' | 'dishes' | 'meal-slots' | 'resident-orders' | 'attendance'
+
+/** Each tab is a sub-module of Food; users only see the tabs they can view. */
+const TABS: Array<{ value: FnbTab; label: string; icon: LucideIcon; iconClass?: string; resource: ResourceKey }> = [
+  { value: 'planner', label: 'Menu Planner & Slots', icon: Calendar, resource: RESOURCE.FNB_MENU_PLANNER },
+  {
+    value: 'attendance',
+    label: 'Food Attendance',
+    icon: ClipboardCheck,
+    iconClass: 'text-emerald-600',
+    resource: RESOURCE.FNB_ATTENDANCE,
+  },
+  { value: 'packages', label: 'Property Packages & Pricing', icon: Users, resource: RESOURCE.FNB_PACKAGES },
+  { value: 'dishes', label: 'Dish Catalogue', icon: Utensils, resource: RESOURCE.FNB_DISHES },
+  { value: 'meal-slots', label: 'Meal Slots & Timings', icon: Clock, resource: RESOURCE.FNB_MEAL_SLOTS },
+  { value: 'resident-orders', label: 'Resident Orders', icon: ShoppingBag, resource: RESOURCE.FNB_ORDERS },
+]
 
 export default function FnbManagementPage() {
   const { selectedLocationId } = useLocationContext()
-  const [activeTab, setActiveTab] = useState<
-    'planner' | 'packages' | 'dishes' | 'meal-slots' | 'resident-orders' | 'attendance'
-  >('planner')
+  const access: Record<FnbTab, boolean> = {
+    planner: useResourceAccess(RESOURCE.FNB_MENU_PLANNER).canView,
+    attendance: useResourceAccess(RESOURCE.FNB_ATTENDANCE).canView,
+    packages: useResourceAccess(RESOURCE.FNB_PACKAGES).canView,
+    dishes: useResourceAccess(RESOURCE.FNB_DISHES).canView,
+    'meal-slots': useResourceAccess(RESOURCE.FNB_MEAL_SLOTS).canView,
+    'resident-orders': useResourceAccess(RESOURCE.FNB_ORDERS).canView,
+  }
+  const visibleTabs = TABS.filter((t) => access[t.value])
+  const [chosenTab, setActiveTab] = useState<FnbTab | null>(null)
+  // The chosen tab, or the first one the user may see (permissions can change with the property).
+  const activeTab = chosenTab && access[chosenTab] ? chosenTab : (visibleTabs[0]?.value ?? null)
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-blue-50 text-[#005390]">
-              <Utensils className="w-6 h-6" />
-            </div>
-            Food & Beverage (F&B) Management
-          </h1>
-          <p className="text-xs text-gray-500 mt-1">
-            Manage food packages, dish catalogues, flexible daily menus, meal slots & timings, resident meal orders, and
-            dine-in attendance.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Utensils}
+        title="Food & Beverage (F&B) Management"
+        description="Manage food packages, dish catalogues, flexible daily menus, meal slots & timings, resident meal orders, and dine-in attendance."
+      />
 
       {/* Tabs */}
       <div className="flex border-b border-gray-200 space-x-6 text-sm font-semibold text-gray-500 overflow-x-auto">
-        <button
-          type="button"
-          onClick={() => setActiveTab('planner')}
-          className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-            activeTab === 'planner' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
-          }`}
-        >
-          <Calendar className="w-4 h-4" /> Menu Planner & Slots
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('attendance')}
-          className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-            activeTab === 'attendance' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
-          }`}
-        >
-          <ClipboardCheck className="w-4 h-4 text-emerald-600" /> Food Attendance
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('packages')}
-          className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-            activeTab === 'packages' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
-          }`}
-        >
-          <Users className="w-4 h-4" /> Property Packages & Pricing
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('dishes')}
-          className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-            activeTab === 'dishes' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
-          }`}
-        >
-          <Utensils className="w-4 h-4" /> Dish Catalogue
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('meal-slots')}
-          className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-            activeTab === 'meal-slots' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
-          }`}
-        >
-          <Clock className="w-4 h-4" /> Meal Slots & Timings
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('resident-orders')}
-          className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-            activeTab === 'resident-orders'
-              ? 'border-[#005390] text-[#005390]'
-              : 'border-transparent hover:text-gray-800'
-          }`}
-        >
-          <ShoppingBag className="w-4 h-4" /> Resident Orders
-        </button>
+        {visibleTabs.map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            onClick={() => setActiveTab(tab.value)}
+            className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
+              activeTab === tab.value ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
+            }`}
+          >
+            <tab.icon className={`w-4 h-4 ${tab.iconClass ?? ''}`} /> {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Tab Contents */}
-      {!selectedLocationId ? (
+      {!activeTab ? (
+        <div className="p-12 text-center bg-white rounded-2xl border border-gray-100">
+          <Lock className="mx-auto mb-2 h-6 w-6 text-gray-300" />
+          <p className="text-sm font-semibold text-gray-600">You don&apos;t have access to any Food sections here.</p>
+          <p className="mt-1 text-xs text-gray-400">Ask a super admin to grant access in Module Permissions.</p>
+        </div>
+      ) : !selectedLocationId ? (
         <div className="p-12 text-center text-gray-400 bg-white rounded-2xl border border-gray-100">
           Please select a location from the top header to view location-wise F&B management.
         </div>

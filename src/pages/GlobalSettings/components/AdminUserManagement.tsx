@@ -4,6 +4,14 @@ import { useForm, useWatch, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { ColumnDef } from '@tanstack/react-table'
+import {
+  DepartmentCell,
+  EmployeeContact,
+  EmployeeIdentity,
+  EmployeeStatus,
+  JoinedDate,
+  RoleBadges,
+} from '@/components/employees/EmployeeCells'
 import { DataTable } from '@/components/ui/data-table'
 import {
   ArrowLeft,
@@ -16,7 +24,6 @@ import {
   Pencil,
   Phone,
   Plus,
-  Shield,
   ShieldCheck,
   Stethoscope,
   User,
@@ -289,6 +296,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
   const [propertySelectionError, setPropertySelectionError] = useState<string | null>(null)
   const [selectedDepartmentFilter, setSelectedDepartmentFilter] = useState('ALL')
   const [selectedJobCategoryFilter, setSelectedJobCategoryFilter] = useState('ALL')
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState('ALL')
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('ALL')
   const [dateOfBirthInputKey, setDateOfBirthInputKey] = useState(0)
 
@@ -739,8 +747,13 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
       resetForm()
       navigate(isLocationScoped ? '/admin/employees' : '/global-settings/users')
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to save user.'
+      const apiErr = err as { response?: { data?: { message?: string } } }
+      const apiMsg = apiErr?.response?.data?.message
+      const message = apiMsg || (err instanceof Error ? err.message : 'Failed to save user.')
       setErrorMsg(message)
+      if (apiMsg && apiMsg.toLowerCase().includes('username')) {
+        setError('username', { type: 'manual', message: apiMsg })
+      }
       notifyError('Failed to Save User', message)
     }
   }
@@ -802,10 +815,10 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
               <p className="text-xs text-gray-500 mt-0.5">
                 {isEditMode
                   ? isLocationScoped
-                    ? `Update staff profile details and role assigned to ${selectedLocationName || 'this location'}.`
+                    ? 'Update staff profile details and role.'
                     : 'Update staff member profile details, authorization role, operational department, and property locations.'
                   : isLocationScoped
-                    ? `Add a new staff member account for ${selectedLocationName || 'this location'}.`
+                    ? 'Add a new staff member account.'
                     : 'Add a new staff member account, assign system authorization role, operational department, credentials, and property locations.'}
               </p>
             </div>
@@ -1236,10 +1249,11 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                 autoComplete="username"
               />
               <Input
-                label={isEditMode ? 'New Password (Optional)' : 'Login Password'}
+                label="Password"
                 type="password"
                 {...register('password')}
                 error={errors.password?.message}
+                helperText="Password cannot be viewed for security reasons, but you can enter a new password here to update it."
                 placeholder={
                   isEditMode
                     ? 'Leave blank to keep existing password'
@@ -1393,8 +1407,57 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
       if (!hasCat) return false
     }
 
+    if (selectedRoleFilter !== 'ALL') {
+      const targetRole = selectedRoleFilter.toUpperCase()
+      const roleCodes: string[] = []
+      const roleNames: string[] = []
+      if (uRoleObj?.code) roleCodes.push(uRoleObj.code.toUpperCase())
+
+      const uRoleWithName = uRecord.role as { name?: string } | undefined
+      if (uRoleWithName?.name) roleNames.push(uRoleWithName.name.toUpperCase())
+
+      u.userRoles?.forEach((ur) => {
+        const urObj = ur as unknown as Record<string, unknown>
+        const code = ur.role?.code || (urObj.code as string | undefined)
+        const name = ur.role?.name || (urObj.name as string | undefined)
+        if (code) roleCodes.push(code.toUpperCase())
+        if (name) roleNames.push(name.toUpperCase())
+      })
+
+      u.userLocations?.forEach((ul) => {
+        const ulObj = ul as unknown as Record<string, unknown>
+        const code = ul.role?.code || (ulObj.code as string | undefined)
+        const name = ul.role?.name || (ulObj.name as string | undefined)
+        if (code) roleCodes.push(code.toUpperCase())
+        if (name) roleNames.push(name.toUpperCase())
+      })
+
+      if (!roleCodes.includes(targetRole) && !roleNames.includes(targetRole)) return false
+    }
+
     if (selectedStatusFilter === 'ACTIVE' && (!u.isActive || u.status !== 'ACTIVE')) return false
     if (selectedStatusFilter === 'INACTIVE' && u.isActive && u.status === 'ACTIVE') return false
+
+    if (debouncedSearch.trim()) {
+      const term = debouncedSearch.trim().toLowerCase()
+      const firstName = u.profile?.firstName || u.profile?.first_name || ''
+      const lastName = u.profile?.lastName || u.profile?.last_name || ''
+      const fullName = [firstName, lastName].filter(Boolean).join(' ').toLowerCase()
+      const username = (u.username || '').toLowerCase()
+      const email = (u.email || '').toLowerCase()
+      const phone = (u.phone || u.profile?.phone || '').toLowerCase()
+      const empCode = (u.profile?.employeeCode || u.profile?.employee_code || '').toLowerCase()
+      const dateOfJoining = (u.profile?.dateOfJoining || u.profile?.date_of_joining || '').toLowerCase()
+
+      return (
+        fullName.includes(term) ||
+        username.includes(term) ||
+        email.includes(term) ||
+        phone.includes(term) ||
+        empCode.includes(term) ||
+        dateOfJoining.includes(term)
+      )
+    }
 
     return true
   })
@@ -1403,44 +1466,16 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
     {
       accessorKey: 'username',
       header: 'Employee',
-      cell: ({ row }) => {
-        const u = row.original
-        const fName = u.profile?.firstName || u.profile?.first_name || ''
-        const lName = u.profile?.lastName || u.profile?.last_name || ''
-        const fullName = `${fName} ${lName}`.trim() || u.username || 'System User'
-        const empCode = u.profile?.employeeCode || u.profile?.employee_code
-
-        return (
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#005390]/10 text-[#005390] flex items-center justify-center font-bold text-xs shrink-0">
-              {fullName.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <div className="font-bold text-gray-900 text-sm">{fullName}</div>
-              {empCode && <div className="text-[10px] text-gray-400">Code: {empCode}</div>}
-            </div>
-          </div>
-        )
-      },
+      cell: ({ row }) => <EmployeeIdentity user={row.original} />,
     },
     {
       id: 'contact',
       header: 'Contact',
-      cell: ({ row }) => {
-        const u = row.original
-        return (
-          <div>
-            <div className="text-gray-800 font-semibold text-xs">{u.email || u.phone || u.profile?.phone || 'N/A'}</div>
-            {(u.phone || u.profile?.phone) && u.email && (
-              <div className="text-[10px] text-gray-400">{u.phone || u.profile?.phone}</div>
-            )}
-          </div>
-        )
-      },
+      cell: ({ row }) => <EmployeeContact user={row.original} />,
     },
     {
       id: 'departmentCategory',
-      header: 'Dept & Job Category',
+      header: 'Department',
       cell: ({ row }) => {
         const u = row.original
         const pairs: Array<{ deptName?: string; catName?: string }> = []
@@ -1480,98 +1515,17 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
           }
         })
 
-        if (pairs.length === 0) {
-          return <span className="text-xs text-gray-400">N/A</span>
-        }
-
-        return (
-          <div className="space-y-1">
-            {pairs.map((p, idx) => (
-              <div key={idx} className="space-y-0.5">
-                {p.deptName && <div className="text-xs font-bold text-gray-900">{p.deptName}</div>}
-                {p.catName && (
-                  <span className="inline-block text-[10px] font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200">
-                    {p.catName}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        )
+        return <DepartmentCell pairs={pairs} />
       },
-    },
-    {
-      id: 'dateOfJoining',
-      header: 'Date of Joining',
-      cell: ({ row }) => (
-        <span className="text-gray-700 font-medium font-mono text-xs">
-          {row.original.profile?.dateOfJoining || row.original.profile?.date_of_joining || 'N/A'}
-        </span>
-      ),
-    },
-    {
-      id: 'employeeCode',
-      header: 'Employee Code',
-      cell: ({ row }) => (
-        <span className="font-mono text-xs font-bold text-[#005390] bg-[#005390]/10 px-2.5 py-1 rounded-md">
-          {row.original.profile?.employeeCode || row.original.profile?.employee_code || 'N/A'}
-        </span>
-      ),
     },
     {
       id: 'roles',
-      header: 'Assigned Roles',
-      cell: ({ row }) => {
-        const user = row.original
-        const roleSet = new Set<string>()
-
-        const uObj = user as unknown as Record<string, unknown>
-        const uRole = uObj.role as { name?: string; code?: string } | undefined
-        if (uRole?.name) roleSet.add(uRole.name)
-        else if (uRole?.code) roleSet.add(uRole.code)
-
-        user.userRoles?.forEach((ur) => {
-          const urObj = ur as unknown as Record<string, unknown>
-          const rObj = ur.role as { name?: string; code?: string } | undefined
-          const rName = rObj?.name || rObj?.code || (urObj.name as string) || (urObj.code as string)
-          if (rName && typeof rName === 'string' && rName.trim()) {
-            roleSet.add(rName.trim())
-          }
-        })
-
-        user.userLocations?.forEach((ul) => {
-          const ulObj = ul as unknown as Record<string, unknown>
-          const rObj = ul.role as { name?: string; code?: string } | undefined
-          const rName = rObj?.name || rObj?.code || (ulObj.name as string) || (ulObj.code as string)
-          if (rName && typeof rName === 'string' && rName.trim()) {
-            roleSet.add(rName.trim())
-          }
-        })
-
-        const rolesList = Array.from(roleSet)
-
-        return (
-          <div className="flex flex-wrap gap-1.5">
-            {rolesList.length > 0 ? (
-              rolesList.map((r, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#005390]/10 text-[#005390] border border-[#005390]/20"
-                >
-                  <Shield className="w-3 h-3 shrink-0 text-[#005390]" />
-                  {r}
-                </span>
-              ))
-            ) : (
-              <span className="text-gray-400 text-[10px]">Staff</span>
-            )}
-          </div>
-        )
-      },
+      header: 'Role',
+      cell: ({ row }) => <RoleBadges user={row.original} />,
     },
     {
       id: 'properties',
-      header: 'Assigned Properties',
+      header: 'Properties',
       cell: ({ row }) => {
         const u = row.original
         const isSa = u.userRoles?.some((ur) => ur.role?.code === 'SUPER_ADMIN')
@@ -1619,14 +1573,14 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
       },
     },
     {
+      id: 'dateOfJoining',
+      header: 'Joined',
+      cell: ({ row }) => <JoinedDate user={row.original} />,
+    },
+    {
       id: 'status',
       header: 'Status',
-      cell: ({ row }) => (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-          <Check className="w-3 h-3" />
-          {row.original.status || 'Active'}
-        </span>
-      ),
+      cell: ({ row }) => <EmployeeStatus user={row.original} />,
     },
     {
       id: 'actions',
@@ -1760,7 +1714,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
               }}
               className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
             >
-              <option value="ALL">All Departments</option>
+              <option value="ALL">All departments</option>
               {departments.map((dept) => (
                 <option key={dept.id} value={dept.id}>
                   {dept.name}
@@ -1773,10 +1727,23 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
               onChange={(e) => setSelectedJobCategoryFilter(e.target.value)}
               className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
             >
-              <option value="ALL">All Job Categories</option>
+              <option value="ALL">All job categories</option>
               {availableFilterCategories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
                   {cat.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={selectedRoleFilter}
+              onChange={(e) => setSelectedRoleFilter(e.target.value)}
+              className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
+            >
+              <option value="ALL">All roles</option>
+              {roles.map((role) => (
+                <option key={role.id} value={role.code || role.name}>
+                  {role.name}
                 </option>
               ))}
             </select>
@@ -1786,7 +1753,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
               onChange={(e) => setSelectedStatusFilter(e.target.value)}
               className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
             >
-              <option value="ALL">All Statuses</option>
+              <option value="ALL">All statuses</option>
               <option value="ACTIVE">Active</option>
               <option value="INACTIVE">Inactive</option>
             </select>
