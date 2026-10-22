@@ -1,4 +1,3 @@
-import { Label } from '@/components/ui/label'
 import { useState, useMemo, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -24,7 +23,7 @@ import { InventoryTabs } from '@/components/inventory/InventoryTabs'
 import { ActiveStatus, InventoryStatus } from '@/components/inventory/InventoryStatus'
 import StatCard from '@/pages/AssetManagement/components/StatCard'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Empty, EmptyHeader, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { useLocation } from '@/hooks/useLocation'
@@ -802,26 +801,28 @@ function TransactionList({
         filterActions={
           <div className="flex flex-wrap items-end gap-3">
             <SupplierFilter locationId={locationId} value={supplierId} onChange={setSupplierId} />
-            <Label htmlFor="transaction-from" className="flex flex-col gap-1 text-sm">
-              From
-              <Input
+            <div className="flex flex-col gap-1 text-sm">
+              <span className="text-xs font-medium text-gray-700">From</span>
+              <DatePicker
                 id="transaction-from"
-                type="date"
                 value={startDate}
-                max={endDate || undefined}
-                onChange={(e) => setStartDate(e.target.value)}
+                maxDate={endDate || undefined}
+                onChange={setStartDate}
+                placeholder="From date"
+                className="w-[150px]"
               />
-            </Label>
-            <Label htmlFor="transaction-to" className="flex flex-col gap-1 text-sm">
-              To
-              <Input
+            </div>
+            <div className="flex flex-col gap-1 text-sm">
+              <span className="text-xs font-medium text-gray-700">To</span>
+              <DatePicker
                 id="transaction-to"
-                type="date"
                 value={endDate}
-                min={startDate || undefined}
-                onChange={(e) => setEndDate(e.target.value)}
+                minDate={startDate || undefined}
+                onChange={setEndDate}
+                placeholder="To date"
+                className="w-[150px]"
               />
-            </Label>
+            </div>
           </div>
         }
 

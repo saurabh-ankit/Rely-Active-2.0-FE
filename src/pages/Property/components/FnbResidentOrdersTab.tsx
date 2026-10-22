@@ -1,4 +1,5 @@
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
@@ -671,11 +672,12 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
 
           {/* Date Filter */}
           <div className="relative">
-            <Input
-              type="date"
+            <DatePicker
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-xl bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
+              onChange={setSelectedDate}
+              placeholder="Filter by date"
+              clearable
+              className="w-full sm:w-[160px] h-9 text-xs font-medium border-gray-200 rounded-xl bg-gray-50/50"
             />
           </div>
         </div>

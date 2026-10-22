@@ -1,8 +1,8 @@
 import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {
-  Calendar,
   CheckCircle2,
   Clock,
   Home,
@@ -24,7 +24,6 @@ import type {
   FnbPropertyMealSlot,
   FnbGuestAttendance,
 } from '@/lib/types/fnb'
-import { Label } from '@/components/ui/label'
 
 const DEFAULT_MEAL_SLOTS = [
   { key: 'breakfast', label: 'Breakfast', time: '07:30 - 09:30' },
@@ -598,16 +597,12 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
             </div>
           </div>
 
-          <Label className="flex w-fit items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2">
-            <Calendar className="h-4 w-4 text-[#005390]" />
-            <span className="sr-only">Date</span>
-            <Input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
-              className="cursor-pointer bg-transparent text-sm font-semibold text-gray-800 focus:outline-none"
-            />
-          </Label>
+          <DatePicker
+            value={selectedDate}
+            onChange={(val) => val && setSelectedDate(val)}
+            clearable={false}
+            className="h-10 rounded-xl border-gray-200 bg-gray-50 px-3.5 text-xs font-semibold text-gray-800"
+          />
         </div>
 
         <div className="space-y-2 border-t border-gray-100 pt-4">

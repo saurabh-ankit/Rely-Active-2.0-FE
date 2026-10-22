@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useUnbilledServices } from '@/hooks/react-query/billing'
@@ -22,11 +22,23 @@ export function UnbilledServices({ unitId }: { unitId: string }) {
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <Label className="mb-1 block text-xs text-gray-600">From</Label>
-            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            <DatePicker
+              value={startDate}
+              onChange={setStartDate}
+              maxDate={endDate}
+              placeholder="From date"
+              className="w-[150px]"
+            />
           </div>
           <div>
             <Label className="mb-1 block text-xs text-gray-600">To</Label>
-            <Input type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} />
+            <DatePicker
+              value={endDate}
+              minDate={startDate}
+              onChange={setEndDate}
+              placeholder="To date"
+              className="w-[150px]"
+            />
           </div>
           <p className="pb-2 text-sm text-gray-600">
             Total: <b>{formatInr(data?.total ?? 0)}</b>

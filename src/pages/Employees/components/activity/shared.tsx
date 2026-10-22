@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { RANGE_PRESETS, humanize, statusLabel, type DateRange } from './utils'
-import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 
 /** Shared pieces for the employee activity tabs. */
 
@@ -14,9 +14,6 @@ export const RangeFilter = ({ value, onChange }: { value: DateRange; onChange: (
     const r = p.range()
     return r.from === value.from && r.to === value.to
   })?.key
-
-  const inputCls =
-    'h-9 rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-700 outline-none focus:border-[#005390] dark:border-gray-700 dark:bg-slate-900 dark:text-gray-200'
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -39,22 +36,24 @@ export const RangeFilter = ({ value, onChange }: { value: DateRange; onChange: (
         ))}
       </div>
       <div className="flex items-center gap-1.5">
-        <Input
-          type="date"
+        <DatePicker
           aria-label="From date"
           value={value.from}
-          max={value.to}
-          onChange={(e) => e.target.value && onChange({ ...value, from: e.target.value })}
-          className={inputCls}
+          maxDate={value.to}
+          onChange={(from) => from && onChange({ ...value, from })}
+          placeholder="From"
+          clearable={false}
+          className="w-[140px] h-9 text-xs font-semibold"
         />
         <span className="text-xs text-gray-400">to</span>
-        <Input
-          type="date"
+        <DatePicker
           aria-label="To date"
           value={value.to}
-          min={value.from}
-          onChange={(e) => e.target.value && onChange({ ...value, to: e.target.value })}
-          className={inputCls}
+          minDate={value.from}
+          onChange={(to) => to && onChange({ ...value, to })}
+          placeholder="To"
+          clearable={false}
+          className="w-[140px] h-9 text-xs font-semibold"
         />
       </div>
     </div>

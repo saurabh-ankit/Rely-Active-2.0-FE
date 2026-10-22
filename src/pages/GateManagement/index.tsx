@@ -17,6 +17,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -362,16 +363,15 @@ export default function GateManagementPage() {
             </SelectContent>
           </Select>
 
-          <Input
-            type="date"
-            lang="en-IN"
+          <DatePicker
             value={dateFilter}
-            onChange={(e) => {
-              setDateFilter(e.target.value)
+            onChange={(val) => {
+              setDateFilter(val)
               setEntriesPage(1)
               setPreapprovedPage(1)
             }}
-            className="h-9 w-[150px] px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs shrink-0"
+            placeholder="Filter by date"
+            className="h-9 w-[160px] px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 shadow-2xs shrink-0"
           />
         </div>
       </div>

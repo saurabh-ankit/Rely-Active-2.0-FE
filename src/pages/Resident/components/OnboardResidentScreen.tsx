@@ -1674,7 +1674,25 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                   {errors.gender && <p className="mt-1 text-xs font-semibold text-red-500">{errors.gender.message}</p>}
                 </div>
 
-                <Input label="Date of Birth" required type="date" {...register('dob')} error={errors.dob?.message} />
+                <Controller
+                  control={control}
+                  name="dob"
+                  render={({ field }) => (
+                    <Input
+                      label="Date of Birth"
+                      required
+                      type="date"
+                      name={field.name}
+                      ref={field.ref}
+                      value={field.value || ''}
+                      onChange={(e) => field.onChange(e.target.value)}
+                      onBlur={field.onBlur}
+                      min="1900-01-01"
+                      max={new Date().toISOString().split('T')[0]}
+                      error={errors.dob?.message}
+                    />
+                  )}
+                />
 
                 <div>
                   <Label
@@ -2065,13 +2083,25 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                 >
                                   Date of Birth <span className="text-red-500 font-bold">*</span>
                                 </Label>
-                                <Input
-                                  id={`fm-dob-input-${idx}`}
-                                  type="date"
-                                  {...register(`familyMembers.${idx}.dob`)}
-                                  className={cn(
-                                    'h-9 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20',
-                                    fmErrors?.dob && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+                                <Controller
+                                  control={control}
+                                  name={`familyMembers.${idx}.dob`}
+                                  render={({ field }) => (
+                                    <Input
+                                      id={`fm-dob-input-${idx}`}
+                                      type="date"
+                                      name={field.name}
+                                      ref={field.ref}
+                                      value={field.value || ''}
+                                      onChange={(e) => field.onChange(e.target.value)}
+                                      onBlur={field.onBlur}
+                                      min="1900-01-01"
+                                      max={new Date().toISOString().split('T')[0]}
+                                      className={cn(
+                                        'h-9 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20',
+                                        fmErrors?.dob && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+                                      )}
+                                    />
                                   )}
                                 />
                                 {fmErrors?.dob && (
