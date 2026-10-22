@@ -363,7 +363,7 @@ export function GenerateInvoice({ unitId, editingInvoice, onCancelEdit, onSaved 
           <CardContent>
             {isFetching && !preview ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Loader2 className="mb-3 h-8 w-8 animate-spin text-[#2b4f7e]" />
+                <Loader2 className="mb-3 h-8 w-8 animate-spin text-primary" />
                 <p className="font-medium text-gray-600">Loading charges...</p>
               </div>
             ) : error ? (

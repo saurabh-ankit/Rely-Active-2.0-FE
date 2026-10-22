@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Building2, CalendarDays, Edit, Home, Layers, MapPin, Phone, RefreshCw } from 'lucide-react'
+import { Building2, CalendarDays, Edit, Home, Layers, Loader2, MapPin, Phone } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -376,8 +376,8 @@ export default function PropertyDetailsPage() {
   }
   if (!property) {
     return (
-      <div className="flex items-center justify-center gap-2 p-16 text-sm text-gray-400">
-        <RefreshCw className="h-4 w-4 animate-spin" /> Loading property…
+      <div className="flex items-center justify-center gap-2 p-16 text-sm text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" /> Loading property…
       </div>
     )
   }

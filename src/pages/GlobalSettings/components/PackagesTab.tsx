@@ -17,6 +17,7 @@ import {
   Gift,
   Minus,
   Lock,
+  Loader2,
 } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
 import { notifyError, notifySuccess } from '@/utils/toast'
@@ -835,7 +836,7 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                       />
                       {isLoadingPickerTasks ? (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                          <div className="w-3.5 h-3.5 border-2 border-[#005390] border-t-transparent rounded-full animate-spin" />
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
                         </div>
                       ) : taskSearchQuery ? (
                         <Button
@@ -853,8 +854,8 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
 
                     <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
                       {isLoadingPickerTasks && filteredAvailableTasks.length === 0 ? (
-                        <div className="text-center py-6 text-xs text-gray-400">
-                          <div className="w-5 h-5 border-2 border-[#005390] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                        <div className="text-center py-6 text-xs text-muted-foreground">
+                          <Loader2 className="w-5 h-5 animate-spin text-primary mx-auto mb-2" />
                           <span>Searching care tasks...</span>
                         </div>
                       ) : filteredAvailableTasks.length === 0 ? (

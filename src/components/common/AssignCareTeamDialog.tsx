@@ -185,7 +185,7 @@ const AssignCareTeamContent: React.FC<{
 
           {loadingTeam ? (
             <div className="flex items-center justify-center py-6">
-              <Loader2 className="w-5 h-5 animate-spin text-[#005390]" />
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
             </div>
           ) : activeTeam.length === 0 ? (
             <div className="text-center py-6 space-y-2">
@@ -371,7 +371,7 @@ const AssignCareTeamContent: React.FC<{
           {/* User List */}
           {loadingUsers ? (
             <div className="flex items-center justify-center py-10">
-              <Loader2 className="w-6 h-6 animate-spin text-[#005390]" />
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
             </div>
           ) : filteredUsers.length === 0 ? (
             <div className="py-10 text-center space-y-2">

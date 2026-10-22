@@ -1,6 +1,6 @@
 import { Input } from '@/components/ui/input'
 import { useQuery } from '@tanstack/react-query'
-import { Check, RefreshCw, Utensils } from 'lucide-react'
+import { Check, Loader2, Utensils } from 'lucide-react'
 import api from '@/lib/api/axios'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -83,8 +83,8 @@ export function OnboardFoodPackages({ locId, people, value, onChange, existing =
 
   if (isLoading) {
     return (
-      <div className="py-6 text-center text-xs text-gray-400">
-        <RefreshCw className="mx-auto mb-1 h-4 w-4 animate-spin text-[#005390]" />
+      <div className="py-6 text-center text-xs text-muted-foreground">
+        <Loader2 className="mx-auto mb-1 h-4 w-4 animate-spin text-primary" />
         Loading food packages...
       </div>
     )

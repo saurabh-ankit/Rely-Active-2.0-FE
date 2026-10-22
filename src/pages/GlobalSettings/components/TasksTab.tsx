@@ -16,6 +16,7 @@ import {
   CalendarDays,
   Sparkles,
   Lock,
+  Loader2,
 } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
 import {
@@ -512,8 +513,8 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
         <CardContent className="p-0">
           {isLoading ? (
             <div className="py-16 text-center">
-              <div className="w-8 h-8 border-3 border-[#005390] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-xs text-gray-500 font-medium">Loading care tasks...</p>
+              <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
+              <p className="text-xs text-muted-foreground font-medium">Loading care tasks...</p>
             </div>
           ) : careTasks.length === 0 ? (
             <div className="py-16 text-center">
@@ -771,9 +772,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                   disabled={isSubmitting}
                   className="inline-flex items-center gap-1.5 px-5 py-2 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004170] transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {isSubmitting && (
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  )}
+                  {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   {editingTask ? 'Save Changes' : 'Create Care Task'}
                 </Button>
               </div>
@@ -819,9 +818,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                 disabled={isDeleting}
                 className="inline-flex items-center gap-1.5 px-5 py-2 h-auto rounded-xl bg-rose-600 text-white text-xs font-bold shadow-md hover:bg-rose-700 transition-colors cursor-pointer disabled:opacity-50"
               >
-                {isDeleting && (
-                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                )}
+                {isDeleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Delete Care Task
               </Button>
             </div>

@@ -10,6 +10,7 @@ import {
   Edit,
   FileText,
   Hash,
+  Loader2,
   Mail,
   MapPin,
   Phone,
@@ -241,8 +242,8 @@ export default function CompanyPage() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="flex items-center gap-3 text-indigo-600">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
           <span className="text-sm font-medium">Loading company details...</span>
         </div>
       </div>

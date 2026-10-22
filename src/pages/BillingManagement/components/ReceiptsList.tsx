@@ -134,7 +134,7 @@ export function ReceiptsList({ unitId }: { unitId: string }) {
 
       {isLoading ? (
         <Card className="gap-0 rounded-xl border-gray-200 bg-white py-12">
-          <Loader2 className="mx-auto h-6 w-6 animate-spin text-[#2b4f7e]" />
+          <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
         </Card>
       ) : groups.length === 0 ? (
         <Card className="gap-0 rounded-xl border-gray-200 bg-white py-14 text-center text-gray-500">

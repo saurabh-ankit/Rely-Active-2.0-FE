@@ -14,6 +14,7 @@ import { TEXT_LIBRARY } from '@/lib/constants/textLibrary'
 import { saveCompanyFormDataAPI } from '@/lib/services/companyService'
 import { useCompaniesQuery, COMPANY_KEYS } from '@/hooks/react-query/company'
 import { companySchema, type CompanyFormValues } from '@/pages/Company'
+import { FullScreenLoader } from '@/components/ui/FullScreenLoader'
 
 export default function SetupPage() {
   const navigate = useNavigate()
@@ -141,14 +142,7 @@ export default function SetupPage() {
   }
 
   if (isChecking) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Checking setup status...</p>
-        </div>
-      </div>
-    )
+    return <FullScreenLoader message="Checking setup status..." />
   }
 
   return (

@@ -173,7 +173,7 @@ export function MiscCharges({ unitId, residents }: MiscChargesProps) {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center py-10">
-              <Loader2 className="h-6 w-6 animate-spin text-[#2b4f7e]" />
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
           ) : items.length === 0 ? (
             <p className="py-10 text-center text-sm text-gray-500">No miscellaneous charges logged for this flat.</p>

@@ -533,8 +533,8 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
               <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {isLoadingCompletions ? (
                   <TableRow>
-                    <TableCell colSpan={isCompact ? 5 : 6} className="py-12 text-center text-gray-400">
-                      <Loader2 className="mx-auto size-6 animate-spin text-[#005390]" />
+                    <TableCell colSpan={isCompact ? 5 : 6} className="py-12 text-center text-muted-foreground">
+                      <Loader2 className="mx-auto size-6 animate-spin text-primary" />
                       <p className="mt-2 text-xs">Loading completed care task sessions...</p>
                     </TableCell>
                   </TableRow>
@@ -692,8 +692,8 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
               <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {isLoadingAssignments ? (
                   <TableRow>
-                    <TableCell colSpan={isCompact ? 5 : 6} className="py-12 text-center text-gray-400">
-                      <Loader2 className="mx-auto size-6 animate-spin text-[#005390]" />
+                    <TableCell colSpan={isCompact ? 5 : 6} className="py-12 text-center text-muted-foreground">
+                      <Loader2 className="mx-auto size-6 animate-spin text-primary" />
                       <p className="mt-2 text-xs">Loading care task assignments...</p>
                     </TableCell>
                   </TableRow>

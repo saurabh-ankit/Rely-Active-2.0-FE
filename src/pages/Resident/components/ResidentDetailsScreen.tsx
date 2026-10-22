@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { format, isValid, parseISO } from 'date-fns'
-import { ArrowLeft, CalendarDays, Edit, HeartPulse, Home, Phone, RefreshCw, User, Users } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Edit, HeartPulse, Home, Loader2, Phone, User, Users } from 'lucide-react'
 import type { ResidentItem } from '@/lib/types'
 import { residentService } from '@/lib/services/residentService'
 import { AssignCareTaskDialog } from '@/components/common/AssignCareTaskDialog'
@@ -147,7 +147,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
           {isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}
         </Button>
         <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-400 shadow-xl backdrop-blur-xl">
-          <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#005390]" />
+          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
           Loading resident profile & family details...
         </Card>
       </div>

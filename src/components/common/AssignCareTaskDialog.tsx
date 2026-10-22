@@ -232,7 +232,7 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
                 2. Select Care Task <span className="text-rose-500">*</span>
               </Label>
               <div className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400 font-medium">
-                {loadingTasks && <Loader2 className="w-3 h-3 animate-spin text-[#005390]" />}
+                {loadingTasks && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
                 <span>{careTasks.length} available from BE</span>
               </div>
             </div>

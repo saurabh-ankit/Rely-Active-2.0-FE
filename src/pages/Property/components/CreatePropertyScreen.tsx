@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import React, { useState } from 'react'
-import { ArrowLeft, Building2, Home, Layers, MapPin, Plus, Sparkles, Trash2, X, Check } from 'lucide-react'
+import { ArrowLeft, Building2, Home, Layers, Loader2, MapPin, Plus, Sparkles, Trash2, X, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AddEntityDialog } from './structure/AddEntityDialog'
 import { EntityUnitsEditor } from './structure/EntityUnitsEditor'
@@ -2046,7 +2046,7 @@ export default function CreatePropertyScreen({
             >
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
-                  <span className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   Saving...
                 </span>
               ) : editPropertyId ? (

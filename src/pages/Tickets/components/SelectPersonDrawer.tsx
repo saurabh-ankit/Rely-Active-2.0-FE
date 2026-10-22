@@ -327,8 +327,8 @@ export function SelectPersonDrawer({ isOpen, ticket, locationId, onClose, onAssi
           {/* Staff list */}
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
             {isLoading ? (
-              <div className="py-12 text-center text-gray-400">
-                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#005390]" />
+              <div className="py-12 text-center text-muted-foreground">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
                 <p className="text-xs font-medium">Loading department staff…</p>
               </div>
             ) : (

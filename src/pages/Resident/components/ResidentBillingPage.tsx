@@ -5,6 +5,7 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
+  Loader2,
   Package,
   Plus,
   Printer,
@@ -487,7 +488,7 @@ export const ResidentBillingPage: React.FC = () => {
       {/* ── Loading & Error States ────────────────────────────────────── */}
       {isLoading && (
         <Card className="gap-0 rounded-3xl border border-gray-100 bg-white/80 p-12 text-center shadow-lg">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#005390]" />
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
           <p className="mt-3 text-sm font-semibold text-gray-600">
             Calculating resident charges & invoice breakdown...
           </p>

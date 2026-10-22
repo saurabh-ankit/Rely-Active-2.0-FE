@@ -45,6 +45,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
+import { FullScreenLoader } from '@/components/ui/FullScreenLoader'
 
 interface ParsedCompletion {
   notes: string | null
@@ -737,14 +738,22 @@ export default function TicketsPage() {
       />
 
       {/* Main Workspace Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[520px]">
+        <FullScreenLoader fullScreen={false} isVisible={isLoading} message="Loading tickets..." />
+
         {/* Left Column: Tickets Queue List (4 cols) */}
         <Card className="gap-0 lg:col-span-4 bg-white rounded-2xl border-gray-200 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-13rem)] min-h-[520px]">
           {/* Tab Filter Header with Primary Brand Blue */}
-          <div className="p-2 border-b border-gray-100 bg-gray-50/50">
+          <div className="relative z-30 p-2 border-b border-gray-100 bg-gray-50/50">
             <Tabs
               value={activeTab}
-              onValueChange={(val) => setActiveTab(val as 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED')}
+              onValueChange={(val) => {
+                const nextTab = val as 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED'
+                if (nextTab !== activeTab) {
+                  setIsLoading(true)
+                  setActiveTab(nextTab)
+                }
+              }}
               className="w-full gap-0"
             >
               <div className="rounded-2xl bg-card text-card-foreground/70 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100/80">
@@ -2339,3 +2348,5 @@ export default function TicketsPage() {
     </div>
   )
 }
+
+export { TicketsPage }

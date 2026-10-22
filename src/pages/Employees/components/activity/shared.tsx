@@ -1,5 +1,5 @@
 import type React from 'react'
-import { ChevronLeft, ChevronRight, Flag, Inbox, RefreshCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Flag, Inbox, Loader2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card'
@@ -191,8 +191,8 @@ export const FilterChips = ({
 )
 
 export const LoadingState = ({ label }: { label: string }) => (
-  <div className="p-8 text-center text-xs text-gray-400">
-    <RefreshCw className="mx-auto mb-2 h-5 w-5 animate-spin text-[#005390]" />
+  <div className="p-8 text-center text-xs text-muted-foreground">
+    <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin text-primary" />
     {label}
   </div>
 )

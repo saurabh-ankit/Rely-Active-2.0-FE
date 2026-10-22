@@ -160,8 +160,8 @@ export const MedicationAdministrationLogModal: React.FC<MedicationAdministration
         </DialogHeader>
 
         {isLoading ? (
-          <div className="py-12 text-center text-gray-400">
-            <Loader2 className="mx-auto size-6 animate-spin text-[#005390]" />
+          <div className="py-12 text-center text-muted-foreground">
+            <Loader2 className="mx-auto size-6 animate-spin text-primary" />
             <p className="mt-2 text-xs">Loading administrations...</p>
           </div>
         ) : data.length === 0 ? (

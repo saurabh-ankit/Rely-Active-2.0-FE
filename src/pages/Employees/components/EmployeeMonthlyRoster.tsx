@@ -12,7 +12,7 @@ import {
   startOfMonth,
   startOfWeek,
 } from 'date-fns'
-import { ChevronLeft, ChevronRight, Clock, MapPin, RefreshCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, Loader2, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useListShiftEmployeeDates } from '@/hooks/react-query/roster'
 import { Panel } from '@/components/common/DetailPanel'
@@ -168,7 +168,7 @@ export const EmployeeMonthlyRoster = ({
               This month
             </Button>
           )}
-          {isFetching && !isLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin text-gray-400" />}
+          {isFetching && !isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />}
         </div>
         <p className="text-xs text-gray-500">
           <span className="font-bold text-gray-900 dark:text-white">{working.length}</span>{' '}
@@ -183,8 +183,8 @@ export const EmployeeMonthlyRoster = ({
       </div>
 
       {isLoading ? (
-        <div className="p-8 text-center text-xs text-gray-400">
-          <RefreshCw className="mx-auto mb-2 h-5 w-5 animate-spin text-[#005390]" />
+        <div className="p-8 text-center text-xs text-muted-foreground">
+          <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin text-primary" />
           Loading roster…
         </div>
       ) : (

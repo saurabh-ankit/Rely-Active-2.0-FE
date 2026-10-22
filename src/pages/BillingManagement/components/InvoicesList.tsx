@@ -91,7 +91,7 @@ export function InvoicesList({ unitId, onEditInvoice }: InvoicesListProps) {
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={COLUMNS.length} className="py-12 text-center">
-                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-[#2b4f7e]" />
+                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
                 </TableCell>
               </TableRow>
             ) : invoices.length === 0 ? (

@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import { useCarePackagesQuery, useChangePackageMutation } from '@/hooks/react-query/medical'
 import type { CarePackage } from '@/lib/types/medical'
 import { notifyError, notifySuccess } from '@/utils/toast'
-import { Boxes, RefreshCw, Search, Check, ChevronDown, X } from 'lucide-react'
+import { Boxes, Loader2, Search, Check, ChevronDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ChangePackageDialogProps {
@@ -234,8 +234,8 @@ export const ChangePackageDialog: React.FC<ChangePackageDialogProps> = ({
               New Care Package *
             </Label>
             {isLoading ? (
-              <div className="py-4 text-center text-xs text-gray-400 flex items-center justify-center gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin text-[#005390]" />
+              <div className="py-4 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
                 Loading packages...
               </div>
             ) : (
@@ -434,7 +434,7 @@ export const ChangePackageDialog: React.FC<ChangePackageDialogProps> = ({
             >
               {changePackageMutation.isPending ? (
                 <span className="inline-flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   Changing...
                 </span>
               ) : (

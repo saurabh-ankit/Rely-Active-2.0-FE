@@ -10,9 +10,9 @@ import {
   History,
   KeyRound,
   LayoutGrid,
+  Loader2,
   Mail,
   Phone,
-  RefreshCw,
   ShieldAlert,
   User,
   UserCheck,
@@ -124,8 +124,8 @@ export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ is
     return (
       <div className="w-full space-y-6 pb-12">
         {backButton}
-        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center text-sm text-gray-400">
-          <RefreshCw className="mx-auto mb-2 h-6 w-6 animate-spin text-[#005390]" />
+        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center text-sm text-muted-foreground">
+          <Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin text-primary" />
           Loading employee profile…
         </div>
       </div>

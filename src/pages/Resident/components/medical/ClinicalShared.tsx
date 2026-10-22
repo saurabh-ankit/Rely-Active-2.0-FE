@@ -57,8 +57,8 @@ export const ClinicalEmptyState: React.FC<ClinicalEmptyStateProps> = ({ icon: Ic
 )
 
 export const ClinicalLoadingState: React.FC<{ label: string }> = ({ label }) => (
-  <div className="py-12 text-center text-gray-400">
-    <Loader2 className="mx-auto size-6 animate-spin text-[#005390]" />
+  <div className="py-12 text-center text-muted-foreground">
+    <Loader2 className="mx-auto size-6 animate-spin text-primary" />
     <p className="mt-2 text-xs">{label}</p>
   </div>
 )

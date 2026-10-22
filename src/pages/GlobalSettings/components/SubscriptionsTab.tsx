@@ -7,8 +7,8 @@ import {
   ChevronRight,
   Clock,
   IndianRupee,
+  Loader2,
   Package,
-  RefreshCw,
   Search,
   User,
 } from 'lucide-react'
@@ -213,7 +213,7 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
       {/* Main Content Area */}
       {isLoading ? (
         <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-400 shadow-xl backdrop-blur-xl">
-          <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#005390]" />
+          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
           Loading package subscriptions...
         </Card>
       ) : subscriptionsByResident.size === 0 ? (

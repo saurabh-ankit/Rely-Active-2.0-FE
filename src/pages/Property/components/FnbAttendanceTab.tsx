@@ -723,8 +723,8 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
 
       {/* Main Content Area */}
       {loading ? (
-        <Card className="gap-0 flex flex-col items-center gap-3 rounded-2xl border-gray-100 bg-white p-16 text-gray-400">
-          <Loader2 className="h-7 w-7 animate-spin text-[#005390]" />
+        <Card className="gap-0 flex flex-col items-center gap-3 rounded-2xl border-gray-100 bg-white p-16 text-muted-foreground">
+          <Loader2 className="h-7 w-7 animate-spin text-primary" />
           <p className="text-sm font-medium">Loading attendance…</p>
         </Card>
       ) : error ? (

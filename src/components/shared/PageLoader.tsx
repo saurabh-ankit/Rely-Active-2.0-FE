@@ -8,34 +8,24 @@ interface PageLoaderProps {
 }
 
 /**
- * PageLoader component - loader component with delay matching rely-assist style
+ * PageLoader component - loader component with optional delay matching rely-assist style
  */
 const PageLoader = ({ isVisible = true, message = 'Loading...', delay = 0 }: PageLoaderProps) => {
-  const [showLoader, setShowLoader] = useState(false)
+  const [showDelayedLoader, setShowDelayedLoader] = useState(false)
 
   useEffect(() => {
-    if (!isVisible) {
-      const timer = setTimeout(() => setShowLoader(false), 0)
-      return () => clearTimeout(timer)
-    }
+    if (!isVisible || delay <= 0) return
 
-    const timer = setTimeout(() => setShowLoader(true), 0)
-
-    if (delay > 0) {
-      const delayTimer = setTimeout(() => {
-        setShowLoader(false)
-      }, delay)
-
-      return () => {
-        clearTimeout(timer)
-        clearTimeout(delayTimer)
-      }
-    }
+    const timer = setTimeout(() => {
+      setShowDelayedLoader(true)
+    }, delay)
 
     return () => clearTimeout(timer)
   }, [isVisible, delay])
 
-  if (!showLoader) return null
+  const shouldShow = delay > 0 ? isVisible && showDelayedLoader : isVisible
+
+  if (!shouldShow) return null
 
   return <FullScreenLoader isVisible={true} message={message} />
 }

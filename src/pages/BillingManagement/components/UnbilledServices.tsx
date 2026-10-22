@@ -49,7 +49,7 @@ export function UnbilledServices({ unitId }: { unitId: string }) {
       <CardContent className="p-0">
         {isFetching ? (
           <div className="flex justify-center py-10">
-            <Loader2 className="h-6 w-6 animate-spin text-[#2b4f7e]" />
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : services.length === 0 ? (
           <p className="py-10 text-center text-sm text-gray-500">Everything in this range has been billed.</p>

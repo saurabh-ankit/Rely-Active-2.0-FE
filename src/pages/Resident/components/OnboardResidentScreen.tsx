@@ -10,10 +10,10 @@ import {
   CheckCircle2,
   IndianRupee,
   KeyRound,
+  Loader2,
   Mail,
   Phone,
   Plus,
-  RefreshCw,
   ShieldAlert,
   Trash2,
   UserPlus,
@@ -1353,7 +1353,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
 
       {isLoading ? (
         <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center text-sm text-gray-400">
-          <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#005390]" />
+          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
           Loading flats…
         </div>
       ) : (
@@ -2292,7 +2292,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
               <div className="space-y-5">
                 {isLoadingPackages ? (
                   <div className="text-center py-6 text-xs text-gray-400">
-                    <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-[#005390]" />
+                    <Loader2 className="w-4 h-4 animate-spin mx-auto mb-1 text-primary" />
                     Loading care packages...
                   </div>
                 ) : carePackages.length === 0 ? (

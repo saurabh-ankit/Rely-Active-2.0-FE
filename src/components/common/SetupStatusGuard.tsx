@@ -1,4 +1,5 @@
 import { Navigate } from 'react-router-dom'
+import { Loader2 } from 'lucide-react'
 import { useCompaniesQuery } from '@/hooks/react-query/company'
 
 interface SetupStatusGuardProps {
@@ -11,8 +12,8 @@ export function SetupStatusGuard({ children }: SetupStatusGuardProps) {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="flex items-center gap-3 text-blue-600">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
           <span className="text-sm font-medium">Validating company setup status...</span>
         </div>
       </div>

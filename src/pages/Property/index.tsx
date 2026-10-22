@@ -1,7 +1,7 @@
 import { Input } from '@/components/ui/input'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Building2, Edit, Eye, Layers, MapPin, Plus, Search, Trash2 } from 'lucide-react'
+import { Building2, Edit, Eye, Layers, Loader2, MapPin, Plus, Search, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PROPERTY_TYPE_LABELS, type EntityInput, type Property } from './types'
@@ -111,8 +111,8 @@ export default function PropertyPage() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="flex items-center gap-3 text-[#005390]">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#005390] border-t-transparent" />
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
           <span className="text-sm font-medium">Loading properties...</span>
         </div>
       </div>

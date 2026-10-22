@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Receipt, CheckCircle2, Save, Building2, Percent } from 'lucide-react'
+import { Receipt, Loader2, CheckCircle2, Save, Building2, Percent } from 'lucide-react'
 import { useGetTaxSettings, useUpdateTaxSettings } from '@/hooks/react-query/billing'
 import type { TaxSettings } from '@/lib/services/billingService'
 import { Button } from '@/components/ui/button'
@@ -16,8 +16,8 @@ export const GstTaxSettingsTab: React.FC = () => {
   if (isLoading) {
     return (
       <Card className="gap-0 flex items-center justify-center p-12 bg-white/60 rounded-3xl border border-white/50 backdrop-blur-xl">
-        <div className="flex items-center gap-3 text-sm font-semibold text-gray-500">
-          <div className="w-5 h-5 border-2 border-[#005390] border-t-transparent rounded-full animate-spin" />
+        <div className="flex items-center gap-3 text-sm font-semibold text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin text-primary" />
           Loading Tax & GST Settings...
         </div>
       </Card>
@@ -90,7 +90,7 @@ const GstTaxSettingsForm: React.FC<{ initial?: TaxSettings }> = ({ initial }) =>
           >
             {updateTaxMutation.isPending ? (
               <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
                 Saving...
               </>
             ) : (

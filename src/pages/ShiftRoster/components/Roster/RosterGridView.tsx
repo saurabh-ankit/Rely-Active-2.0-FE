@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Download, Eye, EyeOff, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, Eye, EyeOff, Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -217,7 +217,11 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                 className="h-8 px-2.5 text-xs text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-emerald-300 shadow-sm font-medium"
                 title="Download Excel for selected employees only"
               >
-                <Download className={`h-3.5 w-3.5 mr-1.5 ${isExporting ? 'animate-spin' : ''}`} />
+                {isExporting ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5 mr-1.5" />
+                )}
                 Download Selected ({selectedEmpIds.size})
               </Button>
               <Button
@@ -250,7 +254,11 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
               className={navButtonClass}
               title="Download current grid as Excel"
             >
-              <Download className={`h-3.5 w-3.5 mr-1.5 ${isExporting ? 'animate-spin' : ''}`} />
+              {isExporting ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5 mr-1.5" />
+              )}
               {isExporting ? 'Exporting…' : 'Download Excel'}
             </Button>
           )}
