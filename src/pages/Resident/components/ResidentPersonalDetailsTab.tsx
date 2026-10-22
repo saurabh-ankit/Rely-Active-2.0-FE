@@ -2,6 +2,7 @@ import React from 'react'
 import { differenceInYears, format, isValid, parseISO } from 'date-fns'
 import { CreditCard, Home, KeyRound, Mail, Phone, ShieldAlert, User, Users, Utensils } from 'lucide-react'
 import type { ResidentItem } from '@/lib/types'
+import { Button } from '@/components/ui/button'
 import { InfoList, Panel } from '@/components/common/DetailPanel'
 import { cn, getFileUrl } from '@/lib/utils'
 import { unitLocationLabel } from '@/utils/unitLabel'
@@ -43,6 +44,7 @@ export interface ResidentPersonalDetailsTabProps {
   fnbSubscriptions: FnbSubscriptionItem[]
   getSlotDisplayName: (slot: string) => string
   canUpdateResident: boolean
+  onAssignFoodPackage?: () => void
 }
 
 const parseDate = (value?: string | null) => {
@@ -133,6 +135,7 @@ export const ResidentPersonalDetailsTab: React.FC<ResidentPersonalDetailsTabProp
   fnbSubscriptions,
   getSlotDisplayName,
   canUpdateResident,
+  onAssignFoodPackage,
 }) => {
   const unit = resident.unit
   const propertyName = resident.property?.property_name || resident.property?.name || null
@@ -165,6 +168,10 @@ export const ResidentPersonalDetailsTab: React.FC<ResidentPersonalDetailsTabProp
                 <span className="text-[11px] text-gray-500">
                   Change in <b className="text-gray-700">Food &amp; Beverage → Property Packages &amp; Pricing</b>
                 </span>
+              ) : canUpdateResident ? (
+                <Button variant="secondary" className="h-8 rounded-xl text-xs" onClick={onAssignFoodPackage}>
+                  Assign plan
+                </Button>
               ) : null
             }
           >
