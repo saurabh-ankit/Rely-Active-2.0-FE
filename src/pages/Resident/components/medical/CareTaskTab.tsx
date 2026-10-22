@@ -2,6 +2,7 @@ import React from 'react'
 import { HeartPulse, Users } from 'lucide-react'
 import type { ResidentItem } from '@/lib/types'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { AssignedTasksTab } from '@/pages/Medical/components/AssignedTasksTab'
 import { ClinicalCard } from './ClinicalShared'
 
@@ -22,12 +23,12 @@ export const CareTaskTab: React.FC<CareTaskTabProps> = ({
 }) => {
   if (!resident.isResiding) {
     return (
-      <div className="rounded-3xl border border-dashed border-gray-200 bg-slate-50/80 p-10 text-center shadow-xs">
+      <Card className="gap-0 rounded-3xl border border-dashed border-gray-200 bg-slate-50/80 p-10 text-center shadow-xs">
         <HeartPulse className="w-8 h-8 text-rose-300 mx-auto mb-3" />
         <p className="text-sm font-semibold text-gray-600">
           Clinical care and care-team assignment are available only for physically residing residents.
         </p>
-      </div>
+      </Card>
     )
   }
 

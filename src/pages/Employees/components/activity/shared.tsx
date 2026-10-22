@@ -2,6 +2,7 @@ import type React from 'react'
 import { ChevronLeft, ChevronRight, Flag, Inbox, RefreshCw } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { RANGE_PRESETS, humanize, statusLabel, type DateRange } from './utils'
 import { Input } from '@/components/ui/input'
@@ -81,16 +82,16 @@ export const StatTile = ({
     slate: 'bg-slate-100 text-slate-600',
   }
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-2xs dark:border-gray-800 dark:bg-slate-900">
+    <Card className="gap-0 flex flex-row items-center gap-3 rounded-2xl border-gray-100 bg-white p-4 shadow-2xs dark:border-gray-800 dark:bg-slate-900">
       <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', tones[tone])}>
         <Icon className="h-5 w-5" />
       </div>
-      <div className="min-w-0">
-        <p className="text-[11px] font-medium text-gray-500">{label}</p>
-        <p className="text-xl font-bold text-gray-900 dark:text-white">{value}</p>
+      <CardContent className="min-w-0 p-0">
+        <CardDescription className="text-[11px] font-medium text-gray-500">{label}</CardDescription>
+        <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">{value}</CardTitle>
         {hint && <p className="truncate text-[11px] text-gray-400">{hint}</p>}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -198,11 +199,11 @@ export const LoadingState = ({ label }: { label: string }) => (
 )
 
 export const EmptyState = ({ label, hint }: { label: string; hint?: string }) => (
-  <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center dark:border-gray-700">
+  <Card className="gap-0 rounded-xl border border-dashed border-gray-200 p-8 text-center dark:border-gray-700 bg-transparent shadow-none">
     <Inbox className="mx-auto mb-2 h-6 w-6 text-gray-300" />
     <p className="text-sm font-semibold text-gray-500">{label}</p>
     {hint && <p className="mx-auto mt-1 max-w-md text-xs text-gray-400">{hint}</p>}
-  </div>
+  </Card>
 )
 
 export const Pager = ({

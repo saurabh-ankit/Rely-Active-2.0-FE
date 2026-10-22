@@ -9,6 +9,7 @@ import { useUserByIdQuery, useUsersQuery } from '@/hooks/react-query/user'
 import { getUserLocationPermissionsAPI } from '@/lib/services/rbacService'
 import type { UserItem } from '@/lib/types'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { notifyError, notifySuccess } from '@/utils/toast'
 
@@ -325,16 +326,16 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
   return (
     <div className="space-y-6">
       {/* Header Bar */}
-      <div className="bg-white/60 backdrop-blur-xl border border-white/50 rounded-2xl p-5 shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
+      <Card className="gap-0 bg-white/60 backdrop-blur-xl border border-white/50 rounded-2xl p-5 shadow-sm space-y-4">
+        <CardHeader className="p-0 flex flex-row items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <ShieldCheck className="w-6 h-6 text-blue-600" />
               Role & Module Permissions
-            </h2>
-            <p className="text-xs text-gray-500 mt-1">
+            </CardTitle>
+            <CardDescription className="text-xs text-gray-500 mt-1">
               Manage Location & Resource UBAC permissions across modules for selected user roles.
-            </p>
+            </CardDescription>
           </div>
           {onClose && (
             <Button
@@ -348,7 +349,7 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
               <X className="h-5 w-5" />
             </Button>
           )}
-        </div>
+        </CardHeader>
 
         {/* Select Location Dropdown */}
         <div className="pt-2">
@@ -383,7 +384,7 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
             </SelectContent>
           </Select>
         </div>
-      </div>
+      </Card>
 
       {saveSuccessMsg && (
         <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3.5 text-xs text-emerald-700 font-bold flex items-center gap-2">
@@ -393,21 +394,21 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
       )}
 
       {/* Main Permissions Matrix Card */}
-      <div className="bg-white/80 backdrop-blur-xl border border-white/60 rounded-3xl shadow-lg p-6 space-y-6">
+      <Card className="gap-0 bg-white/80 backdrop-blur-xl border border-white/60 rounded-3xl shadow-lg p-6 space-y-6">
         {/* Card Subheader + Save Changes Button */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+        <CardHeader className="p-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
           <div>
-            <h3 className="text-base font-bold text-gray-900">
+            <CardTitle className="text-base font-bold text-gray-900">
               Module Access Matrix for <span className="text-blue-600">{selectedPropertyName}</span>
-            </h3>
+            </CardTitle>
             {selectedUser && (
-              <p className="text-xs text-gray-500 mt-0.5">
+              <CardDescription className="text-xs text-gray-500 mt-0.5">
                 Configuring permissions for{' '}
                 {`${selectedUser.profile?.firstName || selectedUser.profile?.first_name || ''} ${
                   selectedUser.profile?.lastName || selectedUser.profile?.last_name || ''
                 }`.trim() || selectedUser.username}{' '}
                 ({selectedUser.email || 'Staff'})
-              </p>
+              </CardDescription>
             )}
           </div>
 
@@ -442,172 +443,174 @@ export const RoleModuleManagement: React.FC<RoleModuleManagementProps> = ({ init
               Save Permissions
             </Button>
           </div>
-        </div>
+        </CardHeader>
 
-        {/* How it works */}
-        <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
-          <p className="text-xs font-bold text-gray-800">How access levels work</p>
-          <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1.5">
-            {LEVELS.map((l) => (
-              <span key={l.level} className="inline-flex items-center gap-1.5 text-[11px] text-gray-600">
-                <span className={`h-2 w-2 rounded-full ${l.dot}`} />
-                <span className="font-semibold text-gray-800">{l.label}</span> — {l.hint.toLowerCase()}
-              </span>
-            ))}
+        <CardContent className="p-0 space-y-6">
+          {/* How it works */}
+          <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
+            <p className="text-xs font-bold text-gray-800">How access levels work</p>
+            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1.5">
+              {LEVELS.map((l) => (
+                <span key={l.level} className="inline-flex items-center gap-1.5 text-[11px] text-gray-600">
+                  <span className={`h-2 w-2 rounded-full ${l.dot}`} />
+                  <span className="font-semibold text-gray-800">{l.label}</span> — {l.hint.toLowerCase()}
+                </span>
+              ))}
+            </div>
+            <ul className="mt-2 list-disc space-y-0.5 pl-4 text-[11px] text-gray-500">
+              <li>Each level includes everything before it.</li>
+              <li>Setting a module sets all of its sections. Open a module to give sections a different level.</li>
+              <li>A section only works if its module has at least View.</li>
+            </ul>
           </div>
-          <ul className="mt-2 list-disc space-y-0.5 pl-4 text-[11px] text-gray-500">
-            <li>Each level includes everything before it.</li>
-            <li>Setting a module sets all of its sections. Open a module to give sections a different level.</li>
-            <li>A section only works if its module has at least View.</li>
-          </ul>
-        </div>
 
-        {/* Toolbar */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <Input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search modules or sections…"
-              aria-label="Search modules or sections"
-              className="h-9 w-64 rounded-xl border border-gray-200 bg-white px-3 text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setExpanded(new Set(modules.map((m) => m.key)))}
-              className="h-9 cursor-pointer rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-            >
-              Expand all
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setExpanded(new Set())}
-              className="h-9 cursor-pointer rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-            >
-              Collapse all
-            </Button>
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-gray-500">
-              <span className="font-bold text-gray-900">{modulesWithAccess}</span> of {modules.length} modules with
-              access
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setEverything(4)}
-              className="h-9 cursor-pointer rounded-xl border border-emerald-200 bg-emerald-50 px-3 font-semibold text-emerald-700 hover:bg-emerald-100"
-            >
-              Full access to all
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setEverything(0)}
-              className="h-9 cursor-pointer rounded-xl border border-gray-200 bg-white px-3 font-semibold text-gray-600 hover:bg-gray-50"
-            >
-              Clear all
-            </Button>
-          </div>
-        </div>
-
-        {/* Modules */}
-        <div className="space-y-2.5">
-          {visibleModules.map((module) => {
-            const subs = childrenOf.get(module.key) || []
-            const isOpen = expanded.has(module.key) || (!!query && subs.some(matches))
-            const level = levelOf(module.key)
-            const subLevels = subs.map((sub) => levelOf(sub.key))
-            const custom = subs.length > 0 && subLevels.some((l) => l !== level)
-            const withAccess = subLevels.filter((l) => l > 0).length
-            const summary =
-              level === 0 && withAccess === 0
-                ? 'No access'
-                : custom
-                  ? `Custom — ${withAccess} of ${subs.length} sections have access`
-                  : `${LEVELS[level]!.label}${subs.length ? ` on all ${subs.length} sections` : ''}`
-            return (
-              <div
-                key={module.key}
-                className={`overflow-hidden rounded-2xl border transition-colors ${
-                  level > 0 ? 'border-blue-100 bg-white' : 'border-gray-100 bg-gray-50/50'
-                }`}
+          {/* Toolbar */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search modules or sections…"
+                aria-label="Search modules or sections"
+                className="h-9 w-64 rounded-xl border border-gray-200 bg-white px-3 text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setExpanded(new Set(modules.map((m) => m.key)))}
+                className="h-9 cursor-pointer rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-600 hover:bg-gray-50"
               >
-                <div className="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => toggleExpanded(module.key)}
-                    disabled={subs.length === 0}
-                    aria-expanded={isOpen}
-                    className="flex min-w-0 cursor-pointer items-start gap-2 text-left disabled:cursor-default p-0 h-auto hover:bg-transparent"
-                  >
-                    <ChevronRight
-                      className={`mt-0.5 h-4 w-4 shrink-0 text-gray-400 transition-transform ${
-                        isOpen ? 'rotate-90' : ''
-                      } ${subs.length === 0 ? 'invisible' : ''}`}
-                    />
-                    <span className="min-w-0">
-                      <span className="block text-sm font-bold text-gray-900">{module.name}</span>
-                      <span className="block text-[11px] text-gray-500">{module.description}</span>
-                      <span
-                        className={`mt-1 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                          custom
-                            ? 'bg-violet-50 text-violet-700'
-                            : level > 0
-                              ? 'bg-blue-50 text-blue-700'
-                              : 'bg-gray-100 text-gray-500'
-                        }`}
-                      >
-                        {summary}
-                      </span>
-                    </span>
-                  </Button>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {custom && <span className="text-[10px] font-semibold text-violet-600">Set all sections:</span>}
-                    <LevelSelector value={level} onChange={(l) => setLevel(module.key, l)} label={module.name} />
-                  </div>
-                </div>
+                Expand all
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setExpanded(new Set())}
+                className="h-9 cursor-pointer rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+              >
+                Collapse all
+              </Button>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-gray-500">
+                <span className="font-bold text-gray-900">{modulesWithAccess}</span> of {modules.length} modules with
+                access
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEverything(4)}
+                className="h-9 cursor-pointer rounded-xl border border-emerald-200 bg-emerald-50 px-3 font-semibold text-emerald-700 hover:bg-emerald-100"
+              >
+                Full access to all
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEverything(0)}
+                className="h-9 cursor-pointer rounded-xl border border-gray-200 bg-white px-3 font-semibold text-gray-600 hover:bg-gray-50"
+              >
+                Clear all
+              </Button>
+            </div>
+          </div>
 
-                {isOpen && subs.length > 0 && (
-                  <ul className="divide-y divide-gray-100 border-t border-gray-100 bg-slate-50/60">
-                    {subs
-                      .filter((sub) => !query || matches(module) || matches(sub))
-                      .map((sub) => {
-                        const subLevel = levelOf(sub.key)
-                        return (
-                          <li
-                            key={sub.key}
-                            className="flex flex-col gap-2 py-2.5 pl-10 pr-4 md:flex-row md:items-center md:justify-between"
-                          >
-                            <div className="min-w-0 border-l-2 border-gray-200 pl-3">
-                              <p className="text-xs font-semibold text-gray-800">{sub.name}</p>
-                              <p className="text-[11px] text-gray-500">{sub.description}</p>
-                            </div>
-                            <LevelSelector
-                              value={subLevel}
-                              onChange={(l) => setLevel(sub.key, l)}
-                              label={`${module.name} – ${sub.name}`}
-                              compact
-                            />
-                          </li>
-                        )
-                      })}
-                  </ul>
-                )}
-              </div>
-            )
-          })}
-          {visibleModules.length === 0 && (
-            <p className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-xs text-gray-400">
-              No modules or sections match “{search}”.
-            </p>
-          )}
-        </div>
-      </div>
+          {/* Modules */}
+          <div className="space-y-2.5">
+            {visibleModules.map((module) => {
+              const subs = childrenOf.get(module.key) || []
+              const isOpen = expanded.has(module.key) || (!!query && subs.some(matches))
+              const level = levelOf(module.key)
+              const subLevels = subs.map((sub) => levelOf(sub.key))
+              const custom = subs.length > 0 && subLevels.some((l) => l !== level)
+              const withAccess = subLevels.filter((l) => l > 0).length
+              const summary =
+                level === 0 && withAccess === 0
+                  ? 'No access'
+                  : custom
+                    ? `Custom — ${withAccess} of ${subs.length} sections have access`
+                    : `${LEVELS[level]!.label}${subs.length ? ` on all ${subs.length} sections` : ''}`
+              return (
+                <div
+                  key={module.key}
+                  className={`overflow-hidden rounded-2xl border transition-colors ${
+                    level > 0 ? 'border-blue-100 bg-white' : 'border-gray-100 bg-gray-50/50'
+                  }`}
+                >
+                  <div className="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => toggleExpanded(module.key)}
+                      disabled={subs.length === 0}
+                      aria-expanded={isOpen}
+                      className="flex min-w-0 cursor-pointer items-start gap-2 text-left disabled:cursor-default p-0 h-auto hover:bg-transparent"
+                    >
+                      <ChevronRight
+                        className={`mt-0.5 h-4 w-4 shrink-0 text-gray-400 transition-transform ${
+                          isOpen ? 'rotate-90' : ''
+                        } ${subs.length === 0 ? 'invisible' : ''}`}
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-bold text-gray-900">{module.name}</span>
+                        <span className="block text-[11px] text-gray-500">{module.description}</span>
+                        <span
+                          className={`mt-1 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            custom
+                              ? 'bg-violet-50 text-violet-700'
+                              : level > 0
+                                ? 'bg-blue-50 text-blue-700'
+                                : 'bg-gray-100 text-gray-500'
+                          }`}
+                        >
+                          {summary}
+                        </span>
+                      </span>
+                    </Button>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {custom && <span className="text-[10px] font-semibold text-violet-600">Set all sections:</span>}
+                      <LevelSelector value={level} onChange={(l) => setLevel(module.key, l)} label={module.name} />
+                    </div>
+                  </div>
+
+                  {isOpen && subs.length > 0 && (
+                    <ul className="divide-y divide-gray-100 border-t border-gray-100 bg-slate-50/60">
+                      {subs
+                        .filter((sub) => !query || matches(module) || matches(sub))
+                        .map((sub) => {
+                          const subLevel = levelOf(sub.key)
+                          return (
+                            <li
+                              key={sub.key}
+                              className="flex flex-col gap-2 py-2.5 pl-10 pr-4 md:flex-row md:items-center md:justify-between"
+                            >
+                              <div className="min-w-0 border-l-2 border-gray-200 pl-3">
+                                <p className="text-xs font-semibold text-gray-800">{sub.name}</p>
+                                <p className="text-[11px] text-gray-500">{sub.description}</p>
+                              </div>
+                              <LevelSelector
+                                value={subLevel}
+                                onChange={(l) => setLevel(sub.key, l)}
+                                label={`${module.name} – ${sub.name}`}
+                                compact
+                              />
+                            </li>
+                          )
+                        })}
+                    </ul>
+                  )}
+                </div>
+              )
+            })}
+            {visibleModules.length === 0 && (
+              <p className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-xs text-gray-400">
+                No modules or sections match “{search}”.
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { ResponsiveTabs, type TabItem } from '@/components/common/ResponsiveTabs'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useInvoicePreview } from '@/hooks/react-query/billing'
 import { useResourceAccess } from '@/hooks/useResourceAccess'
@@ -297,16 +297,16 @@ function Fact({
   tone?: string
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-2xs">
+    <Card className="gap-0 flex flex-row items-center gap-3 rounded-2xl border-gray-100 bg-white p-4 shadow-2xs">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#005390]/10 text-[#005390]">
         <Icon className="h-5 w-5" />
       </div>
-      <div className="min-w-0">
-        <p className="text-xs text-gray-500">{label}</p>
-        <p className={cn('text-base font-bold', tone)}>{value}</p>
+      <CardContent className="min-w-0 p-0">
+        <CardDescription className="text-xs text-gray-500">{label}</CardDescription>
+        <CardTitle className={cn('text-base font-bold', tone)}>{value}</CardTitle>
         {note && <p className="text-[11px] text-gray-400">{note}</p>}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 

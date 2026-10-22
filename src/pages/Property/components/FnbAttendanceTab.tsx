@@ -1,3 +1,4 @@
+import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {
@@ -141,16 +142,16 @@ const StatTile = ({
   hint: string
   tone: string
 }) => (
-  <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-2xs">
+  <Card className="gap-0 flex flex-row items-center gap-3 rounded-2xl border-gray-100 bg-white p-4 shadow-2xs">
     <div className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-xl', tone)}>
       <Icon className="h-5 w-5" />
     </div>
-    <div className="min-w-0">
-      <p className="text-xs font-medium text-gray-500">{label}</p>
-      <p className="text-2xl font-bold leading-tight text-gray-900">{value}</p>
+    <CardContent className="min-w-0 p-0">
+      <CardDescription className="text-xs font-medium text-gray-500">{label}</CardDescription>
+      <CardTitle className="text-2xl font-bold leading-tight text-gray-900">{value}</CardTitle>
       <p className="truncate text-[11px] text-gray-400">{hint}</p>
-    </div>
-  </div>
+    </CardContent>
+  </Card>
 )
 
 interface FnbAttendanceTabProps {
@@ -545,16 +546,16 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
     ) : null
 
   const emptyState = (message: string) => (
-    <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center">
+    <Card className="gap-0 flex flex-col items-center gap-2 rounded-2xl border-dashed border-gray-200 bg-white p-12 text-center">
       <UtensilsCrossed className="h-8 w-8 text-gray-300" />
       <p className="text-sm font-medium text-gray-500">{message}</p>
-    </div>
+    </Card>
   )
 
   return (
     <div className="space-y-5">
       {/* Filters */}
-      <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-2xs sm:p-5">
+      <Card className="gap-0 space-y-4 rounded-2xl border-gray-100 bg-white p-4 shadow-2xs sm:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-1 rounded-xl bg-gray-100 p-1">
@@ -684,7 +685,7 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
             </span>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Summary for the selected slot (or every slot) */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
@@ -727,10 +728,10 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
 
       {/* Main Content Area */}
       {loading ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-gray-100 bg-white p-16 text-gray-400">
+        <Card className="gap-0 flex flex-col items-center gap-3 rounded-2xl border-gray-100 bg-white p-16 text-gray-400">
           <Loader2 className="h-7 w-7 animate-spin text-[#005390]" />
           <p className="text-sm font-medium">Loading attendance…</p>
-        </div>
+        </Card>
       ) : error ? (
         <div className="rounded-2xl border border-red-100 bg-red-50 p-8 text-center text-sm font-semibold text-red-600">
           {error}
@@ -744,9 +745,9 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
               const primaryRes = flat.members.find((m) => m.memberType === 'resident')
               const guestTotal = guests.reduce((sum: number, g: FnbGuestAttendance) => sum + (g.guestCount || 1), 0)
               return (
-                <div
+                <Card
                   key={flat.unitId}
-                  className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xs"
+                  className="gap-0 overflow-hidden rounded-2xl border-gray-100 bg-white shadow-2xs"
                 >
                   <div className="flex flex-col gap-1 border-b border-gray-100 bg-gray-50/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3">
@@ -827,7 +828,7 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
                       </div>
                     </div>
                   )}
-                </div>
+                </Card>
               )
             })}
           </div>
@@ -835,7 +836,7 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
       ) : filteredMembers.length === 0 ? (
         emptyState('No members match the selected filters.')
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xs">
+        <Card className="gap-0 overflow-hidden rounded-2xl border-gray-100 bg-white shadow-2xs">
           <Table className="w-full text-left">
             <TableHeader>
               <TableRow className="border-b border-gray-100 bg-gray-50 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
@@ -863,7 +864,7 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
               ))}
             </TableBody>
           </Table>
-        </div>
+        </Card>
       )}
     </div>
   )

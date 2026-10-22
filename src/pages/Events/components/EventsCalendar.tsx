@@ -464,7 +464,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-3 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
+      <Card className="gap-0 flex flex-col gap-3 rounded-2xl border-gray-100 bg-white p-3 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex items-center rounded-xl border border-gray-200 bg-gray-50 p-0.5">
             <Button
@@ -541,11 +541,11 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
             ))}
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Week View */}
       {viewMode === 'week' && (
-        <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-2xs">
+        <Card className="gap-0 overflow-x-auto rounded-2xl border-gray-200 bg-white shadow-2xs">
           <div className="grid min-w-[700px] grid-cols-7 gap-px bg-gray-200">
             {(() => {
               // Week starts on the Sunday of currentDate's week
@@ -612,7 +612,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
               })
             })()}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Day View */}
@@ -645,9 +645,9 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                           : null
 
                       return (
-                        <div
+                        <Card
                           key={event.id}
-                          className="group rounded-2xl border border-gray-200/80 bg-white p-4 shadow-xs transition-all hover:border-[#005390]/40 hover:shadow-md"
+                          className="gap-0 group rounded-2xl border-gray-200/80 bg-white p-4 shadow-xs transition-all hover:border-[#005390]/40 hover:shadow-md"
                         >
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div className="flex items-start sm:items-center gap-4 flex-1 min-w-0">
@@ -745,7 +745,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                               )}
                             </div>
                           </div>
-                        </div>
+                        </Card>
                       )
                     })}
                   </div>
@@ -776,9 +776,9 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                         : null
 
                     return (
-                      <div
+                      <Card
                         key={event.id}
-                        className="group rounded-2xl border border-gray-200/80 bg-white p-4 shadow-xs transition-all hover:border-[#005390]/40 hover:shadow-md"
+                        className="gap-0 group rounded-2xl border-gray-200/80 bg-white p-4 shadow-xs transition-all hover:border-[#005390]/40 hover:shadow-md"
                       >
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                           <div className="flex items-start sm:items-center gap-4 flex-1 min-w-0">
@@ -876,7 +876,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                             )}
                           </div>
                         </div>
-                      </div>
+                      </Card>
                     )
                   })
               ) : (
@@ -889,7 +889,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
 
       {/* Calendar Grid - Month View */}
       {viewMode === 'month' && (
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xs">
+        <Card className="gap-0 overflow-hidden rounded-2xl border-gray-200 bg-white shadow-2xs">
           <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/80">
             {WEEKDAYS.map((day, i) => (
               <div
@@ -996,7 +996,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
               )
             })}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Events Popup Dialog */}

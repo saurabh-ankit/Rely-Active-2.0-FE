@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ArrowLeft, CalendarCheck, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
@@ -279,7 +280,7 @@ const EmployeeDetail = () => {
 
   return (
     <div className="space-y-6 pb-10">
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(42,81,124,0.05)]">
+      <Card className="gap-0 relative overflow-hidden rounded-2xl border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(42,81,124,0.05)]">
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#1e3a5a] via-[#2a517c] to-[#5b8bb8]" />
         <div className="flex flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div className="flex items-start gap-3">
@@ -350,19 +351,19 @@ const EmployeeDetail = () => {
             ))}
           </div>
         </div>
-      </div>
+      </Card>
 
       <div className="pb-4">
-        <div className="mb-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-          <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <Card className="gap-0 mb-4 rounded-2xl border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+          <CardHeader className="p-0 mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h3 className="text-base font-semibold text-slate-900">Assigned rosters</h3>
-              <p className="text-xs text-slate-500">
+              <CardTitle className="text-base font-semibold text-slate-900">Assigned rosters</CardTitle>
+              <CardDescription className="text-xs text-slate-500">
                 {rosterEvents.length} shift{rosterEvents.length === 1 ? '' : 's'} in total · click a card for details,
                 swap, cover or day off
-              </p>
+              </CardDescription>
             </div>
-          </div>
+          </CardHeader>
           {/* Status filters: Today first and highlighted */}
           <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Filter rosters">
             {ROSTER_STATUS_FILTERS.map((opt) => {
@@ -425,7 +426,7 @@ const EmployeeDetail = () => {
               )
             })}
           </div>
-        </div>
+        </Card>
 
         <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">

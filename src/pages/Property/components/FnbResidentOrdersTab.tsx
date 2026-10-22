@@ -19,6 +19,7 @@ import { useLocationContext } from '@/hooks/useLocation'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Label } from '@/components/ui/label'
@@ -605,7 +606,7 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
   return (
     <div className="space-y-5 select-none font-sans">
       {/* Top Filter Card */}
-      <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
+      <Card className="gap-0 bg-white p-5 rounded-2xl border-gray-200 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-extrabold text-gray-900 flex items-center gap-2">
@@ -678,7 +679,7 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
             />
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Orders Table & DataTable Pagination Container */}
       {(() => {
@@ -689,7 +690,7 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
 
         return (
           <div className="space-y-4">
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
+            <Card className="gap-0 bg-white rounded-2xl border-gray-200 shadow-xs overflow-hidden">
               {loading ? (
                 <div className="p-12 text-center text-gray-400 text-sm">Loading resident orders...</div>
               ) : orders.length === 0 ? (
@@ -944,7 +945,7 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                   </Table>
                 </div>
               )}
-            </div>
+            </Card>
 
             {/* Pagination Controls */}
             {!loading && orders.length > 0 && (

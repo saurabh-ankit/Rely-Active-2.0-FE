@@ -22,6 +22,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Card } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -50,7 +51,7 @@ interface StatCardProps {
 }
 
 const StatCard = ({ title, value, icon: Icon, colorClass }: StatCardProps) => (
-  <div className={`p-6 rounded-2xl border bg-white shadow-sm flex items-center gap-4 ${colorClass}`}>
+  <Card className={`p-6 gap-0 rounded-2xl border bg-white shadow-sm flex flex-row items-center gap-4 ${colorClass}`}>
     <div
       className={`p-4 rounded-xl flex-shrink-0 ${colorClass.replace('border-', 'bg-').replace('300', '100')} text-current`}
     >
@@ -60,7 +61,7 @@ const StatCard = ({ title, value, icon: Icon, colorClass }: StatCardProps) => (
       <p className="text-sm font-semibold text-gray-500">{title}</p>
       <p className="text-2xl font-bold text-gray-900">{value ?? 0}</p>
     </div>
-  </div>
+  </Card>
 )
 
 const staffUserName = (u?: GateStaffUser | null) =>
@@ -306,7 +307,7 @@ export default function GateManagementPage() {
       />
 
       {/* Top Search & Filter Container Bar (Matching Image 1) */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 p-3.5 rounded-2xl shadow-2xs">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 p-3.5 rounded-2xl shadow-2xs">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
           <Input
@@ -318,7 +319,7 @@ export default function GateManagementPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
           <Select
             value={visitorTypeFilter || 'ALL'}
             onValueChange={(val) => {
@@ -327,7 +328,7 @@ export default function GateManagementPage() {
               setPreapprovedPage(1)
             }}
           >
-            <SelectTrigger className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 shadow-2xs w-auto min-w-[180px]">
+            <SelectTrigger className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 shadow-2xs w-auto min-w-[170px] shrink-0">
               <SelectValue placeholder="Visitor Type: All Types" />
             </SelectTrigger>
             <SelectContent>
@@ -348,7 +349,7 @@ export default function GateManagementPage() {
               setPreapprovedPage(1)
             }}
           >
-            <SelectTrigger className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 shadow-2xs w-auto min-w-[180px]">
+            <SelectTrigger className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 shadow-2xs w-auto min-w-[160px] shrink-0">
               <SelectValue placeholder="Status: All Statuses" />
             </SelectTrigger>
             <SelectContent>
@@ -370,7 +371,7 @@ export default function GateManagementPage() {
               setEntriesPage(1)
               setPreapprovedPage(1)
             }}
-            className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
+            className="h-9 w-[150px] px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs shrink-0"
           />
         </div>
       </div>

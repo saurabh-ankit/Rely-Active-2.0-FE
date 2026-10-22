@@ -11,6 +11,7 @@ import {
   UserRound,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Card } from '@/components/ui/card'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiErrorMessage, useUnitReceipts } from '@/hooks/react-query/billing'
@@ -132,23 +133,23 @@ export function ReceiptsList({ unitId }: { unitId: string }) {
       </div>
 
       {isLoading ? (
-        <div className="rounded-xl border border-gray-200 bg-white py-12">
+        <Card className="gap-0 rounded-xl border-gray-200 bg-white py-12">
           <Loader2 className="mx-auto h-6 w-6 animate-spin text-[#2b4f7e]" />
-        </div>
+        </Card>
       ) : groups.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white py-14 text-center text-gray-500">
+        <Card className="gap-0 rounded-xl border-gray-200 bg-white py-14 text-center text-gray-500">
           <ReceiptIndianRupee className="mx-auto mb-2 h-10 w-10 text-gray-300" />
           No payments recorded yet
-        </div>
+        </Card>
       ) : (
         <div className="space-y-3">
           {visible.map((g) => {
             const open = isOpen(g.invoiceId)
             return (
-              <div
+              <Card
                 key={g.invoiceId}
                 className={cn(
-                  'overflow-hidden rounded-xl border bg-white shadow-2xs transition-colors',
+                  'gap-0 overflow-hidden rounded-xl border bg-white shadow-2xs transition-colors',
                   open ? 'border-[#2b4f7e]/30' : 'border-gray-200',
                 )}
               >
@@ -338,7 +339,7 @@ export function ReceiptsList({ unitId }: { unitId: string }) {
                     )}
                   </div>
                 )}
-              </div>
+              </Card>
             )
           })}
         </div>

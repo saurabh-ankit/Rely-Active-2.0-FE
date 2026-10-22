@@ -40,6 +40,7 @@ import { ConfirmStatusChangeDialog } from './components/ConfirmStatusChangeDialo
 import { PageHeader } from '@/components/common/PageHeader'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
@@ -738,7 +739,7 @@ export default function TicketsPage() {
       {/* Main Workspace Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Tickets Queue List (4 cols) */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-13rem)] min-h-[520px]">
+        <Card className="gap-0 lg:col-span-4 bg-white rounded-2xl border-gray-200 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-13rem)] min-h-[520px]">
           {/* Tab Filter Header with Primary Brand Blue */}
           <div className="p-2 border-b border-gray-100 bg-gray-50/50">
             <Tabs
@@ -937,10 +938,10 @@ export default function TicketsPage() {
               })
             )}
           </div>
-        </div>
+        </Card>
 
         {/* Right Column: Ticket Workspace Detail (8 cols) */}
-        <div className="lg:col-span-8 bg-white rounded-2xl border border-gray-200 shadow-sm p-6 h-[calc(100vh-13rem)] min-h-[520px] relative flex flex-col overflow-y-auto">
+        <Card className="gap-0 lg:col-span-8 bg-white rounded-2xl border-gray-200 shadow-sm p-6 h-[calc(100vh-13rem)] min-h-[520px] relative flex flex-col overflow-y-auto">
           {selectedTicket ? (
             isClosedView ? (
               /* CLOSED TICKET VIEW MATCHING SCREENSHOT */
@@ -1212,7 +1213,7 @@ export default function TicketsPage() {
 
                 {/* Resident's request: photos and voice notes attached when raising the ticket */}
                 {requestMedia && (
-                  <div className="rounded-2xl border border-blue-200/80 bg-gradient-to-b from-blue-50/40 via-white to-blue-50/20 p-5 space-y-4 shadow-2xs">
+                  <Card className="gap-0 rounded-2xl border-blue-200/80 bg-gradient-to-b from-blue-50/40 via-white to-blue-50/20 p-5 space-y-4 shadow-2xs">
                     <div className="flex items-center gap-2.5 border-b border-blue-100 pb-3">
                       <div className="p-2 rounded-xl bg-blue-100 text-[#005390]">
                         <User className="w-5 h-5" />
@@ -1281,7 +1282,7 @@ export default function TicketsPage() {
                         </div>
                       </div>
                     )}
-                  </div>
+                  </Card>
                 )}
 
                 {/* Work Resolution & Completion Section (Invoice, Voice Note, Photos, Notes) */}
@@ -1290,7 +1291,7 @@ export default function TicketsPage() {
                   if (!completionData) return null
 
                   return (
-                    <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-b from-emerald-50/40 via-white to-emerald-50/20 p-5 space-y-4 shadow-2xs">
+                    <Card className="gap-0 rounded-2xl border-emerald-200/90 bg-gradient-to-b from-emerald-50/40 via-white to-emerald-50/20 p-5 space-y-4 shadow-2xs">
                       {/* Header with completion banner & invoice amount */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-100 pb-3">
                         <div className="flex items-center gap-2.5">
@@ -1437,13 +1438,13 @@ export default function TicketsPage() {
                           </div>
                         </div>
                       )}
-                    </div>
+                    </Card>
                   )
                 })()}
 
                 {/* Resident Feedback on the completed work */}
                 {selectedTicket.feedback && (
-                  <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-2xs space-y-3">
+                  <Card className="gap-0 bg-white rounded-2xl border-gray-200/80 p-4 shadow-2xs space-y-3">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="text-xs font-extrabold text-gray-900 tracking-wide uppercase flex items-center gap-2">
                         <MessageSquare className="w-4 h-4 text-[#005390]" />
@@ -1470,7 +1471,7 @@ export default function TicketsPage() {
                         ? ` · ${new Date(selectedTicket.feedback.createdAt).toLocaleString()}`
                         : ''}
                     </div>
-                  </div>
+                  </Card>
                 )}
               </div>
             ) : isInProgressView ? (
@@ -2238,7 +2239,7 @@ export default function TicketsPage() {
               </p>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* Modals & Drawers */}

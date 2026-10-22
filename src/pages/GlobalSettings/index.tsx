@@ -37,6 +37,7 @@ import { GstTaxSettingsTab } from './components/GstTaxSettingsTab'
 import { AmenitiesTab } from './components/AmenitiesTab'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 
 interface SettingItem {
   id: string
@@ -540,7 +541,10 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
         const showGroupHeadings = section.groups.length > 1
         const settingCount = section.groups.reduce((n, g) => n + g.items.length, 0)
         return (
-          <section key={section.id} className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+          <Card
+            key={section.id}
+            className="gap-0 overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm"
+          >
             {/* Main heading */}
             <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-[#005390] to-[#0a6bb3] px-6 py-5 text-white">
               <div className="flex items-center gap-4">
@@ -601,7 +605,7 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
                 )
               })}
             </div>
-          </section>
+          </Card>
         )
       })}
     </div>

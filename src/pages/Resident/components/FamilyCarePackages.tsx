@@ -3,6 +3,7 @@ import { Check } from 'lucide-react'
 import type { CarePackage } from '@/lib/types/medical'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { AssignedPackage } from './AssignedPackage'
 import { Label } from '@/components/ui/label'
 
@@ -42,7 +43,7 @@ export function FamilyCarePackages({ packages, rows, onPick, onStartDate }: Fami
       {rows.map((row) => {
         const keepsCurrent = !!row.current && row.carePackageId === row.current.packageId
         return (
-          <div key={row.key} className="rounded-2xl border border-gray-200 bg-white p-4">
+          <Card key={row.key} className="gap-0 rounded-2xl border-gray-200 bg-white p-4">
             <div className="mb-3 flex items-center gap-2">
               <span className="text-xs font-bold text-gray-900">{row.name}</span>
               <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-semibold text-purple-700">
@@ -95,7 +96,7 @@ export function FamilyCarePackages({ packages, rows, onPick, onStartDate }: Fami
                 )}
               </>
             )}
-          </div>
+          </Card>
         )
       })}
     </div>

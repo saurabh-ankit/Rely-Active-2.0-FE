@@ -1,4 +1,5 @@
 import { Label } from '@/components/ui/label'
+import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -468,24 +469,36 @@ export function VitalsTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Activity className="w-5 h-5 text-[#005390]" /> Vital Settings
-          </h2>
-          <p className="text-xs text-gray-500 mt-1">
-            Create and manage vitals for patient monitoring.
-            {vitals.length > 0 ? ` ${vitals.length} vital${vitals.length === 1 ? '' : 's'} configured.` : ''}
-          </p>
+      <Card className="gap-0 bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-[#005390]/10 text-[#005390] shrink-0">
+                <Activity className="w-5 h-5" />
+              </div>
+              <CardTitle className="text-xl font-bold text-gray-900 whitespace-nowrap">Vital Settings</CardTitle>
+            </div>
+            <CardDescription className="text-xs text-gray-500 mt-1 whitespace-nowrap">
+              Create and manage vitals for patient monitoring.
+            </CardDescription>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0 self-start sm:self-auto">
+            {vitals.length > 0 && (
+              <span className="rounded-full bg-[#005390]/10 px-3 py-1 text-xs font-semibold text-[#005390] whitespace-nowrap">
+                {vitals.length} {vitals.length === 1 ? 'vital' : 'vitals'}
+              </span>
+            )}
+            <Button
+              type="button"
+              onClick={handleOpenCreate}
+              className="inline-flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004170] transition-colors cursor-pointer shrink-0"
+            >
+              <Plus className="w-4 h-4" /> Add New Vital
+            </Button>
+          </div>
         </div>
-        <Button
-          type="button"
-          onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 h-auto bg-[#005390] hover:bg-[#004070] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
-        >
-          <Plus className="w-4 h-4" /> Add New Vital
-        </Button>
-      </div>
+      </Card>
 
       <DataTable
         columns={columns}

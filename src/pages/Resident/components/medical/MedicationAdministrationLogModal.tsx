@@ -1,5 +1,6 @@
 import React from 'react'
 import { ClipboardCheck, Loader2, Package } from 'lucide-react'
+import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useResidentMedicationAdministrationsQuery } from '@/hooks/react-query/resident'
 import type {
@@ -36,7 +37,7 @@ const AdministrationRow: React.FC<{ item: MedicationAdministrationItem }> = ({ i
   ].filter(Boolean)
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4 space-y-2 dark:border-gray-800 dark:bg-slate-900">
+    <Card className="gap-0 rounded-2xl border-gray-200 bg-white p-4 space-y-2 dark:border-gray-800 dark:bg-slate-900">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <div className="flex items-center gap-2">
@@ -82,7 +83,7 @@ const AdministrationRow: React.FC<{ item: MedicationAdministrationItem }> = ({ i
           voiceNotes={item.voiceNotes}
         />
       )}
-    </div>
+    </Card>
   )
 }
 

@@ -7,6 +7,7 @@ import { residentService } from '@/lib/services/residentService'
 import { AssignCareTaskDialog } from '@/components/common/AssignCareTaskDialog'
 import { AssignCareTeamDialog } from '@/components/common/AssignCareTeamDialog'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { ResponsiveTabs, type TabItem } from '@/components/common/ResponsiveTabs'
 import { HeroFact, NotAdded } from '@/components/common/DetailPanel'
 import { cn, getFileUrl } from '@/lib/utils'
@@ -145,10 +146,10 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
           <ArrowLeft className="w-4 h-4" />{' '}
           {isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}
         </Button>
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-400 shadow-xl backdrop-blur-xl">
+        <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-400 shadow-xl backdrop-blur-xl">
           <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#005390]" />
           Loading resident profile & family details...
-        </div>
+        </Card>
       </div>
     )
   }
@@ -165,9 +166,9 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
           <ArrowLeft className="w-4 h-4" />{' '}
           {isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}
         </Button>
-        <div className="rounded-3xl bg-rose-50 border border-rose-200 p-8 text-center text-xs text-rose-700 font-bold shadow-xs">
+        <Card className="gap-0 rounded-3xl bg-rose-50 border border-rose-200 p-8 text-center text-xs text-rose-700 font-bold shadow-xs">
           {error || 'Resident profile not found.'}
-        </div>
+        </Card>
       </div>
     )
   }
@@ -189,7 +190,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
       </Button>
 
       {/* Summary: who they are, where they live, and the main actions */}
-      <div className="rounded-2xl border border-gray-100 bg-white shadow-2xs dark:border-gray-800 dark:bg-slate-900">
+      <Card className="gap-0 rounded-2xl border border-gray-100 bg-white shadow-2xs dark:border-gray-800 dark:bg-slate-900">
         <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between md:p-6">
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#005390] to-sky-600 text-xl font-bold text-white shadow-sm">
@@ -305,7 +306,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
             }
           />
         </div>
-      </div>
+      </Card>
 
       {/* Tab bar */}
       {(() => {
@@ -356,9 +357,9 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
             className="w-full"
           />
         ) : (
-          <div className="rounded-2xl border border-gray-100 bg-white p-10 text-center text-sm text-gray-500">
+          <Card className="gap-0 rounded-2xl border border-gray-100 bg-white p-10 text-center text-sm text-gray-500">
             You don&apos;t have access to this resident&apos;s Profile or Medical sections.
-          </div>
+          </Card>
         )
       })()}
 

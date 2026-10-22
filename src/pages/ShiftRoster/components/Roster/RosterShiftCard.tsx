@@ -1,5 +1,6 @@
 import { ArrowLeftRight, CalendarDays, ChevronRight, Clock3, Coffee, MapPin, Users, UserCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { RosterPermission } from '../RosterPermission'
@@ -69,9 +70,9 @@ const RosterShiftCard = ({
   const canSelect = selectable && !event.isCoverDuty && !!event.shiftEmployeeDateId
 
   return (
-    <article
+    <Card
       className={cn(
-        'group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white',
+        'gap-0 group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white',
         'shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(42,81,124,0.06)]',
         'transition-all duration-200 hover:-translate-y-0.5 hover:border-[#2a517c]/25',
         'hover:shadow-[0_4px_12px_rgba(15,23,42,0.06),0_16px_32px_rgba(42,81,124,0.10)]',
@@ -217,7 +218,7 @@ const RosterShiftCard = ({
           </RosterPermission>
         </div>
       )}
-    </article>
+    </Card>
   )
 }
 

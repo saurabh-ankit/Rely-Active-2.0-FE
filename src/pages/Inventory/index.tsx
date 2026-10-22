@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
+import { Card } from '@/components/ui/card'
 import { InventoryTabs } from '@/components/inventory/InventoryTabs'
 import { ActiveStatus, InventoryStatus } from '@/components/inventory/InventoryStatus'
 import StatCard from '@/pages/AssetManagement/components/StatCard'
@@ -196,7 +197,7 @@ function CategoryInventory({
       </nav>
 
       {/* The category this page is about */}
-      <div className="flex flex-wrap items-center gap-4 rounded-3xl border border-[#005390]/15 bg-gradient-to-r from-[#005390]/[0.07] to-white p-5">
+      <Card className="gap-0 flex flex-row flex-wrap items-center gap-4 rounded-3xl border border-[#005390]/15 bg-gradient-to-r from-[#005390]/[0.07] to-white p-5 ring-0 shadow-none">
         {category.data.image ? (
           <img
             src={category.data.image}
@@ -208,14 +209,14 @@ function CategoryInventory({
             <FolderOpen className="size-8" />
           </span>
         )}
-        <div className="min-w-0">
+        <div className="min-w-0 flex flex-col items-start text-left">
           <span className="inline-flex rounded-full bg-[#005390]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#005390]">
             Category
           </span>
           <h2 className="mt-1 break-words text-2xl font-bold text-gray-900">{category.data.name}</h2>
           {category.data.description && <p className="text-sm text-gray-500">{category.data.description}</p>}
         </div>
-      </div>
+      </Card>
       {stats.isError ? (
         <ErrorNotice error={stats.error} retry={() => void stats.refetch()} />
       ) : (

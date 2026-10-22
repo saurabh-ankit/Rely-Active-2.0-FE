@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Building2, CheckCircle2, Clock3, Search, Sparkles } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { useLocationContext } from '@/hooks/useLocation'
 import { getAmenitySlotConfigAPI, type AmenitySlotConfigResponse } from '@/lib/services/amenitySlotService'
 import { getPropertyByIdAPI } from '@/lib/services/propertyService'
@@ -195,18 +196,18 @@ export default function AmenitiesPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <Card className="gap-0 rounded-2xl border-gray-200 bg-white p-4 shadow-sm">
               <p className="text-xs text-gray-500">Total amenities</p>
               <p className="mt-1 text-2xl font-bold text-gray-900">{amenities.length}</p>
-            </div>
-            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            </Card>
+            <Card className="gap-0 rounded-2xl border-gray-200 bg-white p-4 shadow-sm">
               <p className="text-xs text-gray-500">Slot-bookable</p>
               <p className="mt-1 text-2xl font-bold text-[#005390]">{slotCount}</p>
-            </div>
-            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            </Card>
+            <Card className="gap-0 rounded-2xl border-gray-200 bg-white p-4 shadow-sm">
               <p className="text-xs text-gray-500">Property</p>
               <p className="mt-1 truncate text-sm font-semibold text-gray-800">{displayPropertyName || '—'}</p>
-            </div>
+            </Card>
           </div>
 
           <div className="relative">

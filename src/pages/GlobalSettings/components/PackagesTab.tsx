@@ -30,6 +30,7 @@ import {
 } from '@/hooks/react-query/medical'
 import type { CarePackage, PackageTaskItem, CareTask } from '@/lib/types/medical'
 import { DataTable } from '@/components/ui/data-table'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -624,18 +625,18 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
   return (
     <div className="space-y-6">
       {/* Top Banner & Stats */}
-      <div className="bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <Card className="gap-0 bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+        <CardHeader className="p-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-[#005390]/10 text-[#005390]">
                 <Boxes className="w-5 h-5" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900">Packages</h2>
+              <CardTitle className="text-xl font-bold text-gray-900">Packages</CardTitle>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <CardDescription className="text-xs text-gray-500 mt-1">
               Configure and manage Care Packages with bundled complimentary tasks, cost, and duration.
-            </p>
+            </CardDescription>
           </div>
 
           <Button
@@ -646,11 +647,11 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
             <Plus className="w-4 h-4" />
             Create Package
           </Button>
-        </div>
-      </div>
+        </CardHeader>
+      </Card>
 
       {/* Filter & Search Bar */}
-      <div className="bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center gap-3 justify-between">
+      <Card className="gap-0 bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center gap-3 justify-between">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <Input
@@ -683,22 +684,24 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
             </Select>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Data Table */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-2">
-        <DataTable
-          columns={columns}
-          data={packages}
-          isLoading={isLoading}
-          manualPagination={true}
-          pageCount={pagination.totalPages}
-          pageIndex={currentPage - 1}
-          onPageChange={(newPageIndex) => setCurrentPage(newPageIndex + 1)}
-          totalCount={pagination.total}
-          pageSize={pageSize}
-        />
-      </div>
+      <Card className="gap-0 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-2">
+        <CardContent className="p-0">
+          <DataTable
+            columns={columns}
+            data={packages}
+            isLoading={isLoading}
+            manualPagination={true}
+            pageCount={pagination.totalPages}
+            pageIndex={currentPage - 1}
+            onPageChange={(newPageIndex) => setCurrentPage(newPageIndex + 1)}
+            totalCount={pagination.total}
+            pageSize={pageSize}
+          />
+        </CardContent>
+      </Card>
 
       {/* Create / Edit Package Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

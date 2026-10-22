@@ -1,4 +1,5 @@
 import { Input } from '@/components/ui/input'
+import { Card } from '@/components/ui/card'
 import React, { useMemo, useState } from 'react'
 import {
   Activity,
@@ -379,31 +380,31 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
       {/* ── Summary Matrix Cards (if not compact) ─────────────────────────── */}
       {!isCompact && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
+          <Card className="gap-0 rounded-2xl border-gray-100 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
             <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400">
               <span>Total Care Tasks</span>
               <HeartHandshake className="size-4 text-[#005390]" />
             </div>
             <div className="mt-2 text-2xl font-black text-gray-900 dark:text-white">{allCount}</div>
-          </div>
+          </Card>
 
-          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
+          <Card className="gap-0 rounded-2xl border-gray-100 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
             <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400">
               <span>Active / Pending</span>
               <Activity className="size-4 text-emerald-500" />
             </div>
             <div className="mt-2 text-2xl font-black text-emerald-600 dark:text-emerald-400">{pendingCount}</div>
-          </div>
+          </Card>
 
-          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
+          <Card className="gap-0 rounded-2xl border-gray-100 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
             <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400">
               <span>Completed Sessions</span>
               <CheckCircle2 className="size-4 text-purple-500" />
             </div>
             <div className="mt-2 text-2xl font-black text-purple-600 dark:text-purple-400">{completedCount}</div>
-          </div>
+          </Card>
 
-          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
+          <Card className="gap-0 rounded-2xl border-gray-100 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
             <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400">
               <span>Stopped</span>
               <StopCircle className="size-4 text-rose-500" />
@@ -411,7 +412,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
             <div className="mt-2 text-2xl font-black text-rose-600 dark:text-rose-400">
               {matrix?.totalStopped ?? assignments.filter((a) => a.isStopped).length}
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
@@ -512,7 +513,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
       </div>
 
       {/* ── Tables Container ──────────────────────────────────────────────── */}
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs dark:border-gray-800 dark:bg-slate-900">
+      <Card className="gap-0 overflow-hidden rounded-2xl border-gray-200 bg-white shadow-xs dark:border-gray-800 dark:bg-slate-900">
         <div className="overflow-hidden">
           {activeTab === 'COMPLETED' ? (
             /* ══════════════════════════════════════════════════════════════════════
@@ -1099,7 +1100,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
             </Table>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* ── Assign Care Task Modal ─────────────────────────────────────────── */}
       <AssignCareTaskDialog

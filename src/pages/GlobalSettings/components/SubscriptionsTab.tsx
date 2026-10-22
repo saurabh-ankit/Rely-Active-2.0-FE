@@ -19,6 +19,7 @@ import { formatDisplayDate } from '@/lib/utils'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { ChangePackageDialog } from '@/components/common/ChangePackageDialog'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 interface SubscriptionsTabProps {
@@ -189,7 +190,7 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
   return (
     <div className="space-y-6">
       {/* Header Container Matching Screenshot 2 */}
-      <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
             Package Subscriptions ({subscriptions.length})
@@ -207,23 +208,23 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
             className="w-full h-10 pl-10 pr-4 text-xs rounded-2xl border border-gray-200 bg-white/90 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-xs"
           />
         </div>
-      </div>
+      </Card>
 
       {/* Main Content Area */}
       {isLoading ? (
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-400 shadow-xl backdrop-blur-xl">
+        <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-400 shadow-xl backdrop-blur-xl">
           <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#005390]" />
           Loading package subscriptions...
-        </div>
+        </Card>
       ) : subscriptionsByResident.size === 0 ? (
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-500 shadow-xl backdrop-blur-xl">
+        <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-500 shadow-xl backdrop-blur-xl">
           <Package className="w-8 h-8 text-gray-400 mx-auto mb-2" />
           No package subscriptions recorded yet. Assign a package during resident onboarding.
-        </div>
+        </Card>
       ) : filteredResidentEntries.length === 0 ? (
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-8 text-center text-sm text-gray-500 shadow-xl backdrop-blur-xl">
+        <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-8 text-center text-sm text-gray-500 shadow-xl backdrop-blur-xl">
           No residents found matching &quot;{searchTerm}&quot;.
-        </div>
+        </Card>
       ) : (
         <div className="space-y-4">
           {filteredResidentEntries.map(([residentId, resSubs]) => {
@@ -239,9 +240,9 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
             const totalAddCost = additionalTasks.reduce((sum, t) => sum + (Number(t.price) || 0), 0)
 
             return (
-              <div
+              <Card
                 key={residentId}
-                className="rounded-3xl border border-white/60 bg-white/90 shadow-lg backdrop-blur-xl overflow-hidden transition-all duration-200"
+                className="gap-0 rounded-3xl border border-white/60 bg-white/90 shadow-lg backdrop-blur-xl overflow-hidden transition-all duration-200"
               >
                 {/* Resident Header Accordion Row */}
                 <Button
@@ -600,7 +601,7 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                     </div>
                   </div>
                 )}
-              </div>
+              </Card>
             )
           })}
         </div>

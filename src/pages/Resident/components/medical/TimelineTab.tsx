@@ -18,6 +18,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Calendar, CalendarDayButton } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useResidentTimelineQuery } from '@/hooks/react-query/resident'
@@ -122,7 +123,7 @@ const TimelineEntry: React.FC<{ event: ResidentTimelineEvent; isLast: boolean }>
       >
         <Icon className="size-4" />
       </div>
-      <div className="min-w-0 flex-1 rounded-2xl border border-gray-200 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
+      <Card className="gap-0 min-w-0 flex-1 rounded-2xl border-gray-200 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-sm font-bold text-gray-900 dark:text-white">{event.title}</h3>
@@ -160,7 +161,7 @@ const TimelineEntry: React.FC<{ event: ResidentTimelineEvent; isLast: boolean }>
             )}
           </div>
         )}
-      </div>
+      </Card>
     </li>
   )
 }

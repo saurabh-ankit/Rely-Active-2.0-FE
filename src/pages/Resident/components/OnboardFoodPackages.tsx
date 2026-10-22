@@ -4,6 +4,7 @@ import { Check, RefreshCw, Utensils } from 'lucide-react'
 import api from '@/lib/api/axios'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { AssignedPackage } from './AssignedPackage'
 import { Label } from '@/components/ui/label'
 
@@ -105,7 +106,7 @@ export function OnboardFoodPackages({ locId, people, value, onChange, existing =
         const keepsCurrent = !!current && choice?.propertyPackageId === current.propertyPackageId
         const selected = packages.find((p) => p.id === choice?.propertyPackageId)
         return (
-          <div key={person.key} className="rounded-2xl border border-gray-200 bg-white p-4">
+          <Card key={person.key} className="gap-0 rounded-2xl border-gray-200 bg-white p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
                 <span className="flex size-8 items-center justify-center rounded-full bg-[#005390]/10 text-[11px] font-bold text-[#005390]">
@@ -239,7 +240,7 @@ export function OnboardFoodPackages({ locId, people, value, onChange, existing =
                 )}
               </>
             )}
-          </div>
+          </Card>
         )
       })}
       <p className="flex items-center gap-1.5 text-[11px] text-gray-500">

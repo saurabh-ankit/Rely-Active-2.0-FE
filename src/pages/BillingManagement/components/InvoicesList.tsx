@@ -12,6 +12,7 @@ import {
   ReceiptIndianRupee,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiErrorMessage, useUnitInvoices } from '@/hooks/react-query/billing'
@@ -67,7 +68,7 @@ export function InvoicesList({ unitId, onEditInvoice }: InvoicesListProps) {
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xs">
+      <Card className="gap-0 overflow-hidden rounded-xl border-gray-200 bg-white shadow-2xs">
         <Table className="w-full min-w-[960px] text-sm">
           <TableHeader>
             <TableRow className="border-b border-gray-200 bg-gray-50/80">
@@ -283,7 +284,7 @@ export function InvoicesList({ unitId, onEditInvoice }: InvoicesListProps) {
             )}
           </TableBody>
         </Table>
-      </div>
+      </Card>
 
       <TablePager page={page} totalPages={data?.pagination.totalPages ?? 1} onPage={setPage} />
 
@@ -306,7 +307,7 @@ function InvoiceDetail({
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_320px]">
       <div className="space-y-4">
         {/* Charges */}
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <Card className="gap-0 overflow-hidden rounded-lg border-gray-200 bg-white">
           <p className="border-b border-gray-100 px-4 py-2.5 text-xs font-semibold tracking-wide text-gray-600 uppercase">
             Charges ({inv.services.length})
           </p>
@@ -348,10 +349,10 @@ function InvoiceDetail({
               ))}
             </TableBody>
           </Table>
-        </div>
+        </Card>
 
         {/* Payments */}
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <Card className="gap-0 overflow-hidden rounded-lg border-gray-200 bg-white">
           <p className="border-b border-gray-100 px-4 py-2.5 text-xs font-semibold tracking-wide text-gray-600 uppercase">
             Payments ({inv.receipts.length})
           </p>
@@ -408,12 +409,12 @@ function InvoiceDetail({
               ))}
             </ul>
           )}
-        </div>
+        </Card>
         {inv.notes && <p className="text-xs text-gray-500">Notes: {inv.notes}</p>}
       </div>
 
       {/* Totals */}
-      <div className="h-fit space-y-1.5 rounded-lg border border-gray-200 bg-white p-4 text-sm">
+      <Card className="gap-0 h-fit space-y-1.5 rounded-lg border-gray-200 bg-white p-4 text-sm">
         <p className="mb-2 text-xs font-semibold tracking-wide text-gray-600 uppercase">Summary</p>
         <Row label="Subtotal" value={formatInr(inv.subtotal)} />
         {inv.discount !== 0 && (
@@ -475,7 +476,7 @@ function InvoiceDetail({
             className={cn('font-bold', inv.remainingBalance > 0 ? 'text-rose-600' : 'text-emerald-600')}
           />
         )}
-      </div>
+      </Card>
     </div>
   )
 }

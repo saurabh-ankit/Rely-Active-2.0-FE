@@ -14,6 +14,7 @@ import {
   RoleBadges,
 } from '@/components/employees/EmployeeCells'
 import { DataTable } from '@/components/ui/data-table'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   ArrowLeft,
@@ -801,13 +802,13 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
         </Button>
 
         {/* Page Header */}
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl">
-          <div className="flex items-center gap-3.5">
+        <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl">
+          <CardHeader className="p-0 flex flex-row items-center gap-3.5">
             <div className="flex size-12 items-center justify-center rounded-2xl bg-[#005390]/10 text-[#005390] shadow-xs">
               <UserPlus className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
+              <CardTitle className="text-2xl font-bold text-gray-900 md:text-3xl">
                 {isEditMode
                   ? isLocationScoped
                     ? 'Edit Employee Profile'
@@ -815,8 +816,8 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                   : isLocationScoped
                     ? 'Add New Employee'
                     : 'Create Employee & Assign Properties'}
-              </h1>
-              <p className="text-xs text-gray-500 mt-0.5">
+              </CardTitle>
+              <CardDescription className="text-xs text-gray-500 mt-0.5">
                 {isEditMode
                   ? isLocationScoped
                     ? 'Update staff profile details and role.'
@@ -824,10 +825,10 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                   : isLocationScoped
                     ? 'Add a new staff member account.'
                     : 'Add a new staff member account, assign system authorization role, operational department, credentials, and property locations.'}
-              </p>
+              </CardDescription>
             </div>
-          </div>
-        </div>
+          </CardHeader>
+        </Card>
 
         {/* Full Page Form Container (React Hook Form + Zod) */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
@@ -838,259 +839,267 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
           )}
 
           {/* Section 1: Personal Details */}
-          <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-5">
-            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
-              <User className="w-5 h-5 text-[#005390]" />
-              Personal & Employee Profile
-            </h2>
+          <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-5">
+            <CardHeader className="p-0 border-b border-gray-100 pb-3">
+              <CardTitle className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <User className="w-5 h-5 text-[#005390]" />
+                Personal & Employee Profile
+              </CardTitle>
+            </CardHeader>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Input
-                label="First Name"
-                required
-                {...registerFiltered('firstName', lettersOnly)}
-                error={errors.firstName?.message}
-                placeholder="e.g. Ravi"
-                maxLength={50}
-                autoComplete="given-name"
-              />
-              <Input
-                label="Last Name *"
-                required
-                {...registerFiltered('lastName', lettersOnly)}
-                error={errors.lastName?.message}
-                placeholder="e.g. Kumar"
-                maxLength={50}
-                autoComplete="family-name"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Input
-                label="Email Address"
-                required
-                type="email"
-                {...register('email')}
-                error={errors.email?.message}
-                placeholder="admin.hyd@rely.com"
-                icon={<Mail className="h-4 w-4 text-gray-400" />}
-                autoComplete="email"
-              />
-              <Input
-                label="Phone Number"
-                required
-                {...registerFiltered('phone', phoneDigitsOnly)}
-                error={errors.phone?.message}
-                placeholder="9876543210"
-                icon={<Phone className="h-4 w-4 text-gray-400" />}
-                inputMode="numeric"
-                maxLength={10}
-                autoComplete="tel"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Input
-                label="Date of Joining"
-                required
-                type="date"
-                max={todayYmdLocal()}
-                {...register('dateOfJoining', {
-                  onChange: (e) => {
-                    const el = e.target as HTMLInputElement
-                    const today = todayYmdLocal()
-                    if (el.validity.rangeOverflow || el.validity.badInput || (el.value && el.value > today)) {
-                      el.value = today
-                      setValue('dateOfJoining', today, { shouldValidate: true })
-                    }
-                  },
-                })}
-                error={errors.dateOfJoining?.message}
-              />
-              <div>
-                <Label htmlFor="gender-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Gender
-                </Label>
-                <Controller
-                  control={control}
-                  name="gender"
-                  render={({ field }) => (
-                    <Select value={field.value || undefined} onValueChange={(val) => field.onChange(val || '')}>
-                      <SelectTrigger
-                        id="gender-select"
-                        className={`w-full rounded-xl border ${errors.gender?.message ? 'border-red-500' : 'border-gray-200'} bg-white py-2.5 px-3.5 text-xs text-gray-900 font-medium shadow-2xs h-auto`}
-                      >
-                        <SelectValue placeholder="Select Gender" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="MALE">Male</SelectItem>
-                        <SelectItem value="FEMALE">Female</SelectItem>
-                        <SelectItem value="OTHER">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
+            <CardContent className="p-0 space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Input
+                  label="First Name"
+                  required
+                  {...registerFiltered('firstName', lettersOnly)}
+                  error={errors.firstName?.message}
+                  placeholder="e.g. Ravi"
+                  maxLength={50}
+                  autoComplete="given-name"
                 />
-                {errors.gender?.message && (
-                  <p className="mt-1 text-xs font-semibold text-red-500">{errors.gender.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Controller
-                name="dateOfBirth"
-                control={control}
-                render={({ field }) => {
-                  const applyDobValue = (el: HTMLInputElement, mode: 'change' | 'blur') => {
-                    // While the user is mid-edit, native date inputs can briefly report an empty
-                    // value — keep the last committed form value instead of wiping it.
-                    if (mode === 'change' && !el.value && !el.validity.rangeOverflow) {
-                      return
-                    }
-
-                    const { value: next, rejected } = sanitizePastDateOrEmpty(el, mode)
-                    field.onChange(next)
-                    // Native date inputs keep a typed future year in the UI while focused;
-                    // remount to force a clean empty display when rejected.
-                    if (rejected) {
-                      setDateOfBirthInputKey((k) => k + 1)
-                    }
-                  }
-
-                  return (
-                    <Input
-                      key={dateOfBirthInputKey}
-                      label="Date of Birth"
-                      type="date"
-                      name={field.name}
-                      ref={field.ref}
-                      value={field.value || ''}
-                      min="1900-01-01"
-                      max={todayYmdLocal()}
-                      onChange={(e) => {
-                        applyDobValue(e.currentTarget as HTMLInputElement, 'change')
-                      }}
-                      onBlur={(e) => {
-                        applyDobValue(e.currentTarget as HTMLInputElement, 'blur')
-                        field.onBlur()
-                      }}
-                      error={errors.dateOfBirth?.message}
-                    />
-                  )
-                }}
-              />
-              <Input
-                label="Emergency Contact"
-                {...registerFiltered('emergencyContact', phoneDigitsOnly)}
-                error={errors.emergencyContact?.message}
-                placeholder="9876500000"
-                icon={<Phone className="h-4 w-4 text-gray-400" />}
-                inputMode="numeric"
-                maxLength={10}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <Label htmlFor="bloodgroup-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Blood Group
-                </Label>
-                <Controller
-                  control={control}
-                  name="bloodGroup"
-                  render={({ field }) => (
-                    <Select value={field.value || undefined} onValueChange={(val) => field.onChange(val || '')}>
-                      <SelectTrigger
-                        id="bloodgroup-select"
-                        className={`w-full rounded-xl border ${errors.bloodGroup?.message ? 'border-red-500' : 'border-gray-200'} bg-white py-2.5 px-3.5 text-xs text-gray-900 font-medium shadow-2xs h-auto`}
-                      >
-                        <SelectValue placeholder="Select Blood Group" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="A+">A+</SelectItem>
-                        <SelectItem value="A-">A-</SelectItem>
-                        <SelectItem value="B+">B+</SelectItem>
-                        <SelectItem value="B-">B-</SelectItem>
-                        <SelectItem value="O+">O+</SelectItem>
-                        <SelectItem value="O-">O-</SelectItem>
-                        <SelectItem value="AB+">AB+</SelectItem>
-                        <SelectItem value="AB-">AB-</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
+                <Input
+                  label="Last Name *"
+                  required
+                  {...registerFiltered('lastName', lettersOnly)}
+                  error={errors.lastName?.message}
+                  placeholder="e.g. Kumar"
+                  maxLength={50}
+                  autoComplete="family-name"
                 />
-                {errors.bloodGroup?.message && (
-                  <p className="mt-1 text-xs font-semibold text-red-500">{errors.bloodGroup.message}</p>
-                )}
               </div>
-              <Input
-                label="Qualification"
-                {...register('qualification')}
-                error={errors.qualification?.message}
-                placeholder="e.g. B.Sc Nursing, MBBS, MBA"
-                maxLength={150}
-              />
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Input
-                label="Experience (Years)"
-                {...registerFiltered('experience', (value) => digitsOnly(value, 2))}
-                error={errors.experience?.message}
-                placeholder="e.g. 5"
-                inputMode="numeric"
-                maxLength={2}
-              />
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Input
+                  label="Email Address"
+                  required
+                  type="email"
+                  {...register('email')}
+                  error={errors.email?.message}
+                  placeholder="admin.hyd@rely.com"
+                  icon={<Mail className="h-4 w-4 text-gray-400" />}
+                  autoComplete="email"
+                />
+                <Input
+                  label="Phone Number"
+                  required
+                  {...registerFiltered('phone', phoneDigitsOnly)}
+                  error={errors.phone?.message}
+                  placeholder="9876543210"
+                  icon={<Phone className="h-4 w-4 text-gray-400" />}
+                  inputMode="numeric"
+                  maxLength={10}
+                  autoComplete="tel"
+                />
+              </div>
 
-            <div>
-              <Input
-                label="Residential Address"
-                type="textarea"
-                rows={2}
-                {...register('address')}
-                error={errors.address?.message}
-                placeholder="Enter full residential address..."
-                maxLength={500}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <span className="block text-xs font-semibold text-gray-700">Weekoff days</span>
-              <div className="flex flex-wrap gap-2">
-                {WEEK_DAYS.map((day) => (
-                  <Label
-                    key={day}
-                    className="flex items-center gap-1.5 text-xs capitalize border rounded px-2 py-1 cursor-pointer"
-                  >
-                    <Checkbox
-                      checked={weekOffDays.includes(day)}
-                      onCheckedChange={() => {
-                        const next = weekOffDays.includes(day)
-                          ? weekOffDays.filter((d) => d !== day)
-                          : [...weekOffDays, day]
-                        setValue('weekOffDays', next, { shouldValidate: true })
-                      }}
-                    />
-                    {day.slice(0, 3)}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Input
+                  label="Date of Joining"
+                  required
+                  type="date"
+                  max={todayYmdLocal()}
+                  {...register('dateOfJoining', {
+                    onChange: (e) => {
+                      const el = e.target as HTMLInputElement
+                      const today = todayYmdLocal()
+                      if (el.validity.rangeOverflow || el.validity.badInput || (el.value && el.value > today)) {
+                        el.value = today
+                        setValue('dateOfJoining', today, { shouldValidate: true })
+                      }
+                    },
+                  })}
+                  error={errors.dateOfJoining?.message}
+                />
+                <div>
+                  <Label htmlFor="gender-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Gender
                   </Label>
-                ))}
+                  <Controller
+                    control={control}
+                    name="gender"
+                    render={({ field }) => (
+                      <Select value={field.value || undefined} onValueChange={(val) => field.onChange(val || '')}>
+                        <SelectTrigger
+                          id="gender-select"
+                          className={`w-full rounded-xl border ${errors.gender?.message ? 'border-red-500' : 'border-gray-200'} bg-white py-2.5 px-3.5 text-xs text-gray-900 font-medium shadow-2xs h-auto`}
+                        >
+                          <SelectValue placeholder="Select Gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MALE">Male</SelectItem>
+                          <SelectItem value="FEMALE">Female</SelectItem>
+                          <SelectItem value="OTHER">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.gender?.message && (
+                    <p className="mt-1 text-xs font-semibold text-red-500">{errors.gender.message}</p>
+                  )}
+                </div>
               </div>
-              {errors.weekOffDays && <p className="text-xs font-semibold text-red-500">{errors.weekOffDays.message}</p>}
-              <p className="text-xs text-gray-500">
-                Select fixed weekly offs for this employee. Roster cannot be created on these days.
-              </p>
-            </div>
-          </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Controller
+                  name="dateOfBirth"
+                  control={control}
+                  render={({ field }) => {
+                    const applyDobValue = (el: HTMLInputElement, mode: 'change' | 'blur') => {
+                      // While the user is mid-edit, native date inputs can briefly report an empty
+                      // value — keep the last committed form value instead of wiping it.
+                      if (mode === 'change' && !el.value && !el.validity.rangeOverflow) {
+                        return
+                      }
+
+                      const { value: next, rejected } = sanitizePastDateOrEmpty(el, mode)
+                      field.onChange(next)
+                      // Native date inputs keep a typed future year in the UI while focused;
+                      // remount to force a clean empty display when rejected.
+                      if (rejected) {
+                        setDateOfBirthInputKey((k) => k + 1)
+                      }
+                    }
+
+                    return (
+                      <Input
+                        key={dateOfBirthInputKey}
+                        label="Date of Birth"
+                        type="date"
+                        name={field.name}
+                        ref={field.ref}
+                        value={field.value || ''}
+                        min="1900-01-01"
+                        max={todayYmdLocal()}
+                        onChange={(e) => {
+                          applyDobValue(e.currentTarget as HTMLInputElement, 'change')
+                        }}
+                        onBlur={(e) => {
+                          applyDobValue(e.currentTarget as HTMLInputElement, 'blur')
+                          field.onBlur()
+                        }}
+                        error={errors.dateOfBirth?.message}
+                      />
+                    )
+                  }}
+                />
+                <Input
+                  label="Emergency Contact"
+                  {...registerFiltered('emergencyContact', phoneDigitsOnly)}
+                  error={errors.emergencyContact?.message}
+                  placeholder="9876500000"
+                  icon={<Phone className="h-4 w-4 text-gray-400" />}
+                  inputMode="numeric"
+                  maxLength={10}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <Label htmlFor="bloodgroup-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Blood Group
+                  </Label>
+                  <Controller
+                    control={control}
+                    name="bloodGroup"
+                    render={({ field }) => (
+                      <Select value={field.value || undefined} onValueChange={(val) => field.onChange(val || '')}>
+                        <SelectTrigger
+                          id="bloodgroup-select"
+                          className={`w-full rounded-xl border ${errors.bloodGroup?.message ? 'border-red-500' : 'border-gray-200'} bg-white py-2.5 px-3.5 text-xs text-gray-900 font-medium shadow-2xs h-auto`}
+                        >
+                          <SelectValue placeholder="Select Blood Group" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="A+">A+</SelectItem>
+                          <SelectItem value="A-">A-</SelectItem>
+                          <SelectItem value="B+">B+</SelectItem>
+                          <SelectItem value="B-">B-</SelectItem>
+                          <SelectItem value="O+">O+</SelectItem>
+                          <SelectItem value="O-">O-</SelectItem>
+                          <SelectItem value="AB+">AB+</SelectItem>
+                          <SelectItem value="AB-">AB-</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.bloodGroup?.message && (
+                    <p className="mt-1 text-xs font-semibold text-red-500">{errors.bloodGroup.message}</p>
+                  )}
+                </div>
+                <Input
+                  label="Qualification"
+                  {...register('qualification')}
+                  error={errors.qualification?.message}
+                  placeholder="e.g. B.Sc Nursing, MBBS, MBA"
+                  maxLength={150}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Input
+                  label="Experience (Years)"
+                  {...registerFiltered('experience', (value) => digitsOnly(value, 2))}
+                  error={errors.experience?.message}
+                  placeholder="e.g. 5"
+                  inputMode="numeric"
+                  maxLength={2}
+                />
+              </div>
+
+              <div>
+                <Input
+                  label="Residential Address"
+                  type="textarea"
+                  rows={2}
+                  {...register('address')}
+                  error={errors.address?.message}
+                  placeholder="Enter full residential address..."
+                  maxLength={500}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <span className="block text-xs font-semibold text-gray-700">Weekoff days</span>
+                <div className="flex flex-wrap gap-2">
+                  {WEEK_DAYS.map((day) => (
+                    <Label
+                      key={day}
+                      className="flex items-center gap-1.5 text-xs capitalize border rounded px-2 py-1 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={weekOffDays.includes(day)}
+                        onCheckedChange={() => {
+                          const next = weekOffDays.includes(day)
+                            ? weekOffDays.filter((d) => d !== day)
+                            : [...weekOffDays, day]
+                          setValue('weekOffDays', next, { shouldValidate: true })
+                        }}
+                      />
+                      {day.slice(0, 3)}
+                    </Label>
+                  ))}
+                </div>
+                {errors.weekOffDays && (
+                  <p className="text-xs font-semibold text-red-500">{errors.weekOffDays.message}</p>
+                )}
+                <p className="text-xs text-gray-500">
+                  Select fixed weekly offs for this employee. Roster cannot be created on these days.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Section 2: Role & Department Assignment */}
-          <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-5">
-            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
-              <ShieldCheck className="w-5 h-5 text-[#005390]" />
-              Role & Operational Department
-            </h2>
+          <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-5">
+            <CardHeader className="p-0 border-b border-gray-100 pb-3">
+              <CardTitle className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-[#005390]" />
+                Role & Operational Department
+              </CardTitle>
+            </CardHeader>
 
-            <div className="space-y-4">
+            <CardContent className="p-0 space-y-4">
               <div>
                 <Label htmlFor="role-select-page" className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Assigned System Role <span className="text-red-500 font-bold">*</span>
@@ -1292,123 +1301,129 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                   )}
                 </div>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Section 3: User Account Credentials (positioned directly ABOVE Property Locations) */}
-          <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-5">
-            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
-              <Key className="w-5 h-5 text-[#005390]" />
-              Employee Account Credentials
-            </h2>
+          <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-5">
+            <CardHeader className="p-0 border-b border-gray-100 pb-3">
+              <CardTitle className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <Key className="w-5 h-5 text-[#005390]" />
+                Employee Account Credentials
+              </CardTitle>
+            </CardHeader>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Input
-                label="Username (Login Handle)"
-                required
-                {...registerFiltered('username', (value) => value.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 30))}
-                error={errors.username?.message}
-                placeholder="e.g. ravi_kumar"
-                icon={<User className="h-4 w-4 text-gray-400" />}
-                maxLength={30}
-                autoComplete="username"
-              />
-              <Input
-                label="Password"
-                type="password"
-                {...register('password')}
-                error={errors.password?.message}
-                helperText="Password cannot be viewed for security reasons, but you can enter a new password here to update it."
-                placeholder={
-                  isEditMode
-                    ? 'Leave blank to keep existing password'
-                    : 'Set custom password (defaults to Password@123)'
-                }
-                icon={<Lock className="h-4 w-4 text-gray-400" />}
-                autoComplete="new-password"
-              />
-            </div>
-          </div>
+            <CardContent className="p-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Input
+                  label="Username (Login Handle)"
+                  required
+                  {...registerFiltered('username', (value) => value.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 30))}
+                  error={errors.username?.message}
+                  placeholder="e.g. ravi_kumar"
+                  icon={<User className="h-4 w-4 text-gray-400" />}
+                  maxLength={30}
+                  autoComplete="username"
+                />
+                <Input
+                  label="Password"
+                  type="password"
+                  {...register('password')}
+                  error={errors.password?.message}
+                  helperText="Password cannot be viewed for security reasons, but you can enter a new password here to update it."
+                  placeholder={
+                    isEditMode
+                      ? 'Leave blank to keep existing password'
+                      : 'Set custom password (defaults to Password@123)'
+                  }
+                  icon={<Lock className="h-4 w-4 text-gray-400" />}
+                  autoComplete="new-password"
+                />
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Section 4: Property Location Scopes (user_locations mapping) */}
           {!isLocationScoped && (
-            <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4">
-              <div>
-                <h2 className="text-base font-bold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
+            <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4">
+              <CardHeader className="p-0">
+                <CardTitle className="text-base font-bold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
                   <Building2 className="w-5 h-5 text-[#005390]" />
                   Assign Property <span className="text-red-500 font-bold">*</span>
-                </h2>
-                <p className="text-xs text-gray-500 mt-1">
+                </CardTitle>
+                <CardDescription className="text-xs text-gray-500 mt-1">
                   {isMultiPropertyRole
                     ? 'Select the property locations this user is authorized to access and operate (multiple allowed for Super Admin & Admin).'
                     : 'Select the single property location this user is assigned to.'}
-                </p>
+                </CardDescription>
                 {propertySelectionError && (
                   <p className="mt-2 text-xs font-semibold text-red-500 flex items-center gap-1">
                     <span>⚠️</span> {propertySelectionError}
                   </p>
                 )}
-              </div>
+              </CardHeader>
 
-              {availableProperties.length === 0 ? (
-                <div className="p-6 text-center text-xs text-gray-400 bg-gray-50/50 rounded-2xl">
-                  No properties created yet.
-                </div>
-              ) : (
-                <div className="flex flex-col gap-3 pt-2">
-                  {availableProperties.map((p) => {
-                    const isChecked = selectedPropertyIds.has(p.id)
+              <CardContent className="p-0">
+                {availableProperties.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-gray-400 bg-gray-50/50 rounded-2xl">
+                    No properties created yet.
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3 pt-2">
+                    {availableProperties.map((p) => {
+                      const isChecked = selectedPropertyIds.has(p.id)
 
-                    return (
-                      <Button
-                        variant="ghost"
-                        type="button"
-                        key={p.id}
-                        onClick={() => togglePropertySelection(p.id)}
-                        className={`w-full text-left p-4 h-auto whitespace-normal rounded-2xl border transition-all duration-200 cursor-pointer flex items-center justify-between gap-4 font-normal ${
-                          isChecked
-                            ? 'bg-[#005390]/5 border-[#005390] shadow-sm hover:bg-[#005390]/5'
-                            : 'bg-white border-gray-200 hover:border-[#005390]/30 hover:bg-white'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shrink-0 ${
-                              isChecked ? 'bg-[#005390] text-white' : 'bg-gray-100 text-gray-500'
-                            }`}
-                          >
-                            <Building2 className="w-5 h-5" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4
-                              className={`text-sm font-bold truncate ${isChecked ? 'text-[#005390]' : 'text-gray-900'}`}
-                            >
-                              {p.property_name}
-                            </h4>
-                            <span className="text-xs text-gray-500 block truncate">
-                              {p.city || 'Facility Property'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div
-                          className={`w-5 h-5 ${isMultiPropertyRole ? 'rounded-md' : 'rounded-full'} flex items-center justify-center transition-colors shrink-0 ${
-                            isChecked ? 'bg-[#005390] text-white' : 'border border-gray-300 bg-white'
+                      return (
+                        <Button
+                          variant="ghost"
+                          type="button"
+                          key={p.id}
+                          onClick={() => togglePropertySelection(p.id)}
+                          className={`w-full text-left p-4 h-auto whitespace-normal rounded-2xl border transition-all duration-200 cursor-pointer flex items-center justify-between gap-4 font-normal ${
+                            isChecked
+                              ? 'bg-[#005390]/5 border-[#005390] shadow-sm hover:bg-[#005390]/5'
+                              : 'bg-white border-gray-200 hover:border-[#005390]/30 hover:bg-white'
                           }`}
                         >
-                          {isChecked &&
-                            (isMultiPropertyRole ? (
-                              <Check className="w-3.5 h-3.5 stroke-[3]" />
-                            ) : (
-                              <div className="w-2 h-2 rounded-full bg-white" />
-                            ))}
-                        </div>
-                      </Button>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div
+                              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shrink-0 ${
+                                isChecked ? 'bg-[#005390] text-white' : 'bg-gray-100 text-gray-500'
+                              }`}
+                            >
+                              <Building2 className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4
+                                className={`text-sm font-bold truncate ${isChecked ? 'text-[#005390]' : 'text-gray-900'}`}
+                              >
+                                {p.property_name}
+                              </h4>
+                              <span className="text-xs text-gray-500 block truncate">
+                                {p.city || 'Facility Property'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div
+                            className={`w-5 h-5 ${isMultiPropertyRole ? 'rounded-md' : 'rounded-full'} flex items-center justify-center transition-colors shrink-0 ${
+                              isChecked ? 'bg-[#005390] text-white' : 'border border-gray-300 bg-white'
+                            }`}
+                          >
+                            {isChecked &&
+                              (isMultiPropertyRole ? (
+                                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              ) : (
+                                <div className="w-2 h-2 rounded-full bg-white" />
+                              ))}
+                          </div>
+                        </Button>
+                      )
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           )}
 
           {/* Full Page Footer Bar */}

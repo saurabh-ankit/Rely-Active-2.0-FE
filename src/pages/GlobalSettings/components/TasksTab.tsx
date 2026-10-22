@@ -27,6 +27,7 @@ import {
 import type { CareTask, BillingType, Task } from '@/lib/types/medical'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { DataTable } from '@/components/ui/data-table'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -445,18 +446,18 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
   return (
     <div className="space-y-6">
       {/* Top Banner & Stats */}
-      <div className="bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <Card className="gap-0 bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+        <CardHeader className="p-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-[#005390]/10 text-[#005390]">
                 <HeartHandshake className="w-5 h-5" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900">Care Tasks</h2>
+              <CardTitle className="text-xl font-bold text-gray-900">Care Tasks</CardTitle>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <CardDescription className="text-xs text-gray-500 mt-1">
               Configure and manage Care Tasks with multi-tier pricing and images.
-            </p>
+            </CardDescription>
           </div>
 
           <Button
@@ -467,11 +468,11 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
             <Plus className="w-4 h-4" />
             Create Care Task
           </Button>
-        </div>
-      </div>
+        </CardHeader>
+      </Card>
 
       {/* Filter & Search Bar */}
-      <div className="bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center gap-3 justify-between">
+      <Card className="gap-0 bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center gap-3 justify-between">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <Input
@@ -504,48 +505,50 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
             </Select>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Table Section */}
-      <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-5 shadow-sm">
-        {isLoading ? (
-          <div className="py-16 text-center">
-            <div className="w-8 h-8 border-3 border-[#005390] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-xs text-gray-500 font-medium">Loading care tasks...</p>
-          </div>
-        ) : careTasks.length === 0 ? (
-          <div className="py-16 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center mx-auto mb-3 border border-gray-100">
-              <HeartHandshake className="w-6 h-6 text-gray-400" />
+      <Card className="gap-0 bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-5 shadow-sm">
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="py-16 text-center">
+              <div className="w-8 h-8 border-3 border-[#005390] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-xs text-gray-500 font-medium">Loading care tasks...</p>
             </div>
-            <h3 className="text-sm font-bold text-gray-800">No Care Tasks Found</h3>
-            <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
-              {searchQuery ? 'Try adjusting your search terms.' : 'Get started by creating your first Care Task.'}
-            </p>
-            {!searchQuery && (
-              <Button
-                type="button"
-                onClick={handleOpenCreate}
-                className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-2 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold hover:bg-[#004170] cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" /> Create Care Task
-              </Button>
-            )}
-          </div>
-        ) : (
-          <DataTable
-            columns={columns}
-            data={careTasks}
-            isLoading={isLoading}
-            manualPagination={true}
-            pageCount={pagination.totalPages}
-            pageIndex={currentPage - 1}
-            onPageChange={(newPageIndex) => setCurrentPage(newPageIndex + 1)}
-            totalCount={pagination.total}
-            pageSize={pageSize}
-          />
-        )}
-      </div>
+          ) : careTasks.length === 0 ? (
+            <div className="py-16 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center mx-auto mb-3 border border-gray-100">
+                <HeartHandshake className="w-6 h-6 text-gray-400" />
+              </div>
+              <h3 className="text-sm font-bold text-gray-800">No Care Tasks Found</h3>
+              <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
+                {searchQuery ? 'Try adjusting your search terms.' : 'Get started by creating your first Care Task.'}
+              </p>
+              {!searchQuery && (
+                <Button
+                  type="button"
+                  onClick={handleOpenCreate}
+                  className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-2 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold hover:bg-[#004170] cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Create Care Task
+                </Button>
+              )}
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={careTasks}
+              isLoading={isLoading}
+              manualPagination={true}
+              pageCount={pagination.totalPages}
+              pageIndex={currentPage - 1}
+              onPageChange={(newPageIndex) => setCurrentPage(newPageIndex + 1)}
+              totalCount={pagination.total}
+              pageSize={pageSize}
+            />
+          )}
+        </CardContent>
+      </Card>
 
       {/* Create / Edit Modal Dialog */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

@@ -34,6 +34,7 @@ import {
   occupiedInEntity,
 } from './structure/entityPresets'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -1022,7 +1023,7 @@ export default function CreatePropertyScreen({
       </div>
 
       {/* Main Screen Container */}
-      <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xs">
+      <Card className="gap-0 rounded-3xl border border-gray-200 bg-white p-6 shadow-xs">
         <CommonProgressBar steps={STEPS} currentStep={step} onStepClick={(sId) => setStep(sId)} className="mb-6" />
 
         {error && (
@@ -1033,7 +1034,7 @@ export default function CreatePropertyScreen({
 
         {/* Step 1: Property Details */}
         {step === 1 && (
-          <div className="space-y-5 max-w-3xl mx-auto py-2">
+          <div className="space-y-5 w-full py-2">
             <InputField
               label="Property / Project Name"
               required
@@ -1241,14 +1242,14 @@ export default function CreatePropertyScreen({
 
         {/* Step 2: Address */}
         {step === 2 && (
-          <div className="space-y-4 max-w-3xl mx-auto py-2">
+          <div className="space-y-4 w-full py-2">
             <InputField
               label="Street Address"
               placeholder="e.g. 12, MG Road, Near Central Park"
               value={street}
               onChange={(e) => setStreet(e.target.value)}
             />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <InputField
                 label="City"
                 required
@@ -1453,7 +1454,7 @@ export default function CreatePropertyScreen({
             </div>
 
             {/* Main Configuration Panel */}
-            <div className="md:col-span-9 rounded-2xl border border-gray-200 bg-white p-6 space-y-6">
+            <Card className="gap-0 md:col-span-9 rounded-2xl border-gray-200 bg-white p-6 space-y-6 shadow-xs">
               {/* Entity header: name, kind and how it's organised */}
               {/* Entity name is fixed once the entity is added (it's set in the Add Entity dialog). */}
               <div className="flex flex-col gap-3 rounded-xl bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -2011,7 +2012,7 @@ export default function CreatePropertyScreen({
                   </div>
                 </>
               )}
-            </div>
+            </Card>
           </div>
         )}
 
@@ -2056,7 +2057,7 @@ export default function CreatePropertyScreen({
             </Button>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

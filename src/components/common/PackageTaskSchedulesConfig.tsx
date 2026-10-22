@@ -1,4 +1,5 @@
 import React from 'react'
+import { Card } from '@/components/ui/card'
 import { Clock, Trash2, Sparkles, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -149,9 +150,9 @@ export const PackageTaskSchedulesConfig: React.FC<PackageTaskSchedulesConfigProp
           const compCount = t.complimentaryCount ?? 0
 
           return (
-            <div
+            <Card
               key={t.taskId}
-              className="rounded-2xl border border-sky-100/80 bg-white p-3.5 shadow-2xs transition-all dark:border-gray-800 dark:bg-slate-800/80"
+              className="gap-0 rounded-2xl border-sky-100/80 bg-white p-3.5 shadow-2xs transition-all dark:border-gray-800 dark:bg-slate-800/80"
             >
               {/* Task Header & Complimentary Info */}
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100/80 pb-2.5 dark:border-gray-700/60">
@@ -264,7 +265,7 @@ export const PackageTaskSchedulesConfig: React.FC<PackageTaskSchedulesConfigProp
                   ))}
                 </div>
               </div>
-            </div>
+            </Card>
           )
         })}
       </div>

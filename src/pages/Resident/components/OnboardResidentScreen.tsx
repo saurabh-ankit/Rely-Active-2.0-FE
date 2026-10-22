@@ -1,4 +1,5 @@
 import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { type FieldPath, useFieldArray, useForm, useWatch, Controller } from 'react-hook-form'
@@ -81,21 +82,21 @@ function StepCard({
   children: React.ReactNode
 }) {
   return (
-    <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-2xs md:p-6 dark:border-gray-800 dark:bg-slate-900">
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+    <Card className="gap-0 rounded-2xl border-gray-100 bg-white p-5 shadow-2xs md:p-6 dark:border-gray-800 dark:bg-slate-900">
+      <CardHeader className="mb-5 flex flex-wrap flex-row items-start justify-between gap-3 p-0">
         <div className="flex items-start gap-3">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#005390] text-xs font-bold text-white">
             {step}
           </span>
           <div>
-            <h2 className="text-base font-bold text-gray-900 dark:text-white">{title}</h2>
-            {hint && <p className="text-xs text-gray-500">{hint}</p>}
+            <CardTitle className="text-base font-bold text-gray-900 dark:text-white">{title}</CardTitle>
+            {hint && <CardDescription className="text-xs text-gray-500">{hint}</CardDescription>}
           </div>
         </div>
         {action}
-      </div>
-      {children}
-    </section>
+      </CardHeader>
+      <CardContent className="p-0">{children}</CardContent>
+    </Card>
   )
 }
 
@@ -1844,9 +1845,9 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                     const fmErrors = errors.familyMembers?.[idx]
 
                     return (
-                      <div
+                      <Card
                         key={fieldItem.id}
-                        className="p-5 bg-white border border-gray-200/90 rounded-2xl shadow-xs space-y-4 relative transition hover:border-[#005390]/40"
+                        className="gap-0 p-5 bg-white border-gray-200/90 rounded-2xl shadow-xs space-y-4 relative transition hover:border-[#005390]/40"
                       >
                         {/* Card Header */}
                         <div className="flex items-center justify-between border-b border-gray-100 pb-3">
@@ -2244,7 +2245,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                             })()}
                           </div>
                         </div>
-                      </div>
+                      </Card>
                     )
                   })}
                 </div>

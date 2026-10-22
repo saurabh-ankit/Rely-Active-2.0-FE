@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { CalendarDays, FileText, IndianRupee, ReceiptIndianRupee } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import {
   Select,
@@ -272,11 +273,15 @@ export default function BillingFlatsPage() {
       {/* Money for the month */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {summaryTiles.map((t) => (
-          <div key={t.label} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-2xs">
-            <p className="text-xs font-medium text-gray-500">{t.label}</p>
-            <p className={cn('mt-1 text-2xl font-bold', t.className)}>{formatInr(t.value)}</p>
-            <p className="text-[11px] text-gray-400">{monthLabel(month)}</p>
-          </div>
+          <Card key={t.label} className="gap-0 rounded-2xl border-gray-100 bg-white p-4 shadow-2xs">
+            <CardHeader className="p-0">
+              <CardDescription className="text-xs font-medium text-gray-500">{t.label}</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <CardTitle className={cn('mt-1 text-2xl font-bold', t.className)}>{formatInr(t.value)}</CardTitle>
+              <p className="text-[11px] text-gray-400">{monthLabel(month)}</p>
+            </CardContent>
+          </Card>
         ))}
       </div>
 

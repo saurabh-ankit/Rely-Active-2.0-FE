@@ -33,6 +33,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
@@ -704,7 +705,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
       ) : (
         <div className="space-y-8">
           {/* SECTION 1: RECURRING WEEKLY BASE TEMPLATE (ALL MONDAYS - SUNDAYS) */}
-          <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-6 space-y-6">
+          <Card className="gap-0 bg-white rounded-2xl border-gray-200/80 shadow-xs p-6 space-y-6">
             <div className="space-y-5 border-b border-gray-100 pb-5">
               {/* Header Title + Action Controls inside Card */}
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -956,183 +957,185 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
             })()}
 
             {/* 2-Column Drag & Drop Area for Recurring Base Day / Custom Preview */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
               {/* Left Sidebar Palette */}
-              <div className="lg:col-span-4 bg-gray-50/70 p-5 rounded-2xl border border-gray-200/80 space-y-4 flex flex-col max-h-[calc(100vh-120px)] sticky top-4 self-start shadow-2xs">
-                <div className="flex items-center justify-between border-b border-gray-200/60 pb-3">
-                  <h4 className="text-xs font-bold text-gray-900 flex items-center gap-2">
-                    <GripVertical className="w-4 h-4 text-[#005390]" /> Available Dishes
-                  </h4>
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 bg-blue-100 text-[#005390] rounded-full shrink-0">
-                    {isPreviewingCustomOverride ? 'Preview Mode' : `Drag to ${activeBaseDay.toUpperCase()} Slot`}
-                  </span>
-                </div>
-
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-2.5" />
-                  <Input
-                    type="text"
-                    placeholder="Search dishes by name..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-3 py-1.5 text-xs font-medium border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
-                  />
-                </div>
-
-                {/* Category Filter Pills Carousel with Nav Buttons */}
-                <div className="relative border-b border-gray-200/60 pb-2 flex items-center gap-1">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon-xs"
-                    onClick={() => scrollCategoryLeft(categoryScrollRef)}
-                    className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center text-gray-600 shrink-0 cursor-pointer shadow-2xs transition-colors p-0"
-                    title="Scroll Left"
-                    aria-label="Scroll categories left"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                  </Button>
-
-                  <div
-                    ref={categoryScrollRef}
-                    className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none scroll-smooth flex-1"
-                  >
-                    {categories.map((cat) => (
-                      <Button
-                        key={cat.value}
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedCategory(cat.value)}
-                        className={cn(
-                          'px-3 py-1 rounded-xl text-[11px] font-extrabold whitespace-nowrap transition-all shrink-0 cursor-pointer h-auto',
-                          selectedCategory === cat.value
-                            ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
-                            : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200',
-                        )}
-                      >
-                        {cat.label}
-                      </Button>
-                    ))}
+              <div className="lg:col-span-4 relative min-h-[380px]">
+                <div className="h-[480px] lg:h-auto lg:absolute lg:inset-0 bg-gray-50/70 p-5 rounded-2xl border border-gray-200/80 space-y-4 flex flex-col shadow-2xs overflow-hidden">
+                  <div className="flex items-center justify-between border-b border-gray-200/60 pb-3 shrink-0">
+                    <h4 className="text-xs font-bold text-gray-900 flex items-center gap-2">
+                      <GripVertical className="w-4 h-4 text-[#005390]" /> Available Dishes
+                    </h4>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-blue-100 text-[#005390] rounded-full shrink-0">
+                      {isPreviewingCustomOverride ? 'Preview Mode' : `Drag to ${activeBaseDay.toUpperCase()} Slot`}
+                    </span>
                   </div>
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon-xs"
-                    onClick={() => scrollCategoryRight(categoryScrollRef)}
-                    className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center text-gray-600 shrink-0 cursor-pointer shadow-2xs transition-colors p-0"
-                    title="Scroll Right"
-                    aria-label="Scroll categories right"
-                  >
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
+                  <div className="relative shrink-0">
+                    <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-2.5" />
+                    <Input
+                      type="text"
+                      placeholder="Search dishes by name..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-3 py-1.5 text-xs font-medium border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
+                    />
+                  </div>
 
-                <div className="space-y-2 overflow-y-auto flex-1 pr-1">
-                  {filteredDishes.length === 0 ? (
-                    <div className="py-8 text-center text-xs text-gray-400 italic">No dishes found.</div>
-                  ) : (
-                    filteredDishes.map((dish) => (
-                      <div
-                        key={dish.id}
-                        draggable={!isPreviewingCustomOverride}
-                        onDragStart={(e) => {
-                          if (isPreviewingCustomOverride) return
-                          e.dataTransfer.setData('text/plain', dish.id)
-                          e.dataTransfer.effectAllowed = 'copy'
-                        }}
-                        className={`p-3 bg-white rounded-xl border border-gray-200 transition-all flex items-center justify-between group shadow-2xs ${
-                          isPreviewingCustomOverride
-                            ? 'opacity-60 cursor-not-allowed'
-                            : 'hover:bg-blue-50/60 hover:border-blue-300 cursor-grab active:cursor-grabbing'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <GripVertical className="w-4 h-4 text-gray-400 group-hover:text-[#005390] shrink-0" />
-                          {(() => {
-                            const imgUrl = getDishImageUrl(dish)
-                            return imgUrl ? (
-                              <img
-                                src={imgUrl}
-                                alt={dish.name}
-                                className="w-8 h-8 rounded-lg object-cover shrink-0 border border-gray-200"
-                              />
-                            ) : (
-                              <div className="w-8 h-8 rounded-lg bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0 border border-orange-200/50">
-                                <Utensils className="w-3.5 h-3.5" />
+                  {/* Category Filter Pills Carousel with Nav Buttons */}
+                  <div className="relative border-b border-gray-200/60 pb-2 flex items-center gap-1 shrink-0">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-xs"
+                      onClick={() => scrollCategoryLeft(categoryScrollRef)}
+                      className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center text-gray-600 shrink-0 cursor-pointer shadow-2xs transition-colors p-0"
+                      title="Scroll Left"
+                      aria-label="Scroll categories left"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </Button>
+
+                    <div
+                      ref={categoryScrollRef}
+                      className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none scroll-smooth flex-1"
+                    >
+                      {categories.map((cat) => (
+                        <Button
+                          key={cat.value}
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedCategory(cat.value)}
+                          className={cn(
+                            'px-3 py-1 rounded-xl text-[11px] font-extrabold whitespace-nowrap transition-all shrink-0 cursor-pointer h-auto',
+                            selectedCategory === cat.value
+                              ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
+                              : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200',
+                          )}
+                        >
+                          {cat.label}
+                        </Button>
+                      ))}
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-xs"
+                      onClick={() => scrollCategoryRight(categoryScrollRef)}
+                      className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center text-gray-600 shrink-0 cursor-pointer shadow-2xs transition-colors p-0"
+                      title="Scroll Right"
+                      aria-label="Scroll categories right"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2 overflow-y-auto flex-1 min-h-0 pr-1">
+                    {filteredDishes.length === 0 ? (
+                      <div className="py-8 text-center text-xs text-gray-400 italic">No dishes found.</div>
+                    ) : (
+                      filteredDishes.map((dish) => (
+                        <div
+                          key={dish.id}
+                          draggable={!isPreviewingCustomOverride}
+                          onDragStart={(e) => {
+                            if (isPreviewingCustomOverride) return
+                            e.dataTransfer.setData('text/plain', dish.id)
+                            e.dataTransfer.effectAllowed = 'copy'
+                          }}
+                          className={`p-3 bg-white rounded-xl border border-gray-200 transition-all flex items-center justify-between group shadow-2xs ${
+                            isPreviewingCustomOverride
+                              ? 'opacity-60 cursor-not-allowed'
+                              : 'hover:bg-blue-50/60 hover:border-blue-300 cursor-grab active:cursor-grabbing'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <GripVertical className="w-4 h-4 text-gray-400 group-hover:text-[#005390] shrink-0" />
+                            {(() => {
+                              const imgUrl = getDishImageUrl(dish)
+                              return imgUrl ? (
+                                <img
+                                  src={imgUrl}
+                                  alt={dish.name}
+                                  className="w-8 h-8 rounded-lg object-cover shrink-0 border border-gray-200"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-lg bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0 border border-orange-200/50">
+                                  <Utensils className="w-3.5 h-3.5" />
+                                </div>
+                              )
+                            })()}
+                            <div className="min-w-0">
+                              <div className="font-bold text-xs text-gray-900 truncate">{dish.name}</div>
+                              <div className="text-[10px] text-gray-500 capitalize truncate mt-0.5">
+                                <span className="font-semibold text-gray-700">{dish.category.replace('_', ' ')}</span> •
+                                ₹{dish.basePrice}
                               </div>
-                            )
-                          })()}
-                          <div className="min-w-0">
-                            <div className="font-bold text-xs text-gray-900 truncate">{dish.name}</div>
-                            <div className="text-[10px] text-gray-500 capitalize truncate mt-0.5">
-                              <span className="font-semibold text-gray-700">{dish.category.replace('_', ' ')}</span> • ₹
-                              {dish.basePrice}
                             </div>
                           </div>
-                        </div>
-                        {canUpdateFnb &&
-                          !isPreviewingCustomOverride &&
-                          (propertyMealSlots.length > 0 || propertySpecialSlots.length > 0) && (
-                            <Popover>
-                              <PopoverTrigger
-                                className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-[#005390] text-[10px] font-extrabold rounded-lg border border-blue-200 shrink-0 flex items-center gap-0.5 transition-colors cursor-pointer"
-                                title="1-Click Add to Meal Slot"
-                              >
-                                <Plus className="w-3 h-3" /> Add
-                              </PopoverTrigger>
-                              <PopoverContent
-                                className="w-52 p-1.5 bg-white rounded-xl shadow-lg border border-gray-200 text-xs"
-                                align="end"
-                              >
-                                {propertyMealSlots.length > 0 && (
-                                  <>
-                                    <div className="text-[10px] font-bold text-gray-400 px-2 py-1 uppercase tracking-wider">
-                                      Regular Slots:
-                                    </div>
-                                    {propertyMealSlots.map((s) => (
-                                      <Button
-                                        key={s.id}
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleAddBaseWeeklyDish(s, dish.id)}
-                                        className="w-full text-left justify-between px-2.5 py-1.5 h-auto rounded-lg hover:bg-blue-50 text-gray-800 font-bold hover:text-[#005390] transition-colors flex items-center text-xs cursor-pointer"
-                                      >
-                                        <span>{s.name}</span>
-                                        <span className="text-[10px] text-gray-400 font-normal">{s.startTime}</span>
-                                      </Button>
-                                    ))}
-                                  </>
-                                )}
+                          {canUpdateFnb &&
+                            !isPreviewingCustomOverride &&
+                            (propertyMealSlots.length > 0 || propertySpecialSlots.length > 0) && (
+                              <Popover>
+                                <PopoverTrigger
+                                  className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-[#005390] text-[10px] font-extrabold rounded-lg border border-blue-200 shrink-0 flex items-center gap-0.5 transition-colors cursor-pointer"
+                                  title="1-Click Add to Meal Slot"
+                                >
+                                  <Plus className="w-3 h-3" /> Add
+                                </PopoverTrigger>
+                                <PopoverContent
+                                  className="w-52 p-1.5 bg-white rounded-xl shadow-lg border border-gray-200 text-xs"
+                                  align="end"
+                                >
+                                  {propertyMealSlots.length > 0 && (
+                                    <>
+                                      <div className="text-[10px] font-bold text-gray-400 px-2 py-1 uppercase tracking-wider">
+                                        Regular Slots:
+                                      </div>
+                                      {propertyMealSlots.map((s) => (
+                                        <Button
+                                          key={s.id}
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleAddBaseWeeklyDish(s, dish.id)}
+                                          className="w-full text-left justify-between px-2.5 py-1.5 h-auto rounded-lg hover:bg-blue-50 text-gray-800 font-bold hover:text-[#005390] transition-colors flex items-center text-xs cursor-pointer"
+                                        >
+                                          <span>{s.name}</span>
+                                          <span className="text-[10px] text-gray-400 font-normal">{s.startTime}</span>
+                                        </Button>
+                                      ))}
+                                    </>
+                                  )}
 
-                                {propertySpecialSlots.length > 0 && (
-                                  <>
-                                    <div className="text-[10px] font-bold text-amber-600 px-2 py-1 mt-1 border-t border-gray-100 uppercase tracking-wider flex items-center gap-1">
-                                      <Sparkles className="w-3 h-3" /> Special Slots (Every Day):
-                                    </div>
-                                    {propertySpecialSlots.map((sp) => (
-                                      <Button
-                                        key={sp.id}
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleAddSpecialDish(sp.id, dish.id)}
-                                        className="w-full text-left justify-between px-2.5 py-1.5 h-auto rounded-lg hover:bg-amber-50 text-gray-800 font-bold hover:text-amber-800 transition-colors flex items-center text-xs cursor-pointer"
-                                      >
-                                        <span>{sp.name}</span>
-                                        <span className="text-[10px] text-amber-600 font-semibold">Special</span>
-                                      </Button>
-                                    ))}
-                                  </>
-                                )}
-                              </PopoverContent>
-                            </Popover>
-                          )}
-                      </div>
-                    ))
-                  )}
+                                  {propertySpecialSlots.length > 0 && (
+                                    <>
+                                      <div className="text-[10px] font-bold text-amber-600 px-2 py-1 mt-1 border-t border-gray-100 uppercase tracking-wider flex items-center gap-1">
+                                        <Sparkles className="w-3 h-3" /> Special Slots (Every Day):
+                                      </div>
+                                      {propertySpecialSlots.map((sp) => (
+                                        <Button
+                                          key={sp.id}
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleAddSpecialDish(sp.id, dish.id)}
+                                          className="w-full text-left justify-between px-2.5 py-1.5 h-auto rounded-lg hover:bg-amber-50 text-gray-800 font-bold hover:text-amber-800 transition-colors flex items-center text-xs cursor-pointer"
+                                        >
+                                          <span>{sp.name}</span>
+                                          <span className="text-[10px] text-amber-600 font-semibold">Special</span>
+                                        </Button>
+                                      ))}
+                                    </>
+                                  )}
+                                </PopoverContent>
+                              </Popover>
+                            )}
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -1502,7 +1505,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                 )}
               </div>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
@@ -1900,7 +1903,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                 </div>
 
                 {/* Primary Card: Selected Date Metrics */}
-                <div className="p-4 rounded-2xl bg-white border border-gray-200 shadow-2xs space-y-3">
+                <Card className="gap-0 p-4 rounded-2xl bg-white border-gray-200 shadow-2xs space-y-3">
                   <div className="font-extrabold text-gray-900 flex items-center justify-between border-b border-gray-100 pb-2.5">
                     <span className="text-xs">
                       Menu Items for {formatDDMMYYYY(activeSelectedDate)} ({activeBaseDay.toUpperCase()})
@@ -1942,7 +1945,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                       </span>
                     </div>
                   </div>
-                </div>
+                </Card>
               </div>
             )
           })()}

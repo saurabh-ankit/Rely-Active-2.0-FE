@@ -7,6 +7,7 @@ import { getPropertiesAPI } from '@/lib/services/propertyService'
 import { residentService } from '@/lib/services/residentService'
 import { useLocationContext } from '@/hooks/useLocation'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import {
@@ -348,7 +349,7 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
   return (
     <div className="space-y-6 pb-12 w-full">
       {/* ── Top Header Card ──────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-2xs">
+      <Card className="gap-0 flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-2xs">
         <div>
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 dark:text-white">
             <UserCheck className="w-5 h-5 text-[#005390]" />
@@ -370,7 +371,7 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
             Onboard Resident / Tenant
           </Button>
         )}
-      </div>
+      </Card>
 
       {/* ── Filter Bar & BE Search ─────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-2xs">
@@ -399,9 +400,9 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
       ) : (
         <div className="space-y-4">
           {paginatedFlats.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center text-sm text-gray-400 dark:border-gray-800 dark:bg-slate-900">
+            <Card className="gap-0 rounded-2xl border-dashed border-gray-200 bg-white p-12 text-center text-sm text-gray-400 dark:border-gray-800 dark:bg-slate-900">
               No residents found.
-            </div>
+            </Card>
           ) : (
             paginatedFlats.map((flat) => {
               const livingCount = flat.allOccupants.reduce(
@@ -412,9 +413,9 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                 0,
               )
               return (
-                <div
+                <Card
                   key={flat.unitId}
-                  className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xs dark:border-gray-800 dark:bg-slate-900"
+                  className="gap-0 overflow-hidden rounded-2xl border-gray-100 bg-white shadow-2xs dark:border-gray-800 dark:bg-slate-900"
                 >
                   {/* Flat header */}
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 bg-gray-50/70 px-4 py-3 dark:border-gray-800 dark:bg-slate-800/50">
@@ -600,13 +601,13 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                       )
                     })}
                   </ul>
-                </div>
+                </Card>
               )
             })
           )}
           {/* Pagination Footer */}
           {totalGroups > 0 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-3 px-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xs">
+            <Card className="gap-0 flex flex-col sm:flex-row items-center justify-between gap-4 py-3 px-4 bg-white dark:bg-slate-900 border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xs">
               <div className="flex items-center gap-3 text-xs text-gray-500 font-medium">
                 <span>
                   Showing flats{' '}
@@ -682,7 +683,7 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                   </PaginationItem>
                 </PaginationContent>
               </Pagination>
-            </div>
+            </Card>
           )}
         </div>
       )}

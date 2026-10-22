@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -72,18 +73,18 @@ const FormSection = ({
   description?: string
   children: React.ReactNode
 }) => (
-  <section className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
-    <div className="mb-4 flex items-start gap-3">
+  <Card className="gap-0 rounded-2xl border-gray-200 bg-white p-4 sm:p-5 shadow-xs">
+    <CardHeader className="p-0 mb-4 flex-row items-start gap-3 space-y-0">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#005390]/10 text-[#005390]">
         <Icon className="h-4 w-4" />
       </div>
-      <div>
-        <h3 className="text-sm font-bold text-gray-900">{title}</h3>
-        {description && <p className="text-xs text-gray-500">{description}</p>}
+      <div className="space-y-0.5">
+        <CardTitle className="text-sm font-bold text-gray-900">{title}</CardTitle>
+        {description && <CardDescription className="text-xs text-gray-500">{description}</CardDescription>}
       </div>
-    </div>
-    <div className="space-y-4">{children}</div>
-  </section>
+    </CardHeader>
+    <CardContent className="p-0 space-y-4">{children}</CardContent>
+  </Card>
 )
 
 const eventTypeSchema = z.enum(['regular', 'special'])
@@ -1637,7 +1638,9 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
         <h2 className="text-2xl font-bold text-gray-700">{isEditMode ? 'Edit Event' : 'Create an Event'}</h2>
       </div>
 
-      <div className="mt-5 flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white">{formFields}</div>
+      <Card className="gap-0 mt-5 flex flex-col overflow-hidden rounded-2xl border-gray-200 bg-white shadow-xs">
+        {formFields}
+      </Card>
     </div>
   )
 }

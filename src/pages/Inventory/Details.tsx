@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { AlertTriangle, ArrowLeft, ChevronRight, Gauge, Package, Pencil, SlidersHorizontal, Truck } from 'lucide-react'
 import { ActiveStatus } from '@/components/inventory/InventoryStatus'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
@@ -378,7 +379,7 @@ export function ItemDetail({
         <span className="text-[#005390]">{item.name}</span>
       </nav>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-gray-200 bg-white p-5 shadow-xs">
+      <Card className="gap-0 flex flex-row flex-wrap items-center justify-between gap-3 rounded-3xl border border-gray-200 bg-white p-5 shadow-xs ring-0">
         <div className="flex min-w-0 items-center gap-3">
           <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#005390]/10 text-[#005390]">
             <Package className="size-6" />
@@ -410,7 +411,7 @@ export function ItemDetail({
             </Button>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Stock at a glance */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { ArrowLeft, Briefcase, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
@@ -33,20 +34,22 @@ export function InventoryPage({
       </Button>
 
       {/* Top Header Banner matching other Global Settings pages */}
-      <div className="bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
+      <Card className="gap-0 bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+        <CardHeader className="p-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="min-w-0">
             <div className="flex items-center gap-2.5">
-              <div className="p-2.5 rounded-2xl bg-[#005390]/10 text-[#005390]">
+              <div className="p-2.5 rounded-2xl bg-[#005390]/10 text-[#005390] shrink-0">
                 <Icon className="w-5 h-5" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900">{title}</h1>
+              <CardTitle className="text-xl font-bold text-gray-900">{title}</CardTitle>
             </div>
-            {description && <p className="text-xs text-gray-500 mt-1.5 ml-1">{description}</p>}
+            {description && (
+              <CardDescription className="text-xs text-gray-500 mt-1.5 ml-1">{description}</CardDescription>
+            )}
           </div>
           {action && <div className="shrink-0">{action}</div>}
-        </div>
-      </div>
+        </CardHeader>
+      </Card>
 
       {children}
     </div>
@@ -67,9 +70,9 @@ export function FormSection({
   icon?: LucideIcon
 }) {
   return (
-    <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xs">
+    <Card className="gap-0 rounded-3xl border border-gray-200 bg-white p-6 shadow-xs">
       {(title || action || description) && (
-        <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 pb-4">
+        <CardHeader className="p-0 mb-5 flex flex-wrap flex-row items-start justify-between gap-3 border-b border-gray-100 pb-4">
           <div className="flex items-start gap-3">
             {Icon && (
               <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#005390]/10 text-[#005390]">
@@ -77,15 +80,15 @@ export function FormSection({
               </span>
             )}
             <div>
-              {title && <h2 className="text-base font-bold text-gray-900">{title}</h2>}
-              {description && <p className="mt-0.5 text-xs text-gray-500">{description}</p>}
+              {title && <CardTitle className="text-base font-bold text-gray-900">{title}</CardTitle>}
+              {description && <CardDescription className="mt-0.5 text-xs text-gray-500">{description}</CardDescription>}
             </div>
           </div>
           {action}
-        </div>
+        </CardHeader>
       )}
-      {children}
-    </div>
+      <CardContent className="p-0">{children}</CardContent>
+    </Card>
   )
 }
 

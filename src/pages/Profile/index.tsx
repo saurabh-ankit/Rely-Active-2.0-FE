@@ -22,6 +22,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -259,7 +260,7 @@ export default function UserProfilePage() {
   return (
     <div className="w-full space-y-6 pb-12">
       {/* Top Header Navigation */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-gray-100 rounded-2xl p-5 shadow-2xs">
+      <Card className="gap-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border-gray-100 rounded-2xl p-5 shadow-2xs">
         <div className="flex items-center gap-3">
           <Button
             type="button"
@@ -282,16 +283,16 @@ export default function UserProfilePage() {
             </p>
           </div>
         </div>
-      </div>
+      </Card>
 
       {loading ? (
-        <div className="bg-white rounded-3xl p-12 text-center text-gray-400 font-medium shadow-sm border border-gray-100">
+        <Card className="gap-0 bg-white rounded-3xl p-12 text-center text-gray-400 font-medium shadow-sm border-gray-100">
           Loading profile details...
-        </div>
+        </Card>
       ) : (
         <div className="space-y-6">
           {/* Profile Overview Card */}
-          <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center md:items-start justify-between gap-6 relative overflow-hidden">
+          <Card className="gap-0 bg-white rounded-3xl p-6 md:p-8 shadow-sm border-gray-100 flex flex-col md:flex-row items-center md:items-start justify-between gap-6 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/50 rounded-full blur-3xl -z-0 pointer-events-none" />
 
             <div className="flex flex-col md:flex-row items-center gap-6 z-10 text-center md:text-left">
@@ -345,18 +346,20 @@ export default function UserProfilePage() {
                 Active Account
               </span>
             </div>
-          </div>
+          </Card>
 
           {/* Profile Edit Form */}
           <form onSubmit={handleSubmit(handleSave)} className="space-y-6" noValidate>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Personal Information Card */}
-              <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 space-y-4">
-                <h3 className="text-sm font-extrabold text-gray-900 uppercase tracking-wider flex items-center gap-2 pb-2 border-b border-gray-100">
-                  <User className="w-4 h-4 text-[#005390]" /> Personal Information
-                </h3>
+              <Card className="gap-0 bg-white rounded-3xl p-6 md:p-8 shadow-sm border-gray-100 space-y-4">
+                <CardHeader className="p-0 border-b border-gray-100 pb-2">
+                  <CardTitle className="text-sm font-extrabold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                    <User className="w-4 h-4 text-[#005390]" /> Personal Information
+                  </CardTitle>
+                </CardHeader>
 
-                <div className="space-y-4">
+                <CardContent className="p-0 space-y-4">
                   <div>
                     <Label htmlFor="page-profile-first-name" className="block text-xs font-bold text-gray-700 mb-1.5">
                       First Name <span className="text-red-500">*</span>
@@ -434,21 +437,22 @@ export default function UserProfilePage() {
                     </div>
                     {errors.phone && <p className="mt-1 text-xs font-semibold text-red-500">{errors.phone.message}</p>}
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Security & Password Card */}
-              <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 space-y-4 flex flex-col justify-between">
-                <div className="space-y-4">
-                  <h3 className="text-sm font-extrabold text-gray-900 uppercase tracking-wider flex items-center gap-2 pb-2 border-b border-gray-100">
+              <Card className="gap-0 bg-white rounded-3xl p-6 md:p-8 shadow-sm border-gray-100 space-y-4 flex flex-col justify-between">
+                <CardHeader className="p-0 border-b border-gray-100 pb-2">
+                  <CardTitle className="text-sm font-extrabold text-gray-900 uppercase tracking-wider flex items-center gap-2">
                     <KeyRound className="w-4 h-4 text-[#005390]" /> Security & Change Password
-                  </h3>
-
-                  <p className="text-xs text-gray-500 leading-relaxed">
+                  </CardTitle>
+                  <CardDescription className="text-xs text-gray-500 leading-relaxed mt-1">
                     Update your account login password. Leave these fields blank if you wish to retain your current
                     password.
-                  </p>
+                  </CardDescription>
+                </CardHeader>
 
+                <CardContent className="p-0 space-y-4">
                   <div className="space-y-4 pt-1">
                     <Input
                       id="page-profile-new-password"
@@ -470,7 +474,7 @@ export default function UserProfilePage() {
                       icon={<Lock className="w-4 h-4 text-gray-400" />}
                     />
                   </div>
-                </div>
+                </CardContent>
 
                 <div className="pt-6 border-t border-gray-100 flex items-center justify-end gap-3">
                   <Button
@@ -490,7 +494,7 @@ export default function UserProfilePage() {
                     {saving ? 'Saving Changes...' : 'Save Profile Changes'}
                   </Button>
                 </div>
-              </div>
+              </Card>
             </div>
           </form>
         </div>

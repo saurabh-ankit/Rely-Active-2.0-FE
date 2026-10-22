@@ -1,4 +1,5 @@
 import { Label } from '@/components/ui/label'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useForm } from 'react-hook-form'
@@ -464,23 +465,29 @@ export function GlobalServicesTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Briefcase className="w-5 h-5 text-[#005390]" /> Event Global Services
-          </h2>
-          <p className="text-xs text-gray-500 mt-1">
-            Create and manage global service templates with property-specific pricing.
-          </p>
-        </div>
-        <Button
-          type="button"
-          onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 h-auto bg-[#005390] hover:bg-[#004070] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
-        >
-          <Plus className="w-4 h-4" /> Add Event Global Service
-        </Button>
-      </div>
+      <Card className="gap-0 bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+        <CardHeader className="p-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-[#005390]/10 text-[#005390] shrink-0">
+                <Briefcase className="w-5 h-5" />
+              </div>
+              <CardTitle className="text-xl font-bold text-gray-900">Event Global Services</CardTitle>
+            </div>
+            <CardDescription className="text-xs text-gray-500 mt-1">
+              Create and manage global service templates with property-specific pricing.
+            </CardDescription>
+          </div>
+
+          <Button
+            type="button"
+            onClick={handleOpenCreate}
+            className="inline-flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004170] transition-colors cursor-pointer shrink-0"
+          >
+            <Plus className="w-4 h-4" /> Add Event Global Service
+          </Button>
+        </CardHeader>
+      </Card>
 
       <DataTable
         columns={columns}
