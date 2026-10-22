@@ -17,6 +17,7 @@ export interface DashboardOverview {
     movedOutToday: number
     acuity: { stable: number; moderate: number; critical: number }
   }
+  /** Active residents with Condition: Critical (same as resident detail), else careLevel Critical. */
   criticalResidents: {
     total: number
     page: number
