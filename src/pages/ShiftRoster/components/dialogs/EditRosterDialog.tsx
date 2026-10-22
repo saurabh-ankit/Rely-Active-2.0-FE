@@ -496,7 +496,7 @@ const EditRosterDialog = ({
               {effectiveTargetType === 'area' ? (
                 <div className="space-y-2">
                   <Label>Area *</Label>
-                  <Select value={areaId || NONE} onValueChange={(v) => setAreaId(v === NONE ? '' : v)}>
+                  <Select value={areaId || NONE} onValueChange={(v) => setAreaId(v === NONE || !v ? '' : String(v))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select area" />
                     </SelectTrigger>
@@ -551,7 +551,10 @@ const EditRosterDialog = ({
                   {blockId && floorId && (
                     <div className="space-y-2">
                       <Label>Flat (optional)</Label>
-                      <Select value={unitId || NONE} onValueChange={(v) => setUnitId(v === NONE ? '' : v)}>
+                      <Select
+                        value={unitId || NONE}
+                        onValueChange={(v) => setUnitId(v === NONE || !v ? '' : String(v))}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Entire floor" />
                         </SelectTrigger>
