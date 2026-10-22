@@ -200,18 +200,39 @@ export interface ResidentDocumentItem {
   createdAt: string
 }
 
-export interface ResidentNokContact {
+/** A non-residing family member who looks after the flat's residents from the resident app. */
+export interface ResidentGuardian {
   id: string
   residentId: string
+  firstName: string
+  lastName: string | null
   fullName: string
-  relationship: string | null
+  relation: string
+  gender: 'MALE' | 'FEMALE' | 'OTHER' | null
   phone: string
-  alternatePhone: string | null
   email: string | null
   address: string | null
   photoUrl: string | null
+  username: string
+  lastLoginAt: string | null
+  isActive: boolean
   createdAt: string
   updatedAt?: string
+}
+
+/** A residing person of the flat a guardian can act for. */
+export interface GuardianCareRecipient {
+  type: 'RESIDENT' | 'FAMILY_MEMBER'
+  id: string
+  fullName: string
+  relation: string
+  age: number | null
+  photoUrl: string | null
+}
+
+export interface ResidentGuardiansData {
+  guardians: ResidentGuardian[]
+  careRecipients: GuardianCareRecipient[]
 }
 
 export type DoctorNoteFileType = 'IMAGE' | 'PDF' | 'AUDIO'

@@ -17,7 +17,8 @@ import type {
   ResidentMedicationItem,
   ResidentMedicationPayload,
   ResidentMedicinesParams,
-  ResidentNokContact,
+  ResidentGuardian,
+  ResidentGuardiansData,
   ResidentTimelineParams,
   ResidentVitalItem,
   ResidentVitalPayload,
@@ -355,35 +356,35 @@ export const createResidentDocumentAPI = async (
   return response.data
 }
 
-type ResidentNokContactMutationResponse = { success: boolean; message?: string; data?: ResidentNokContact }
+type ResidentGuardianMutationResponse = { success: boolean; message?: string; data?: ResidentGuardian }
 
-export const getResidentNokContactsAPI = async (residentId: string): Promise<ResidentNokContact[]> => {
-  const response = await api.get(API_ENDPOINTS.resident.nokContacts(residentId))
-  return response.data?.data || response.data
+export const getResidentGuardiansAPI = async (residentId: string): Promise<ResidentGuardiansData> => {
+  const response = await api.get(API_ENDPOINTS.resident.guardians(residentId))
+  return response.data?.data ?? { guardians: [], careRecipients: [] }
 }
 
-export const createResidentNokContactAPI = async (
+export const createResidentGuardianAPI = async (
   residentId: string,
   data: FormData,
-): Promise<ResidentNokContactMutationResponse> => {
-  const response = await api.post(API_ENDPOINTS.resident.nokContacts(residentId), data, { timeout: 60_000 })
+): Promise<ResidentGuardianMutationResponse> => {
+  const response = await api.post(API_ENDPOINTS.resident.guardians(residentId), data, { timeout: 60_000 })
   return response.data
 }
 
-export const updateResidentNokContactAPI = async (
+export const updateResidentGuardianAPI = async (
   residentId: string,
   id: string,
   data: FormData,
-): Promise<ResidentNokContactMutationResponse> => {
-  const response = await api.put(API_ENDPOINTS.resident.nokContact(residentId, id), data, { timeout: 60_000 })
+): Promise<ResidentGuardianMutationResponse> => {
+  const response = await api.put(API_ENDPOINTS.resident.guardian(residentId, id), data, { timeout: 60_000 })
   return response.data
 }
 
-export const deleteResidentNokContactAPI = async (
+export const deleteResidentGuardianAPI = async (
   residentId: string,
   id: string,
-): Promise<ResidentNokContactMutationResponse> => {
-  const response = await api.delete(API_ENDPOINTS.resident.nokContact(residentId, id))
+): Promise<ResidentGuardianMutationResponse> => {
+  const response = await api.delete(API_ENDPOINTS.resident.guardian(residentId, id))
   return response.data
 }
 
@@ -428,10 +429,10 @@ export const residentService = {
   deleteResidentAllergy: deleteResidentAllergyAPI,
   getResidentDocuments: getResidentDocumentsAPI,
   createResidentDocument: createResidentDocumentAPI,
-  getResidentNokContacts: getResidentNokContactsAPI,
-  createResidentNokContact: createResidentNokContactAPI,
-  updateResidentNokContact: updateResidentNokContactAPI,
-  deleteResidentNokContact: deleteResidentNokContactAPI,
+  getResidentGuardians: getResidentGuardiansAPI,
+  createResidentGuardian: createResidentGuardianAPI,
+  updateResidentGuardian: updateResidentGuardianAPI,
+  deleteResidentGuardian: deleteResidentGuardianAPI,
   getResidentTimeline: getResidentTimelineAPI,
 }
 

@@ -29,7 +29,7 @@ function Input({
 }: InputProps) {
   const [showPassword, setShowPassword] = React.useState(false)
   const isPasswordField = type === 'password'
-  const computedType = isPasswordField ? (showPassword ? 'password' : 'text') : type
+  const computedType = isPasswordField ? (showPassword ? 'text' : 'password') : type
 
   const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '_') : undefined)
 
