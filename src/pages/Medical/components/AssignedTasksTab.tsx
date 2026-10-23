@@ -44,12 +44,14 @@ export interface AssignedTasksTabProps {
   forcedPropertyId?: string | null
   forcedResidentId?: string | null
   isCompact?: boolean
+  actionSlot?: React.ReactNode
 }
 
 export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
   forcedPropertyId,
   forcedResidentId,
   isCompact = false,
+  actionSlot,
 }) => {
   const { selectedLocationId } = useLocationContext()
   const effectiveLocId = forcedPropertyId !== undefined ? forcedPropertyId : selectedLocationId
@@ -460,15 +462,19 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
           </div>
         </Tabs>
 
-        {/* Assign Button */}
-        <Button
-          type="button"
-          onClick={() => setIsAssignModalOpen(true)}
-          className="rounded-xl bg-[#005390] px-4 py-2 text-xs font-bold text-white hover:bg-[#004375] cursor-pointer shadow-xs"
-        >
-          <Plus className="mr-1.5 size-4" />
-          Assign Task to Resident
-        </Button>
+        {/* Actions / Assign Button */}
+        {actionSlot !== undefined ? (
+          actionSlot
+        ) : (
+          <Button
+            type="button"
+            onClick={() => setIsAssignModalOpen(true)}
+            className="rounded-xl bg-[#005390] px-4 py-2 text-xs font-bold text-white hover:bg-[#004375] cursor-pointer shadow-xs"
+          >
+            <Plus className="mr-1.5 size-4" />
+            Assign Task to Resident
+          </Button>
+        )}
       </div>
 
       {/* ── Action & Filter Bar ────────────────────────────────────────────── */}

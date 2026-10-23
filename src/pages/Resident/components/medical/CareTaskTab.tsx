@@ -34,29 +34,34 @@ export const CareTaskTab: React.FC<CareTaskTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {canUpdateResident && (
-        <div className="flex items-center justify-end gap-3 flex-wrap">
-          <Button
-            type="button"
-            onClick={onAssignCareTeam}
-            className="rounded-xl bg-[#005390] px-4 py-2 text-xs font-bold text-white hover:bg-[#004375] cursor-pointer shadow-xs"
-          >
-            <Users className="mr-1.5 size-4 text-white" />
-            Assign Care Team
-          </Button>
-          <Button
-            type="button"
-            onClick={onAssignCareTask}
-            className="rounded-xl bg-[#005390] px-4 py-2 text-xs font-bold text-white hover:bg-[#004375] cursor-pointer shadow-xs"
-          >
-            <HeartPulse className="mr-1.5 size-4 text-white" />
-            Assign Care Task
-          </Button>
-        </div>
-      )}
-
       <ClinicalCard icon={HeartPulse} title="Assigned Care Tasks & Clinical Care">
-        <AssignedTasksTab forcedResidentId={resident.id} forcedPropertyId={propertyId} isCompact={true} />
+        <AssignedTasksTab
+          forcedResidentId={resident.id}
+          forcedPropertyId={propertyId}
+          isCompact={true}
+          actionSlot={
+            canUpdateResident ? (
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <Button
+                  type="button"
+                  onClick={onAssignCareTeam}
+                  className="rounded-xl bg-[#005390] px-4 py-2 text-xs font-bold text-white hover:bg-[#004375] cursor-pointer shadow-xs"
+                >
+                  <Users className="mr-1.5 size-4 text-white" />
+                  Assign Care Team
+                </Button>
+                <Button
+                  type="button"
+                  onClick={onAssignCareTask}
+                  className="rounded-xl bg-[#005390] px-4 py-2 text-xs font-bold text-white hover:bg-[#004375] cursor-pointer shadow-xs"
+                >
+                  <HeartPulse className="mr-1.5 size-4 text-white" />
+                  Assign Care Task
+                </Button>
+              </div>
+            ) : null
+          }
+        />
       </ClinicalCard>
     </div>
   )
