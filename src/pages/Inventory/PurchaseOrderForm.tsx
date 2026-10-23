@@ -16,19 +16,22 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FieldGroup } from '@/components/ui/field'
 import { useCenterOptions, useCenterMutation } from '@/hooks/react-query/centerInventory'
-import type { PurchaseOrder, PurchaseOrderInput } from '@/lib/types/centerInventory'
+import type { CenterItem, PurchaseOrder, PurchaseOrderInput } from '@/lib/types/centerInventory'
 import { ErrorNotice, FormField } from './shared'
 import { baseQuantity, money } from './utils'
 export function PurchaseOrderForm({
   locationId,
   categoryId,
   record,
+  item: fixedItem,
   onClose,
   onSaved,
 }: {
   locationId: string
   categoryId?: string
   record?: PurchaseOrder
+  /** Raise the PO for this item only: the item is locked and no other lines can be added. */
+  item?: CenterItem
   onClose: () => void
   onSaved: (id: string) => void
 }) {
@@ -36,9 +39,13 @@ export function PurchaseOrderForm({
   const items = useCenterOptions(locationId, 'items', record || !categoryId ? {} : { categoryId })
   const mutation = useCenterMutation<PurchaseOrder>(locationId)
   const [requestId] = useState(() => generateUUID())
-  const [supplierId, setSupplierId] = useState(record?.supplierId ?? '')
+  const fixedSuppliers = fixedItem?.suppliers.filter((s) => s.isActive)
+  const [supplierId, setSupplierId] = useState(
+    record?.supplierId ?? (fixedSuppliers?.length === 1 ? fixedSuppliers[0].id : ''),
+  )
   const [notes, setNotes] = useState(record?.notes ?? '')
   const [error, setError] = useState<unknown>(null)
+  const emptyLine = () => ({ key: generateUUID(), itemId: fixedItem?.id ?? '', packages: 1, price: 0 })
   const [lines, setLines] = useState(
     () =>
       record?.items.map((l) => ({
@@ -46,7 +53,7 @@ export function PurchaseOrderForm({
         itemId: l.itemId,
         packages: l.orderedQuantity / l.packQuantity,
         price: Number(l.agreedPrice),
-      })) ?? [{ key: generateUUID(), itemId: '', packages: 1, price: 0 }],
+      })) ?? [emptyLine()],
   )
   const update = (index: number, patch: Partial<(typeof lines)[number]>) =>
     setLines((current) => current.map((l, i) => (i === index ? { ...l, ...patch } : l)))
@@ -72,7 +79,9 @@ export function PurchaseOrderForm({
                 {record ? 'Edit Purchase Order' : 'Create Purchase Order'}
               </DialogTitle>
               <DialogDescription className="text-xs text-gray-500 mt-0.5">
-                Select a supplier and the items to order.
+                {fixedItem
+                  ? `Select a supplier and the quantity of ${fixedItem.name} to order.`
+                  : 'Select a supplier and the items to order.'}
               </DialogDescription>
             </div>
           </div>
@@ -120,7 +129,7 @@ export function PurchaseOrderForm({
                 value={supplierId || undefined}
                 onValueChange={(val) => {
                   setSupplierId(val ?? '')
-                  setLines([{ key: generateUUID(), itemId: '', packages: 1, price: 0 }])
+                  setLines([emptyLine()])
                 }}
               >
                 <SelectTrigger id="po-supplier" className="w-full h-9 text-xs">
@@ -128,7 +137,7 @@ export function PurchaseOrderForm({
                 </SelectTrigger>
                 <SelectContent>
                   {suppliers.data
-                    ?.filter((s) => s.isActive)
+                    ?.filter((s) => s.isActive && (!fixedSuppliers || fixedSuppliers.some((f) => f.id === s.id)))
                     .map((s) => (
                       <SelectItem key={s.id} value={s.id}>
                         {s.name}
@@ -161,6 +170,7 @@ export function PurchaseOrderForm({
                       <Select
                         value={line.itemId || undefined}
                         onValueChange={(val) => update(index, { itemId: val ?? '' })}
+                        disabled={Boolean(fixedItem)}
                       >
                         <SelectTrigger id={`po-item-${index}`} className="w-full h-9 text-xs">
                           <SelectValue placeholder="Select item" />
@@ -208,18 +218,18 @@ export function PurchaseOrderForm({
                 </div>
               )
             })}
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-xl border-dashed border-[#005390]/40 text-[#005390] hover:bg-[#005390]/5 font-semibold transition cursor-pointer flex items-center justify-center gap-2 py-2.5"
-              disabled={!supplierId || lines.length >= 100}
-              onClick={() =>
-                setLines((current) => [...current, { key: generateUUID(), itemId: '', packages: 1, price: 0 }])
-              }
-            >
-              <Plus className="w-4 h-4" />
-              Add Item
-            </Button>
+            {!fixedItem && (
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-xl border-dashed border-[#005390]/40 text-[#005390] hover:bg-[#005390]/5 font-semibold transition cursor-pointer flex items-center justify-center gap-2 py-2.5"
+                disabled={!supplierId || lines.length >= 100}
+                onClick={() => setLines((current) => [...current, emptyLine()])}
+              >
+                <Plus className="w-4 h-4" />
+                Add Item
+              </Button>
+            )}
             <FormField id="po-notes" label="Notes">
               <Textarea id="po-notes" maxLength={5000} value={notes} onChange={(e) => setNotes(e.target.value)} />
             </FormField>
