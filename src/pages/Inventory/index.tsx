@@ -154,6 +154,8 @@ function CategoryInventory({
   const category = useCenterData<CenterCategory>(locationId, `categories/${categoryId}`)
   const stats = useCenterData<CenterStats>(locationId, 'stats', { categoryId })
   const [modal, setModal] = useState<'po' | 'stock' | 'assign' | null>(null)
+  // Set when the PO is raised from an item row, so the form is limited to that item
+  const [poItem, setPoItem] = useState<CenterItem>()
   // Each tab is an Inventory sub-module with its own access.
   const itemsAccess = sectionAccess(access, 'INVENTORY.ITEMS')
   const suppliersAccess = sectionAccess(access, 'INVENTORY.SUPPLIERS')
@@ -272,7 +274,10 @@ function CategoryInventory({
                       locationId={locationId}
                       categoryId={categoryId}
                       onSelect={(id) => go({ tab: 'items', itemId: id })}
-                      onPO={() => setModal('po')}
+                      onPO={(item) => {
+                        setPoItem(item)
+                        setModal('po')
+                      }}
                       canCreate={poAccess.create}
                     />
                   </Section>
@@ -314,7 +319,12 @@ function CategoryInventory({
                     title={`Purchase orders for ${category.data.name}`}
                     action={
                       poAccess.create ? (
-                        <Button onClick={() => setModal('po')}>
+                        <Button
+                          onClick={() => {
+                            setPoItem(undefined)
+                            setModal('po')
+                          }}
+                        >
                           <Plus data-icon="inline-start" />
                           Create Purchase Order
                         </Button>
@@ -367,6 +377,7 @@ function CategoryInventory({
         <PurchaseOrderForm
           locationId={locationId}
           categoryId={categoryId}
+          item={poItem}
           onClose={() => setModal(null)}
           onSaved={(id) => {
             setModal(null)
@@ -494,7 +505,7 @@ function ItemList({
   locationId: string
   categoryId: string
   onSelect: (id: string) => void
-  onPO: () => void
+  onPO: (item: CenterItem) => void
   canCreate: boolean
 }) {
   const [supplierId, setSupplierId] = useState(''),
@@ -568,7 +579,7 @@ function ItemList({
               <Button
                 type="button"
                 variant="ghost"
-                onClick={onPO}
+                onClick={() => onPO(item)}
                 className="h-auto inline-flex w-fit cursor-pointer items-center gap-1 rounded-md border border-[#005390]/30 bg-[#005390]/5 px-2 py-0.5 text-[11px] font-semibold text-[#005390] hover:bg-[#005390]/10"
               >
                 <Plus className="size-3" />
