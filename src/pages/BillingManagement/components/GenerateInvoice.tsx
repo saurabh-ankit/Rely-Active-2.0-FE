@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { MonthCalendar, type MonthState } from './MonthCalendar'
-import { ConsumerTag } from './billingUi'
+import { ConsumerTag, OldFlatTag } from './billingUi'
 import { AlertTriangle, FileText, Info, Loader2, Plus, Trash2, Undo2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -95,8 +95,9 @@ export function GenerateInvoice({ unitId, editingInvoice, onCancelEdit, onSaved 
   const lineTotal = (s: PreviewService) => s.total
   // Every charge goes on the bill.
   const selectedServices = services
-  // Earlier invoices still Pending (nothing paid) are carried in automatically; ones already carried
-  // into an edited invoice stay on it. Partly paid / overdue invoices stay payable on their own.
+  // Earlier invoices still Pending (nothing paid), and every unpaid invoice of a flat the residents
+  // moved here from, are carried in automatically; ones already carried into an edited invoice stay
+  // on it. This flat's partly paid / overdue invoices stay payable on their own.
   const keptCarried = (edit?.services ?? [])
     .filter((s) => s.serviceType === 'CARRY_FORWARD' && s.sourceId)
     .map((s) => ({
@@ -105,18 +106,32 @@ export function GenerateInvoice({ unitId, editingInvoice, onCancelEdit, onSaved 
       startDate: s.serviceStartDate ?? '',
       endDate: s.serviceEndDate ?? '',
       balance: s.total,
+      fromUnitNumber: s.fromUnitNumber,
     }))
   const carriedInvoices = [...keptCarried, ...(preview?.pendingInvoices ?? []).filter((p) => p.carryForward)]
 
   // Assist layout: rent & packages billed in advance for this month, then what was used before it.
   const sections = useMemo(() => {
-    const current = services.filter((s) => RECURRING_TYPES.includes(s.serviceType) && !s.isAdjustment)
-    const previous = services.filter((s) => !current.includes(s))
+    // Charges from a flat the resident lived in before (moved here) come first, one group per flat.
+    const oldFlats = (preview?.previousFlats ?? []).map((flat) => {
+      const rows = services.filter((s) => s.fromUnitId === flat.unitId)
+      const sum = round(rows.reduce((acc, s) => acc + s.total, 0))
+      return {
+        key: `old-${flat.unitId}`,
+        label: `From old flat ${flat.unitNumber} (until ${formatDay(flat.lastDay)}) · ${formatInr(sum)}`,
+        tone: 'old' as const,
+        rows,
+      }
+    })
+    const own = services.filter((s) => !s.fromUnitId)
+    const current = own.filter((s) => RECURRING_TYPES.includes(s.serviceType) && !s.isAdjustment)
+    const previous = own.filter((s) => !current.includes(s))
     return [
+      ...oldFlats,
       { key: 'current', label: 'Current month charges', tone: 'current' as const, rows: current },
       { key: 'previous', label: 'Previous month charges', tone: 'previous' as const, rows: previous },
     ].filter((sec) => sec.rows.length > 0)
-  }, [services])
+  }, [services, preview?.previousFlats])
 
   const miscTotal = misc.reduce((sum, m) => sum + (Number(m.quantity) || 0) * (Number(m.price) || 0), 0)
   // Carried balances already include their own discount and GST, so they are added after both.
@@ -320,9 +335,10 @@ export function GenerateInvoice({ unitId, editingInvoice, onCancelEdit, onSaved 
                 this invoice
               </p>
               <p className="mt-0.5 text-xs text-purple-700">
-                {carriedInvoices.length > 1 ? 'They were' : 'It was'} not paid, so{' '}
-                {carriedInvoices.length > 1 ? 'they become' : 'it becomes'} obsolete and the balance is paid on this
-                invoice.
+                The unpaid balance is paid on this invoice, and{' '}
+                {carriedInvoices.length > 1 ? 'those invoices become' : 'that invoice becomes'} obsolete.
+                {carriedInvoices.some((p) => p.fromUnitNumber) &&
+                  ' Bills from an old flat come along because the residents moved here.'}
               </p>
             </div>
           )}
@@ -413,6 +429,11 @@ export function GenerateInvoice({ unitId, editingInvoice, onCancelEdit, onSaved 
                       <TableRow key={p.id} className="border-b border-purple-100 bg-purple-50/40 text-sm">
                         <TableCell className="py-2 px-3 font-medium text-gray-900">
                           Previous balance carried forward ({p.invoiceNumber})
+                          {p.fromUnitNumber && (
+                            <div className="mt-1">
+                              <OldFlatTag unitNumber={p.fromUnitNumber} />
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell className="py-2 px-3 text-gray-500">
                           {formatDay(p.startDate)} – {formatDay(p.endDate)}
@@ -662,7 +683,15 @@ export function GenerateInvoice({ unitId, editingInvoice, onCancelEdit, onSaved 
   )
 }
 
-function GroupRows({ label, tone, rows }: { label: string; tone: 'current' | 'previous'; rows: PreviewService[] }) {
+function GroupRows({
+  label,
+  tone,
+  rows,
+}: {
+  label: string
+  tone: 'current' | 'previous' | 'old'
+  rows: PreviewService[]
+}) {
   return (
     <>
       <TableRow className="bg-gray-50">
@@ -670,7 +699,7 @@ function GroupRows({ label, tone, rows }: { label: string; tone: 'current' | 'pr
           colSpan={5}
           className={cn(
             'py-2 px-3 text-xs font-bold uppercase tracking-wide',
-            tone === 'current' ? 'text-emerald-600' : 'text-[#2b6cb0]',
+            tone === 'current' ? 'text-emerald-600' : tone === 'old' ? 'text-amber-700' : 'text-[#2b6cb0]',
           )}
         >
           {label}

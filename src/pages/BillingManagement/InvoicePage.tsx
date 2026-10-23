@@ -30,6 +30,12 @@ import { ReceiptsList } from './components/ReceiptsList'
 import { UnbilledServices } from './components/UnbilledServices'
 import { formatDay, formatInr } from './components/billingFormat'
 
+const addDayString = (day: string, n: number) => {
+  const d = new Date(`${day}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+
 /** One flat's billing: generate / edit invoices, invoices & payments, receipts, unbilled charges. */
 export default function InvoicePage() {
   const { unitId = '' } = useParams()
@@ -46,6 +52,14 @@ export default function InvoicePage() {
   // The default monthly preview doubles as the flat summary (shared cache with the generate tab).
   const { data: flat, error } = useInvoicePreview(unitId, { billingMode: 'MONTHLY' })
   const outstanding = (flat?.pendingInvoices ?? []).reduce((s, p) => s + p.balance, 0)
+  // Residents who moved here from another flat moved in the day after their last day there
+  // (movedInDate is the first day this flat bills, which can be later).
+  const lastDayElsewhere = (flat?.previousFlats ?? [])
+    .map((f) => f.lastDay)
+    .sort()
+    .at(-1)
+  const movedIn = lastDayElsewhere ? addDayString(lastDayElsewhere, 1) : flat?.movedInDate
+
   const tenantOccupied = (flat?.residents ?? []).some((r) => r.residentType === 'TENANT' && r.isResiding)
 
   const tabs: TabItem[] = [
@@ -233,11 +247,7 @@ export default function InvoicePage() {
 
             {/* Key facts */}
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-              <Fact
-                icon={CalendarCheck}
-                label="Moved in"
-                value={flat.movedInDate ? formatDay(flat.movedInDate) : '—'}
-              />
+              <Fact icon={CalendarCheck} label="Moved in" value={movedIn ? formatDay(movedIn) : '—'} />
               <Fact icon={CalendarClock} label="Next unbilled day" value={formatDay(flat.nextBillableStartDate)} />
               <Fact
                 icon={Wallet}

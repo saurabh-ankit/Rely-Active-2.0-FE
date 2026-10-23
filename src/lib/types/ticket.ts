@@ -97,6 +97,8 @@ export interface TicketResidentRef {
   lastName: string
   phone?: string
   email?: string
+  /** The flat the resident lives in now (differs from the ticket's flat after a move). */
+  unitId?: string | null
 }
 
 export interface TicketUserRef {

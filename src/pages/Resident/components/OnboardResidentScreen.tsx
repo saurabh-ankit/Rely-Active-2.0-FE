@@ -20,7 +20,13 @@ import {
   Users,
   X,
 } from 'lucide-react'
-import type { CreateResidentPayload, ResidentItem, ResidentType } from '@/lib/types'
+import type {
+  CreateResidentPayload,
+  ResidentItem,
+  ResidentType,
+  UnitChangeChoices,
+  UnitChangeImpact,
+} from '@/lib/types'
 import { residentService } from '@/lib/services/residentService'
 import { getPropertyByIdAPI } from '@/lib/services/propertyService'
 import { useCarePackagesQuery } from '@/hooks/react-query/medical'
@@ -36,6 +42,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { FamilyCarePackages, type FamilyCareRow } from './FamilyCarePackages'
 import { AssignedPackage } from './AssignedPackage'
+import { UnitChangePanel } from './UnitChangePanel'
 import type { PropertyUnit } from '@/pages/Property/types'
 import { useLocationContext } from '@/hooks/useLocation'
 import { z } from 'zod'
@@ -515,6 +522,11 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
   const watchedUnitId = useWatch({ control, name: 'unitId' })
   const watchedPayRentToCompany = useWatch({ control, name: 'payRentToCompany' })
   const watchedCarePackageId = useWatch({ control, name: 'carePackageId' })
+  // Edit mode: the flat the resident lives in now. Picking another one moves them (see UnitChangePanel).
+  const [originalUnitId, setOriginalUnitId] = useState<string>('')
+  const [unitChange, setUnitChange] = useState<UnitChangeChoices>({})
+  const [unitChangeImpact, setUnitChangeImpact] = useState<UnitChangeImpact | null>(null)
+  const isMovingFlat = isEditMode && !!originalUnitId && !!watchedUnitId && watchedUnitId !== originalUnitId
   // Edit mode: the care package the resident has now, which keeps its own start date.
   const [originalCare, setOriginalCare] = useState<{ packageId: string; startDate: string } | null>(null)
   const keepsCurrentCare = !!originalCare && watchedCarePackageId === originalCare.packageId
@@ -907,6 +919,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
               }
             }
             setOriginalFamilyCare(familyCare)
+            setOriginalUnitId(targetRes.unitId)
             if (targetRes.carePackageId) {
               setValue('carePackageId', targetRes.carePackageId)
               setOriginalCare({
@@ -1170,6 +1183,14 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
       notifyError('Validation Error', 'Pick a start date for each food package.')
       return
     }
+    if (isMovingFlat && !unitChangeImpact) {
+      notifyError('Please wait', 'Still checking what moves with the resident to the new flat.')
+      return
+    }
+    if (isMovingFlat && unitChangeImpact?.blockers.length) {
+      notifyError('Cannot change the flat', unitChangeImpact.blockers.join(' '))
+      return
+    }
 
     setIsSubmitting(true)
 
@@ -1196,6 +1217,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
         effectiveIsResiding && values.carePackageId && !keepsCurrentCare && formattedTaskSchedules.length > 0
           ? formattedTaskSchedules
           : undefined,
+      ...(isMovingFlat ? { unitChange } : {}),
       familyMembers: (values.familyMembers || []).map((fm) => {
         const current = fm.id ? originalFamilyCare[fm.id] : undefined
         const carePackageId = effectiveIsResiding ? fm.carePackageId || null : null
@@ -1582,6 +1604,15 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                 {errors.unitId && <p className="mt-1 text-xs font-semibold text-red-500">{errors.unitId.message}</p>}
               </div>
             </div>
+            {isMovingFlat && editResidentId && (
+              <UnitChangePanel
+                residentId={editResidentId}
+                toUnitId={watchedUnitId}
+                value={unitChange}
+                onChange={setUnitChange}
+                onImpact={setUnitChangeImpact}
+              />
+            )}
           </StepCard>
 
           <StepCard step={3} title="Personal details" hint="Fields marked * are required.">
@@ -2502,8 +2533,16 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
             <Button
               type="submit"
               isLoading={isSubmitting}
-              disabled={isSubmitting || isOwnerMissingForTenant}
-              title={isOwnerMissingForTenant ? 'Owner must be onboarded first before onboarding a tenant' : ''}
+              disabled={
+                isSubmitting || isOwnerMissingForTenant || (isMovingFlat && !!unitChangeImpact?.blockers.length)
+              }
+              title={
+                isOwnerMissingForTenant
+                  ? 'Owner must be onboarded first before onboarding a tenant'
+                  : isMovingFlat && unitChangeImpact?.blockers.length
+                    ? unitChangeImpact.blockers.join(' ')
+                    : ''
+              }
               className="bg-[#005390] hover:bg-[#003d6b] text-white rounded-xl shadow-md shadow-[#005390]/20 font-semibold"
             >
               {isSubmitting ? (
