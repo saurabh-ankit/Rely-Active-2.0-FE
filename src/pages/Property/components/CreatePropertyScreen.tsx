@@ -33,6 +33,7 @@ import {
   normalizeEntity,
   occupiedInBlock,
   occupiedInEntity,
+  formatUnitType,
 } from './structure/entityPresets'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -1410,7 +1411,7 @@ export default function CreatePropertyScreen({
                                     <span className="truncate">{unit.unit_number || 'New'}</span>
                                   </span>
                                   <span className="shrink-0 text-[10px] font-semibold text-gray-400">
-                                    {unit.unit_type}
+                                    {formatUnitType(unit.unit_type)}
                                   </span>
                                 </Button>
                                 {(entity.units?.length ?? 0) > 1 && (
@@ -1671,7 +1672,7 @@ export default function CreatePropertyScreen({
                                   : 'bg-white border-gray-200 text-gray-700 hover:border-[#005390]/40 hover:bg-blue-50/30',
                             )}
                           >
-                            {bhkType} {variantsCount > 0 && `(${variantsCount})`}
+                            {formatUnitType(bhkType)} {variantsCount > 0 && `(${variantsCount})`}
                           </Button>
                         )
                       })}
@@ -1697,7 +1698,9 @@ export default function CreatePropertyScreen({
                               return (
                                 <React.Fragment key={vIdx}>
                                   <TableRow>
-                                    <TableCell className="p-3 font-bold text-gray-900">{variant.type}</TableCell>
+                                    <TableCell className="p-3 font-bold text-gray-900">
+                                      {formatUnitType(variant.type)}
+                                    </TableCell>
                                     <TableCell className="p-3">
                                       <Input
                                         type="number"
@@ -1754,7 +1757,7 @@ export default function CreatePropertyScreen({
                                         type="button"
                                         variant="ghost"
                                         size="icon-xs"
-                                        aria-label={`Remove ${variant.type} variant`}
+                                        aria-label={`Remove ${formatUnitType(variant.type)} variant`}
                                         onClick={() => removeBHKTemplateVariant(vIdx)}
                                         className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors h-auto"
                                       >
@@ -1880,7 +1883,7 @@ export default function CreatePropertyScreen({
                               <p className="font-bold text-gray-800">Position {posNum}</p>
                               {assignedBHK ? (
                                 <>
-                                  <p className="font-bold text-blue-600">{assignedBHK.type}</p>
+                                  <p className="font-bold text-blue-600">{formatUnitType(assignedBHK.type)}</p>
                                   <p className="text-gray-500 text-[10px]">{posObj?.direction || 'North-East'}</p>
                                   <p className="text-gray-400 text-[10px]">{posObj?.view_facing || 'Garden View'}</p>
                                 </>
@@ -2025,7 +2028,9 @@ export default function CreatePropertyScreen({
                                 <TableRow key={`${f.floor_number}-${uI}`}>
                                   <TableCell className="p-2.5 font-bold text-gray-900">{u.unit_number}</TableCell>
                                   <TableCell className="p-2.5">{f.floor_number}</TableCell>
-                                  <TableCell className="p-2.5 font-semibold text-blue-600">{u.unit_type}</TableCell>
+                                  <TableCell className="p-2.5 font-semibold text-blue-600">
+                                    {formatUnitType(u.unit_type)}
+                                  </TableCell>
                                   <TableCell className="p-2.5">{u.built_up_area} sqft</TableCell>
                                   <TableCell className="p-2.5 whitespace-nowrap">
                                     {u.price ? formatLakh(u.price) : '—'}

@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import type { BlockInput, EntityInput, FloorInput, UnitInput, UnitType } from '../../types'
-import { ENTITY_PRESETS, levelLabel, newUnit, UNIT_TYPE_OPTIONS } from './entityPresets'
+import { ENTITY_PRESETS, formatUnitType, levelLabel, newUnit, UNIT_TYPE_OPTIONS } from './entityPresets'
 
 const inputClass =
   'w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20'
@@ -99,7 +99,7 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
                         <SelectContent>
                           {UNIT_TYPE_OPTIONS.map((t) => (
                             <SelectItem key={t} value={t}>
-                              {t.replace('_', ' ')}
+                              {formatUnitType(t)}
                             </SelectItem>
                           ))}
                         </SelectContent>

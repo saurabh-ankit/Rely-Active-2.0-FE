@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { getPropertyByIdAPI } from '@/lib/services/propertyService'
 import { cn, getFileUrl } from '@/lib/utils'
-import { ENTITY_PRESETS, floorNameFor, levelLabel } from './components/structure/entityPresets'
+import { ENTITY_PRESETS, floorNameFor, formatUnitType, levelLabel } from './components/structure/entityPresets'
 import { formatPropertyTypes, type EntityInput, type Property } from './types'
 
 // ─── Unit status ──────────────────────────────────────────────────────────────
@@ -113,7 +113,7 @@ function UnitHover({ unit, className, children }: { unit: ViewUnit; className: s
           <div>
             <p className="text-sm font-bold text-gray-900">{unit.unit_number}</p>
             <p className="text-[11px] text-gray-500">
-              {[unit.unit_type, area ? `${area.toLocaleString('en-IN')} sqft` : null, price]
+              {[formatUnitType(unit.unit_type), area ? `${area.toLocaleString('en-IN')} sqft` : null, price]
                 .filter(Boolean)
                 .join(' · ')}
             </p>
@@ -291,7 +291,7 @@ function SitePlan({ units, isVilla }: { units: ViewUnit[]; isVilla: boolean }) {
           >
             <div className="flex items-center justify-between">
               <Home className="h-4 w-4 opacity-70" />
-              <span className="text-[10px] font-semibold opacity-70">{unit.unit_type}</span>
+              <span className="text-[10px] font-semibold opacity-70">{formatUnitType(unit.unit_type)}</span>
             </div>
             <p className="mt-2 text-sm font-bold">{unit.unit_number}</p>
             <p className="text-[10px] opacity-70">{area ? `${area.toLocaleString('en-IN')} sqft` : '—'}</p>

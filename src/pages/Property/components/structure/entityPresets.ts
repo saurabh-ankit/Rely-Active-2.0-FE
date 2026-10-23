@@ -103,6 +103,12 @@ export const HOME_BHK_OPTIONS: UnitType[] = ['1BHK', '2BHK', '3BHK', '4BHK', '5B
 export const CONFIGURATION_OPTIONS = ['G', 'G+1', 'G+2', 'G+3']
 export const ASSET_FORM_OPTIONS = ['Apartment', 'Independent House', 'Row House']
 
+export const formatUnitType = (type?: string | null): string => {
+  if (!type) return ''
+  if (type.toLowerCase() === 'studio') return 'Studio'
+  return type.replace('_', ' ')
+}
+
 const DEFAULT_LABELS: Record<StructureLevel, string> = { block: 'Block', floor: 'Floor', unit: 'Unit' }
 
 /** What this entity calls a level, e.g. "Tower" for blocks or "Villa" for units. */
