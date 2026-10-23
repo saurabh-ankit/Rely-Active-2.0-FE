@@ -8,11 +8,19 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useCreateResidentAllergyMutation, useUpdateResidentAllergyMutation } from '@/hooks/react-query/resident'
 import type { ResidentAllergyItem, ResidentAllergyPayload } from '@/lib/types/resident'
-import { fromDateTimeInputValue, isValidDateTimeInput, toDateTimeInputValue } from './clinicalFormUtils'
+import {
+  fromDateTimeInputValue,
+  isNotFutureDateTimeInput,
+  isValidDateTimeInput,
+  toDateTimeInputValue,
+} from './clinicalFormUtils'
 
 const allergySchema = z.object({
   name: z.string().trim().min(1, 'Allergy name is required').max(200, 'Allergy name must be 200 characters or fewer'),
-  recordedAt: z.string().refine(isValidDateTimeInput, 'Recorded at is required'),
+  recordedAt: z
+    .string()
+    .refine(isValidDateTimeInput, 'Recorded at is required')
+    .refine(isNotFutureDateTimeInput, 'Recorded at cannot be in the future'),
   note: z.string().trim().max(5000, 'Note must be 5000 characters or fewer'),
 })
 
@@ -78,7 +86,12 @@ const AllergyFormModal = ({ open, onOpenChange, residentId, item }: AllergyFormM
             <Label htmlFor="allergy-recorded-at">
               Recorded At <span className="text-red-500">*</span>
             </Label>
-            <Input id="allergy-recorded-at" type="datetime-local" {...register('recordedAt')} />
+            <Input
+              id="allergy-recorded-at"
+              type="datetime-local"
+              max={toDateTimeInputValue()}
+              {...register('recordedAt')}
+            />
             {errors.recordedAt && <p className="text-xs text-red-500">{errors.recordedAt.message}</p>}
           </div>
 

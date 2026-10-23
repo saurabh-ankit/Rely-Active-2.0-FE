@@ -4,10 +4,10 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { X, Loader2, Clock, Plus, Trash2, Search, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useLocationContext } from '@/hooks/useLocation'
-import { useResidentsQuery } from '@/hooks/react-query/resident'
+import { useResidentByIdQuery, useResidentsQuery } from '@/hooks/react-query/resident'
 import { useCareTasksQuery, useCreateCareTaskAssignmentMutation } from '@/hooks/react-query/medical'
 import type { CareTask } from '@/lib/types/medical'
-import type { ResidentItem } from '@/lib/types'
+import type { ResidentFamilyMember, ResidentItem } from '@/lib/types'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
@@ -28,6 +28,7 @@ export interface AssignCareTaskDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialResidentId?: string | null
+  initialFamilyMemberId?: string | null
   initialPropertyId?: string | null
   onSuccess?: () => void
 }
@@ -35,6 +36,7 @@ export interface AssignCareTaskDialogProps {
 interface AssignCareTaskDialogContentProps {
   onOpenChange: (open: boolean) => void
   initialResidentId?: string | null
+  initialFamilyMemberId?: string | null
   initialPropertyId?: string | null
   onSuccess?: () => void
 }
@@ -42,6 +44,7 @@ interface AssignCareTaskDialogContentProps {
 const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = ({
   onOpenChange,
   initialResidentId,
+  initialFamilyMemberId,
   initialPropertyId,
   onSuccess,
 }) => {
@@ -50,6 +53,7 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
 
   // Form states initialized directly on mount
   const [selectedResidentId, setSelectedResidentId] = useState<string>(initialResidentId || '')
+  const [selectedFamilyMemberId, setSelectedFamilyMemberId] = useState<string>(initialFamilyMemberId || '')
   const [selectedTaskId, setSelectedTaskId] = useState<string>('')
   const [taskSearchQuery, setTaskSearchQuery] = useState<string>('')
   const [frequency, setFrequency] = useState<number>(1)
@@ -95,6 +99,34 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
 
   const { data: residentsData, isLoading: loadingResidents } = useResidentsQuery(residentFilter)
   const residents: ResidentItem[] = useMemo(() => (Array.isArray(residentsData) ? residentsData : []), [residentsData])
+
+  // When resident list is skipped (pre-filled) or selected resident lacks nested FMs, fetch by id
+  const selectedFromList = useMemo(
+    () => residents.find((r) => r.id === selectedResidentId),
+    [residents, selectedResidentId],
+  )
+  const needsResidentDetail =
+    Boolean(selectedResidentId) && (!selectedFromList || !Array.isArray(selectedFromList.familyMembers))
+  const { data: residentDetail, isLoading: loadingResidentDetail } = useResidentByIdQuery(
+    selectedResidentId || undefined,
+    needsResidentDetail,
+  )
+
+  const selectedResident: ResidentItem | undefined = selectedFromList || residentDetail
+
+  const residingFamilyMembers: ResidentFamilyMember[] = useMemo(() => {
+    const members = selectedResident?.familyMembers || []
+    return members.filter((fm) => fm.id && fm.isResiding !== false)
+  }, [selectedResident])
+
+  const effectiveFamilyMemberId = useMemo(() => {
+    if (!selectedFamilyMemberId) return ''
+    if (loadingResidentDetail) return selectedFamilyMemberId
+    if (residingFamilyMembers.some((fm) => fm.id === selectedFamilyMemberId)) {
+      return selectedFamilyMemberId
+    }
+    return ''
+  }, [selectedFamilyMemberId, residingFamilyMembers, loadingResidentDetail])
 
   const [debouncedSearch, setDebouncedSearch] = useState<string>('')
 
@@ -147,6 +179,7 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
     try {
       await createAssignmentMutation.mutateAsync({
         residentId: selectedResidentId,
+        familyMemberId: effectiveFamilyMemberId || null,
         taskId: effectiveTaskId,
         startDate,
         endDate: endDate ? endDate : null,
@@ -176,7 +209,7 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
         <div>
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">Assign Care Task</h2>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Assign a care task to a resident with customized schedule and timing.
+            Assign a care task to a resident or family member with customized schedule and timing.
           </p>
         </div>
         <Button
@@ -201,7 +234,10 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
             </Label>
             <Select
               value={selectedResidentId || undefined}
-              onValueChange={(val) => setSelectedResidentId(val || '')}
+              onValueChange={(val) => {
+                setSelectedResidentId(val || '')
+                setSelectedFamilyMemberId('')
+              }}
               disabled={Boolean(initialResidentId) || loadingResidents}
             >
               <SelectTrigger
@@ -211,6 +247,12 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
                 <SelectValue placeholder={loadingResidents ? 'Loading residents...' : '-- Select Resident --'} />
               </SelectTrigger>
               <SelectContent>
+                {selectedResident && !residents.some((r) => r.id === selectedResident.id) && (
+                  <SelectItem key={selectedResident.id} value={selectedResident.id}>
+                    {`${selectedResident.firstName || ''} ${selectedResident.lastName || ''}`.trim() || 'Resident'}
+                    {selectedResident.unit?.unit_number ? ` (Flat ${selectedResident.unit.unit_number})` : ''}
+                  </SelectItem>
+                )}
                 {residents.map((r) => {
                   const name = `${r.firstName || ''} ${r.lastName || ''}`.trim() || 'Resident'
                   const unit = r.unit?.unit_number ? ` (Flat ${r.unit.unit_number})` : ''
@@ -225,11 +267,53 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
             </Select>
           </div>
 
-          {/* 2. Select Care Task */}
+          {/* 2. Assign To (resident self or family member) */}
+          <div className="space-y-1.5">
+            <label htmlFor="assign-to-select" className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+              2. Assign To <span className="text-rose-500">*</span>
+            </label>
+            <select
+              id="assign-to-select"
+              value={effectiveFamilyMemberId}
+              onChange={(e) => setSelectedFamilyMemberId(e.target.value)}
+              disabled={!selectedResidentId || loadingResidentDetail}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-xs text-gray-900 transition-colors focus:border-[#005390] focus:bg-white focus:outline-none dark:border-gray-800 dark:bg-slate-800 dark:text-white sm:text-sm"
+            >
+              <option value="">
+                {!selectedResidentId
+                  ? '-- Select resident first --'
+                  : loadingResidentDetail
+                    ? 'Loading family members...'
+                    : (() => {
+                        const name =
+                          `${selectedResident?.firstName || ''} ${selectedResident?.lastName || ''}`.trim() ||
+                          'Resident'
+                        return `${name} (Resident)`
+                      })()}
+              </option>
+              {residingFamilyMembers.map((fm) => {
+                const name = `${fm.firstName || ''} ${fm.lastName || ''}`.trim() || 'Family member'
+                const relation = fm.relation ? ` — ${fm.relation}` : ''
+                return (
+                  <option key={fm.id} value={fm.id!}>
+                    {name}
+                    {relation} (Family Member)
+                  </option>
+                )
+              })}
+            </select>
+            {selectedResidentId && !loadingResidentDetail && residingFamilyMembers.length === 0 && (
+              <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                No residing family members for this resident. Task will be assigned to the resident.
+              </p>
+            )}
+          </div>
+
+          {/* 3. Select Care Task */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label htmlFor="assign-task-select" className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                2. Select Care Task <span className="text-rose-500">*</span>
+                3. Select Care Task <span className="text-rose-500">*</span>
               </Label>
               <div className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400 font-medium">
                 {loadingTasks && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
@@ -328,11 +412,11 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
             )}
           </div>
 
-          {/* 3. Daily Frequency & Scheduled Times */}
+          {/* 4. Daily Frequency & Scheduled Times */}
           <div className="space-y-3 rounded-2xl border border-sky-100 bg-sky-50/40 p-4 dark:border-sky-950/60 dark:bg-sky-950/20">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                3. Daily Frequency <span className="text-rose-500">*</span>
+                4. Daily Frequency <span className="text-rose-500">*</span>
               </span>
               <span className="rounded-md bg-[#005390]/10 px-2 py-0.5 text-[11px] font-bold text-[#005390] dark:bg-sky-950 dark:text-sky-300">
                 {frequency} time{frequency > 1 ? 's' : ''} per day
@@ -522,7 +606,7 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
             className="rounded-xl bg-[#005390] px-5 py-2 text-xs font-bold text-white hover:bg-[#004375] cursor-pointer shadow-sm"
           >
             {createAssignmentMutation.isPending && <Loader2 className="mr-2 size-3.5 animate-spin" />}
-            Assign Task to Resident
+            {effectiveFamilyMemberId ? 'Assign Task to Family Member' : 'Assign Task to Resident'}
           </Button>
         </div>
       </form>
@@ -534,6 +618,7 @@ export const AssignCareTaskDialog: React.FC<AssignCareTaskDialogProps> = ({
   open,
   onOpenChange,
   initialResidentId,
+  initialFamilyMemberId,
   initialPropertyId,
   onSuccess,
 }) => {
@@ -549,9 +634,10 @@ export const AssignCareTaskDialog: React.FC<AssignCareTaskDialogProps> = ({
             Assign a care task to a resident with customized schedule and timing.
           </DialogDescription>
           <AssignCareTaskDialogContent
-            key={`${initialResidentId || 'all'}-${initialPropertyId || 'all'}`}
+            key={`${initialResidentId || 'all'}-${initialFamilyMemberId || 'none'}-${initialPropertyId || 'all'}`}
             onOpenChange={onOpenChange}
             initialResidentId={initialResidentId}
+            initialFamilyMemberId={initialFamilyMemberId}
             initialPropertyId={initialPropertyId}
             onSuccess={onSuccess}
           />

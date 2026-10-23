@@ -2,7 +2,7 @@ import React from 'react'
 import { Loader2, type LucideIcon } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { formatDisplayDateTime } from '@/lib/utils'
+import { cn, formatDisplayDateTime } from '@/lib/utils'
 
 interface ClinicalCardProps {
   icon: LucideIcon
@@ -10,6 +10,8 @@ interface ClinicalCardProps {
   title: string
   count?: number
   action?: React.ReactNode
+  className?: string
+  bodyClassName?: string
   children: React.ReactNode
 }
 
@@ -19,9 +21,16 @@ export const ClinicalCard: React.FC<ClinicalCardProps> = ({
   title,
   count,
   action,
+  className,
+  bodyClassName,
   children,
 }) => (
-  <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl dark:border-gray-800 dark:bg-slate-900/80">
+  <Card
+    className={cn(
+      'gap-0 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl dark:border-gray-800 dark:bg-slate-900/80',
+      className,
+    )}
+  >
     <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 p-0 pb-3">
       <CardTitle className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
         <Icon className={`w-5 h-5 ${iconClassName}`} />
@@ -38,7 +47,7 @@ export const ClinicalCard: React.FC<ClinicalCardProps> = ({
         </div>
       )}
     </CardHeader>
-    <CardContent className="p-0 pt-4">{children}</CardContent>
+    <CardContent className={cn('p-0 pt-4', bodyClassName)}>{children}</CardContent>
   </Card>
 )
 

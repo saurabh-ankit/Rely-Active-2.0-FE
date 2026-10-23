@@ -13,12 +13,20 @@ import {
   useUpdateResidentVitalMutation,
 } from '@/hooks/react-query/resident'
 import type { ResidentVitalItem, ResidentVitalPayload } from '@/lib/types/resident'
-import { fromDateTimeInputValue, isValidDateTimeInput, toDateTimeInputValue } from './clinicalFormUtils'
+import {
+  fromDateTimeInputValue,
+  isNotFutureDateTimeInput,
+  isValidDateTimeInput,
+  toDateTimeInputValue,
+} from './clinicalFormUtils'
 
 const vitalSchema = z.object({
   vitalSettingId: z.string().min(1, 'Select a vital type'),
   value: z.string().trim().min(1, 'Value is required').max(100, 'Value must be 100 characters or fewer'),
-  recordedAt: z.string().refine(isValidDateTimeInput, 'Recorded at is required'),
+  recordedAt: z
+    .string()
+    .refine(isValidDateTimeInput, 'Recorded at is required')
+    .refine(isNotFutureDateTimeInput, 'Recorded at cannot be in the future'),
   note: z.string().trim().max(5000, 'Note must be 5000 characters or fewer'),
 })
 
@@ -129,7 +137,12 @@ const VitalFormModal = ({ open, onOpenChange, residentId, item }: VitalFormModal
             <Label htmlFor="vital-recorded-at">
               Recorded At <span className="text-red-500">*</span>
             </Label>
-            <Input id="vital-recorded-at" type="datetime-local" {...register('recordedAt')} />
+            <Input
+              id="vital-recorded-at"
+              type="datetime-local"
+              max={toDateTimeInputValue()}
+              {...register('recordedAt')}
+            />
             {errors.recordedAt && <p className="text-xs text-red-500">{errors.recordedAt.message}</p>}
           </div>
 

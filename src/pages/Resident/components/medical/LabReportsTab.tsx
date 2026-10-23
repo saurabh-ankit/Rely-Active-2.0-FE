@@ -1,13 +1,14 @@
 import React, { useState } from 'react'
-import { ExternalLink, FlaskConical, Plus, Receipt } from 'lucide-react'
+import { Eye, FlaskConical, Plus, Receipt } from 'lucide-react'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { TableCell, TableRow } from '@/components/ui/table'
 import { useDeleteResidentLabReportMutation } from '@/hooks/react-query/resident'
 import type { LabReportSeverity, ResidentLabReportItem } from '@/lib/types/resident'
-import { cn, formatDisplayDate, getFileUrl } from '@/lib/utils'
+import { cn, formatDisplayDate } from '@/lib/utils'
 import { ClinicalAddedByCell, ClinicalCard, ClinicalTable } from './ClinicalShared'
 import { ClinicalRowActions } from './ClinicalRowActions'
+import FilePreviewModal from './FilePreviewModal'
 import LabReportFormModal from './LabReportFormModal'
 
 const SEVERITY_STYLES: Record<LabReportSeverity, string> = {
@@ -39,6 +40,7 @@ interface LabReportsTabProps {
 export const LabReportsTab: React.FC<LabReportsTabProps> = ({ residentId, canUpdateResident, reports, isLoading }) => {
   const [formTarget, setFormTarget] = useState<{ item: ResidentLabReportItem | null } | null>(null)
   const [deleting, setDeleting] = useState<ResidentLabReportItem | null>(null)
+  const [preview, setPreview] = useState<{ url: string; title: string } | null>(null)
   const deleteMutation = useDeleteResidentLabReportMutation(residentId)
 
   return (
@@ -94,23 +96,31 @@ export const LabReportsTab: React.FC<LabReportsTabProps> = ({ residentId, canUpd
               <ClinicalAddedByCell name={report.createdByName} createdAt={report.createdAt} />
               <TableCell className="px-4 py-3.5">
                 <div className="flex flex-col items-end gap-1.5">
-                  <a
-                    href={getFileUrl(report.reportFileUrl)}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPreview({
+                        url: report.reportFileUrl,
+                        title: `${report.labTestName || 'Lab Report'} — Report`,
+                      })
+                    }
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-[#005390] hover:underline"
                   >
-                    <ExternalLink className="size-3.5" /> View report
-                  </a>
+                    <Eye className="size-3.5" /> View report
+                  </button>
                   {report.receiptFileUrl && (
-                    <a
-                      href={getFileUrl(report.receiptFileUrl)}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPreview({
+                          url: report.receiptFileUrl!,
+                          title: `${report.labTestName || 'Lab Report'} — Receipt`,
+                        })
+                      }
                       className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-600 hover:text-[#005390] hover:underline"
                     >
                       <Receipt className="size-3.5" /> View receipt
-                    </a>
+                    </button>
                   )}
                 </div>
               </TableCell>
@@ -136,6 +146,13 @@ export const LabReportsTab: React.FC<LabReportsTabProps> = ({ residentId, canUpd
           item={formTarget.item}
         />
       )}
+
+      <FilePreviewModal
+        open={!!preview}
+        onOpenChange={(open) => !open && setPreview(null)}
+        url={preview?.url ?? null}
+        title={preview?.title}
+      />
 
       <ConfirmDialog
         open={!!deleting}

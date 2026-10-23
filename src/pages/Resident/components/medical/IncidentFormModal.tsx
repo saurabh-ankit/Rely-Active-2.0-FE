@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Image as ImageIcon, Mic, Trash2, Upload } from 'lucide-react'
+import { Mic, Trash2, Upload } from 'lucide-react'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -18,7 +18,13 @@ import {
 } from '@/lib/constants/incident'
 import type { ResidentIncidentItem } from '@/lib/types/resident'
 import { getFileUrl } from '@/lib/utils'
-import { fromDateTimeInputValue, isValidDateTimeInput, toDateTimeInputValue } from './clinicalFormUtils'
+import {
+  fromDateTimeInputValue,
+  isNotFutureDateTimeInput,
+  isValidDateTimeInput,
+  toDateTimeInputValue,
+} from './clinicalFormUtils'
+import { ImagePreviewLightbox } from './ImagePreviewLightbox'
 
 const MAX_PHOTOS = 5
 const MAX_FILE_BYTES = 10 * 1024 * 1024
@@ -34,7 +40,10 @@ const incidentSchema = z.object({
     IncidentType.OTHER,
   ]),
   severity: z.enum([IncidentSeverity.LOW, IncidentSeverity.MODERATE, IncidentSeverity.HIGH, IncidentSeverity.CRITICAL]),
-  incidentAt: z.string().refine(isValidDateTimeInput, 'Incident date and time is required'),
+  incidentAt: z
+    .string()
+    .refine(isValidDateTimeInput, 'Incident date and time is required')
+    .refine(isNotFutureDateTimeInput, 'Incident time cannot be in the future'),
   notes: z.string().trim().max(5000, 'Notes must be 5000 characters or fewer'),
 })
 
@@ -56,6 +65,9 @@ const IncidentFormModal = ({ open, onOpenChange, residentId, item }: IncidentFor
   const voiceInputRef = useRef<HTMLInputElement | null>(null)
   const [photos, setPhotos] = useState<File[]>([])
   const [voiceNote, setVoiceNote] = useState<File | null>(null)
+  const [removedPhotoIds, setRemovedPhotoIds] = useState<string[]>([])
+  const [removeVoiceNote, setRemoveVoiceNote] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [fileError, setFileError] = useState<string | null>(null)
 
   const {
@@ -73,8 +85,11 @@ const IncidentFormModal = ({ open, onOpenChange, residentId, item }: IncidentFor
     },
   })
 
-  const maxNewPhotos = Math.max(0, MAX_PHOTOS - (item?.photos.length ?? 0))
+  const keptExistingPhotos = (item?.photos ?? []).filter((photo) => !removedPhotoIds.includes(photo.id))
+  const keptExistingVoiceNotes = removeVoiceNote || voiceNote ? [] : (item?.voiceNotes ?? [])
+  const maxNewPhotos = Math.max(0, MAX_PHOTOS - keptExistingPhotos.length)
   const remainingPhotoSlots = Math.max(0, maxNewPhotos - photos.length)
+  const hasExistingMedia = isEdit && item && (keptExistingPhotos.length > 0 || keptExistingVoiceNotes.length > 0)
 
   const onPhotosSelected = (files: FileList | null) => {
     if (!files?.length) return
@@ -109,6 +124,7 @@ const IncidentFormModal = ({ open, onOpenChange, residentId, item }: IncidentFor
       return
     }
     setVoiceNote(file)
+    setRemoveVoiceNote(false)
     if (voiceInputRef.current) voiceInputRef.current.value = ''
   }
 
@@ -121,6 +137,10 @@ const IncidentFormModal = ({ open, onOpenChange, residentId, item }: IncidentFor
     formData.append('notes', values.notes || '')
     photos.forEach((photo) => formData.append('photos', photo))
     if (voiceNote) formData.append('voiceNote', voiceNote)
+    if (isEdit) {
+      if (removedPhotoIds.length > 0) formData.append('removePhotoIds', removedPhotoIds.join(','))
+      if (removeVoiceNote) formData.append('removeVoiceNote', 'true')
+    }
 
     const onSuccess = () => onOpenChange(false)
     if (item) updateMutation.mutate({ id: item.id, payload: formData }, { onSuccess })
@@ -134,7 +154,7 @@ const IncidentFormModal = ({ open, onOpenChange, residentId, item }: IncidentFor
           <DialogTitle>{isEdit ? 'Edit Incident' : 'Add Incident'}</DialogTitle>
           <DialogDescription>
             {isEdit
-              ? 'Update this incident record. New media files are appended.'
+              ? 'Update this incident record. You can remove existing media or add new files.'
               : 'Log an incident for this resident.'}
           </DialogDescription>
         </DialogHeader>
@@ -189,7 +209,7 @@ const IncidentFormModal = ({ open, onOpenChange, residentId, item }: IncidentFor
             <Label htmlFor="incident-at">
               Date & Time <span className="text-red-500">*</span>
             </Label>
-            <Input id="incident-at" type="datetime-local" {...register('incidentAt')} />
+            <Input id="incident-at" type="datetime-local" max={toDateTimeInputValue()} {...register('incidentAt')} />
             {errors.incidentAt && <p className="text-xs text-red-500">{errors.incidentAt.message}</p>}
           </div>
 
@@ -199,35 +219,54 @@ const IncidentFormModal = ({ open, onOpenChange, residentId, item }: IncidentFor
             {errors.notes && <p className="text-xs text-red-500">{errors.notes.message}</p>}
           </div>
 
-          {isEdit && item && (item.photos.length > 0 || item.voiceNotes.length > 0) && (
+          {hasExistingMedia && item && (
             <div className="space-y-2 rounded-xl border bg-slate-50 p-3 text-xs dark:bg-slate-800/40">
               <p className="font-semibold text-gray-700 dark:text-gray-200">Existing media</p>
-              <div className="flex flex-wrap gap-2">
-                {item.photos.map((photo) => (
-                  <a
-                    key={photo.id}
-                    href={getFileUrl(photo.url)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-lg border px-2 py-1"
+              {keptExistingPhotos.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {keptExistingPhotos.map((photo) => {
+                    const url = getFileUrl(photo.url)
+                    return (
+                      <div key={photo.id} className="relative">
+                        <button
+                          type="button"
+                          title={photo.name || 'View photo'}
+                          onClick={() => setPreviewUrl(url)}
+                          className="h-16 w-16 cursor-pointer overflow-hidden rounded-lg border border-gray-200 bg-white transition hover:ring-2 hover:ring-[#005390]/40 dark:border-gray-700"
+                        >
+                          <img src={url} alt={photo.name || 'Incident photo'} className="h-full w-full object-cover" />
+                        </button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-white p-0 shadow dark:bg-slate-900"
+                          onClick={() => setRemovedPhotoIds((prev) => [...prev, photo.id])}
+                          aria-label="Remove photo"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                        </Button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              {keptExistingVoiceNotes.map((note) => (
+                <div key={note.id} className="flex items-center gap-2">
+                  <audio controls preload="none" src={getFileUrl(note.url)} className="h-9 min-w-0 flex-1">
+                    <track kind="captions" />
+                  </audio>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setRemoveVoiceNote(true)}
+                    aria-label="Remove voice note"
                   >
-                    <ImageIcon className="h-3.5 w-3.5" />
-                    Photo
-                  </a>
-                ))}
-                {item.voiceNotes.map((note) => (
-                  <a
-                    key={note.id}
-                    href={getFileUrl(note.url)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-lg border px-2 py-1"
-                  >
-                    <Mic className="h-3.5 w-3.5" />
-                    Voice note
-                  </a>
-                ))}
-              </div>
+                    <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                  </Button>
+                </div>
+              ))}
             </div>
           )}
 
@@ -281,7 +320,7 @@ const IncidentFormModal = ({ open, onOpenChange, residentId, item }: IncidentFor
             />
             <Button type="button" variant="outline" onClick={() => voiceInputRef.current?.click()}>
               <Mic className="mr-2 h-4 w-4" />
-              {voiceNote ? 'Replace voice note' : 'Add voice note'}
+              {voiceNote || keptExistingVoiceNotes.length > 0 ? 'Replace voice note' : 'Add voice note'}
             </Button>
             {voiceNote && (
               <div className="flex items-center justify-between gap-2 text-xs text-gray-600">
@@ -305,6 +344,8 @@ const IncidentFormModal = ({ open, onOpenChange, residentId, item }: IncidentFor
           </div>
         </form>
       </DialogContent>
+
+      <ImagePreviewLightbox url={previewUrl} alt="Incident photo" onClose={() => setPreviewUrl(null)} />
     </Dialog>
   )
 }

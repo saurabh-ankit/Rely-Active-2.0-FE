@@ -208,6 +208,7 @@ export interface ResidentLabReportItem {
   paymentMethod: string | null
   reportFileUrl: string
   receiptFileUrl: string | null
+  isPaid: boolean
   createdByName: string | null
   createdAt: string
 }
@@ -449,6 +450,34 @@ export interface IncidentSopSummary {
   mandatoryTotal: number
   mandatoryCompleted: number
   isComplete: boolean
+}
+
+export interface IncidentSopStep {
+  id: string
+  stepKey: string
+  title: string
+  isMandatory: boolean
+  sortOrder: number
+  isCompleted: boolean
+  completedAt: string | null
+  completedByName: string | null
+  note: string | null
+}
+
+export interface IncidentSop {
+  incident: {
+    id: string
+    incidentType: IncidentType
+    severity: IncidentSeverity
+    incidentAt: string
+  }
+  steps: IncidentSopStep[]
+  summary: IncidentSopSummary
+}
+
+export interface UpdateIncidentSopStepPayload {
+  isCompleted?: boolean
+  note?: string | null
 }
 
 export interface ResidentIncidentItem {

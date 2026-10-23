@@ -12,11 +12,15 @@ import type {
   ResidentClinicalMutationResponse,
   ResidentCurrentCondition,
   ResidentDocumentItem,
+  ResidentFluidBalanceHistory,
   ResidentFluidBalanceItem,
   ResidentFluidBalancePayload,
+  ResidentFluidBalanceSummary,
   ResidentFluidBalanceUpdatePayload,
+  IncidentSop,
   ResidentIncidentItem,
   ResidentItem,
+  UpdateIncidentSopStepPayload,
   ResidentLabReportItem,
   UnitChangeImpact,
   ResidentMedicationItem,
@@ -365,6 +369,44 @@ export const deleteResidentAllergyAPI = async (
   return response.data
 }
 
+const numOrNull = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === '') return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
+export const getResidentFluidBalanceHistoryAPI = async (
+  residentId: string,
+  date: string,
+): Promise<ResidentFluidBalanceHistory> => {
+  const response = await api.get(API_ENDPOINTS.resident.fluidBalance(residentId), { params: { date } })
+  const data = response.data?.data
+  const entries: ResidentFluidBalanceItem[] = Array.isArray(data?.entries)
+    ? data.entries.map((entry: ResidentFluidBalanceItem) => ({
+        ...entry,
+        quantity: numOrNull(entry.quantity),
+        quantityMl: numOrNull(entry.quantityMl),
+        recordedByName: entry.recordedByName ?? entry.createdByName ?? null,
+        createdByName: entry.createdByName ?? entry.recordedByName ?? null,
+      }))
+    : []
+  return { date: data?.date ?? date, entries }
+}
+
+export const getResidentFluidBalanceSummaryAPI = async (residentId: string): Promise<ResidentFluidBalanceSummary> => {
+  const response = await api.get(API_ENDPOINTS.resident.fluidBalanceSummary(residentId))
+  const data = response.data?.data
+  return {
+    intakeMl: Number(data?.intakeMl ?? 0),
+    outputMl: Number(data?.outputMl ?? 0),
+    netMl: Number(data?.netMl ?? 0),
+    bowelCount: Number(data?.bowelCount ?? 0),
+    lastRecordedAt: data?.lastRecordedAt ?? null,
+    windowStart: data?.windowStart ?? '',
+    windowEnd: data?.windowEnd ?? '',
+  }
+}
+
 export const createResidentFluidBalanceAPI = async (
   residentId: string,
   payload: ResidentFluidBalancePayload,
@@ -413,6 +455,21 @@ export const deleteResidentIncidentAPI = async (
 ): Promise<ResidentClinicalMutationResponse> => {
   const response = await api.delete(API_ENDPOINTS.resident.incident(residentId, id))
   return response.data
+}
+
+export const getResidentIncidentSopAPI = async (residentId: string, incidentId: string): Promise<IncidentSop> => {
+  const response = await api.get(API_ENDPOINTS.resident.incidentSop(residentId, incidentId))
+  return response.data?.data
+}
+
+export const updateResidentIncidentSopStepAPI = async (
+  residentId: string,
+  incidentId: string,
+  stepId: string,
+  payload: UpdateIncidentSopStepPayload,
+): Promise<IncidentSop> => {
+  const response = await api.patch(API_ENDPOINTS.resident.incidentSopStep(residentId, incidentId, stepId), payload)
+  return response.data?.data
 }
 
 export const getResidentDocumentsAPI = async (residentId: string): Promise<ResidentDocumentItem[]> => {
@@ -500,12 +557,16 @@ export const residentService = {
   createResidentAllergy: createResidentAllergyAPI,
   updateResidentAllergy: updateResidentAllergyAPI,
   deleteResidentAllergy: deleteResidentAllergyAPI,
+  getResidentFluidBalanceHistory: getResidentFluidBalanceHistoryAPI,
+  getResidentFluidBalanceSummary: getResidentFluidBalanceSummaryAPI,
   createResidentFluidBalance: createResidentFluidBalanceAPI,
   updateResidentFluidBalance: updateResidentFluidBalanceAPI,
   deleteResidentFluidBalance: deleteResidentFluidBalanceAPI,
   createResidentIncident: createResidentIncidentAPI,
   updateResidentIncident: updateResidentIncidentAPI,
   deleteResidentIncident: deleteResidentIncidentAPI,
+  getResidentIncidentSop: getResidentIncidentSopAPI,
+  updateResidentIncidentSopStep: updateResidentIncidentSopStepAPI,
   getResidentDocuments: getResidentDocumentsAPI,
   createResidentDocument: createResidentDocumentAPI,
   getResidentGuardians: getResidentGuardiansAPI,
