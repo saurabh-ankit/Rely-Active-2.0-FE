@@ -65,9 +65,14 @@ export const API_ENDPOINTS = {
     allergies: (residentId: string) => `${BASE_URL}/residents/${residentId}/allergies`,
     allergy: (residentId: string, id: string) => `${BASE_URL}/residents/${residentId}/allergies/${id}`,
     fluidBalance: (residentId: string) => `${BASE_URL}/residents/${residentId}/fluid-balance`,
+    fluidBalanceSummary: (residentId: string) => `${BASE_URL}/residents/${residentId}/fluid-balance/summary`,
     fluidBalanceItem: (residentId: string, id: string) => `${BASE_URL}/residents/${residentId}/fluid-balance/${id}`,
     incidents: (residentId: string) => `${BASE_URL}/residents/${residentId}/incidents`,
     incident: (residentId: string, id: string) => `${BASE_URL}/residents/${residentId}/incidents/${id}`,
+    incidentSop: (residentId: string, incidentId: string) =>
+      `${BASE_URL}/residents/${residentId}/incidents/${incidentId}/sop`,
+    incidentSopStep: (residentId: string, incidentId: string, stepId: string) =>
+      `${BASE_URL}/residents/${residentId}/incidents/${incidentId}/sop/${stepId}`,
     documents: (residentId: string) => `${BASE_URL}/residents/${residentId}/documents`,
     guardians: (residentId: string) => `${BASE_URL}/residents/${residentId}/guardians`,
     guardian: (residentId: string, id: string) => `${BASE_URL}/residents/${residentId}/guardians/${id}`,

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ExternalLink, FileText, Upload, X } from 'lucide-react'
@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import {
   useActiveLabTestSettingsQuery,
@@ -18,7 +19,7 @@ import type { LabPaymentMethod } from '@/lib/types/medical'
 import type { LabReportSeverity, ResidentLabReportItem } from '@/lib/types/resident'
 import { getFileUrl } from '@/lib/utils'
 import { LAB_REPORT_SEVERITY_LABELS, PAYMENT_METHOD_LABELS } from './clinicalConstants'
-import { toDateInputValue } from './clinicalFormUtils'
+import { isValidDateInput, toDateInputValue, todayDateInputValue } from './clinicalFormUtils'
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 const ACCEPTED_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
@@ -27,22 +28,40 @@ const NO_PAYMENT_METHOD = 'none'
 const SEVERITIES = Object.keys(LAB_REPORT_SEVERITY_LABELS) as LabReportSeverity[]
 const PAYMENT_METHODS = Object.keys(PAYMENT_METHOD_LABELS) as LabPaymentMethod[]
 
-const labReportSchema = z.object({
-  labTestSettingId: z.string().min(1, 'Select a lab test'),
-  severity: z.enum(SEVERITIES as [LabReportSeverity, ...LabReportSeverity[]], { message: 'Select a severity' }),
-  reportDate: z.string().min(1, 'Report date is required'),
-  cost: z
-    .string()
-    .trim()
-    .refine((v) => v === '' || (Number.isFinite(Number(v)) && Number(v) >= 0), 'Enter a valid cost'),
-  paymentMethod: z.string(),
-  notes: z.string().trim().max(5000, 'Notes must be 5000 characters or fewer'),
-})
+const labReportSchema = z
+  .object({
+    labTestSettingId: z.string().min(1, 'Select a lab test'),
+    severity: z.enum(SEVERITIES as [LabReportSeverity, ...LabReportSeverity[]], { message: 'Select a severity' }),
+    reportDate: z
+      .string()
+      .min(1, 'Report date is required')
+      .refine((v) => isValidDateInput(v), 'Enter a valid report date')
+      .refine((v) => v <= todayDateInputValue(), 'Report date cannot be in the future'),
+    cost: z
+      .string()
+      .trim()
+      .refine((v) => v === '' || (Number.isFinite(Number(v)) && Number(v) >= 0), 'Enter a valid cost'),
+    isPaid: z.boolean(),
+    paymentMethod: z.string(),
+    notes: z.string().trim().max(5000, 'Notes must be 5000 characters or fewer'),
+  })
+  .superRefine((values, ctx) => {
+    if (values.isPaid && (!values.paymentMethod || values.paymentMethod === NO_PAYMENT_METHOD)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Select a payment method',
+        path: ['paymentMethod'],
+      })
+    }
+  })
 
 type LabReportFormValues = z.infer<typeof labReportSchema>
 
 const formatFileSize = (bytes: number) =>
   bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+
+const defaultIsPaid = (item?: ResidentLabReportItem | null) =>
+  !!item && (item.isPaid || !!item.paymentMethod || !!item.receiptFileUrl)
 
 interface FilePickerFieldProps {
   id: string
@@ -177,6 +196,7 @@ const LabReportFormModal = ({ open, onOpenChange, residentId, item }: LabReportF
     register,
     control,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LabReportFormValues>({
     resolver: zodResolver(labReportSchema),
@@ -185,11 +205,13 @@ const LabReportFormModal = ({ open, onOpenChange, residentId, item }: LabReportF
       severity: item?.severity ?? 'normal',
       reportDate: toDateInputValue(item?.reportDate),
       cost: item?.cost != null ? String(item.cost) : '',
+      isPaid: defaultIsPaid(item),
       paymentMethod: item?.paymentMethod ?? NO_PAYMENT_METHOD,
       notes: item?.notes ?? '',
     },
   })
 
+  const isPaid = useWatch({ control, name: 'isPaid' })
   const labTests = labTestsQuery.data ?? []
   const showCurrentOption = !!item && !labTests.some((t) => t.id === item.labTestSettingId)
 
@@ -199,10 +221,30 @@ const LabReportFormModal = ({ open, onOpenChange, residentId, item }: LabReportF
     if (!error) setFile(file)
   }
 
+  const handleAlreadyPaidChange = (checked: boolean) => {
+    setValue('isPaid', checked, { shouldValidate: true })
+    if (!checked) {
+      setValue('paymentMethod', NO_PAYMENT_METHOD, { shouldValidate: true })
+      setReceiptFile(null)
+      setReceiptError(null)
+      if (item?.receiptFileUrl) setRemoveReceipt(true)
+    } else {
+      setRemoveReceipt(false)
+    }
+  }
+
   const onSubmit = (values: LabReportFormValues) => {
     if (!isEdit && !reportFile) {
       setReportError('Please upload the lab report')
       return
+    }
+
+    if (values.isPaid) {
+      const hasReceipt = !!receiptFile || (!!item?.receiptFileUrl && !removeReceipt)
+      if (!hasReceipt) {
+        setReceiptError('Please upload the receipt')
+        return
+      }
     }
 
     const formData = new FormData()
@@ -210,11 +252,17 @@ const LabReportFormModal = ({ open, onOpenChange, residentId, item }: LabReportF
     formData.append('severity', values.severity)
     formData.append('reportDate', values.reportDate)
     formData.append('cost', values.cost)
-    formData.append('paymentMethod', values.paymentMethod === NO_PAYMENT_METHOD ? '' : values.paymentMethod)
+    formData.append('isPaid', values.isPaid ? 'true' : 'false')
+    formData.append(
+      'paymentMethod',
+      values.isPaid && values.paymentMethod !== NO_PAYMENT_METHOD ? values.paymentMethod : '',
+    )
     formData.append('notes', values.notes)
     if (reportFile) formData.append('report', reportFile)
-    if (receiptFile) formData.append('receipt', receiptFile)
-    if (isEdit && removeReceipt && !receiptFile) formData.append('removeReceipt', 'true')
+    if (values.isPaid && receiptFile) formData.append('receipt', receiptFile)
+    if (isEdit && (!values.isPaid || removeReceipt) && !receiptFile) {
+      formData.append('removeReceipt', 'true')
+    }
 
     const onSuccess = () => onOpenChange(false)
     if (item) updateMutation.mutate({ id: item.id, payload: formData }, { onSuccess })
@@ -290,7 +338,7 @@ const LabReportFormModal = ({ open, onOpenChange, residentId, item }: LabReportF
               <Label htmlFor="lab-report-date">
                 Report Date <span className="text-red-500">*</span>
               </Label>
-              <Input id="lab-report-date" type="date" {...register('reportDate')} />
+              <Input id="lab-report-date" type="date" max={todayDateInputValue()} {...register('reportDate')} />
               {errors.reportDate && <p className="text-xs text-red-500">{errors.reportDate.message}</p>}
             </div>
 
@@ -298,29 +346,6 @@ const LabReportFormModal = ({ open, onOpenChange, residentId, item }: LabReportF
               <Label htmlFor="lab-report-cost">Cost (₹)</Label>
               <Input id="lab-report-cost" type="number" min={0} step="0.01" placeholder="0.00" {...register('cost')} />
               {errors.cost && <p className="text-xs text-red-500">{errors.cost.message}</p>}
-            </div>
-
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Payment Method</Label>
-              <Controller
-                name="paymentMethod"
-                control={control}
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={(value) => field.onChange(value ?? NO_PAYMENT_METHOD)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NO_PAYMENT_METHOD}>Not specified</SelectItem>
-                      {PAYMENT_METHODS.map((method) => (
-                        <SelectItem key={method} value={method}>
-                          {PAYMENT_METHOD_LABELS[method]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
             </div>
           </div>
 
@@ -336,22 +361,74 @@ const LabReportFormModal = ({ open, onOpenChange, residentId, item }: LabReportF
             onClear={() => setReportFile(null)}
           />
 
-          <FilePickerField
-            id="lab-receipt-file"
-            label="Receipt"
-            file={receiptFile}
-            existingUrl={removeReceipt ? null : item?.receiptFileUrl}
-            disabled={isPending}
-            error={receiptError}
-            onSelect={(file) => {
-              pickFile(file, setReceiptFile, setReceiptError)
-              setRemoveReceipt(false)
-            }}
-            onClear={() => {
-              if (receiptFile) setReceiptFile(null)
-              else setRemoveReceipt(true)
-            }}
-          />
+          <div className="flex items-center gap-3 text-sm">
+            <Controller
+              name="isPaid"
+              control={control}
+              render={({ field }) => (
+                <Switch
+                  id="lab-report-is-paid"
+                  checked={field.value}
+                  onCheckedChange={handleAlreadyPaidChange}
+                  disabled={isPending}
+                />
+              )}
+            />
+            <Label htmlFor="lab-report-is-paid" className="font-medium text-gray-800 dark:text-gray-200">
+              Already Paid
+            </Label>
+          </div>
+
+          {isPaid && (
+            <>
+              <div className="space-y-2">
+                <Label>
+                  Payment Method <span className="text-red-500">*</span>
+                </Label>
+                <Controller
+                  name="paymentMethod"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value === NO_PAYMENT_METHOD ? undefined : field.value}
+                      onValueChange={(value) => field.onChange(value ?? NO_PAYMENT_METHOD)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select payment method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAYMENT_METHODS.map((method) => (
+                          <SelectItem key={method} value={method}>
+                            {PAYMENT_METHOD_LABELS[method]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.paymentMethod && <p className="text-xs text-red-500">{errors.paymentMethod.message}</p>}
+              </div>
+
+              <FilePickerField
+                id="lab-receipt-file"
+                label="Receipt"
+                required
+                file={receiptFile}
+                existingUrl={removeReceipt ? null : item?.receiptFileUrl}
+                disabled={isPending}
+                error={receiptError}
+                onSelect={(file) => {
+                  pickFile(file, setReceiptFile, setReceiptError)
+                  setRemoveReceipt(false)
+                }}
+                onClear={() => {
+                  if (receiptFile) setReceiptFile(null)
+                  else setRemoveReceipt(true)
+                  setReceiptError(null)
+                }}
+              />
+            </>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="lab-report-notes">Notes</Label>

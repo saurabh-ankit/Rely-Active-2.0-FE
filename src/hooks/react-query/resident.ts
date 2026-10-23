@@ -11,7 +11,9 @@ import type {
   ResidentClinicalData,
   ResidentClinicalMutationResponse,
   ResidentDocumentItem,
+  ResidentFluidBalanceHistory,
   ResidentFluidBalancePayload,
+  ResidentFluidBalanceSummary,
   ResidentFluidBalanceUpdatePayload,
   ResidentItem,
   ResidentLabReportItem,
@@ -21,6 +23,7 @@ import type {
   ResidentTimelineParams,
   ResidentTimelineResponse,
   ResidentVitalPayload,
+  UpdateIncidentSopStepPayload,
   UpdateResidentConditionPayload,
 } from '@/lib/types'
 import type { AssignCareTeamPayload } from '@/lib/services/residentService'
@@ -33,6 +36,8 @@ export const RESIDENT_KEYS = {
   byId: (id?: string) => ['residents', 'detail', id] as const,
   careTeam: (residentId?: string) => ['residents', 'care-team', residentId] as const,
   clinical: (residentId?: string) => ['residents', 'clinical', residentId] as const,
+  incidentSop: (residentId?: string, incidentId?: string | null) =>
+    ['residents', 'incident-sop', residentId, incidentId] as const,
   labReports: (residentId?: string) => ['residents', 'lab-reports', residentId] as const,
   documents: (residentId?: string) => ['residents', 'documents', residentId] as const,
   guardians: (residentId?: string) => ['residents', 'guardians', residentId] as const,
@@ -42,6 +47,9 @@ export const RESIDENT_KEYS = {
     ['residents', 'timeline', residentId, params] as const,
   medicationAdministrations: (residentId?: string, params?: MedicationAdministrationsParams) =>
     ['residents', 'medication-administrations', residentId, params] as const,
+  fluidBalanceHistory: (residentId?: string, date?: string) =>
+    ['residents', 'fluid-balance-history', residentId, date] as const,
+  fluidBalanceSummary: (residentId?: string) => ['residents', 'fluid-balance-summary', residentId] as const,
 }
 
 export const useResidentMedicationAdministrationsQuery = (
@@ -190,12 +198,16 @@ const useResidentClinicalMutation = <TVariables>(
   listKey: readonly unknown[],
   mutationFn: (variables: TVariables) => Promise<ResidentClinicalMutationResponse>,
   messages: { success: string; error: string },
+  extraKeys: readonly (readonly unknown[])[] = [],
 ) => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn,
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: listKey })
+      for (const key of extraKeys) {
+        void queryClient.invalidateQueries({ queryKey: key })
+      }
       void queryClient.invalidateQueries({ queryKey: ['residents', 'timeline', residentId] })
       toast.success(data?.message || messages.success)
     },
@@ -305,12 +317,32 @@ export const useDeleteResidentAllergyMutation = (residentId: string) =>
     { success: 'Allergy deleted successfully', error: 'Failed to delete allergy' },
   )
 
+const fluidBalanceHistoryPrefix = (residentId: string) => ['residents', 'fluid-balance-history', residentId] as const
+
+export const useResidentFluidBalanceHistoryQuery = (residentId: string | undefined, date: string, enabled = true) => {
+  return useQuery<ResidentFluidBalanceHistory>({
+    queryKey: RESIDENT_KEYS.fluidBalanceHistory(residentId, date),
+    queryFn: () => residentService.getResidentFluidBalanceHistory(residentId!, date),
+    enabled: enabled && !!residentId && !!date,
+    placeholderData: keepPreviousData,
+  })
+}
+
+export const useResidentFluidBalanceSummaryQuery = (residentId: string | undefined, enabled = true) => {
+  return useQuery<ResidentFluidBalanceSummary>({
+    queryKey: RESIDENT_KEYS.fluidBalanceSummary(residentId),
+    queryFn: () => residentService.getResidentFluidBalanceSummary(residentId!),
+    enabled: enabled && !!residentId,
+  })
+}
+
 export const useCreateResidentFluidBalanceMutation = (residentId: string) =>
   useResidentClinicalMutation(
     residentId,
     RESIDENT_KEYS.clinical(residentId),
     (payload: ResidentFluidBalancePayload) => residentService.createResidentFluidBalance(residentId, payload),
     { success: 'Fluid balance saved successfully', error: 'Failed to save fluid balance' },
+    [fluidBalanceHistoryPrefix(residentId), RESIDENT_KEYS.fluidBalanceSummary(residentId)],
   )
 
 export const useUpdateResidentFluidBalanceMutation = (residentId: string) =>
@@ -320,6 +352,7 @@ export const useUpdateResidentFluidBalanceMutation = (residentId: string) =>
     ({ id, payload }: UpdateVariables<ResidentFluidBalanceUpdatePayload>) =>
       residentService.updateResidentFluidBalance(residentId, id, payload),
     { success: 'Fluid balance updated successfully', error: 'Failed to update fluid balance' },
+    [fluidBalanceHistoryPrefix(residentId), RESIDENT_KEYS.fluidBalanceSummary(residentId)],
   )
 
 export const useDeleteResidentFluidBalanceMutation = (residentId: string) =>
@@ -328,6 +361,7 @@ export const useDeleteResidentFluidBalanceMutation = (residentId: string) =>
     RESIDENT_KEYS.clinical(residentId),
     (id: string) => residentService.deleteResidentFluidBalance(residentId, id),
     { success: 'Fluid balance deleted successfully', error: 'Failed to delete fluid balance' },
+    [fluidBalanceHistoryPrefix(residentId), RESIDENT_KEYS.fluidBalanceSummary(residentId)],
   )
 
 export const useCreateResidentIncidentMutation = (residentId: string) =>
@@ -353,6 +387,28 @@ export const useDeleteResidentIncidentMutation = (residentId: string) =>
     (id: string) => residentService.deleteResidentIncident(residentId, id),
     { success: 'Incident deleted successfully', error: 'Failed to delete incident' },
   )
+
+export const useResidentIncidentSopQuery = (residentId?: string, incidentId?: string | null) => {
+  return useQuery({
+    queryKey: RESIDENT_KEYS.incidentSop(residentId, incidentId),
+    queryFn: () => residentService.getResidentIncidentSop(residentId!, incidentId!),
+    enabled: !!residentId && !!incidentId,
+  })
+}
+
+export const useUpdateResidentIncidentSopStepMutation = (residentId: string | undefined, incidentId: string | null) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ stepId, payload }: { stepId: string; payload: UpdateIncidentSopStepPayload }) =>
+      residentService.updateResidentIncidentSopStep(residentId!, incidentId!, stepId, payload),
+    onSuccess: (sop) => {
+      queryClient.setQueryData(RESIDENT_KEYS.incidentSop(residentId, incidentId), sop)
+      void queryClient.invalidateQueries({ queryKey: RESIDENT_KEYS.clinical(residentId) })
+    },
+    onError: (error: ApiError) =>
+      toast.error(error?.response?.data?.message || error?.message || 'Failed to update SOP step'),
+  })
+}
 
 export const useCreateResidentLabReportMutation = (residentId: string) =>
   useResidentClinicalMutation(

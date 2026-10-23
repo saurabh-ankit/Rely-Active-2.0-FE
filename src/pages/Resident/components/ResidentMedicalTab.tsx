@@ -156,12 +156,7 @@ export const ResidentMedicalTab: React.FC<ResidentMedicalTabProps> = ({
       content: (
         <>
           {clinicalError}
-          <FluidBalanceTab
-            residentId={resident.id}
-            canUpdateResident={canUpdateResident}
-            fluidBalances={clinical?.fluidBalances ?? []}
-            isLoading={isClinicalLoading}
-          />
+          <FluidBalanceTab residentId={resident.id} canUpdateResident={canUpdateResident} />
         </>
       ),
     },

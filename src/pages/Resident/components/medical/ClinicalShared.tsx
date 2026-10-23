@@ -1,6 +1,6 @@
 import React from 'react'
 import { Loader2, type LucideIcon } from 'lucide-react'
-import { formatDisplayDateTime } from '@/lib/utils'
+import { cn, formatDisplayDateTime } from '@/lib/utils'
 
 interface ClinicalCardProps {
   icon: LucideIcon
@@ -8,6 +8,8 @@ interface ClinicalCardProps {
   title: string
   count?: number
   action?: React.ReactNode
+  className?: string
+  bodyClassName?: string
   children: React.ReactNode
 }
 
@@ -17,10 +19,17 @@ export const ClinicalCard: React.FC<ClinicalCardProps> = ({
   title,
   count,
   action,
+  className,
+  bodyClassName,
   children,
 }) => (
-  <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4 dark:border-gray-800 dark:bg-slate-900/80">
-    <div className="flex items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 pb-3">
+  <div
+    className={cn(
+      'rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4 dark:border-gray-800 dark:bg-slate-900/80',
+      className,
+    )}
+  >
+    <div className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 pb-3">
       <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
         <Icon className={`w-5 h-5 ${iconClassName}`} />
         {title}
@@ -36,7 +45,7 @@ export const ClinicalCard: React.FC<ClinicalCardProps> = ({
         </div>
       )}
     </div>
-    {children}
+    <div className={cn(bodyClassName)}>{children}</div>
   </div>
 )
 

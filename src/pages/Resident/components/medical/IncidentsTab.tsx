@@ -7,6 +7,7 @@ import type { ResidentIncidentItem } from '@/lib/types/resident'
 import { ClinicalCard, ClinicalEmptyState, ClinicalLoadingState } from './ClinicalShared'
 import IncidentCard from './IncidentCard'
 import IncidentFormModal from './IncidentFormModal'
+import IncidentSopDialog from './IncidentSopDialog'
 
 interface IncidentsTabProps {
   residentId: string
@@ -18,6 +19,7 @@ interface IncidentsTabProps {
 export const IncidentsTab: React.FC<IncidentsTabProps> = ({ residentId, canUpdateResident, incidents, isLoading }) => {
   const [formTarget, setFormTarget] = useState<{ item: ResidentIncidentItem | null } | null>(null)
   const [deleting, setDeleting] = useState<ResidentIncidentItem | null>(null)
+  const [sopIncidentId, setSopIncidentId] = useState<string | null>(null)
   const deleteMutation = useDeleteResidentIncidentMutation(residentId)
 
   return (
@@ -57,6 +59,7 @@ export const IncidentsTab: React.FC<IncidentsTabProps> = ({ residentId, canUpdat
                 canUpdate={canUpdateResident}
                 onEdit={() => setFormTarget({ item })}
                 onDelete={() => setDeleting(item)}
+                onOpenSop={item.sop ? () => setSopIncidentId(item.id) : undefined}
               />
             ))}
           </div>
@@ -71,6 +74,13 @@ export const IncidentsTab: React.FC<IncidentsTabProps> = ({ residentId, canUpdat
           item={formTarget.item}
         />
       )}
+
+      <IncidentSopDialog
+        residentId={residentId}
+        incidentId={sopIncidentId}
+        canUpdate={canUpdateResident}
+        onClose={() => setSopIncidentId(null)}
+      />
 
       <ConfirmDialog
         open={!!deleting}

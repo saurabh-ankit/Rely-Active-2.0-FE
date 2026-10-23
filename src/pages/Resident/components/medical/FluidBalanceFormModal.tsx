@@ -33,7 +33,12 @@ import type {
   ResidentFluidBalancePayload,
   ResidentFluidBalanceUpdatePayload,
 } from '@/lib/types/resident'
-import { fromDateTimeInputValue, isValidDateTimeInput, toDateTimeInputValue } from './clinicalFormUtils'
+import {
+  fromDateTimeInputValue,
+  isNotFutureDateTimeInput,
+  isValidDateTimeInput,
+  toDateTimeInputValue,
+} from './clinicalFormUtils'
 
 const intakeSchema = z.object({
   type: z.enum([FluidIntakeType.ORAL_NG, FluidIntakeType.NASAL_FEED, FluidIntakeType.IV_FLUIDS]),
@@ -62,7 +67,10 @@ const outputSchema = z.object({
 
 const createSchema = z
   .object({
-    recordedAt: z.string().refine(isValidDateTimeInput, 'Recorded at is required'),
+    recordedAt: z
+      .string()
+      .refine(isValidDateTimeInput, 'Recorded at is required')
+      .refine(isNotFutureDateTimeInput, 'Recorded at cannot be in the future'),
     intakes: z.array(intakeSchema),
     outputs: z.array(outputSchema),
     includeBowel: z.boolean(),
@@ -92,7 +100,10 @@ const createSchema = z
   })
 
 const editSchema = z.object({
-  recordedAt: z.string().refine(isValidDateTimeInput, 'Recorded at is required'),
+  recordedAt: z
+    .string()
+    .refine(isValidDateTimeInput, 'Recorded at is required')
+    .refine(isNotFutureDateTimeInput, 'Recorded at cannot be in the future'),
   type: z.string().optional(),
   ivFluidType: z.string().nullable().optional(),
   description: z.string().trim().max(150).optional(),
@@ -246,7 +257,7 @@ const FluidBalanceFormModal = ({ open, onOpenChange, residentId, item }: FluidBa
           <form onSubmit={editForm.handleSubmit(onEdit)} noValidate className="space-y-4">
             <div className="space-y-2">
               <Label>Recorded At</Label>
-              <Input type="datetime-local" {...editForm.register('recordedAt')} />
+              <Input type="datetime-local" max={toDateTimeInputValue()} {...editForm.register('recordedAt')} />
               {editForm.formState.errors.recordedAt && (
                 <p className="text-xs text-red-500">{editForm.formState.errors.recordedAt.message}</p>
               )}
@@ -409,7 +420,7 @@ const FluidBalanceFormModal = ({ open, onOpenChange, residentId, item }: FluidBa
           <form onSubmit={createForm.handleSubmit(onCreate)} noValidate className="space-y-5">
             <div className="space-y-2">
               <Label>Recorded At</Label>
-              <Input type="datetime-local" {...createForm.register('recordedAt')} />
+              <Input type="datetime-local" max={toDateTimeInputValue()} {...createForm.register('recordedAt')} />
               {createForm.formState.errors.recordedAt && (
                 <p className="text-xs text-red-500">{createForm.formState.errors.recordedAt.message}</p>
               )}

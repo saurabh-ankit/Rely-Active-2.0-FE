@@ -1,18 +1,22 @@
-import React from 'react'
-import { AlertTriangle, Image as ImageIcon, Mic } from 'lucide-react'
+import React, { useState } from 'react'
+import { AlertTriangle } from 'lucide-react'
 import { INCIDENT_SEVERITY_OPTIONS, INCIDENT_TYPE_OPTIONS } from '@/lib/constants/incident'
 import type { ResidentIncidentItem } from '@/lib/types/resident'
 import { cn, formatDisplayDateTime, getFileUrl } from '@/lib/utils'
 import { ClinicalRowActions } from './ClinicalRowActions'
+import { ImagePreviewLightbox } from './ImagePreviewLightbox'
+import { IncidentSopBar } from './IncidentSopBar'
 
 interface IncidentCardProps {
   item: ResidentIncidentItem
   canUpdate: boolean
   onEdit: () => void
   onDelete: () => void
+  onOpenSop?: () => void
 }
 
-export const IncidentCard: React.FC<IncidentCardProps> = ({ item, canUpdate, onEdit, onDelete }) => {
+export const IncidentCard: React.FC<IncidentCardProps> = ({ item, canUpdate, onEdit, onDelete, onOpenSop }) => {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const typeLabel = INCIDENT_TYPE_OPTIONS.find((o) => o.value === item.incidentType)?.label ?? item.incidentType
   const severity = INCIDENT_SEVERITY_OPTIONS.find((o) => o.value === item.severity)
 
@@ -43,47 +47,41 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({ item, canUpdate, onE
             Reported by: <span className="font-semibold">{item.reportedByName}</span>
           </p>
         )}
-        {item.sop && (
-          <p>
-            SOP:{' '}
-            <span className="font-semibold">
-              {item.sop.completed}/{item.sop.total} steps
-              {item.sop.isComplete ? ' (complete)' : ''}
-            </span>
-          </p>
-        )}
       </div>
 
+      {item.sop && onOpenSop && <IncidentSopBar sop={item.sop} onClick={onOpenSop} />}
+
       {(item.photos.length > 0 || item.voiceNotes.length > 0) && (
-        <div className="flex flex-wrap gap-2">
-          {item.photos.map((photo) => (
-            <a
-              key={photo.id}
-              href={getFileUrl(photo.url)}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-medium text-gray-700 hover:bg-slate-50 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200"
-            >
-              <ImageIcon className="h-3.5 w-3.5" />
-              Photo
-            </a>
-          ))}
+        <div className="space-y-2">
+          {item.photos.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {item.photos.map((photo) => {
+                const url = getFileUrl(photo.url)
+                return (
+                  <button
+                    key={photo.id}
+                    type="button"
+                    title={photo.name || 'View photo'}
+                    onClick={() => setPreviewUrl(url)}
+                    className="h-16 w-16 cursor-pointer overflow-hidden rounded-lg border border-gray-200 bg-slate-50 transition hover:ring-2 hover:ring-[#005390]/40 dark:border-gray-700"
+                  >
+                    <img src={url} alt={photo.name || 'Incident photo'} className="h-full w-full object-cover" />
+                  </button>
+                )
+              })}
+            </div>
+          )}
           {item.voiceNotes.map((note) => (
-            <a
-              key={note.id}
-              href={getFileUrl(note.url)}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-medium text-gray-700 hover:bg-slate-50 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200"
-            >
-              <Mic className="h-3.5 w-3.5" />
-              Voice note
-            </a>
+            <audio key={note.id} controls preload="none" src={getFileUrl(note.url)} className="h-9 w-full max-w-md">
+              <track kind="captions" />
+            </audio>
           ))}
         </div>
       )}
 
       {canUpdate && <ClinicalRowActions label="incident" onEdit={onEdit} onDelete={onDelete} />}
+
+      <ImagePreviewLightbox url={previewUrl} alt="Incident photo" onClose={() => setPreviewUrl(null)} />
     </div>
   )
 }

@@ -21,3 +21,12 @@ export const isValidDateInput = (value: string): boolean => {
 }
 
 export const isValidDateTimeInput = (value: string): boolean => !!value && !Number.isNaN(new Date(value).getTime())
+
+/** Allowance for device clock drift when rejecting future recorded/incident times. */
+const FUTURE_TOLERANCE_MS = 5 * 60 * 1000
+
+/** True when the datetime-local value is valid and not meaningfully in the future. */
+export const isNotFutureDateTimeInput = (value: string): boolean => {
+  if (!isValidDateTimeInput(value)) return false
+  return new Date(value).getTime() <= Date.now() + FUTURE_TOLERANCE_MS
+}

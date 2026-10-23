@@ -412,6 +412,7 @@ export interface ResidentCareTaskCompletion {
 
 export interface CreateCareTaskAssignmentPayload {
   residentId: string
+  familyMemberId?: string | null
   taskId: string
   propertyId?: string | null
   packageSubscriptionId?: string | null
