@@ -56,6 +56,9 @@ export interface PreviewService {
   serviceEndDate: string
   date: string
   isAdjustment: boolean
+  /** Old flat the charge was used in, when the resident has since moved here. */
+  fromUnitId: string | null
+  fromUnitNumber: string | null
 }
 
 export interface PendingInvoiceSummary {
@@ -67,8 +70,14 @@ export interface PendingInvoiceSummary {
   paidAmount: number
   balance: number
   status: InvoiceStatus
-  /** Pending (nothing paid): carried into the new invoice automatically. */
+  /**
+   * Carried into the new invoice automatically: this flat's pending ones (nothing paid), and every
+   * unpaid invoice of a flat the residents moved here from (for what is left on it).
+   */
   carryForward: boolean
+  /** Old flat it was raised on, when the residents brought it along after moving here. */
+  fromUnitId: string | null
+  fromUnitNumber: string | null
 }
 
 export interface InvoicePreview {
@@ -103,6 +112,8 @@ export interface InvoicePreview {
   nextBillableStartDate: string
   pendingInvoices: PendingInvoiceSummary[]
   overlappingInvoice: { id: string; invoiceNumber: string; startDate: string; endDate: string } | null
+  /** Flats the residents lived in before this one, with the last day there. */
+  previousFlats: { unitId: string; unitNumber: string; lastDay: string }[]
 }
 
 export interface InvoiceServiceLine {
@@ -121,6 +132,9 @@ export interface InvoiceServiceLine {
   serviceStartDate: string | null
   serviceEndDate: string | null
   isAdjustment: boolean
+  /** Old flat the charge was used in (carried over after the resident moved). */
+  fromUnitId: string | null
+  fromUnitNumber: string | null
 }
 
 /** Where part of a payment went: the paid invoice's own charges, or an older invoice carried into it. */

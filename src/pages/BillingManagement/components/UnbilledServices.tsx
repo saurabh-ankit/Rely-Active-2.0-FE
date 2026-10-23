@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useUnbilledServices } from '@/hooks/react-query/billing'
 import { formatDay, formatInr, SERVICE_TYPE_LABEL, toDayString } from './billingFormat'
+import { OldFlatTag } from './billingUi'
 
 /** Charges that are on no invoice yet, for any date range. */
 export function UnbilledServices({ unitId }: { unitId: string }) {
@@ -60,6 +61,11 @@ export function UnbilledServices({ unitId }: { unitId: string }) {
                   <TableCell>
                     <p className="text-gray-900">{s.name}</p>
                     <p className="text-xs text-gray-500">{s.description}</p>
+                    {s.fromUnitNumber && (
+                      <div className="mt-1">
+                        <OldFlatTag unitNumber={s.fromUnitNumber} />
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">{s.quantity}</TableCell>
                   <TableCell className="text-right font-medium">{formatInr(s.total)}</TableCell>

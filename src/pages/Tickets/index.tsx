@@ -610,6 +610,10 @@ export default function TicketsPage() {
     return false
   }
 
+  // Raised for a flat the resident has since moved out of (to another flat).
+  const isOldFlatTicket = (t: Ticket | null | undefined): boolean =>
+    !!t?.unitId && !!t.resident?.unitId && t.unitId !== t.resident.unitId
+
   // Helper to format flat / unit display string cleanly without "undefined"
   const formatUnitLabel = (t: Ticket) => {
     if (isCommonAreaTicket(t)) {
@@ -864,6 +868,18 @@ export default function TicketsPage() {
                             }`}
                           >
                             Common Area
+                          </span>
+                        )}
+                        {isOldFlatTicket(t) && (
+                          <span
+                            title="The resident has moved to another flat since raising this ticket"
+                            className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider ${
+                              isSelected
+                                ? 'bg-amber-200 text-amber-950 shadow-2xs'
+                                : 'bg-amber-100 text-amber-800 border border-amber-200'
+                            }`}
+                          >
+                            Old flat
                           </span>
                         )}
                         {isTicketEscalated(t) && (
@@ -1153,6 +1169,11 @@ export default function TicketsPage() {
                       <>
                         <Home className="w-4 h-4 text-gray-800" />
                         <span>{formatUnitLabel(selectedTicket)}</span>
+                        {isOldFlatTicket(selectedTicket) && (
+                          <span className="rounded border border-amber-200 bg-amber-100 px-1.5 text-[10px] font-bold text-amber-800 uppercase">
+                            Resident’s old flat
+                          </span>
+                        )}
                       </>
                     )}
                   </div>
@@ -1798,6 +1819,11 @@ export default function TicketsPage() {
                       <>
                         <Home className="w-4 h-4 text-gray-800" />
                         <span>{formatUnitLabel(selectedTicket)}</span>
+                        {isOldFlatTicket(selectedTicket) && (
+                          <span className="rounded border border-amber-200 bg-amber-100 px-1.5 text-[10px] font-bold text-amber-800 uppercase">
+                            Resident’s old flat
+                          </span>
+                        )}
                       </>
                     )}
                   </div>

@@ -56,6 +56,14 @@ export const ConsumerTag = ({ type, name }: { type: 'RESIDENT' | 'FAMILY_MEMBER'
   )
 }
 
+/** "From old flat B-21" on a charge carried over after the resident moved. */
+export const OldFlatTag = ({ unitNumber }: { unitNumber: string | null }) =>
+  unitNumber ? (
+    <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+      From old flat {unitNumber}
+    </span>
+  ) : null
+
 const PILL: Partial<Record<InvoiceStatus, string>> = {
   PENDING: 'border-amber-300 bg-amber-50 text-amber-700',
   PARTIALLY_PAID: 'border-blue-300 bg-blue-50 text-blue-700',

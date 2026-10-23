@@ -143,12 +143,15 @@ export const useSaveInvoice = (unitId: string) => {
 export const useRecordPayment = (unitId: string) => {
   const { selectedLocationId } = useLocationContext()
   const invalidate = useInvalidateUnit()
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ invoiceId, payload }: { invoiceId: string; payload: RecordPaymentPayload }) =>
       recordPaymentAPI(selectedLocationId, invoiceId, payload),
     onSuccess: (res) => {
       toast.success(`Payment recorded – receipt ${res.data.receiptNumber}`)
       invalidate(unitId)
+      // A payment can show on another flat too: an old flat's bill is paid from the residents' new flat.
+      queryClient.invalidateQueries({ queryKey: ['billing', 'unit'] })
     },
     onError: (error) => toast.error(apiErrorMessage(error, 'Could not record the payment')),
   })

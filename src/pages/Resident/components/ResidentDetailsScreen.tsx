@@ -1,7 +1,18 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { format, isValid, parseISO } from 'date-fns'
-import { ArrowLeft, CalendarDays, Edit, HeartPulse, Home, Phone, RefreshCw, User, Users } from 'lucide-react'
+import {
+  ArrowLeft,
+  CalendarDays,
+  Edit,
+  HeartPulse,
+  Home,
+  Phone,
+  ReceiptText,
+  RefreshCw,
+  User,
+  Users,
+} from 'lucide-react'
 import type { ResidentItem } from '@/lib/types'
 import { residentService } from '@/lib/services/residentService'
 import { AssignCareTaskDialog } from '@/components/common/AssignCareTaskDialog'
@@ -30,6 +41,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   const profileAccess = useResourceAccess(RESOURCE.RESIDENT_DIRECTORY)
   const medicalAccess = useResourceAccess(RESOURCE.RESIDENT_MEDICAL)
   const canUpdateResident = profileAccess.canUpdate
+  const billingAccess = useResourceAccess(RESOURCE.BILLING)
   const clinicalQuery = useResidentClinicalQuery(id)
   const currentCondition = clinicalQuery.data?.currentCondition ?? null
 
@@ -171,6 +183,10 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
 
   const fullName = `${resident.firstName} ${resident.lastName || ''}`.trim()
   const familyMembers = resident.familyMembers || []
+  // Moved into the current flat (differs from the first move-in after a flat change).
+  const movedIn = resident.currentFlatMovedIn || resident.moveInDate
+  // Billing is per flat: residing residents link to their flat's invoices.
+  const showBilling = resident.isResiding && !!resident.unitId && billingAccess.canView
 
   return (
     <div className="w-full space-y-6 pb-16">
@@ -230,7 +246,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
             </div>
           </div>
 
-          {(canUpdateResident || currentCondition) && (
+          {(canUpdateResident || currentCondition || showBilling) && (
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               {clinicalQuery.isSuccess && (
                 <ResidentConditionMenu
@@ -238,6 +254,16 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
                   currentCondition={currentCondition}
                   canUpdate={canUpdateResident}
                 />
+              )}
+              {showBilling && (
+                <Button
+                  variant="secondary"
+                  icon={<ReceiptText className="h-4 w-4" />}
+                  onClick={() => navigate(`/admin/billing-management/invoice/${resident.unitId}?tab=invoices`)}
+                  className="rounded-xl"
+                >
+                  Go to Billing
+                </Button>
               )}
               {canUpdateResident && (
                 <Button
@@ -281,13 +307,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
           <HeroFact
             icon={CalendarDays}
             label="Moved in"
-            value={
-              resident.moveInDate && isValid(parseISO(resident.moveInDate)) ? (
-                format(parseISO(resident.moveInDate), 'dd MMM yyyy')
-              ) : (
-                <NotAdded />
-              )
-            }
+            value={movedIn && isValid(parseISO(movedIn)) ? format(parseISO(movedIn), 'dd MMM yyyy') : <NotAdded />}
           />
           <HeroFact
             icon={Users}
