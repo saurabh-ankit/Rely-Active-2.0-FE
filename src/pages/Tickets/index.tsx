@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   Plus,
   MessageSquare,
@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   ArrowUpCircle,
   Wrench,
+  Loader2,
 } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
 import { useDepartmentsQuery } from '@/hooks/react-query/rbac'
@@ -45,7 +46,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
-import { FullScreenLoader } from '@/components/ui/FullScreenLoader'
 
 interface ParsedCompletion {
   notes: string | null
@@ -73,6 +73,21 @@ function isTicketEscalated(ticket: Ticket | null | undefined): boolean {
 function escalatedByLabel(ticket: Ticket | null | undefined): string | null {
   if (!ticket) return null
   return ticket.escalatedByName || ticket.escalatedBy || null
+}
+
+function TicketScreenLoader({ title = 'Loading...', subtitle }: { title?: string; subtitle?: string }) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center select-none animate-in fade-in duration-200">
+      <div className="relative flex items-center justify-center mb-3">
+        <div className="absolute w-12 h-12 rounded-full bg-[#005390]/15 animate-ping" />
+        <div className="relative w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100 shadow-2xs">
+          <Loader2 className="w-6 h-6 animate-spin text-[#005390]" />
+        </div>
+      </div>
+      <span className="text-sm font-bold text-gray-800">{title}</span>
+      {subtitle && <span className="text-xs text-gray-400 mt-1">{subtitle}</span>}
+    </div>
+  )
 }
 
 /** Photos and voice notes the resident attached when raising the ticket. */
@@ -397,7 +412,7 @@ export default function TicketsPage() {
   const [categories, setCategories] = useState<TicketCategoryMaster[]>([])
   const [activeTab, setActiveTab] = useState<'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED'>('OPEN')
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [automateTickets, setAutomateTickets] = useState(false)
 
   // Modals & Drawers
@@ -411,6 +426,16 @@ export default function TicketsPage() {
   const [pendingStatus, setPendingStatus] = useState<TicketStatus | null>(null)
   const [changingStatus, setChangingStatus] = useState(false)
   const [viewedTicketIds, setViewedTicketIds] = useState<Set<string>>(() => new Set(readViewedTickets(user?.id)))
+
+  const selectedTicketIdRef = useRef<string | undefined>(selectedTicket?.id)
+  useEffect(() => {
+    selectedTicketIdRef.current = selectedTicket?.id
+  }, [selectedTicket?.id])
+
+  const activeTabRef = useRef(activeTab)
+  useEffect(() => {
+    activeTabRef.current = activeTab
+  }, [activeTab])
 
   // Fetch Master Categories & Sub-Categories
   useEffect(() => {
@@ -442,44 +467,66 @@ export default function TicketsPage() {
   }, [tickets, managerType])
 
   // Fetch Tickets matching location & active tab
-  const fetchTickets = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const url = API_ENDPOINTS.tickets.list(selectedLocationId)
-      const res = await apiClient.get(url, {
-        params: {
-          tab: activeTab,
-        },
-      })
-      if (res.data?.data) {
-        const fetchedTickets: Ticket[] = res.data.data
-        setTickets(fetchedTickets)
+  const fetchTickets = useCallback(
+    async (isSilent = false) => {
+      if (!selectedLocationId) return
+      const currentRequestedTab = activeTabRef.current
+      if (!isSilent) {
+        setIsLoading(true)
+      }
+      try {
+        const startTime = Date.now()
+        const url = API_ENDPOINTS.tickets.list(selectedLocationId)
+        const res = await apiClient.get(url, {
+          params: {
+            tab: currentRequestedTab,
+          },
+        })
 
-        const filtered =
-          managerType === 'RNM'
-            ? fetchedTickets.filter((t) => resolveDepartmentCode(t) === 'RNM')
-            : managerType === 'CON'
-              ? fetchedTickets.filter((t) => resolveDepartmentCode(t) === 'CON')
-              : fetchedTickets
+        // Ignore response if the active tab changed while request was in-flight
+        if (activeTabRef.current !== currentRequestedTab) return
 
-        if (filtered.length > 0) {
-          const matching = filtered.find((t) => t.id === selectedTicket?.id)
-          setSelectedTicket(matching || filtered[0])
-        } else {
-          setSelectedTicket(null)
+        // Smooth transition guarantee so the loader shows cleanly without rapid flicker
+        const elapsed = Date.now() - startTime
+        if (elapsed < 250 && !isSilent) {
+          await new Promise((resolve) => setTimeout(resolve, 250 - elapsed))
+        }
+        if (activeTabRef.current !== currentRequestedTab) return
+
+        if (res.data?.data) {
+          const fetchedTickets: Ticket[] = res.data.data
+          setTickets(fetchedTickets)
+
+          const filtered =
+            managerType === 'RNM'
+              ? fetchedTickets.filter((t) => resolveDepartmentCode(t) === 'RNM')
+              : managerType === 'CON'
+                ? fetchedTickets.filter((t) => resolveDepartmentCode(t) === 'CON')
+                : fetchedTickets
+
+          if (filtered.length > 0) {
+            const currentId = selectedTicketIdRef.current
+            const matching = currentId ? filtered.find((t) => t.id === currentId) : null
+            setSelectedTicket(matching || filtered[0])
+          } else {
+            setSelectedTicket(null)
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch tickets:', err)
+      } finally {
+        if (activeTabRef.current === currentRequestedTab) {
+          setIsLoading(false)
         }
       }
-    } catch (err) {
-      console.error('Failed to fetch tickets:', err)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [selectedLocationId, activeTab, selectedTicket?.id, managerType])
+    },
+    [selectedLocationId, managerType],
+  )
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTickets()
-  }, [fetchTickets])
+  }, [activeTab, fetchTickets])
 
   // Handle Option Update (Category, Sub-Category, TAT, Priority, Status)
   const handleUpdateOption = async (payload: {
@@ -496,7 +543,7 @@ export default function TicketsPage() {
 
       // Optimistic update
       setSelectedTicket((prev) => (prev ? { ...prev, ...payload } : null))
-      fetchTickets()
+      fetchTickets(true)
       return true
     } catch (err) {
       console.error('Failed to update ticket option:', err)
@@ -528,7 +575,7 @@ export default function TicketsPage() {
       const updated = response.data?.data
       setSelectedTicket((prev) => (prev ? { ...prev, ...(updated || {}) } : prev))
       notifySuccess('Ticket verified and closed')
-      fetchTickets()
+      fetchTickets(true)
     } catch (err) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
@@ -554,6 +601,33 @@ export default function TicketsPage() {
       })
     },
     [user?.id],
+  )
+
+  const switchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [isTicketSwitching, setIsTicketSwitching] = useState(false)
+
+  useEffect(() => {
+    return () => {
+      if (switchTimeoutRef.current) {
+        clearTimeout(switchTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const handleSelectTicket = useCallback(
+    (ticket: Ticket) => {
+      if (selectedTicket?.id === ticket.id) return
+      if (switchTimeoutRef.current) {
+        clearTimeout(switchTimeoutRef.current)
+      }
+      setIsTicketSwitching(true)
+      setSelectedTicket(ticket)
+      markTicketViewed(ticket.id)
+      switchTimeoutRef.current = setTimeout(() => {
+        setIsTicketSwitching(false)
+      }, 180)
+    },
+    [selectedTicket?.id, markTicketViewed],
   )
 
   // Department + job categories for the open ticket, from real master data.
@@ -739,8 +813,6 @@ export default function TicketsPage() {
 
       {/* Main Workspace Layout */}
       <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[520px]">
-        <FullScreenLoader fullScreen={false} isVisible={isLoading} message="Loading tickets..." />
-
         {/* Left Column: Tickets Queue List (4 cols) */}
         <Card className="gap-0 lg:col-span-4 bg-white rounded-2xl border-gray-200 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-13rem)] min-h-[520px]">
           {/* Tab Filter Header with Primary Brand Blue */}
@@ -751,6 +823,7 @@ export default function TicketsPage() {
                 const nextTab = val as 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED'
                 if (nextTab !== activeTab) {
                   setIsLoading(true)
+                  setSelectedTicket(null)
                   setActiveTab(nextTab)
                 }
               }}
@@ -758,41 +831,46 @@ export default function TicketsPage() {
             >
               <div className="rounded-2xl bg-card text-card-foreground/70 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100/80">
                 <TabsList className="grid grid-cols-4 w-full h-auto p-0 bg-transparent gap-1">
-                  <TabsTrigger
-                    value="OPEN"
-                    className="flex h-8 items-center justify-center rounded-xl px-2 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
-                  >
-                    Open
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="IN_PROGRESS"
-                    className="flex h-8 items-center justify-center rounded-xl px-2 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
-                  >
-                    In Progress
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="COMPLETED"
-                    className="flex h-8 items-center justify-center rounded-xl px-2 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
-                  >
-                    Completed
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="CLOSED"
-                    className="flex h-8 items-center justify-center rounded-xl px-2 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
-                  >
-                    Closed
-                  </TabsTrigger>
+                  {(
+                    [
+                      { value: 'OPEN', label: 'Open' },
+                      { value: 'IN_PROGRESS', label: 'In Progress' },
+                      { value: 'COMPLETED', label: 'Completed' },
+                      { value: 'CLOSED', label: 'Closed' },
+                    ] as const
+                  ).map(({ value, label }) => {
+                    const isCurrent = activeTab === value
+                    return (
+                      <TabsTrigger
+                        key={value}
+                        value={value}
+                        className="flex h-8 items-center justify-center gap-1.5 rounded-xl px-2 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all duration-200 cursor-pointer"
+                      >
+                        {isLoading && isCurrent && <Loader2 className="w-3 h-3 animate-spin shrink-0 text-white" />}
+                        <span>{label}</span>
+                      </TabsTrigger>
+                    )
+                  })}
                 </TabsList>
               </div>
             </Tabs>
           </div>
 
           {/* Tickets Scroll List */}
-          <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+          <div className="flex-1 overflow-y-auto divide-y divide-gray-100 flex flex-col">
             {isLoading ? (
-              <div className="p-8 text-center text-xs font-semibold text-gray-400">Loading tickets...</div>
+              <TicketScreenLoader
+                title="Loading tickets..."
+                subtitle={`Fetching ${activeTab.toLowerCase().replace('_', ' ')} queue...`}
+              />
             ) : displayTickets.length === 0 ? (
-              <div className="p-8 text-center text-xs font-semibold text-gray-400">No tickets in this section</div>
+              <div className="p-12 text-center flex flex-col items-center justify-center text-gray-400">
+                <TicketIcon className="w-10 h-10 mb-2 text-gray-300 stroke-[1.5]" />
+                <span className="text-sm font-bold text-gray-600">No tickets in this section</span>
+                <span className="text-xs text-gray-400 mt-1">
+                  There are currently no {activeTab.toLowerCase().replace('_', ' ')} tickets.
+                </span>
+              </div>
             ) : (
               displayTickets.map((t) => {
                 const isSelected = selectedTicket?.id === t.id
@@ -818,12 +896,9 @@ export default function TicketsPage() {
                     key={t.id}
                     type="button"
                     variant="ghost"
-                    onClick={() => {
-                      setSelectedTicket(t)
-                      markTicketViewed(t.id)
-                    }}
+                    onClick={() => handleSelectTicket(t)}
                     className={cn(
-                      'w-full text-left justify-start items-stretch flex flex-col h-auto p-4 transition-all cursor-pointer relative rounded-none border-b border-gray-100 last:border-b-0 whitespace-normal font-normal',
+                      'w-full text-left justify-start items-stretch flex flex-col h-auto p-4 transition-all duration-150 cursor-pointer relative rounded-none border-b border-gray-100 last:border-b-0 whitespace-normal font-normal',
                       isSelected
                         ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
                         : 'bg-white text-gray-900 hover:bg-gray-50 hover:text-gray-900',
@@ -951,7 +1026,12 @@ export default function TicketsPage() {
 
         {/* Right Column: Ticket Workspace Detail (8 cols) */}
         <Card className="gap-0 lg:col-span-8 bg-white rounded-2xl border-gray-200 shadow-sm p-6 h-[calc(100vh-13rem)] min-h-[520px] relative flex flex-col overflow-y-auto">
-          {selectedTicket ? (
+          {isLoading || isTicketSwitching ? (
+            <TicketScreenLoader
+              title={isLoading ? 'Loading ticket details...' : 'Switching ticket...'}
+              subtitle={isLoading ? 'Retrieving service requests & status...' : 'Updating workspace details...'}
+            />
+          ) : selectedTicket ? (
             isClosedView ? (
               /* CLOSED TICKET VIEW MATCHING SCREENSHOT */
               <div className="space-y-6 flex-1">
