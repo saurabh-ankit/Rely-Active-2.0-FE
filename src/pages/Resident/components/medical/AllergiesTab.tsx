@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { AlertTriangle, Plus } from 'lucide-react'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import { Button } from '@/components/ui/button'
+import { TableCell, TableRow } from '@/components/ui/table'
 import { useDeleteResidentAllergyMutation } from '@/hooks/react-query/resident'
 import type { ResidentAllergyItem } from '@/lib/types/resident'
 import { formatDisplayDateTime } from '@/lib/utils'
@@ -51,25 +52,27 @@ export const AllergiesTab: React.FC<AllergiesTabProps> = ({ residentId, canUpdat
           empty={{ icon: AlertTriangle, title: 'No known allergies', description: 'No allergies have been recorded.' }}
         >
           {allergies.map((allergy) => (
-            <tr key={allergy.id} className="align-top hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
-              <td className="px-4 py-3.5">
+            <TableRow key={allergy.id} className="align-top hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+              <TableCell className="px-4 py-3.5">
                 <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
                   {allergy.name}
                 </span>
-              </td>
-              <td className="px-4 py-3.5 max-w-md whitespace-pre-wrap">{allergy.note || '-'}</td>
-              <td className="px-4 py-3.5 whitespace-nowrap">{formatDisplayDateTime(allergy.recordedAt)}</td>
+              </TableCell>
+              <TableCell className="px-4 py-3.5 max-w-md whitespace-pre-wrap">{allergy.note || '-'}</TableCell>
+              <TableCell className="px-4 py-3.5 whitespace-nowrap">
+                {formatDisplayDateTime(allergy.recordedAt)}
+              </TableCell>
               <ClinicalAddedByCell name={allergy.createdByName} createdAt={allergy.createdAt} />
               {canUpdateResident && (
-                <td className="px-4 py-2.5">
+                <TableCell className="px-4 py-2.5">
                   <ClinicalRowActions
                     label="allergy"
                     onEdit={() => setFormTarget({ item: allergy })}
                     onDelete={() => setDeleting(allergy)}
                   />
-                </td>
+                </TableCell>
               )}
-            </tr>
+            </TableRow>
           ))}
         </ClinicalTable>
       </ClinicalCard>

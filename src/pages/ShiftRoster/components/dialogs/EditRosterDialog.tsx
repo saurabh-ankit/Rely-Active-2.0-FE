@@ -419,23 +419,24 @@ const EditRosterDialog = ({
                 const disabled = outOfRange || isWeekOff
                 const checked = workingDays.includes(day) && !disabled
                 return (
-                  <button
+                  <Button
                     key={day}
                     type="button"
+                    variant="ghost"
                     disabled={disabled}
                     aria-pressed={checked}
                     onClick={() => toggleDay(day)}
                     title={outOfRange ? 'Not within the selected dates' : isWeekOff ? 'Employee week off' : undefined}
                     className={`h-9 rounded-lg border text-xs font-semibold capitalize transition-colors ${
                       disabled
-                        ? 'cursor-not-allowed border-dashed border-gray-200 text-gray-300'
+                        ? 'cursor-not-allowed border-dashed border-gray-200 text-gray-300 hover:bg-transparent'
                         : checked
-                          ? 'cursor-pointer border-[#2a517c] bg-[#2a517c] text-white'
-                          : 'cursor-pointer border-gray-200 bg-white text-gray-600 hover:border-[#2a517c]/40'
+                          ? 'cursor-pointer border-[#2a517c] bg-[#2a517c] text-white hover:bg-[#2a517c] hover:text-white'
+                          : 'cursor-pointer border-gray-200 bg-white text-gray-600 hover:border-[#2a517c]/40 hover:bg-transparent'
                     }`}
                   >
                     {day.slice(0, 3)}
-                  </button>
+                  </Button>
                 )
               })}
             </div>

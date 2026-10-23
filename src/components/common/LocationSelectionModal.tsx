@@ -1,6 +1,7 @@
 import React from 'react'
 import { Building2, Check, MapPin } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { useLocationContext, type PropertyLocationItem } from '@/hooks/useLocation'
 
 export const LocationSelectionModal: React.FC = () => {
@@ -32,15 +33,16 @@ export const LocationSelectionModal: React.FC = () => {
             {accessibleLocations.map((loc: PropertyLocationItem) => {
               const isSelected = loc.id === selectedLocationId
               return (
-                <button
+                <Button
+                  variant="ghost"
                   key={loc.id}
                   type="button"
                   onClick={() => {
                     selectLocation(loc)
                   }}
-                  className={`w-full flex items-center justify-between p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
+                  className={`w-full flex items-center justify-between p-4 h-auto whitespace-normal rounded-2xl border text-left transition-all duration-200 cursor-pointer font-normal ${
                     isSelected
-                      ? 'bg-[#005390] text-white border-[#005390] shadow-md shadow-[#005390]/20'
+                      ? 'bg-[#005390] text-white border-[#005390] shadow-md shadow-[#005390]/20 hover:bg-[#005390] hover:text-white'
                       : 'bg-white border-gray-200 hover:border-[#005390]/40 hover:bg-[#005390]/10 text-gray-900'
                   }`}
                 >
@@ -70,7 +72,7 @@ export const LocationSelectionModal: React.FC = () => {
                       <Check className="w-4 h-4 stroke-[3]" />
                     </div>
                   )}
-                </button>
+                </Button>
               )
             })}
           </div>

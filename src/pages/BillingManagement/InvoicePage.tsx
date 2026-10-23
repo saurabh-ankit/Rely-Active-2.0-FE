@@ -16,7 +16,8 @@ import {
 } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { ResponsiveTabs, type TabItem } from '@/components/common/ResponsiveTabs'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useInvoicePreview } from '@/hooks/react-query/billing'
 import { useResourceAccess } from '@/hooks/useResourceAccess'
 import { RESOURCE } from '@/lib/permissions/resourceKeys'
@@ -187,27 +188,27 @@ export default function InvoicePage() {
                           {family.length === 0 ? (
                             <p className="pb-1 text-xs text-gray-400">No family members added</p>
                           ) : (
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr className="text-left text-[11px] text-gray-400">
-                                  <th className="pb-1 font-medium">Name</th>
-                                  <th className="pb-1 font-medium">Relation</th>
-                                  <th className="pb-1 font-medium">Phone</th>
-                                  <th className="pb-1 text-right font-medium">Status</th>
-                                </tr>
-                              </thead>
-                              <tbody>
+                            <Table className="w-full text-sm">
+                              <TableHeader>
+                                <TableRow className="text-left text-[11px] text-gray-400 border-none">
+                                  <TableHead className="pb-1 h-auto font-medium">Name</TableHead>
+                                  <TableHead className="pb-1 h-auto font-medium">Relation</TableHead>
+                                  <TableHead className="pb-1 h-auto font-medium">Phone</TableHead>
+                                  <TableHead className="pb-1 h-auto text-right font-medium">Status</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
                                 {family.map((f) => (
-                                  <tr key={f.id} className="border-t border-gray-50">
-                                    <td className="py-1.5">
+                                  <TableRow key={f.id} className="border-t border-gray-50">
+                                    <TableCell className="py-1.5">
                                       <span className="flex items-center gap-2">
                                         <Initials name={f.name} tone="gray" small />
                                         <span className="font-medium text-gray-800">{f.name}</span>
                                       </span>
-                                    </td>
-                                    <td className="py-1.5 text-gray-600">{f.relation}</td>
-                                    <td className="py-1.5 text-gray-600">{f.phone || '—'}</td>
-                                    <td className="py-1.5 text-right">
+                                    </TableCell>
+                                    <TableCell className="py-1.5 text-gray-600">{f.relation}</TableCell>
+                                    <TableCell className="py-1.5 text-gray-600">{f.phone || '—'}</TableCell>
+                                    <TableCell className="py-1.5 text-right">
                                       <span
                                         className={cn(
                                           'rounded-full px-2 py-0.5 text-[11px] font-semibold',
@@ -216,11 +217,11 @@ export default function InvoicePage() {
                                       >
                                         {f.isResiding ? 'Lives here' : 'Off-site'}
                                       </span>
-                                    </td>
-                                  </tr>
+                                    </TableCell>
+                                  </TableRow>
                                 ))}
-                              </tbody>
-                            </table>
+                              </TableBody>
+                            </Table>
                           )}
                         </div>
                       </div>
@@ -296,16 +297,16 @@ function Fact({
   tone?: string
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-2xs">
+    <Card className="gap-0 flex flex-row items-center gap-3 rounded-2xl border-gray-100 bg-white p-4 shadow-2xs">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#005390]/10 text-[#005390]">
         <Icon className="h-5 w-5" />
       </div>
-      <div className="min-w-0">
-        <p className="text-xs text-gray-500">{label}</p>
-        <p className={cn('text-base font-bold', tone)}>{value}</p>
+      <CardContent className="min-w-0 p-0">
+        <CardDescription className="text-xs text-gray-500">{label}</CardDescription>
+        <CardTitle className={cn('text-base font-bold', tone)}>{value}</CardTitle>
         {note && <p className="text-[11px] text-gray-400">{note}</p>}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 

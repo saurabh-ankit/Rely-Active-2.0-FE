@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
@@ -254,11 +254,23 @@ const DailyShiftManagement = () => {
       <div className="flex flex-wrap gap-3 items-end">
         <div className="space-y-1">
           <Label>From</Label>
-          <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+          <DatePicker
+            value={fromDate}
+            onChange={setFromDate}
+            maxDate={toDate}
+            placeholder="From date"
+            className="w-[160px]"
+          />
         </div>
         <div className="space-y-1">
           <Label>To</Label>
-          <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+          <DatePicker
+            value={toDate}
+            onChange={setToDate}
+            minDate={fromDate}
+            placeholder="To date"
+            className="w-[160px]"
+          />
         </div>
       </div>
 

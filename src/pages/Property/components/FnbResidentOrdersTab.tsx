@@ -1,5 +1,7 @@
+import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   Search,
   Filter,
@@ -7,7 +9,6 @@ import {
   User,
   Building2,
   Eye,
-  X,
   Utensils,
   Truck,
   Camera,
@@ -19,6 +20,10 @@ import { useLocationContext } from '@/hooks/useLocation'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Label } from '@/components/ui/label'
 import { isHiddenFloor } from '@/utils/unitLabel'
 
 interface OrderDetail {
@@ -458,14 +463,15 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
     }
 
     return (
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={handleBadgeClick}
-        className="inline-block cursor-pointer hover:scale-105 active:scale-95 transition-transform border-0 bg-transparent p-0"
+        className="inline-block cursor-pointer hover:scale-105 active:scale-95 transition-transform border-0 bg-transparent p-0 h-auto hover:bg-transparent"
         title={transition ? `Click to ${transition.label}` : 'View Details'}
       >
         {badgeElement}
-      </button>
+      </Button>
     )
   }
 
@@ -601,7 +607,7 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
   return (
     <div className="space-y-5 select-none font-sans">
       {/* Top Filter Card */}
-      <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
+      <Card className="gap-0 bg-white p-5 rounded-2xl border-gray-200 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-extrabold text-gray-900 flex items-center gap-2">
@@ -619,7 +625,7 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
           {/* Search Input */}
           <div className="relative">
             <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-2.5" />
-            <input
+            <Input
               type="text"
               placeholder="Search resident, unit, order ID..."
               value={searchQuery}
@@ -631,48 +637,51 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
           {/* Status Filter */}
           <div className="flex items-center gap-1.5">
             <Filter className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-xl bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
-            >
-              <option value="all">All Order Statuses</option>
-              <option value="placed">Placed</option>
-              <option value="accepted">Accepted</option>
-              <option value="preparing">Preparing</option>
-              <option value="ready">Food is Ready</option>
-              <option value="delivering_to_room">Delivering to Room</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+            <Select value={selectedStatus || 'all'} onValueChange={(val) => setSelectedStatus(val || 'all')}>
+              <SelectTrigger className="w-full px-3 py-1.5 h-auto text-xs font-medium border border-gray-200 rounded-xl bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]">
+                <SelectValue placeholder="All Order Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Order Statuses</SelectItem>
+                <SelectItem value="placed">Placed</SelectItem>
+                <SelectItem value="accepted">Accepted</SelectItem>
+                <SelectItem value="preparing">Preparing</SelectItem>
+                <SelectItem value="ready">Food is Ready</SelectItem>
+                <SelectItem value="delivering_to_room">Delivering to Room</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Type Filter */}
           <div className="flex items-center gap-1.5">
             <Utensils className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-            <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-xl bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
-            >
-              <option value="all">All Order Types</option>
-              <option value="personal">Personal Meal</option>
-              <option value="guest">Guest Meal</option>
-              <option value="special">Special Meal</option>
-            </select>
+            <Select value={selectedType || 'all'} onValueChange={(val) => setSelectedType(val || 'all')}>
+              <SelectTrigger className="w-full px-3 py-1.5 h-auto text-xs font-medium border border-gray-200 rounded-xl bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]">
+                <SelectValue placeholder="All Order Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Order Types</SelectItem>
+                <SelectItem value="personal">Personal Meal</SelectItem>
+                <SelectItem value="guest">Guest Meal</SelectItem>
+                <SelectItem value="special">Special Meal</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Date Filter */}
           <div className="relative">
-            <input
-              type="date"
+            <DatePicker
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-xl bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
+              onChange={setSelectedDate}
+              placeholder="Filter by date"
+              clearable
+              className="w-full sm:w-[160px] h-9 text-xs font-medium border-gray-200 rounded-xl bg-gray-50/50"
             />
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Orders Table & DataTable Pagination Container */}
       {(() => {
@@ -683,7 +692,7 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
 
         return (
           <div className="space-y-4">
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
+            <Card className="gap-0 bg-white rounded-2xl border-gray-200 shadow-xs overflow-hidden">
               {loading ? (
                 <div className="p-12 text-center text-gray-400 text-sm">Loading resident orders...</div>
               ) : orders.length === 0 ? (
@@ -695,20 +704,20 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                   </p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-gray-50/80 border-b border-gray-200 text-[11px] font-extrabold text-gray-500 uppercase tracking-wider">
-                        <th className="py-3 px-4">Order ID & Date</th>
-                        <th className="py-3 px-4">Resident / Unit</th>
-                        <th className="py-3 px-4">Type & Mode</th>
-                        <th className="py-3 px-4">Items / Details</th>
-                        <th className="py-3 px-4">Total Amount</th>
-                        <th className="py-3 px-4">Status</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 text-xs">
+                <div className="overflow-hidden">
+                  <Table className="w-full text-left border-collapse">
+                    <TableHeader>
+                      <TableRow className="bg-gray-50/80 border-b border-gray-200 text-[11px] font-extrabold text-gray-500 uppercase tracking-wider">
+                        <TableHead className="py-3 px-4">Order ID & Date</TableHead>
+                        <TableHead className="py-3 px-4">Resident / Unit</TableHead>
+                        <TableHead className="py-3 px-4">Type & Mode</TableHead>
+                        <TableHead className="py-3 px-4">Items / Details</TableHead>
+                        <TableHead className="py-3 px-4">Total Amount</TableHead>
+                        <TableHead className="py-3 px-4">Status</TableHead>
+                        <TableHead className="py-3 px-4 text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="divide-y divide-gray-100 text-xs">
                       {paginatedOrders.map((order) => {
                         const resObj = order.resident || order.familyMember?.resident
                         const resName = resObj
@@ -717,9 +726,9 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                         const isFam = Boolean(order.familyMemberId)
 
                         return (
-                          <tr key={order.id} className="hover:bg-blue-50/40 transition-colors">
+                          <TableRow key={order.id} className="hover:bg-blue-50/40 transition-colors">
                             {/* Order ID & Date */}
-                            <td className="py-3.5 px-4 font-bold text-gray-900">
+                            <TableCell className="py-3.5 px-4 font-bold text-gray-900">
                               <div className="font-extrabold text-[#005390]">#{order.id.slice(0, 8)}</div>
                               <div className="text-[10px] text-gray-400 font-medium mt-0.5">
                                 {new Date(order.createdAt).toLocaleString('en-IN', {
@@ -727,10 +736,10 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                   timeStyle: 'short',
                                 })}
                               </div>
-                            </td>
+                            </TableCell>
 
                             {/* Resident & Unit */}
-                            <td className="py-3.5 px-4">
+                            <TableCell className="py-3.5 px-4">
                               <div className="font-extrabold text-gray-900 flex items-center gap-1.5">
                                 <User className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                                 {resName}
@@ -744,10 +753,10 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                 <Building2 className="w-3.5 h-3.5 text-[#005390] shrink-0" />
                                 <span>{getFullLocationString(resObj?.unit)}</span>
                               </div>
-                            </td>
+                            </TableCell>
 
                             {/* Order Type & Service Type */}
-                            <td className="py-3.5 px-4 space-y-1">
+                            <TableCell className="py-3.5 px-4 space-y-1">
                               <div>{getTypeBadge(order)}</div>
                               <div>{getServiceTypeBadge(order.serviceType)}</div>
                               {(() => {
@@ -766,10 +775,10 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                 }
                                 return null
                               })()}
-                            </td>
+                            </TableCell>
 
                             {/* Items Summary & Meal Slot */}
-                            <td className="py-3.5 px-4">
+                            <TableCell className="py-3.5 px-4">
                               <div className="space-y-1 max-w-xs">
                                 {getMealSlotBadge(order) && <div>{getMealSlotBadge(order)}</div>}
                                 {order.details && order.details.length > 0 ? (
@@ -787,10 +796,10 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                   <span className="text-gray-400 italic text-xs block">Entire Slot Order</span>
                                 )}
                               </div>
-                            </td>
+                            </TableCell>
 
                             {/* Total Amount */}
-                            <td className="py-3.5 px-4">
+                            <TableCell className="py-3.5 px-4">
                               <div className="font-black text-emerald-700 text-sm">
                                 ₹{Number(order.totalAmount || 0).toFixed(2)}
                               </div>
@@ -804,29 +813,34 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                   + ₹{order.deliveryCharge} Delivery
                                 </div>
                               )}
-                            </td>
+                            </TableCell>
 
                             {/* Status */}
-                            <td className="py-3.5 px-4">{getStatusBadge(order)}</td>
+                            <TableCell className="py-3.5 px-4">{getStatusBadge(order)}</TableCell>
 
                             {/* Actions */}
-                            <td className="py-3.5 px-4 text-right">
+                            <TableCell className="py-3.5 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                                <button
+                                <Button
                                   type="button"
+                                  variant="ghost"
+                                  size="icon-xs"
                                   onClick={() => setSelectedOrder(order)}
                                   className="p-1.5 text-gray-600 hover:text-[#005390] hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                                   title="View Order Details"
                                 >
                                   <Eye className="w-4 h-4" />
-                                </button>
+                                  <span className="sr-only">View Order Details</span>
+                                </Button>
 
                                 {canUpdateFnb && (
                                   <>
                                     {/* 1. Placed -> Accept Order */}
                                     {order.orderStatus === 'placed' && (
-                                      <button
+                                      <Button
                                         type="button"
+                                        variant="ghost"
+                                        size="sm"
                                         disabled={updatingStatusId === order.id}
                                         onClick={() =>
                                           setConfirmModalData({
@@ -835,16 +849,18 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                             actionLabel: 'Accept Order',
                                           })
                                         }
-                                        className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-[#005390] border border-blue-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
+                                        className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-[#005390] border border-blue-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
                                       >
                                         Accept Order
-                                      </button>
+                                      </Button>
                                     )}
 
                                     {/* 2. Accepted -> Start Preparing */}
                                     {order.orderStatus === 'accepted' && (
-                                      <button
+                                      <Button
                                         type="button"
+                                        variant="ghost"
+                                        size="sm"
                                         disabled={updatingStatusId === order.id}
                                         onClick={() =>
                                           setConfirmModalData({
@@ -853,16 +869,18 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                             actionLabel: 'Start Preparing',
                                           })
                                         }
-                                        className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
+                                        className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
                                       >
                                         Start Preparing
-                                      </button>
+                                      </Button>
                                     )}
 
                                     {/* 3. Preparing -> Food is Ready (Dine In & Room Service) */}
                                     {order.orderStatus === 'preparing' && (
-                                      <button
+                                      <Button
                                         type="button"
+                                        variant="ghost"
+                                        size="sm"
                                         disabled={updatingStatusId === order.id}
                                         onClick={() =>
                                           setConfirmModalData({
@@ -871,18 +889,20 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                             actionLabel: 'Food is Ready',
                                           })
                                         }
-                                        className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
+                                        className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
                                       >
                                         Food is Ready
-                                      </button>
+                                      </Button>
                                     )}
 
                                     {/* 4. Ready -> Assign Delivery Employee (Room Service) OR Complete Order (Dine In) */}
                                     {(order.orderStatus === 'ready' || order.orderStatus === 'food_ready') && (
                                       <>
                                         {order.serviceType === 'room_service' ? (
-                                          <button
+                                          <Button
                                             type="button"
+                                            variant="ghost"
+                                            size="sm"
                                             onClick={() =>
                                               setConfirmModalData({
                                                 order,
@@ -890,13 +910,15 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                                 actionLabel: 'Assign Delivery Employee',
                                               })
                                             }
-                                            className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
+                                            className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
                                           >
                                             Assign Delivery Employee
-                                          </button>
+                                          </Button>
                                         ) : (
-                                          <button
+                                          <Button
                                             type="button"
+                                            variant="ghost"
+                                            size="sm"
                                             disabled={updatingStatusId === order.id}
                                             onClick={() =>
                                               setConfirmModalData({
@@ -905,10 +927,10 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                                                 actionLabel: 'Complete Order',
                                               })
                                             }
-                                            className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors"
+                                            className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
                                           >
                                             Complete Order
-                                          </button>
+                                          </Button>
                                         )}
                                       </>
                                     )}
@@ -917,15 +939,15 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
 
                                 {/* 5. Delivering to Room: Delivery employee will deliver & complete from L3 mobile app */}
                               </div>
-                            </td>
-                          </tr>
+                            </TableCell>
+                          </TableRow>
                         )
                       })}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               )}
-            </div>
+            </Card>
 
             {/* Pagination Controls */}
             {!loading && orders.length > 0 && (
@@ -939,19 +961,23 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
 
                   <div className="flex items-center gap-1.5 border-l border-gray-200 pl-3">
                     <span className="text-gray-400 font-medium">Per page:</span>
-                    <select
-                      value={pageSize}
-                      onChange={(e) => {
-                        setPageSize(Number(e.target.value))
+                    <Select
+                      value={String(pageSize)}
+                      onValueChange={(val) => {
+                        setPageSize(Number(val))
                         setCurrentPage(1)
                       }}
-                      className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs font-bold text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#005390] cursor-pointer"
                     >
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
-                    </select>
+                      <SelectTrigger className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 h-auto text-xs font-bold text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#005390] cursor-pointer">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -1005,111 +1031,115 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
       })()}
 
       {/* Confirmation Modal */}
-      {confirmModalData &&
-        createPortal(
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-gray-100 animate-in fade-in zoom-in-95 duration-150 text-center">
-              <div className="w-12 h-12 rounded-full bg-blue-50 text-[#005390] flex items-center justify-center mx-auto">
-                <HelpCircle className="w-6 h-6" />
-              </div>
-              <div className="space-y-1.5">
-                <h3 className="font-extrabold text-lg text-gray-900">Are you sure?</h3>
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  Are you sure you want to change order{' '}
-                  <strong className="text-gray-900">#{confirmModalData.order.id.slice(0, 8)}</strong> status from{' '}
-                  <span className="font-bold uppercase text-[#005390] bg-blue-50 px-1.5 py-0.5 rounded">
-                    {confirmModalData.order.orderStatus.replace(/_/g, ' ')}
-                  </span>{' '}
-                  to{' '}
-                  <span className="font-bold uppercase text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-                    {confirmModalData.actionLabel}
-                  </span>
-                  ?
-                </p>
-              </div>
-
-              <div className="flex items-center justify-center gap-3 pt-3 border-t border-gray-100">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setConfirmModalData(null)}
-                  className="text-xs font-bold px-5 py-2 rounded-xl cursor-pointer"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    const { order, nextStatus } = confirmModalData
-                    setConfirmModalData(null)
-                    if (nextStatus === 'assign_delivery') {
-                      setAssigningOrder(order)
-                      setSelectedStaffId(order.assignedEmployeeId || '')
-                      setDeliveryChargeInput(order.deliveryCharge || 0)
-                      fetchStaffList()
-                    } else if (nextStatus === 'complete_delivery') {
-                      setCompletingDeliveryOrder(order)
-                    } else {
-                      handleUpdateStatus(order.id, nextStatus)
-                    }
-                  }}
-                  className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-5 py-2 rounded-xl shadow-md cursor-pointer"
-                >
-                  Yes, Confirm
-                </Button>
-              </div>
+      <Dialog
+        open={Boolean(confirmModalData)}
+        onOpenChange={(open) => {
+          if (!open) setConfirmModalData(null)
+        }}
+      >
+        {confirmModalData && (
+          <DialogContent className="sm:max-w-md p-6 space-y-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-blue-50 text-[#005390] flex items-center justify-center mx-auto">
+              <HelpCircle className="w-6 h-6" />
             </div>
-          </div>,
-          document.body,
+            <DialogHeader className="text-center">
+              <DialogTitle className="font-extrabold text-lg text-gray-900 text-center">Are you sure?</DialogTitle>
+              <DialogDescription className="text-xs text-gray-500 leading-relaxed text-center">
+                Are you sure you want to change order{' '}
+                <strong className="text-gray-900">#{confirmModalData.order.id.slice(0, 8)}</strong> status from{' '}
+                <span className="font-bold uppercase text-[#005390] bg-blue-50 px-1.5 py-0.5 rounded">
+                  {confirmModalData.order.orderStatus.replace(/_/g, ' ')}
+                </span>{' '}
+                to{' '}
+                <span className="font-bold uppercase text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                  {confirmModalData.actionLabel}
+                </span>
+                ?
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex items-center justify-center gap-3 pt-3 border-t border-gray-100">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmModalData(null)}
+                className="text-xs font-bold px-5 py-2 rounded-xl cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  const { order, nextStatus } = confirmModalData
+                  setConfirmModalData(null)
+                  if (nextStatus === 'assign_delivery') {
+                    setAssigningOrder(order)
+                    setSelectedStaffId(order.assignedEmployeeId || '')
+                    setDeliveryChargeInput(order.deliveryCharge || 0)
+                    fetchStaffList()
+                  } else if (nextStatus === 'complete_delivery') {
+                    setCompletingDeliveryOrder(order)
+                  } else {
+                    handleUpdateStatus(order.id, nextStatus)
+                  }
+                }}
+                className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-5 py-2 rounded-xl shadow-md cursor-pointer"
+              >
+                Yes, Confirm
+              </Button>
+            </div>
+          </DialogContent>
         )}
+      </Dialog>
 
       {/* Assign Delivery Employee Modal */}
-      {assigningOrder &&
-        createPortal(
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <Truck className="w-5 h-5 text-amber-600" />
-                  <h3 className="font-extrabold text-base text-gray-900">Assign Delivery Employee</h3>
-                </div>
-                <button
-                  onClick={() => setAssigningOrder(null)}
-                  className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+      <Dialog
+        open={Boolean(assigningOrder)}
+        onOpenChange={(open) => {
+          if (!open) setAssigningOrder(null)
+        }}
+      >
+        {assigningOrder && (
+          <DialogContent className="sm:max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3 pr-8">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 font-extrabold text-base text-gray-900">
+                  <Truck className="w-5 h-5 text-amber-600" /> Assign Delivery Employee
+                </DialogTitle>
+                <DialogDescription className="text-xs text-gray-500">
+                  Select delivery staff and set delivery fee for order #{assigningOrder.id.slice(0, 8)}
+                </DialogDescription>
+              </DialogHeader>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 space-y-1">
+                <span className="text-amber-900 font-extrabold block">Order #{assigningOrder.id.slice(0, 8)}</span>
+                <span className="text-amber-800 text-[11px] block">
+                  Resident:{' '}
+                  {assigningOrder.resident
+                    ? `${assigningOrder.resident.firstName} ${assigningOrder.resident.lastName || ''}`
+                    : 'Resident'}
+                </span>
+                <span className="text-amber-700 text-[11px] block font-semibold">
+                  Location:{' '}
+                  {getFullLocationString(assigningOrder.resident?.unit || assigningOrder.familyMember?.resident?.unit)}
+                </span>
               </div>
 
-              <div className="space-y-3 text-xs">
-                <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 space-y-1">
-                  <span className="text-amber-900 font-extrabold block">Order #{assigningOrder.id.slice(0, 8)}</span>
-                  <span className="text-amber-800 text-[11px] block">
-                    Resident:{' '}
-                    {assigningOrder.resident
-                      ? `${assigningOrder.resident.firstName} ${assigningOrder.resident.lastName || ''}`
-                      : 'Resident'}
-                  </span>
-                  <span className="text-amber-700 text-[11px] block font-semibold">
-                    Location:{' '}
-                    {getFullLocationString(
-                      assigningOrder.resident?.unit || assigningOrder.familyMember?.resident?.unit,
-                    )}
-                  </span>
-                </div>
-
-                {/* Staff Dropdown */}
-                <div className="space-y-1">
-                  <label htmlFor="select-delivery-staff" className="font-extrabold text-gray-700 block">
-                    Select F&B Delivery Employee <span className="text-rose-500">*</span>
-                  </label>
-                  <select
+              {/* Staff Dropdown */}
+              <div className="space-y-1">
+                <Label htmlFor="select-delivery-staff" className="font-extrabold text-gray-700 block">
+                  Select F&B Delivery Employee <span className="text-rose-500">*</span>
+                </Label>
+                <Select value={selectedStaffId || undefined} onValueChange={(val) => setSelectedStaffId(val || '')}>
+                  <SelectTrigger
                     id="select-delivery-staff"
-                    value={selectedStaffId}
-                    onChange={(e) => setSelectedStaffId(e.target.value)}
-                    className="w-full px-3 py-2 text-xs font-semibold border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
+                    className="w-full px-3 py-2 h-auto text-xs font-semibold border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
                   >
-                    <option value="">-- Choose F&B Staff / Employee --</option>
+                    <SelectValue placeholder="-- Choose F&B Staff / Employee --" />
+                  </SelectTrigger>
+                  <SelectContent>
                     {staffList.map((item) => {
                       const u = item as {
                         id: string
@@ -1124,320 +1154,313 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                         : u.username || u.email
                       const code = profileData?.employeeCode ? ` (${profileData.employeeCode})` : ''
                       return (
-                        <option key={u.id} value={u.id}>
+                        <SelectItem key={u.id} value={u.id}>
                           {dName || u.username || u.email} {code}
-                        </option>
+                        </SelectItem>
                       )
                     })}
-                  </select>
-                  {!selectedStaffId && (
-                    <p className="text-[10px] text-rose-500 font-semibold">
-                      An F&B employee must be selected for room delivery.
-                    </p>
-                  )}
-                </div>
-
-                {/* Delivery Charge Input */}
-                <div className="space-y-1">
-                  <label htmlFor="delivery-charge-input" className="font-extrabold text-gray-700 block">
-                    Set Room Delivery Charge (₹)
-                  </label>
-                  <input
-                    id="delivery-charge-input"
-                    type="number"
-                    min="0"
-                    step="5"
-                    value={deliveryChargeInput}
-                    onChange={(e) => setDeliveryChargeInput(Math.max(0, Number(e.target.value)))}
-                    placeholder="Enter delivery fee e.g. 20"
-                    className="w-full px-3 py-2 text-xs font-semibold border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
-                  />
-                  <p className="text-[10px] text-gray-500 font-medium">
-                    Fixes the delivery charge added to the resident&apos;s order for room service.
+                  </SelectContent>
+                </Select>
+                {!selectedStaffId && (
+                  <p className="text-[10px] text-rose-500 font-semibold">
+                    An F&B employee must be selected for room delivery.
                   </p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-                <Button variant="ghost" size="sm" onClick={() => setAssigningOrder(null)} className="text-xs font-bold">
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  disabled={submittingAssign || !selectedStaffId}
-                  onClick={handleAssignDelivery}
-                  className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs px-4 rounded-xl cursor-pointer"
-                >
-                  {submittingAssign ? 'Assigning...' : 'Assign & Start Delivery'}
-                </Button>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
-
-      {/* Complete Room Delivery Photo Proof Modal */}
-      {completingDeliveryOrder &&
-        createPortal(
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <Camera className="w-5 h-5 text-emerald-600" />
-                  <h3 className="font-extrabold text-base text-gray-900">Complete Delivery & Upload Proof</h3>
-                </div>
-                <button
-                  onClick={() => setCompletingDeliveryOrder(null)}
-                  className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-3 text-xs">
-                <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 space-y-1">
-                  <span className="text-emerald-900 font-extrabold block">
-                    Order #{completingDeliveryOrder.id.slice(0, 8)}
-                  </span>
-                  <span className="text-emerald-800 text-[11px] block font-semibold">
-                    Location:{' '}
-                    {getFullLocationString(
-                      completingDeliveryOrder.resident?.unit || completingDeliveryOrder.familyMember?.resident?.unit,
-                    )}
-                  </span>
-                </div>
-
-                <div className="space-y-1">
-                  <label htmlFor="proof-photo-input" className="font-extrabold text-gray-700 block">
-                    Proof of Delivery Photo URL
-                  </label>
-                  <input
-                    id="proof-photo-input"
-                    type="text"
-                    value={proofPhotoInput}
-                    onChange={(e) => setProofPhotoInput(e.target.value)}
-                    placeholder="https://.../delivery_proof.jpg"
-                    className="w-full px-3 py-2 text-xs font-semibold border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                  />
-                  <p className="text-[10px] text-gray-400">
-                    Upload photo URL taken by delivery staff upon room handover.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCompletingDeliveryOrder(null)}
-                  className="text-xs font-bold"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  disabled={submittingComplete}
-                  onClick={handleCompleteDelivery}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 rounded-xl cursor-pointer"
-                >
-                  {submittingComplete ? 'Completing...' : 'Confirm Delivery Completed'}
-                </Button>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
-
-      {/* Order Detail Modal */}
-      {selectedOrder &&
-        createPortal(
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-            <div
-              ref={selectedOrderModalRef}
-              className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150 border border-gray-100 max-h-[90vh] overflow-y-auto"
-            >
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                <div>
-                  <h3 className="font-black text-base text-gray-900 flex items-center gap-2">
-                    <ShoppingBag className="w-5 h-5 text-[#005390]" /> Order Details #{selectedOrder.id.slice(0, 8)}
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Placed on {new Date(selectedOrder.createdAt).toLocaleString('en-IN')}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelectedOrder(null)}
-                  className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Order Info Grid */}
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 space-y-1">
-                  <span className="text-gray-400 font-semibold text-[10px] uppercase">Resident Info</span>
-                  <div className="font-bold text-gray-900">
-                    {selectedOrder.resident
-                      ? `${selectedOrder.resident.firstName} ${selectedOrder.resident.lastName || ''}`
-                      : selectedOrder.guestName || 'N/A'}
-                  </div>
-                  <div className="text-gray-600 font-semibold text-[11px]">
-                    {getFullLocationString(selectedOrder.resident?.unit || selectedOrder.familyMember?.resident?.unit)}
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 space-y-1">
-                  <span className="text-gray-400 font-semibold text-[10px] uppercase">Service & Mode</span>
-                  <div>{getTypeBadge(selectedOrder)}</div>
-                  <div className="pt-0.5">{getServiceTypeBadge(selectedOrder.serviceType)}</div>
-                </div>
-              </div>
-
-              {/* Timestamp Audit Trail Grid */}
-              <div className="bg-gray-50/80 p-3 rounded-xl border border-gray-200/80 space-y-2 text-[11px]">
-                <span className="text-gray-500 font-black uppercase text-[10px] flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-[#005390]" /> Status Timestamps & Audit
-                </span>
-                <div className="grid grid-cols-2 gap-2 text-gray-600">
-                  <div>
-                    <span className="text-gray-400 font-semibold block">Accepted At:</span>
-                    <span className="font-bold text-gray-800">
-                      {selectedOrder.acceptedAt ? new Date(selectedOrder.acceptedAt).toLocaleTimeString('en-IN') : '—'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 font-semibold block">Preparing Started:</span>
-                    <span className="font-bold text-gray-800">
-                      {selectedOrder.preparingStartedAt
-                        ? new Date(selectedOrder.preparingStartedAt).toLocaleTimeString('en-IN')
-                        : '—'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 font-semibold block">Food Ready At:</span>
-                    <span className="font-bold text-gray-800">
-                      {selectedOrder.readyAt ? new Date(selectedOrder.readyAt).toLocaleTimeString('en-IN') : '—'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 font-semibold block">Delivered / Completed:</span>
-                    <span className="font-bold text-gray-800">
-                      {selectedOrder.deliveredAt
-                        ? new Date(selectedOrder.deliveredAt).toLocaleTimeString('en-IN')
-                        : '—'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Delivery Employee Details (If Room Service) */}
-              {selectedOrder.serviceType === 'room_service' && selectedOrder.delivery && (
-                <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-200/80 space-y-1.5 text-xs">
-                  <span className="text-amber-900 font-extrabold uppercase text-[10px] flex items-center gap-1">
-                    <Truck className="w-3.5 h-3.5 text-amber-700" /> Room Service Delivery Details
-                  </span>
-                  <div className="flex items-center justify-between text-[11px] text-amber-900">
-                    <span>
-                      Assigned Staff:{' '}
-                      <strong className="font-bold">
-                        {selectedOrder.delivery.employeeDetail
-                          ? `${selectedOrder.delivery.employeeDetail.firstName} ${selectedOrder.delivery.employeeDetail.lastName || ''}`
-                          : selectedOrder.delivery.employee?.username || 'Staff'}
-                      </strong>
-                    </span>
-                    <span>
-                      Delivery Charge: <strong className="font-bold">₹{selectedOrder.delivery.deliveryCharge}</strong>
-                    </span>
-                  </div>
-                  {selectedOrder.delivery.photoUrl && (
-                    <div className="pt-1">
-                      <span className="text-[10px] text-amber-800 font-bold block mb-1">Proof of Delivery Photo:</span>
-                      <a href={selectedOrder.delivery.photoUrl} target="_blank" rel="noreferrer" className="block">
-                        <img
-                          src={selectedOrder.delivery.photoUrl}
-                          alt="Delivery Proof"
-                          className="w-24 h-24 object-cover rounded-xl border border-amber-300 shadow-xs hover:opacity-90 transition-opacity"
-                        />
-                      </a>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Order Line Items */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Ordered Items</h4>
-                  {getMealSlotBadge(selectedOrder)}
-                </div>
-                {selectedOrder.details && selectedOrder.details.length > 0 ? (
-                  <div className="space-y-2 border border-gray-200 rounded-xl p-3 bg-gray-50/50">
-                    {selectedOrder.details.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between bg-white p-2.5 rounded-lg border border-gray-100 text-xs"
-                      >
-                        <div className="space-y-0.5">
-                          <div className="font-bold text-gray-900 flex items-center gap-1.5">
-                            <span>{item.dish?.name || item.specialMealSlot?.name || 'Meal Slot Item'}</span>
-                            {item.globalMealSlot?.name && (
-                              <span className="text-[9px] font-bold text-[#005390] bg-blue-50 px-1.5 py-0.2 rounded border border-blue-100">
-                                {item.globalMealSlot.name}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[10px] text-gray-500">
-                            Qty: <span className="font-bold text-gray-800">{item.quantity}</span> • Unit Price: ₹
-                            {item.unitPrice}
-                          </div>
-                        </div>
-                        <div className="font-extrabold text-emerald-700 text-xs">₹{item.amount}</div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-4 text-center text-xs text-gray-500 italic bg-gray-50 rounded-xl">
-                    Full Meal Slot Order
-                  </div>
                 )}
               </div>
 
-              {/* Order Total & Actions */}
-              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase">Total Amount</span>
-                  <div className="text-lg font-black text-emerald-700">
-                    ₹{Number(selectedOrder.totalAmount || 0).toFixed(2)}
-                  </div>
-                </div>
+              {/* Delivery Charge Input */}
+              <div className="space-y-1">
+                <Label htmlFor="delivery-charge-input" className="font-extrabold text-gray-700 block">
+                  Set Room Delivery Charge (₹)
+                </Label>
+                <Input
+                  id="delivery-charge-input"
+                  type="number"
+                  min="0"
+                  step="5"
+                  value={deliveryChargeInput}
+                  onChange={(e) => setDeliveryChargeInput(Math.max(0, Number(e.target.value)))}
+                  placeholder="Enter delivery fee e.g. 20"
+                  className="w-full px-3 py-2 text-xs font-semibold border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005390]"
+                />
+                <p className="text-[10px] text-gray-500 font-medium">
+                  Fixes the delivery charge added to the resident&apos;s order for room service.
+                </p>
+              </div>
+            </div>
 
-                <div className="flex items-center gap-2">
-                  {canUpdateFnb &&
-                    selectedOrder.orderStatus !== 'cancelled' &&
-                    selectedOrder.orderStatus !== 'completed' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleUpdateStatus(selectedOrder.id, 'cancelled')}
-                        className="text-xs font-bold text-rose-700 border-rose-200 hover:bg-rose-50 rounded-xl cursor-pointer"
-                      >
-                        Cancel Order
-                      </Button>
-                    )}
-                  <Button
-                    size="sm"
-                    onClick={() => setSelectedOrder(null)}
-                    className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-4 rounded-xl shadow-xs cursor-pointer"
-                  >
-                    Close
-                  </Button>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+              <Button variant="ghost" size="sm" onClick={() => setAssigningOrder(null)} className="text-xs font-bold">
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                disabled={submittingAssign || !selectedStaffId}
+                onClick={handleAssignDelivery}
+                className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs px-4 rounded-xl cursor-pointer"
+              >
+                {submittingAssign ? 'Assigning...' : 'Assign & Start Delivery'}
+              </Button>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
+
+      {/* Complete Room Delivery Photo Proof Modal */}
+      <Dialog
+        open={Boolean(completingDeliveryOrder)}
+        onOpenChange={(open) => {
+          if (!open) setCompletingDeliveryOrder(null)
+        }}
+      >
+        {completingDeliveryOrder && (
+          <DialogContent className="sm:max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3 pr-8">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 font-extrabold text-base text-gray-900">
+                  <Camera className="w-5 h-5 text-emerald-600" /> Complete Delivery & Upload Proof
+                </DialogTitle>
+                <DialogDescription className="text-xs text-gray-500">
+                  Verify handover and record delivery confirmation
+                </DialogDescription>
+              </DialogHeader>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 space-y-1">
+                <span className="text-emerald-900 font-extrabold block">
+                  Order #{completingDeliveryOrder.id.slice(0, 8)}
+                </span>
+                <span className="text-emerald-800 text-[11px] block font-semibold">
+                  Location:{' '}
+                  {getFullLocationString(
+                    completingDeliveryOrder.resident?.unit || completingDeliveryOrder.familyMember?.resident?.unit,
+                  )}
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor="proof-photo-input" className="font-extrabold text-gray-700 block">
+                  Proof of Delivery Photo URL
+                </label>
+                <input
+                  id="proof-photo-input"
+                  type="text"
+                  value={proofPhotoInput}
+                  onChange={(e) => setProofPhotoInput(e.target.value)}
+                  placeholder="https://.../delivery_proof.jpg"
+                  className="w-full px-3 py-2 text-xs font-semibold border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                />
+                <p className="text-[10px] text-gray-400">
+                  Upload photo URL taken by delivery staff upon room handover.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCompletingDeliveryOrder(null)}
+                className="text-xs font-bold"
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                disabled={submittingComplete}
+                onClick={handleCompleteDelivery}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 rounded-xl cursor-pointer"
+              >
+                {submittingComplete ? 'Completing...' : 'Confirm Delivery Completed'}
+              </Button>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
+
+      {/* Order Detail Modal */}
+      <Dialog
+        open={Boolean(selectedOrder)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedOrder(null)
+        }}
+      >
+        {selectedOrder && (
+          <DialogContent className="sm:max-w-lg p-6 max-h-[90vh] overflow-y-auto space-y-5">
+            <div className="border-b border-gray-100 pb-3 pr-8">
+              <DialogHeader>
+                <DialogTitle className="font-black text-base text-gray-900 flex items-center gap-2">
+                  <ShoppingBag className="w-5 h-5 text-[#005390]" /> Order Details #{selectedOrder.id.slice(0, 8)}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-gray-500 mt-0.5">
+                  Placed on {new Date(selectedOrder.createdAt).toLocaleString('en-IN')}
+                </DialogDescription>
+              </DialogHeader>
+            </div>
+
+            {/* Order Info Grid */}
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 space-y-1">
+                <span className="text-gray-400 font-semibold text-[10px] uppercase">Resident Info</span>
+                <div className="font-bold text-gray-900">
+                  {selectedOrder.resident
+                    ? `${selectedOrder.resident.firstName} ${selectedOrder.resident.lastName || ''}`
+                    : selectedOrder.guestName || 'N/A'}
+                </div>
+                <div className="text-gray-600 font-semibold text-[11px]">
+                  {getFullLocationString(selectedOrder.resident?.unit || selectedOrder.familyMember?.resident?.unit)}
+                </div>
+              </div>
+
+              <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 space-y-1">
+                <span className="text-gray-400 font-semibold text-[10px] uppercase">Service & Mode</span>
+                <div>{getTypeBadge(selectedOrder)}</div>
+                <div className="pt-0.5">{getServiceTypeBadge(selectedOrder.serviceType)}</div>
+              </div>
+            </div>
+
+            {/* Timestamp Audit Trail Grid */}
+            <div className="bg-gray-50/80 p-3 rounded-xl border border-gray-200/80 space-y-2 text-[11px]">
+              <span className="text-gray-500 font-black uppercase text-[10px] flex items-center gap-1">
+                <Clock className="w-3 h-3 text-[#005390]" /> Status Timestamps & Audit
+              </span>
+              <div className="grid grid-cols-2 gap-2 text-gray-600">
+                <div>
+                  <span className="text-gray-400 font-semibold block">Accepted At:</span>
+                  <span className="font-bold text-gray-800">
+                    {selectedOrder.acceptedAt ? new Date(selectedOrder.acceptedAt).toLocaleTimeString('en-IN') : '—'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-400 font-semibold block">Preparing Started:</span>
+                  <span className="font-bold text-gray-800">
+                    {selectedOrder.preparingStartedAt
+                      ? new Date(selectedOrder.preparingStartedAt).toLocaleTimeString('en-IN')
+                      : '—'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-400 font-semibold block">Food Ready At:</span>
+                  <span className="font-bold text-gray-800">
+                    {selectedOrder.readyAt ? new Date(selectedOrder.readyAt).toLocaleTimeString('en-IN') : '—'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-400 font-semibold block">Delivered / Completed:</span>
+                  <span className="font-bold text-gray-800">
+                    {selectedOrder.deliveredAt ? new Date(selectedOrder.deliveredAt).toLocaleTimeString('en-IN') : '—'}
+                  </span>
                 </div>
               </div>
             </div>
-          </div>,
-          document.body,
+
+            {/* Delivery Employee Details (If Room Service) */}
+            {selectedOrder.serviceType === 'room_service' && selectedOrder.delivery && (
+              <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-200/80 space-y-1.5 text-xs">
+                <span className="text-amber-900 font-extrabold uppercase text-[10px] flex items-center gap-1">
+                  <Truck className="w-3.5 h-3.5 text-amber-700" /> Room Service Delivery Details
+                </span>
+                <div className="flex items-center justify-between text-[11px] text-amber-900">
+                  <span>
+                    Assigned Staff:{' '}
+                    <strong className="font-bold">
+                      {selectedOrder.delivery.employeeDetail
+                        ? `${selectedOrder.delivery.employeeDetail.firstName} ${selectedOrder.delivery.employeeDetail.lastName || ''}`
+                        : selectedOrder.delivery.employee?.username || 'Staff'}
+                    </strong>
+                  </span>
+                  <span>
+                    Delivery Charge: <strong className="font-bold">₹{selectedOrder.delivery.deliveryCharge}</strong>
+                  </span>
+                </div>
+                {selectedOrder.delivery.photoUrl && (
+                  <div className="pt-1">
+                    <span className="text-[10px] text-amber-800 font-bold block mb-1">Proof of Delivery Photo:</span>
+                    <a href={selectedOrder.delivery.photoUrl} target="_blank" rel="noreferrer" className="block">
+                      <img
+                        src={selectedOrder.delivery.photoUrl}
+                        alt="Delivery Proof"
+                        className="w-24 h-24 object-cover rounded-xl border border-amber-300 shadow-xs hover:opacity-90 transition-opacity"
+                      />
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Order Line Items */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Ordered Items</h4>
+                {getMealSlotBadge(selectedOrder)}
+              </div>
+              {selectedOrder.details && selectedOrder.details.length > 0 ? (
+                <div className="space-y-2 border border-gray-200 rounded-xl p-3 bg-gray-50/50">
+                  {selectedOrder.details.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between bg-white p-2.5 rounded-lg border border-gray-100 text-xs"
+                    >
+                      <div className="space-y-0.5">
+                        <div className="font-bold text-gray-900 flex items-center gap-1.5">
+                          <span>{item.dish?.name || item.specialMealSlot?.name || 'Meal Slot Item'}</span>
+                          {item.globalMealSlot?.name && (
+                            <span className="text-[9px] font-bold text-[#005390] bg-blue-50 px-1.5 py-0.2 rounded border border-blue-100">
+                              {item.globalMealSlot.name}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-gray-500">
+                          Qty: <span className="font-bold text-gray-800">{item.quantity}</span> • Unit Price: ₹
+                          {item.unitPrice}
+                        </div>
+                      </div>
+                      <div className="font-extrabold text-emerald-700 text-xs">₹{item.amount}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 text-center text-xs text-gray-500 italic bg-gray-50 rounded-xl">
+                  Full Meal Slot Order
+                </div>
+              )}
+            </div>
+
+            {/* Order Total & Actions */}
+            <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+              <div>
+                <span className="text-[10px] font-bold text-gray-400 uppercase">Total Amount</span>
+                <div className="text-lg font-black text-emerald-700">
+                  ₹{Number(selectedOrder.totalAmount || 0).toFixed(2)}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {canUpdateFnb &&
+                  selectedOrder.orderStatus !== 'cancelled' &&
+                  selectedOrder.orderStatus !== 'completed' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleUpdateStatus(selectedOrder.id, 'cancelled')}
+                      className="text-xs font-bold text-rose-700 border-rose-200 hover:bg-rose-50 rounded-xl cursor-pointer"
+                    >
+                      Cancel Order
+                    </Button>
+                  )}
+                <Button
+                  size="sm"
+                  onClick={() => setSelectedOrder(null)}
+                  className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-4 rounded-xl shadow-xs cursor-pointer"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
         )}
+      </Dialog>
     </div>
   )
 }

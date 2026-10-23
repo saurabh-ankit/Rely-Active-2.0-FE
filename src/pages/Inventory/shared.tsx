@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import type { ReactNode } from 'react'
 import { errorMessage } from './utils'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -36,9 +37,9 @@ export function Section({ title, children, action }: { title: string; children: 
 export function FormField({ label, id, children }: { label: string; id: string; children: ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-xs font-semibold text-gray-700">
+      <Label htmlFor={id} className="block text-xs font-semibold text-gray-700">
         <RequiredLabel text={label} />
-      </label>
+      </Label>
       {children}
     </div>
   )

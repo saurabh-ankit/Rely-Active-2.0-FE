@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Edit, Eye, MoreVertical, Plus, UserCheck } from 'lucide-react'
@@ -5,6 +6,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useDepartmentsQuery, useRolesQuery } from '@/hooks/react-query/rbac'
 import { useUsersQuery, useUpdateUserMutation } from '@/hooks/react-query/user'
@@ -481,57 +483,70 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
         onRowClick={(u) => navigate(`/admin/employees/details/${u.id}`)}
         filterActions={
           <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={selectedDepartmentFilter}
-              onChange={(e) => {
-                setSelectedDepartmentFilter(e.target.value)
+            <Select
+              value={selectedDepartmentFilter || 'ALL'}
+              onValueChange={(val) => {
+                setSelectedDepartmentFilter(val || 'ALL')
                 setSelectedJobCategoryFilter('ALL')
               }}
-              className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
             >
-              <option value="ALL">All departments</option>
-              {departments.map((dept) => (
-                <option key={dept.id} value={dept.id}>
-                  {dept.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs w-auto">
+                <SelectValue placeholder="All departments" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All departments</SelectItem>
+                {departments.map((dept) => (
+                  <SelectItem key={dept.id} value={dept.id}>
+                    {dept.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-            <select
-              value={selectedJobCategoryFilter}
-              onChange={(e) => setSelectedJobCategoryFilter(e.target.value)}
-              className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
+            <Select
+              value={selectedJobCategoryFilter || 'ALL'}
+              onValueChange={(val) => setSelectedJobCategoryFilter(val || 'ALL')}
             >
-              <option value="ALL">All job categories</option>
-              {availableFilterCategories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs w-auto">
+                <SelectValue placeholder="All job categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All job categories</SelectItem>
+                {availableFilterCategories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-            <select
-              value={selectedRoleFilter}
-              onChange={(e) => setSelectedRoleFilter(e.target.value)}
-              className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
-            >
-              <option value="ALL">All roles</option>
-              {roles.map((role) => (
-                <option key={role.id} value={role.code || role.name}>
-                  {role.name}
-                </option>
-              ))}
-            </select>
+            <Select value={selectedRoleFilter || 'ALL'} onValueChange={(val) => setSelectedRoleFilter(val || 'ALL')}>
+              <SelectTrigger className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs w-auto">
+                <SelectValue placeholder="All roles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All roles</SelectItem>
+                {roles.map((role) => (
+                  <SelectItem key={role.id} value={role.code || role.name}>
+                    {role.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-            <select
-              value={selectedStatusFilter}
-              onChange={(e) => setSelectedStatusFilter(e.target.value)}
-              className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
+            <Select
+              value={selectedStatusFilter || 'ALL'}
+              onValueChange={(val) => setSelectedStatusFilter(val || 'ALL')}
             >
-              <option value="ALL">All statuses</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-            </select>
+              <SelectTrigger className="h-9 rounded-xl border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs w-auto">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All statuses</SelectItem>
+                <SelectItem value="ACTIVE">Active</SelectItem>
+                <SelectItem value="INACTIVE">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         }
       />
@@ -578,35 +593,41 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
 
               {/* Manager Dropdown */}
               <div>
-                <label
+                <Label
                   htmlFor="reporting-manager-select"
                   className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5"
                 >
                   Select Reporting Manager
-                </label>
-                <select
-                  id="reporting-manager-select"
-                  value={selectedManagerId}
-                  onChange={(e) => setSelectedManagerId(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 py-2.5 px-3 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20 font-medium shadow-2xs"
+                </Label>
+                <Select
+                  value={selectedManagerId || 'unassigned'}
+                  onValueChange={(val) => setSelectedManagerId(val === 'unassigned' ? '' : val || '')}
                 >
-                  <option value="">Unassigned (No Manager)</option>
-                  {getAvailableManagers(selectedUserForManager).map((m) => {
-                    const fName = m.profile?.firstName || m.profile?.first_name || ''
-                    const lName = m.profile?.lastName || m.profile?.last_name || ''
-                    const fullName = `${fName} ${lName}`.trim() || m.username || 'System User'
-                    const empCodeStr =
-                      m.profile?.employeeCode || m.profile?.employee_code
-                        ? ` (Code: ${m.profile?.employeeCode || m.profile?.employee_code})`
-                        : ''
-                    return (
-                      <option key={m.id} value={m.id}>
-                        {fullName}
-                        {empCodeStr}
-                      </option>
-                    )
-                  })}
-                </select>
+                  <SelectTrigger
+                    id="reporting-manager-select"
+                    className="w-full h-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 py-2.5 px-3 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20 font-medium shadow-2xs"
+                  >
+                    <SelectValue placeholder="Unassigned (No Manager)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Unassigned (No Manager)</SelectItem>
+                    {getAvailableManagers(selectedUserForManager).map((m) => {
+                      const fName = m.profile?.firstName || m.profile?.first_name || ''
+                      const lName = m.profile?.lastName || m.profile?.last_name || ''
+                      const fullName = `${fName} ${lName}`.trim() || m.username || 'System User'
+                      const empCodeStr =
+                        m.profile?.employeeCode || m.profile?.employee_code
+                          ? ` (Code: ${m.profile?.employeeCode || m.profile?.employee_code})`
+                          : ''
+                      return (
+                        <SelectItem key={m.id} value={m.id}>
+                          {fullName}
+                          {empCodeStr}
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

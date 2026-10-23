@@ -4,16 +4,15 @@ import { Controller, useFieldArray, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format, startOfDay } from 'date-fns'
-import { BarChart3, CalendarIcon, ClipboardList, Info, Lock, Plus, Save, Send } from 'lucide-react'
+import { BarChart3, ClipboardList, Info, Lock, Plus, Save, Send } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/common/PageHeader'
 import PageLoader from '@/components/shared/PageLoader'
 import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
 import { Card, CardContent } from '@/components/ui/card'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useCreateFeedbackForm, useFeedbackForm, useUpdateFeedbackForm } from '@/hooks/react-query/feedback'
 import type { FeedbackForm, SaveFeedbackFormRequest } from '@/lib/types/feedback'
 import FormPreview from './components/FormPreview'
@@ -284,20 +283,13 @@ const FormBuilder = () => {
                 control={control}
                 name="expiryDate"
                 render={({ field }) => (
-                  <Popover>
-                    <PopoverTrigger render={<Button variant="outline" className="w-full justify-start font-normal" />}>
-                      <CalendarIcon className="h-4 w-4 mr-2" />
-                      {field.value ? format(field.value, 'dd MMM yyyy') : 'Pick a date'}
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={{ before: startOfDay(new Date()) }}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <DatePicker
+                    value={field.value}
+                    onSelectDate={field.onChange}
+                    minDate={startOfDay(new Date())}
+                    clearable={false}
+                    className="w-full justify-start font-normal"
+                  />
                 )}
               />
               {errors.expiryDate ? (

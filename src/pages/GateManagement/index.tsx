@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback } from 'react'
+import { format, isValid } from 'date-fns'
 import {
   Users,
   CheckCircle2,
@@ -16,6 +17,21 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Card } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { useLocationContext } from '@/hooks/useLocation'
 import {
   getGateStats,
@@ -36,7 +52,7 @@ interface StatCardProps {
 }
 
 const StatCard = ({ title, value, icon: Icon, colorClass }: StatCardProps) => (
-  <div className={`p-6 rounded-2xl border bg-white shadow-sm flex items-center gap-4 ${colorClass}`}>
+  <Card className={`p-6 gap-0 rounded-2xl border bg-white shadow-sm flex flex-row items-center gap-4 ${colorClass}`}>
     <div
       className={`p-4 rounded-xl flex-shrink-0 ${colorClass.replace('border-', 'bg-').replace('300', '100')} text-current`}
     >
@@ -46,7 +62,7 @@ const StatCard = ({ title, value, icon: Icon, colorClass }: StatCardProps) => (
       <p className="text-sm font-semibold text-gray-500">{title}</p>
       <p className="text-2xl font-bold text-gray-900">{value ?? 0}</p>
     </div>
-  </div>
+  </Card>
 )
 
 const staffUserName = (u?: GateStaffUser | null) =>
@@ -56,6 +72,20 @@ const APPROVER_BADGES: Record<string, { label: string; cls: string }> = {
   RESIDENT: { label: 'Resident', cls: 'bg-violet-50 text-violet-700 border-violet-200' },
   FAMILY_MEMBER: { label: 'Family member', cls: 'bg-violet-50 text-violet-700 border-violet-200' },
   STAFF: { label: 'Staff', cls: 'bg-sky-50 text-sky-700 border-sky-200' },
+}
+
+const formatDateTime = (dateStr?: string | Date | null) => {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (!isValid(d)) return ''
+  return format(d, 'dd/MM/yyyy, h:mm:ss a')
+}
+
+const formatDate = (dateStr?: string | Date | null) => {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (!isValid(d)) return ''
+  return format(d, 'dd/MM/yyyy')
 }
 
 /** Who approved (or rejected) the entry, what kind of person they are, and when. */
@@ -83,7 +113,7 @@ const ApprovedByCell = ({ entry }: { entry: GateEntry }) => {
         {entry.status === 'Rejected' && <span className="text-[10px] font-bold text-red-600">Rejected</span>}
       </div>
       {entry.approvedAt && (
-        <p className="text-[11px] text-gray-500 whitespace-nowrap">{new Date(entry.approvedAt).toLocaleString()}</p>
+        <p className="text-[11px] text-gray-500 whitespace-nowrap">{formatDateTime(entry.approvedAt)}</p>
       )}
     </div>
   )
@@ -113,7 +143,7 @@ const RaisedByCell = ({ entry }: { entry: GateEntry }) => {
       {entry.createdAt && (
         <p className="text-[11px] text-gray-500 whitespace-nowrap">
           {/* A pre-approval was raised when the resident made the pass, not when the visitor arrived. */}
-          {new Date(entry.preapproved?.createdAt || entry.createdAt).toLocaleString()}
+          {formatDateTime(entry.preapproved?.createdAt || entry.createdAt)}
         </p>
       )}
     </div>
@@ -278,7 +308,7 @@ export default function GateManagementPage() {
       />
 
       {/* Top Search & Filter Container Bar (Matching Image 1) */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 p-3.5 rounded-2xl shadow-2xs">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 p-3.5 rounded-2xl shadow-2xs">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
           <Input
@@ -290,50 +320,58 @@ export default function GateManagementPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <select
-            value={visitorTypeFilter}
-            onChange={(e) => {
-              setVisitorTypeFilter(e.target.value)
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+          <Select
+            value={visitorTypeFilter || 'ALL'}
+            onValueChange={(val) => {
+              setVisitorTypeFilter(val === 'ALL' ? '' : val)
               setEntriesPage(1)
               setPreapprovedPage(1)
             }}
-            className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
           >
-            <option value="">Visitor Type: All Types</option>
-            <option value="Guest">Visitor Type: Guest</option>
-            <option value="Delivery">Visitor Type: Delivery</option>
-            <option value="Cab">Visitor Type: Cab</option>
-            <option value="Office">Visitor Type: Office</option>
-            <option value="Other">Visitor Type: Other</option>
-          </select>
+            <SelectTrigger className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 shadow-2xs w-auto min-w-[170px] shrink-0">
+              <SelectValue placeholder="Visitor Type: All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Visitor Type: All Types</SelectItem>
+              <SelectItem value="Guest">Visitor Type: Guest</SelectItem>
+              <SelectItem value="Delivery">Visitor Type: Delivery</SelectItem>
+              <SelectItem value="Cab">Visitor Type: Cab</SelectItem>
+              <SelectItem value="Office">Visitor Type: Office</SelectItem>
+              <SelectItem value="Other">Visitor Type: Other</SelectItem>
+            </SelectContent>
+          </Select>
 
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value)
+          <Select
+            value={statusFilter || 'ALL'}
+            onValueChange={(val) => {
+              setStatusFilter(val === 'ALL' ? '' : val)
               setEntriesPage(1)
               setPreapprovedPage(1)
             }}
-            className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
           >
-            <option value="">Status: All Statuses</option>
-            <option value="Inside">Status: Inside</option>
-            <option value="Completed">Status: Completed</option>
-            <option value="PendingApproval">Status: Walk-ins (Pending)</option>
-            <option value="Rejected">Status: Rejected</option>
-            <option value="Expired">Status: Expired</option>
-          </select>
+            <SelectTrigger className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 shadow-2xs w-auto min-w-[160px] shrink-0">
+              <SelectValue placeholder="Status: All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Status: All Statuses</SelectItem>
+              <SelectItem value="Inside">Status: Inside</SelectItem>
+              <SelectItem value="Completed">Status: Completed</SelectItem>
+              <SelectItem value="PendingApproval">Status: Walk-ins (Pending)</SelectItem>
+              <SelectItem value="Rejected">Status: Rejected</SelectItem>
+              <SelectItem value="Expired">Status: Expired</SelectItem>
+            </SelectContent>
+          </Select>
 
-          <input
-            type="date"
+          <DatePicker
             value={dateFilter}
-            onChange={(e) => {
-              setDateFilter(e.target.value)
+            onChange={(val) => {
+              setDateFilter(val)
               setEntriesPage(1)
               setPreapprovedPage(1)
             }}
-            className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 cursor-pointer shadow-2xs"
+            placeholder="Filter by date"
+            className="h-9 w-[160px] px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200 shadow-2xs shrink-0"
           />
         </div>
       </div>
@@ -367,60 +405,60 @@ export default function GateManagementPage() {
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-        <div className="grid grid-cols-2 border-b border-gray-200 text-center font-bold text-xs">
-          <button
-            type="button"
-            onClick={() => setActiveTab('ENTRIES')}
-            className={`py-3.5 transition-colors cursor-pointer border-b-2 font-bold ${
-              activeTab === 'ENTRIES'
-                ? 'bg-[#005390] text-white border-[#005390]'
-                : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-transparent'
-            }`}
+        <div className="p-3 border-b border-gray-100 bg-gray-50/50">
+          <Tabs
+            value={activeTab}
+            onValueChange={(val) => setActiveTab(val as 'ENTRIES' | 'INVITES')}
+            className="w-full gap-0"
           >
-            Entry Logs
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('INVITES')}
-            className={`py-3.5 transition-colors cursor-pointer border-b-2 font-bold ${
-              activeTab === 'INVITES'
-                ? 'bg-[#005390] text-white border-[#005390]'
-                : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-transparent'
-            }`}
-          >
-            Pre-Approved (by Resident)
-          </button>
+            <div className="w-full rounded-2xl bg-card text-card-foreground/70 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100/80">
+              <TabsList className="grid grid-cols-2 w-full gap-1.5 bg-transparent p-0 h-auto">
+                <TabsTrigger
+                  value="ENTRIES"
+                  className="flex h-9 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-4 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                >
+                  Entry Logs
+                </TabsTrigger>
+                <TabsTrigger
+                  value="INVITES"
+                  className="flex h-9 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-4 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                >
+                  Pre-Approved (by Resident)
+                </TabsTrigger>
+              </TabsList>
+            </div>
+          </Tabs>
         </div>
 
-        <div className="p-6 overflow-x-auto">
+        <div className="p-6 overflow-hidden">
           {isLoading ? (
             <div className="text-center py-12 text-gray-500 font-semibold">Loading data...</div>
           ) : activeTab === 'ENTRIES' ? (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200 text-xs text-gray-500 uppercase">
-                  <th className="pb-3 px-2 font-semibold">Visitor</th>
-                  <th className="pb-3 px-2 font-semibold">Details</th>
-                  <th className="pb-3 px-2 font-semibold">Type</th>
-                  <th className="pb-3 px-2 font-semibold">Source</th>
-                  <th className="pb-3 px-2 font-semibold">Status</th>
-                  <th className="pb-3 px-2 font-semibold">Raised By</th>
-                  <th className="pb-3 px-2 font-semibold">Approved By</th>
-                  <th className="pb-3 px-2 font-semibold">Time</th>
-                  <th className="pb-3 px-2 font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
+            <Table className="w-full text-left border-collapse">
+              <TableHeader>
+                <TableRow className="border-b border-gray-200 text-xs text-gray-500 uppercase">
+                  <TableHead className="pb-3 px-2 font-semibold">Visitor</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Details</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Type</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Source</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Status</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Raised By</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Approved By</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Time</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-gray-100">
                 {filteredEntries.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="py-8 text-center text-sm text-gray-500 font-medium">
+                  <TableRow>
+                    <TableCell colSpan={9} className="py-8 text-center text-sm text-gray-500 font-medium">
                       No entries found
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   filteredEntries.map((entry) => (
-                    <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="py-4 px-2">
+                    <TableRow key={entry.id} className="hover:bg-gray-50 transition-colors">
+                      <TableCell className="py-4 px-2">
                         <div className="flex items-center gap-3">
                           {entry.visitorPhotos && entry.visitorPhotos.length > 0 ? (
                             <div
@@ -457,8 +495,8 @@ export default function GateManagementPage() {
                             <p className="text-xs text-gray-500">{entry.visitorPhone || 'N/A'}</p>
                           </div>
                         </div>
-                      </td>
-                      <td className="py-4 px-2 text-xs text-gray-600 space-y-0.5">
+                      </TableCell>
+                      <TableCell className="py-4 px-2 text-xs text-gray-600 space-y-0.5">
                         {entry.unit?.unit_number && (
                           <div>
                             <span className="font-semibold text-gray-500">Flat:</span> {entry.unit.unit_number}
@@ -531,13 +569,13 @@ export default function GateManagementPage() {
                           !entry.notes &&
                           (!entry.items || (entry.items as any[]).length === 0) &&
                           !entry.preapproved?.scheduleType && <span className="text-gray-400">-</span>}
-                      </td>
-                      <td className="py-4 px-2">
+                      </TableCell>
+                      <TableCell className="py-4 px-2">
                         <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-md font-semibold">
                           {entry.visitorType}
                         </span>
-                      </td>
-                      <td className="py-4 px-2">
+                      </TableCell>
+                      <TableCell className="py-4 px-2">
                         <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
                           {entry.entrySource === 'Preapproved' ? (
                             <QrCode className="w-3.5 h-3.5" />
@@ -546,8 +584,8 @@ export default function GateManagementPage() {
                           )}
                           {entry.entrySource}
                         </div>
-                      </td>
-                      <td className="py-4 px-2">
+                      </TableCell>
+                      <TableCell className="py-4 px-2">
                         <span
                           className={`px-2 py-1 text-xs rounded-md font-bold ${
                             entry.status === 'Inside'
@@ -561,17 +599,17 @@ export default function GateManagementPage() {
                         >
                           {entry.status}
                         </span>
-                      </td>
-                      <td className="py-4 px-2 text-xs">
+                      </TableCell>
+                      <TableCell className="py-4 px-2 text-xs">
                         <RaisedByCell entry={entry} />
-                      </td>
-                      <td className="py-4 px-2 text-xs">
+                      </TableCell>
+                      <TableCell className="py-4 px-2 text-xs">
                         <ApprovedByCell entry={entry} />
-                      </td>
-                      <td className="py-4 px-2 text-xs text-gray-600 font-medium">
+                      </TableCell>
+                      <TableCell className="py-4 px-2 text-xs text-gray-600 font-medium">
                         {entry.createdAt && (
                           <div className="text-blue-600 mb-1 font-semibold whitespace-nowrap">
-                            Entry: {new Date(entry.createdAt).toLocaleString()}
+                            Entry: {formatDateTime(entry.createdAt)}
                           </div>
                         )}
                         {entry.clockedInAt ? `In: ${new Date(entry.clockedInAt).toLocaleTimeString()}` : '-'}
@@ -583,78 +621,92 @@ export default function GateManagementPage() {
                         {entry.clockedOutAt && entry.clockedOutByUser && (
                           <span className="text-gray-400"> by {staffUserName(entry.clockedOutByUser)}</span>
                         )}
-                      </td>
-                      <td className="py-4 px-2">
+                      </TableCell>
+                      <TableCell className="py-4 px-2">
                         {canUpdateGNS && entry.status === 'PendingApproval' && (
                           <div className="flex gap-2">
-                            <button
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
                               onClick={() => handleUpdateStatus(entry, 'Approved')}
-                              className="p-1.5 bg-emerald-50 text-emerald-600 rounded-md hover:bg-emerald-100"
+                              className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700"
                               title="Approve"
                             >
                               <CheckCircle2 className="w-4 h-4" />
-                            </button>
-                            <button
+                              <span className="sr-only">Approve</span>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
                               onClick={() => handleUpdateStatus(entry, 'Rejected')}
-                              className="p-1.5 bg-red-50 text-red-600 rounded-md hover:bg-red-100"
+                              className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700"
                               title="Reject"
                             >
                               <Ban className="w-4 h-4" />
-                            </button>
+                              <span className="sr-only">Reject</span>
+                            </Button>
                           </div>
                         )}
                         {canUpdateGNS && entry.status === 'Inside' && (
                           <div className="flex flex-col gap-2 items-start">
-                            <button
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
                               onClick={() => initiateForceCheckout(entry)}
-                              className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-md border border-gray-300 w-full"
+                              className="text-xs h-7 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold border-gray-300 w-full"
                             >
                               Force Checkout
-                            </button>
+                            </Button>
                             {entry.visitorType === 'Office' && (
-                              <button
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
                                 onClick={() => {
                                   setSelectedEntry(entry)
                                   setItems([{ itemName: '', quantity: 1 }])
                                   setIsItemModalOpen(true)
                                 }}
-                                className="text-xs px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold rounded-md border border-blue-200 w-full whitespace-nowrap"
+                                className="text-xs h-7 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold border-blue-200 w-full whitespace-nowrap"
                               >
                                 + Add Items
-                              </button>
+                              </Button>
                             )}
                           </div>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200 text-xs text-gray-500 uppercase">
-                  <th className="pb-3 px-2 font-semibold">Visitor</th>
-                  <th className="pb-3 px-2 font-semibold">Details</th>
-                  <th className="pb-3 px-2 font-semibold">Type</th>
-                  <th className="pb-3 px-2 font-semibold">Pre-Approved By</th>
-                  <th className="pb-3 px-2 font-semibold">Expected</th>
-                  <th className="pb-3 px-2 font-semibold">Status</th>
-                  <th className="pb-3 px-2 font-semibold">QR Code</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
+            <Table className="w-full text-left border-collapse">
+              <TableHeader>
+                <TableRow className="border-b border-gray-200 text-xs text-gray-500 uppercase">
+                  <TableHead className="pb-3 px-2 font-semibold">Visitor</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Details</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Type</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Pre-Approved By</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Expected</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Status</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">QR Code</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-gray-100">
                 {filteredPreapproved.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-sm text-gray-500 font-medium">
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-8 text-center text-sm text-gray-500 font-medium">
                       No preapproved found
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   filteredPreapproved.map((preapproved) => (
-                    <tr key={preapproved.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="py-4 px-2">
+                    <TableRow key={preapproved.id} className="hover:bg-gray-50 transition-colors">
+                      <TableCell className="py-4 px-2">
                         <div className="flex items-center gap-3">
                           {preapproved.visitorPhotos && preapproved.visitorPhotos.length > 0 ? (
                             <div
@@ -691,8 +743,8 @@ export default function GateManagementPage() {
                             <p className="text-xs text-gray-500">{preapproved.visitorPhone || 'N/A'}</p>
                           </div>
                         </div>
-                      </td>
-                      <td className="py-4 px-2 text-xs text-gray-600 space-y-0.5">
+                      </TableCell>
+                      <TableCell className="py-4 px-2 text-xs text-gray-600 space-y-0.5">
                         {preapproved.unit?.unit_number && (
                           <div>
                             <span className="font-semibold text-gray-500">Flat:</span> {preapproved.unit.unit_number}
@@ -732,28 +784,28 @@ export default function GateManagementPage() {
                           !preapproved.personToMeet &&
                           !preapproved.notes &&
                           !preapproved.scheduleType && <span className="text-gray-400">-</span>}
-                      </td>
-                      <td className="py-4 px-2 text-xs">
+                      </TableCell>
+                      <TableCell className="py-4 px-2 text-xs">
                         <PreapprovedByCell preapproved={preapproved} />
-                      </td>
-                      <td className="py-4 px-2">
+                      </TableCell>
+                      <TableCell className="py-4 px-2">
                         <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-md font-semibold border border-blue-200">
                           {preapproved.visitorType}
                         </span>
-                      </td>
-                      <td className="py-4 px-2 text-xs text-gray-600 font-medium space-y-1">
+                      </TableCell>
+                      <TableCell className="py-4 px-2 text-xs text-gray-600 font-medium space-y-1">
                         {preapproved.startDate && (
                           <div>
                             <span className="font-semibold text-gray-500">
                               {preapproved.scheduleType === 'FREQUENT' ? 'Start Date:' : 'Date:'}
                             </span>{' '}
-                            {new Date(preapproved.startDate).toLocaleDateString()}
+                            {formatDate(preapproved.startDate)}
                           </div>
                         )}
                         {preapproved.endDate && preapproved.scheduleType === 'FREQUENT' && (
                           <div>
                             <span className="font-semibold text-gray-500">End Date:</span>{' '}
-                            {new Date(preapproved.endDate).toLocaleDateString()}
+                            {formatDate(preapproved.endDate)}
                           </div>
                         )}
                         {preapproved.startTime && (
@@ -770,8 +822,8 @@ export default function GateManagementPage() {
                           !preapproved.endDate &&
                           !preapproved.startTime &&
                           !preapproved.endTime && <span className="text-gray-400">N/A</span>}
-                      </td>
-                      <td className="py-4 px-2">
+                      </TableCell>
+                      <TableCell className="py-4 px-2">
                         <span
                           className={`px-2 py-1 text-xs rounded-md font-bold ${
                             preapproved.status === 'Pending'
@@ -783,8 +835,8 @@ export default function GateManagementPage() {
                         >
                           {preapproved.status}
                         </span>
-                      </td>
-                      <td className="py-4 px-2">
+                      </TableCell>
+                      <TableCell className="py-4 px-2">
                         {preapproved.qrCodeImage ? (
                           <div
                             className="relative group inline-flex flex-col items-center gap-1 cursor-pointer"
@@ -806,12 +858,12 @@ export default function GateManagementPage() {
                         ) : (
                           <span className="text-xs font-mono font-bold text-gray-500">{preapproved.qrCode || '-'}</span>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           )}
         </div>
 
@@ -822,118 +874,157 @@ export default function GateManagementPage() {
             {activeTab === 'ENTRIES' ? entriesTotalPages : preapprovedTotalPages}
           </span>
           <div className="flex gap-2">
-            <button
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               disabled={activeTab === 'ENTRIES' ? entriesPage === 1 : preapprovedPage === 1}
               onClick={() =>
                 activeTab === 'ENTRIES'
                   ? setEntriesPage((p) => Math.max(1, p - 1))
                   : setPreapprovedPage((p) => Math.max(1, p - 1))
               }
-              className="px-3 py-1.5 border border-gray-300 bg-white rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-50 font-semibold"
+              className="border-gray-300 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 font-semibold"
             >
               Previous
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               disabled={
                 activeTab === 'ENTRIES' ? entriesPage >= entriesTotalPages : preapprovedPage >= preapprovedTotalPages
               }
               onClick={() =>
                 activeTab === 'ENTRIES' ? setEntriesPage((p) => p + 1) : setPreapprovedPage((p) => p + 1)
               }
-              className="px-3 py-1.5 border border-gray-300 bg-white rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-50 font-semibold"
+              className="border-gray-300 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 font-semibold"
             >
               Next
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Photo Viewer Modal */}
-      {photoViewerData && photoViewerData.photos.length > 0 && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="relative bg-white/10 rounded-2xl shadow-2xl overflow-hidden max-w-2xl w-full p-2 flex items-center justify-center min-h-[300px]">
-            <button
-              onClick={() => setPhotoViewerData(null)}
-              className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/40 rounded-full text-white shadow-lg backdrop-blur-md transition-colors z-10"
-            >
-              <X className="w-5 h-5" />
-            </button>
+      <Dialog
+        open={Boolean(photoViewerData && photoViewerData.photos.length > 0)}
+        onOpenChange={(open) => {
+          if (!open) setPhotoViewerData(null)
+        }}
+      >
+        {photoViewerData && photoViewerData.photos.length > 0 && (
+          <DialogContent className="sm:max-w-3xl p-4 gap-3">
+            <DialogHeader className="pr-8">
+              <DialogTitle className="text-base font-semibold">
+                Visitor Photo{' '}
+                {photoViewerData.photos.length > 1
+                  ? `(${photoViewerData.currentIndex + 1} of ${photoViewerData.photos.length})`
+                  : ''}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Gate entry capture preview
+              </DialogDescription>
+            </DialogHeader>
 
-            {photoViewerData.photos.length > 1 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setPhotoViewerData((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          currentIndex: prev.currentIndex === 0 ? prev.photos.length - 1 : prev.currentIndex - 1,
-                        }
-                      : null,
-                  )
-                }}
-                className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 hover:bg-white/40 rounded-full text-white shadow-lg backdrop-blur-md transition-colors z-10"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-            )}
+            <div className="relative flex items-center justify-center min-h-[300px] max-h-[70vh] bg-muted/30 rounded-xl overflow-hidden p-2 border">
+              {photoViewerData.photos.length > 1 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setPhotoViewerData((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            currentIndex: prev.currentIndex === 0 ? prev.photos.length - 1 : prev.currentIndex - 1,
+                          }
+                        : null,
+                    )
+                  }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full shadow-md bg-background/90 backdrop-blur-sm hover:bg-background z-10"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                  <span className="sr-only">Previous photo</span>
+                </Button>
+              )}
 
-            <img
-              src={photoViewerData.photos[photoViewerData.currentIndex]}
-              alt={`Visitor capture ${photoViewerData.currentIndex + 1}`}
-              className="w-full h-auto max-h-[80vh] object-contain rounded-xl"
-            />
+              <img
+                src={photoViewerData.photos[photoViewerData.currentIndex]}
+                alt={`Visitor capture ${photoViewerData.currentIndex + 1}`}
+                className="w-full h-auto max-h-[65vh] object-contain rounded-lg"
+              />
 
-            {photoViewerData.photos.length > 1 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setPhotoViewerData((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          currentIndex: prev.currentIndex === prev.photos.length - 1 ? 0 : prev.currentIndex + 1,
-                        }
-                      : null,
-                  )
-                }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 hover:bg-white/40 rounded-full text-white shadow-lg backdrop-blur-md transition-colors z-10"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
-            )}
+              {photoViewerData.photos.length > 1 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setPhotoViewerData((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            currentIndex: prev.currentIndex === prev.photos.length - 1 ? 0 : prev.currentIndex + 1,
+                          }
+                        : null,
+                    )
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full shadow-md bg-background/90 backdrop-blur-sm hover:bg-background z-10"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                  <span className="sr-only">Next photo</span>
+                </Button>
+              )}
 
-            {photoViewerData.photos.length > 1 && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-md">
-                {photoViewerData.photos.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setPhotoViewerData((prev) => (prev ? { ...prev, currentIndex: idx } : null))
-                    }}
-                    className={`w-2 h-2 rounded-full transition-all ${idx === photoViewerData.currentIndex ? 'bg-white w-4' : 'bg-white/50 hover:bg-white/80'}`}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+              {photoViewerData.photos.length > 1 && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10 bg-black/60 px-3 py-1.5 rounded-full backdrop-blur-md">
+                  {photoViewerData.photos.map((_, idx) => (
+                    <Button
+                      key={idx}
+                      type="button"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setPhotoViewerData((prev) => (prev ? { ...prev, currentIndex: idx } : null))
+                      }}
+                      className={`h-2 min-w-0 p-0 rounded-full transition-all hover:bg-transparent ${
+                        idx === photoViewerData.currentIndex ? 'bg-white w-4' : 'bg-white/50 hover:bg-white/80 w-2'
+                      }`}
+                      aria-label={`Go to photo ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
 
       {/* Item Modal for Office Walkin */}
-      {isItemModalOpen && selectedEntry && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-2">Add Items for Office Visitor</h2>
-            <p className="text-sm text-gray-500 mb-6">
-              Provide the items (e.g., Gate Pass items) this visitor is carrying.
-            </p>
+      <Dialog
+        open={Boolean(isItemModalOpen && selectedEntry)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsItemModalOpen(false)
+            setSelectedEntry(null)
+          }
+        }}
+      >
+        {isItemModalOpen && selectedEntry && (
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add Items for Office Visitor</DialogTitle>
+              <DialogDescription>Provide the items (e.g., Gate Pass items) this visitor is carrying.</DialogDescription>
+            </DialogHeader>
 
-            <div className="space-y-3 max-h-60 overflow-y-auto mb-4 px-1">
+            <div className="space-y-3 max-h-60 overflow-y-auto px-1 py-1">
               {items.map((item, idx) => (
                 <div key={idx} className="flex gap-2 items-center">
-                  <input
+                  <Input
                     type="text"
                     placeholder="Item Name"
                     value={item.itemName}
@@ -942,9 +1033,9 @@ export default function GateManagementPage() {
                       newItems[idx].itemName = e.target.value
                       setItems(newItems)
                     }}
-                    className="flex-1 p-2 border rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="flex-1 text-sm"
                   />
-                  <input
+                  <Input
                     type="number"
                     min="1"
                     value={item.quantity}
@@ -953,118 +1044,125 @@ export default function GateManagementPage() {
                       newItems[idx].quantity = Number(e.target.value)
                       setItems(newItems)
                     }}
-                    className="w-20 p-2 border rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-20 text-sm"
                   />
-                  <button
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
                     onClick={() => setItems(items.filter((_, i) => i !== idx))}
-                    className="text-red-500 p-2 hover:bg-red-50 rounded-lg"
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
                   >
                     <X className="w-4 h-4" />
-                  </button>
+                    <span className="sr-only">Remove item</span>
+                  </Button>
                 </div>
               ))}
-              <button
+              <Button
+                type="button"
+                variant="ghost"
                 onClick={() => setItems([...items, { itemName: '', quantity: 1 }])}
-                className="text-sm text-[#005390] font-bold mt-2 flex items-center gap-1 hover:underline"
+                className="text-sm text-[#005390] font-bold p-0 h-auto hover:bg-transparent hover:underline"
               >
                 + Add Another Item
-              </button>
+              </Button>
             </div>
 
-            <div className="flex gap-3 mt-6">
-              <button
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => {
                   setIsItemModalOpen(false)
                   setSelectedEntry(null)
                 }}
-                className="flex-1 py-2.5 border border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-gray-50"
               >
                 Cancel
-              </button>
-              <button
-                onClick={handleAddItems}
-                className="flex-1 py-2.5 bg-emerald-500 text-white rounded-xl font-bold hover:bg-emerald-600 shadow-sm"
-              >
+              </Button>
+              <Button type="button" onClick={handleAddItems} className="bg-emerald-600 hover:bg-emerald-700 text-white">
                 Save Items
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
 
       {/* Verify Items Modal */}
-      {isVerifyItemModalOpen && selectedEntry && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/80">
-              <div>
-                <h3 className="font-bold text-gray-800 flex items-center gap-2">
+      <Dialog
+        open={Boolean(isVerifyItemModalOpen && selectedEntry)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsVerifyItemModalOpen(false)
+            setSelectedEntry(null)
+          }
+        }}
+      >
+        {isVerifyItemModalOpen && selectedEntry && (
+          <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+            <div className="p-4 border-b bg-muted/40">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-base font-semibold">
                   <ShieldAlert className="w-5 h-5 text-indigo-500" /> Verify Exit Items
-                </h3>
-                <p className="text-xs text-gray-500 mt-0.5">Please check off items before completing exit.</p>
-              </div>
-              <button
-                onClick={() => {
-                  setIsVerifyItemModalOpen(false)
-                  setSelectedEntry(null)
-                }}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  Please check off items before completing exit.
+                </DialogDescription>
+              </DialogHeader>
             </div>
 
-            <div className="p-4 bg-gray-50 max-h-[60vh] overflow-y-auto">
+            <div className="p-4 max-h-[60vh] overflow-y-auto bg-muted/20">
               <div className="space-y-3">
                 {(selectedEntry.items as any[]).map((item: any) => (
                   <div
                     key={item.id as string}
-                    className="flex items-center gap-3 bg-white p-3 border rounded-xl shadow-sm"
+                    className="flex items-center gap-3 bg-card p-3 border rounded-xl shadow-xs"
                   >
-                    <input
-                      type="checkbox"
-                      className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500"
+                    <Checkbox
+                      id={`verify-item-${item.id}`}
+                      className="data-checked:bg-indigo-600 data-checked:border-indigo-600 data-checked:text-white"
                       checked={checkedItems.includes(item.id as string)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
+                      onCheckedChange={(checked) => {
+                        if (checked) {
                           setCheckedItems([...checkedItems, item.id as string])
                         } else {
                           setCheckedItems(checkedItems.filter((id) => id !== item.id))
                         }
                       }}
                     />
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-gray-700">{item.itemName as string}</p>
-                      <p className="text-xs text-gray-500 font-semibold uppercase mt-0.5">
+                    <label htmlFor={`verify-item-${item.id}`} className="flex-1 cursor-pointer">
+                      <span className="block text-sm font-bold text-foreground">{item.itemName as string}</span>
+                      <span className="block text-xs text-muted-foreground font-semibold uppercase mt-0.5">
                         Quantity: {item.quantity as number}
-                      </p>
-                    </div>
+                      </span>
+                    </label>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="p-4 border-t border-gray-100 flex gap-3">
-              <button
+            <DialogFooter className="p-4 border-t m-0 rounded-none bg-background gap-2 sm:gap-2">
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => {
                   setIsVerifyItemModalOpen(false)
                   setSelectedEntry(null)
                 }}
-                className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                type="button"
                 onClick={handleVerifyAndCheckout}
                 disabled={checkedItems.length !== (selectedEntry.items as any[]).length}
-                className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:bg-gray-300 disabled:text-gray-500 shadow-sm"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
               >
                 Complete Checkout
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   )
 }

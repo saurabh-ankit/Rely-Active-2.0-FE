@@ -191,9 +191,10 @@ const EmployeesList = () => {
       accessorKey: 'name',
       header: 'Employee',
       cell: ({ row }) => (
-        <button
+        <Button
           type="button"
-          className="flex min-w-0 cursor-pointer items-center gap-3 text-left"
+          variant="ghost"
+          className="h-auto p-0 flex min-w-0 cursor-pointer items-center gap-3 text-left whitespace-normal font-normal hover:bg-transparent"
           onClick={() => openEmployee(row.original.employeeId)}
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2a517c]/10 text-xs font-bold text-[#2a517c]">
@@ -207,7 +208,7 @@ const EmployeesList = () => {
               </span>
             )}
           </span>
-        </button>
+        </Button>
       ),
     },
     {

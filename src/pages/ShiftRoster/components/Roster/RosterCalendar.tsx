@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDepartmentsQuery } from '@/hooks/react-query/rbac'
 import { useUsersQuery } from '@/hooks/react-query/user'
 import type { EmployeeShiftAssignment, ShiftEmployeeDate } from '@/lib/services/rosterService'
@@ -263,23 +264,21 @@ const RosterCalendar = () => {
               </Button>
             </div>
           )}
-          <div className="flex items-center gap-1 bg-gray-100/80 p-0.5 rounded-lg border border-gray-200/50">
-            {VIEW_MODES.map((mode) => (
-              <Button
-                key={mode}
-                size="sm"
-                variant="ghost"
-                onClick={() => setViewMode(mode)}
-                className={`h-7 px-3 text-xs font-semibold rounded-md capitalize ${
-                  viewMode === mode
-                    ? 'bg-[#2a517c] text-white hover:bg-[#1e3a5a] hover:text-white shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {mode}
-              </Button>
-            ))}
-          </div>
+          <Tabs value={viewMode} onValueChange={(val) => setViewMode(val as RosterViewMode)} className="gap-0">
+            <div className="rounded-2xl bg-card text-card-foreground/70 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100/80 inline-flex">
+              <TabsList className="inline-flex items-center gap-1 bg-transparent p-0 h-auto">
+                {VIEW_MODES.map((mode) => (
+                  <TabsTrigger
+                    key={mode}
+                    value={mode}
+                    className="flex h-7 items-center justify-center rounded-lg px-3 text-xs font-bold capitalize text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                  >
+                    {mode}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+          </Tabs>
           <RosterPermission action="create">
             <Button
               size="sm"
@@ -362,14 +361,15 @@ const RosterCalendar = () => {
                       <ul className="divide-y divide-gray-100 bg-white">
                         {group.events.map((event) => (
                           <li key={event.id}>
-                            <button
+                            <Button
                               type="button"
+                              variant="ghost"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setDetailEvent(event)
                               }}
                               title={`Open ${event.employeeName}'s roster for this day`}
-                              className={`block w-full cursor-pointer border-l-[3px] px-2 py-1.5 text-left transition-colors hover:bg-[#2a517c]/5 ${statusEdge[event.status] || statusEdge.upcoming}`}
+                              className={`h-auto p-0 rounded-none block w-full cursor-pointer border-l-[3px] px-2 py-1.5 text-left transition-colors hover:bg-[#2a517c]/5 whitespace-normal font-normal ${statusEdge[event.status] || statusEdge.upcoming}`}
                             >
                               <p className="truncate text-[13px] font-semibold leading-tight text-[#1e3a5a]">
                                 {event.employeeName}
@@ -379,7 +379,7 @@ const RosterCalendar = () => {
                                   {event.departmentName}
                                 </p>
                               )}
-                            </button>
+                            </Button>
                           </li>
                         ))}
                       </ul>

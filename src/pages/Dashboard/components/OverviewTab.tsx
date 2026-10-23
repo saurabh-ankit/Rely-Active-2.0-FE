@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts'
+import { Button } from '@/components/ui/button'
 import {
   ChartContainer,
   ChartLegend,
@@ -290,13 +291,14 @@ export function OverviewTab({
           title="Medical"
           subtitle={`${medical.doctors} doctor${medical.doctors === 1 ? '' : 's'} · ${medical.nurses} nurse${medical.nurses === 1 ? '' : 's'} & caretakers`}
           action={
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => navigate('/admin/medical')}
-              className="text-[11px] font-bold text-[#005390] hover:underline"
+              className="h-auto p-0 text-[11px] font-bold text-[#005390] hover:bg-transparent hover:underline"
             >
               View
-            </button>
+            </Button>
           }
         >
           {hasApptTrend ? (
@@ -380,25 +382,29 @@ export function OverviewTab({
           action={
             criticalResidents.totalPages > 1 ? (
               <div className="flex items-center gap-1 text-[11px] text-gray-500">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon-xs"
                   aria-label="Previous page"
                   disabled={criticalPage <= 1}
                   onClick={() => onCriticalPage(criticalPage - 1)}
-                  className="rounded-lg p-1 hover:bg-gray-100 disabled:opacity-40"
+                  className="h-6 w-6 rounded-lg p-1 hover:bg-gray-100 disabled:opacity-40"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                </button>
+                </Button>
                 {criticalPage} / {criticalResidents.totalPages}
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon-xs"
                   aria-label="Next page"
                   disabled={criticalPage >= criticalResidents.totalPages}
                   onClick={() => onCriticalPage(criticalPage + 1)}
-                  className="rounded-lg p-1 hover:bg-gray-100 disabled:opacity-40"
+                  className="h-6 w-6 rounded-lg p-1 hover:bg-gray-100 disabled:opacity-40"
                 >
                   <ChevronRight className="h-4 w-4" />
-                </button>
+                </Button>
               </div>
             ) : undefined
           }
@@ -407,10 +413,11 @@ export function OverviewTab({
             <ul className="divide-y divide-gray-100">
               {criticalResidents.items.map((r) => (
                 <li key={r.id}>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => navigate(`/admin/residents/details/${r.id}`)}
-                    className="flex w-full items-center gap-3 py-2.5 text-left hover:bg-gray-50/70"
+                    className="h-auto p-0 flex w-full items-center gap-3 py-2.5 text-left hover:bg-gray-50/70 whitespace-normal font-normal rounded-none"
                   >
                     {r.photoUrl ? (
                       <img src={r.photoUrl} alt="" className="size-9 rounded-full object-cover" />
@@ -428,7 +435,7 @@ export function OverviewTab({
                     <span className="flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">
                       <AlertTriangle className="h-3 w-3" /> Critical
                     </span>
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>

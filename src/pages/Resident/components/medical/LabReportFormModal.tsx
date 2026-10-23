@@ -120,16 +120,17 @@ const FilePickerField = ({
           )}
         </div>
       ) : (
-        <button
+        <Button
+          variant="ghost"
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={disabled}
-          className="flex h-24 w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 text-gray-500 transition-colors hover:border-[#005390] hover:text-[#005390]"
+          className="flex h-24 w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 text-gray-500 transition-colors hover:border-[#005390] hover:text-[#005390] hover:bg-gray-50 font-normal whitespace-normal"
         >
           <Upload className="h-5 w-5" />
           <span className="text-sm font-medium">Click to upload</span>
           <span className="text-xs">PDF, JPEG, PNG or WebP, up to 10 MB</span>
-        </button>
+        </Button>
       )}
       <input
         id={id}

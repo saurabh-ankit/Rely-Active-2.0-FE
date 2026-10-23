@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Mail, MapPin, Phone, UserRound, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 /** Table building blocks shared by the global and property inventory lists. */
 
@@ -139,22 +140,23 @@ export function RowActionButtons({ actions }: { actions: RowAction[] }) {
   return (
     <div className="flex flex-wrap items-center justify-end gap-1.5">
       {actions.map((a) => (
-        <button
+        <Button
           key={a.label}
           type="button"
+          variant="outline"
           disabled={a.disabled}
           onClick={a.onClick}
           title={a.label}
           className={cn(
             'inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
             a.tone === 'danger'
-              ? 'border-red-200 bg-white text-red-600 hover:bg-red-50'
+              ? 'border-red-200 bg-white text-red-600 hover:bg-red-50 hover:text-red-600'
               : 'border-gray-200 bg-white text-gray-700 hover:border-[#005390]/40 hover:bg-[#005390]/5 hover:text-[#005390]',
           )}
         >
           <a.icon className="size-3.5" />
           {a.label}
-        </button>
+        </Button>
       ))}
     </div>
   )

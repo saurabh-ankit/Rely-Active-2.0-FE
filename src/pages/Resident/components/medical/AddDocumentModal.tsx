@@ -135,15 +135,16 @@ const AddDocumentModal = ({ open, onOpenChange, residentId }: AddDocumentModalPr
                 </Button>
               </div>
             ) : (
-              <button
+              <Button
+                variant="ghost"
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex h-36 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 text-gray-500 transition-colors hover:border-[#005390] hover:text-[#005390]"
+                className="flex h-36 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 text-gray-500 transition-colors hover:border-[#005390] hover:text-[#005390] hover:bg-gray-50 font-normal whitespace-normal"
               >
                 <Upload className="h-7 w-7" />
                 <span className="text-sm font-medium">Click to upload a file</span>
                 <span className="text-xs">PDF, JPEG, PNG, WebP, DOC or DOCX, up to 10 MB</span>
-              </button>
+              </Button>
             )}
             <input
               ref={fileInputRef}

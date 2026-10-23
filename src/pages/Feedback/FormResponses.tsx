@@ -215,11 +215,12 @@ const FormResponses = () => {
                 <Card>
                   <CardContent className="divide-y p-0">
                     {responses.map((r) => (
-                      <button
+                      <Button
                         key={r.recipientId}
                         type="button"
+                        variant="ghost"
                         onClick={() => setViewing(r)}
-                        className="flex w-full cursor-pointer items-center justify-between gap-4 px-4 py-3 text-left hover:bg-gray-50"
+                        className="h-auto p-0 flex w-full cursor-pointer items-center justify-between gap-4 px-4 py-3 text-left hover:bg-gray-50 whitespace-normal font-normal rounded-none"
                       >
                         <div className="min-w-0">
                           <p className="font-medium text-gray-900 truncate">{r.respondentName}</p>
@@ -228,7 +229,7 @@ const FormResponses = () => {
                           </p>
                         </div>
                         <Badge variant="outline">{r.recipientType === 'RESIDENT' ? 'Resident' : 'Employee'}</Badge>
-                      </button>
+                      </Button>
                     ))}
                   </CardContent>
                 </Card>

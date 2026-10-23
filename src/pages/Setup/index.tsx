@@ -1,18 +1,25 @@
+import { Label } from '@/components/ui/label'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AlertCircle, Building2, Plus, Trash2, Upload, X } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { CustomFieldItem } from '@/pages/Company/components/EditCompanyModal'
 import { TEXT_LIBRARY } from '@/lib/constants/textLibrary'
-import { getCompaniesAPI, saveCompanyFormDataAPI } from '@/lib/services/companyService'
+import { saveCompanyFormDataAPI } from '@/lib/services/companyService'
+import { useCompaniesQuery, COMPANY_KEYS } from '@/hooks/react-query/company'
 import { companySchema, type CompanyFormValues } from '@/pages/Company'
+import { FullScreenLoader } from '@/components/ui/FullScreenLoader'
 
 export default function SetupPage() {
   const navigate = useNavigate()
-  const [isChecking, setIsChecking] = useState(true)
+  const queryClient = useQueryClient()
+  const { data: companies, isLoading: isChecking } = useCompaniesQuery()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -44,26 +51,10 @@ export default function SetupPage() {
   })
 
   useEffect(() => {
-    let isMounted = true
-
-    getCompaniesAPI()
-      .then((companies) => {
-        if (!isMounted) return
-        if (companies.length > 0) {
-          navigate('/dashboard', { replace: true })
-        }
-      })
-      .catch((err) => {
-        console.warn('Initial setup check note:', err?.message || err)
-      })
-      .finally(() => {
-        if (isMounted) setIsChecking(false)
-      })
-
-    return () => {
-      isMounted = false
+    if (Array.isArray(companies) && companies.length > 0) {
+      navigate('/dashboard', { replace: true })
     }
-  }, [navigate])
+  }, [companies, navigate])
 
   const onSubmit = async (values: CompanyFormValues) => {
     setErrorMessage(null)
@@ -100,6 +91,7 @@ export default function SetupPage() {
       formData.append('customFields', JSON.stringify(customFields))
 
       await saveCompanyFormDataAPI(formData)
+      await queryClient.invalidateQueries({ queryKey: COMPANY_KEYS.all })
 
       navigate('/dashboard', { replace: true })
     } catch (error) {
@@ -150,14 +142,7 @@ export default function SetupPage() {
   }
 
   if (isChecking) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Checking setup status...</p>
-        </div>
-      </div>
-    )
+    return <FullScreenLoader message="Checking setup status..." />
   }
 
   return (
@@ -170,305 +155,322 @@ export default function SetupPage() {
         </div>
 
         {/* Form Container Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-2xl mx-auto border border-white/60">
+        <Card className="gap-0 bg-white rounded-2xl shadow-xl p-8 max-w-2xl mx-auto border-white/60">
           {/* Header inside Form Card */}
-          <div className="text-center mb-8">
+          <CardHeader className="p-0 text-center mb-8">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Building2 className="w-8 h-8 text-blue-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">{TEXT_LIBRARY.COMPANY.CREATE_TITLE}</h2>
-            <p className="text-gray-600 text-sm">{TEXT_LIBRARY.COMPANY.CREATE_SUBTITLE}</p>
-          </div>
+            <CardTitle className="text-2xl font-bold text-gray-900 mb-2">{TEXT_LIBRARY.COMPANY.CREATE_TITLE}</CardTitle>
+            <CardDescription className="text-gray-600 text-sm">{TEXT_LIBRARY.COMPANY.CREATE_SUBTITLE}</CardDescription>
+          </CardHeader>
 
-          {/* Validation Error Alert Banner */}
-          {errorMessage && (
-            <div className="mb-6 flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-              <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
-            {/* Company Name */}
-            <Input
-              label={TEXT_LIBRARY.COMPANY.COMPANY_NAME}
-              required
-              {...register('company_name')}
-              error={errors.company_name?.message}
-              placeholder="Enter your company name"
-            />
-
-            {/* Email Address & Contact Number */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label={TEXT_LIBRARY.COMPANY.EMAIL}
-                required
-                type="email"
-                {...register('email_id')}
-                error={errors.email_id?.message}
-                placeholder="company@example.com"
-              />
-
-              <Input
-                label={TEXT_LIBRARY.COMPANY.CONTACT_NUMBER}
-                required
-                maxLength={10}
-                {...register('contact_number')}
-                error={errors.contact_number?.message}
-                placeholder="10 digit mobile number"
-              />
-            </div>
-
-            {/* GST Number & Alternate Contact */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label={TEXT_LIBRARY.COMPANY.GST_NUMBER}
-                {...register('company_gst_number')}
-                error={errors.company_gst_number?.message}
-                placeholder="Enter GST number"
-              />
-
-              <Input
-                label={TEXT_LIBRARY.COMPANY.ALT_CONTACT_NUMBER}
-                maxLength={10}
-                {...register('alternate_contact_number')}
-                error={errors.alternate_contact_number?.message}
-                placeholder="10 digit mobile number"
-              />
-            </div>
-
-            {/* Head Office Address */}
-            <Input
-              label={TEXT_LIBRARY.COMPANY.HEAD_OFFICE_ADDRESS}
-              required
-              type="textarea"
-              rows={3}
-              {...register('company_head_office_address')}
-              error={errors.company_head_office_address?.message}
-              placeholder="Enter complete address"
-            />
-
-            {/* Document Upload */}
-            <div>
-              <span className="block text-sm font-medium text-gray-700 mb-1">{TEXT_LIBRARY.COMPANY.DOCUMENT_FILE}</span>
-              <div className="mt-1">
-                {!documentFile ? (
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 mb-2">Upload company registration or other documents</p>
-                    <input
-                      type="file"
-                      id="document"
-                      onChange={(e) => setDocumentFile(e.target.files?.[0] || null)}
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                      className="hidden"
-                    />
-                    <label
-                      htmlFor="document"
-                      className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
-                    >
-                      Choose File
-                    </label>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
-                    <div className="flex items-center">
-                      <Building2 className="w-5 h-5 text-gray-400 mr-2" />
-                      <span className="text-sm text-gray-700">{documentFile.name}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setDocumentFile(null)}
-                      className="text-gray-400 hover:text-gray-600"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
+          <CardContent className="p-0">
+            {/* Validation Error Alert Banner */}
+            {errorMessage && (
+              <div className="mb-6 flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
+                <span>{errorMessage}</span>
               </div>
-            </div>
+            )}
 
-            {/* Document Description */}
-            <Input
-              label={TEXT_LIBRARY.COMPANY.DOCUMENT_DESC}
-              type="textarea"
-              rows={2}
-              {...register('document_description')}
-              error={errors.document_description?.message}
-              placeholder="Describe the uploaded document"
-            />
+            <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
+              {/* Company Name */}
+              <Input
+                label={TEXT_LIBRARY.COMPANY.COMPANY_NAME}
+                required
+                {...register('company_name')}
+                error={errors.company_name?.message}
+                placeholder="Enter your company name"
+              />
 
-            {/* Bank Details */}
-            <div className="space-y-4 pt-6 border-t border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-900">{TEXT_LIBRARY.COMPANY.BANK_DETAILS}</h3>
+              {/* Email Address & Contact Number */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
-                  label={TEXT_LIBRARY.COMPANY.BANK_NAME}
-                  {...register('bank_name')}
-                  error={errors.bank_name?.message}
-                  placeholder="Enter bank name"
+                  label={TEXT_LIBRARY.COMPANY.EMAIL}
+                  required
+                  type="email"
+                  {...register('email_id')}
+                  error={errors.email_id?.message}
+                  placeholder="company@example.com"
                 />
+
                 <Input
-                  label={TEXT_LIBRARY.COMPANY.BRANCH_NAME}
-                  {...register('branch_name')}
-                  error={errors.branch_name?.message}
-                  placeholder="Enter branch name"
+                  label={TEXT_LIBRARY.COMPANY.CONTACT_NUMBER}
+                  required
+                  maxLength={10}
+                  {...register('contact_number')}
+                  error={errors.contact_number?.message}
+                  placeholder="10 digit mobile number"
                 />
               </div>
 
+              {/* GST Number & Alternate Contact */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
-                  label={TEXT_LIBRARY.COMPANY.ACCOUNT_NO}
-                  {...register('account_no')}
-                  error={errors.account_no?.message}
-                  placeholder="Enter account number"
+                  label={TEXT_LIBRARY.COMPANY.GST_NUMBER}
+                  {...register('company_gst_number')}
+                  error={errors.company_gst_number?.message}
+                  placeholder="Enter GST number"
                 />
+
                 <Input
-                  label={TEXT_LIBRARY.COMPANY.IFSC_CODE}
-                  {...register('ifsc_code')}
-                  error={errors.ifsc_code?.message}
-                  placeholder="Enter IFSC code"
+                  label={TEXT_LIBRARY.COMPANY.ALT_CONTACT_NUMBER}
+                  maxLength={10}
+                  {...register('alternate_contact_number')}
+                  error={errors.alternate_contact_number?.message}
+                  placeholder="10 digit mobile number"
                 />
               </div>
-            </div>
 
-            {/* Accountant Details */}
-            <div className="space-y-4 pt-6 border-t border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-900">{TEXT_LIBRARY.COMPANY.FILES_ACCOUNTANT}</h3>
+              {/* Head Office Address */}
               <Input
-                label={TEXT_LIBRARY.COMPANY.ACCOUNTANT_NAME}
-                {...register('accountant_name')}
-                error={errors.accountant_name?.message}
-                placeholder="Enter accountant name"
+                label={TEXT_LIBRARY.COMPANY.HEAD_OFFICE_ADDRESS}
+                required
+                type="textarea"
+                rows={3}
+                {...register('company_head_office_address')}
+                error={errors.company_head_office_address?.message}
+                placeholder="Enter complete address"
               />
 
+              {/* Document Upload */}
               <div>
                 <span className="block text-sm font-medium text-gray-700 mb-1">
-                  {TEXT_LIBRARY.COMPANY.ACCOUNTANT_SIGNATURE}
+                  {TEXT_LIBRARY.COMPANY.DOCUMENT_FILE}
                 </span>
-                <div className="mt-1 space-y-3">
-                  <input
-                    type="file"
-                    id="accountant_signature"
-                    onChange={(e) => setSignatureFile(e.target.files?.[0] || null)}
-                    accept=".jpg,.jpeg,.png"
-                    className="hidden"
-                  />
-
-                  {signatureFile ? (
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={URL.createObjectURL(signatureFile)}
-                          alt="Preview"
-                          className="w-16 h-16 object-contain rounded-lg border border-gray-200"
-                        />
-                        <span className="text-sm text-gray-700">{signatureFile.name}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setSignatureFile(null)}
-                        className="text-red-600 hover:text-red-700"
+                <div className="mt-1">
+                  {!documentFile ? (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                      <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-600 mb-2">Upload company registration or other documents</p>
+                      <input
+                        type="file"
+                        id="document"
+                        onChange={(e) => setDocumentFile(e.target.files?.[0] || null)}
+                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                        className="hidden"
+                      />
+                      <Label
+                        htmlFor="document"
+                        className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
                       >
-                        <X className="w-4 h-4" />
-                      </button>
+                        Choose File
+                      </Label>
                     </div>
                   ) : (
-                    <label
-                      htmlFor="accountant_signature"
-                      className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer block"
-                    >
-                      <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600 mb-2">Upload accountant signature</p>
-                      <span className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                        Choose File
-                      </span>
-                    </label>
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                      <div className="flex items-center">
+                        <Building2 className="w-5 h-5 text-gray-400 mr-2" />
+                        <span className="text-sm text-gray-700">{documentFile.name}</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label="Remove document"
+                        onClick={() => setDocumentFile(null)}
+                        className="h-6 w-6 text-gray-400 hover:text-gray-600 p-0"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>
-            </div>
 
-            {/* Custom Fields */}
-            <div className="space-y-4 pt-6 border-t border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900">{TEXT_LIBRARY.COMPANY.CUSTOM_FIELDS}</h3>
-                  <p className="text-xs text-gray-500">Define additional fields for your company</p>
+              {/* Document Description */}
+              <Input
+                label={TEXT_LIBRARY.COMPANY.DOCUMENT_DESC}
+                type="textarea"
+                rows={2}
+                {...register('document_description')}
+                error={errors.document_description?.message}
+                placeholder="Describe the uploaded document"
+              />
+
+              {/* Bank Details */}
+              <div className="space-y-4 pt-6 border-t border-gray-200">
+                <h3 className="text-sm font-semibold text-gray-900">{TEXT_LIBRARY.COMPANY.BANK_DETAILS}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label={TEXT_LIBRARY.COMPANY.BANK_NAME}
+                    {...register('bank_name')}
+                    error={errors.bank_name?.message}
+                    placeholder="Enter bank name"
+                  />
+                  <Input
+                    label={TEXT_LIBRARY.COMPANY.BRANCH_NAME}
+                    {...register('branch_name')}
+                    error={errors.branch_name?.message}
+                    placeholder="Enter branch name"
+                  />
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon={<Plus className="h-4 w-4" />}
-                  onClick={addCustomField}
-                  label={TEXT_LIBRARY.BUTTONS.ADD_FIELD}
-                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label={TEXT_LIBRARY.COMPANY.ACCOUNT_NO}
+                    {...register('account_no')}
+                    error={errors.account_no?.message}
+                    placeholder="Enter account number"
+                  />
+                  <Input
+                    label={TEXT_LIBRARY.COMPANY.IFSC_CODE}
+                    {...register('ifsc_code')}
+                    error={errors.ifsc_code?.message}
+                    placeholder="Enter IFSC code"
+                  />
+                </div>
               </div>
 
-              {customFields.length === 0 ? (
-                <p className="text-xs text-gray-500 italic py-2">
-                  No custom fields defined. Click "Add Field" to add custom fields.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {customFields.map((field, idx) => (
-                    <div key={idx} className="flex flex-wrap items-center gap-3 rounded-lg border bg-gray-50 p-3">
-                      <input
-                        type="text"
-                        placeholder="Field Label"
-                        value={field.fieldLabel}
-                        onChange={(e) => updateCustomField(idx, 'fieldLabel', e.target.value)}
-                        className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-900 bg-white"
-                      />
+              {/* Accountant Details */}
+              <div className="space-y-4 pt-6 border-t border-gray-200">
+                <h3 className="text-sm font-semibold text-gray-900">{TEXT_LIBRARY.COMPANY.FILES_ACCOUNTANT}</h3>
+                <Input
+                  label={TEXT_LIBRARY.COMPANY.ACCOUNTANT_NAME}
+                  {...register('accountant_name')}
+                  error={errors.accountant_name?.message}
+                  placeholder="Enter accountant name"
+                />
 
-                      <select
-                        value={field.fieldType}
-                        onChange={(e) =>
-                          updateCustomField(idx, 'fieldType', e.target.value as CustomFieldItem['fieldType'])
-                        }
-                        className="rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-900 bg-white"
+                <div>
+                  <span className="block text-sm font-medium text-gray-700 mb-1">
+                    {TEXT_LIBRARY.COMPANY.ACCOUNTANT_SIGNATURE}
+                  </span>
+                  <div className="mt-1 space-y-3">
+                    <input
+                      type="file"
+                      id="accountant_signature"
+                      onChange={(e) => setSignatureFile(e.target.files?.[0] || null)}
+                      accept=".jpg,.jpeg,.png"
+                      className="hidden"
+                    />
+
+                    {signatureFile ? (
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={URL.createObjectURL(signatureFile)}
+                            alt="Preview"
+                            className="w-16 h-16 object-contain rounded-lg border border-gray-200"
+                          />
+                          <span className="text-sm text-gray-700">{signatureFile.name}</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-xs"
+                          aria-label="Remove signature"
+                          onClick={() => setSignatureFile(null)}
+                          className="h-6 w-6 text-red-600 hover:text-red-700 p-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Label
+                        htmlFor="accountant_signature"
+                        className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer block"
                       >
-                        <option value="text">Text</option>
-                        <option value="number">Number</option>
-                        <option value="date">Date</option>
-                        <option value="select">Select</option>
-                        <option value="bool">Boolean</option>
-                        <option value="document">Document</option>
-                      </select>
-
-                      <input
-                        type="text"
-                        placeholder="Field Value"
-                        value={field.fieldValue || ''}
-                        onChange={(e) => updateCustomField(idx, 'fieldValue', e.target.value)}
-                        className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-900 bg-white"
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() => removeCustomField(idx)}
-                        className="p-1.5 text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
+                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600 mb-2">Upload accountant signature</p>
+                        <span className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                          Choose File
+                        </span>
+                      </Label>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
 
-            {/* Action Submit Button */}
-            <div className="pt-6 border-t border-gray-200">
-              <Button
-                type="submit"
-                variant="primary"
-                isLoading={isSubmitting}
-                className="w-full py-3 text-sm"
-                label={isSubmitting ? 'Creating Company...' : TEXT_LIBRARY.BUTTONS.CREATE_COMPANY}
-              />
-            </div>
-          </form>
-        </div>
+              {/* Custom Fields */}
+              <div className="space-y-4 pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">{TEXT_LIBRARY.COMPANY.CUSTOM_FIELDS}</h3>
+                    <p className="text-xs text-gray-500">Define additional fields for your company</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={<Plus className="h-4 w-4" />}
+                    onClick={addCustomField}
+                    label={TEXT_LIBRARY.BUTTONS.ADD_FIELD}
+                  />
+                </div>
+
+                {customFields.length === 0 ? (
+                  <p className="text-xs text-gray-500 italic py-2">
+                    No custom fields defined. Click "Add Field" to add custom fields.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {customFields.map((field, idx) => (
+                      <div key={idx} className="flex flex-wrap items-center gap-3 rounded-lg border bg-gray-50 p-3">
+                        <Input
+                          type="text"
+                          placeholder="Field Label"
+                          value={field.fieldLabel}
+                          onChange={(e) => updateCustomField(idx, 'fieldLabel', e.target.value)}
+                          className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-900 bg-white"
+                        />
+
+                        <Select
+                          value={field.fieldType}
+                          onValueChange={(val) =>
+                            updateCustomField(idx, 'fieldType', val as CustomFieldItem['fieldType'])
+                          }
+                        >
+                          <SelectTrigger className="w-[120px] rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-900 bg-white">
+                            <SelectValue placeholder="Type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="text">Text</SelectItem>
+                            <SelectItem value="number">Number</SelectItem>
+                            <SelectItem value="date">Date</SelectItem>
+                            <SelectItem value="select">Select</SelectItem>
+                            <SelectItem value="bool">Boolean</SelectItem>
+                            <SelectItem value="document">Document</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        <Input
+                          type="text"
+                          placeholder="Field Value"
+                          value={field.fieldValue || ''}
+                          onChange={(e) => updateCustomField(idx, 'fieldValue', e.target.value)}
+                          className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-900 bg-white"
+                        />
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-xs"
+                          aria-label="Remove custom field"
+                          onClick={() => removeCustomField(idx)}
+                          className="h-7 w-7 p-1.5 text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Submit Button */}
+              <div className="pt-6 border-t border-gray-200">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  isLoading={isSubmitting}
+                  className="w-full py-3 text-sm"
+                  label={isSubmitting ? 'Creating Company...' : TEXT_LIBRARY.BUTTONS.CREATE_COMPANY}
+                />
+              </div>
+            </form>
+          </CardContent>
+        </Card>
 
         {/* Help Text Footer */}
         <div className="text-center mt-6 text-sm text-gray-500">

@@ -1,10 +1,13 @@
+import { Input } from '@/components/ui/input'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Building2, Edit, Eye, Layers, MapPin, Plus, Search, Trash2 } from 'lucide-react'
+import { Building2, Edit, Eye, Layers, Loader2, MapPin, Plus, Search, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PROPERTY_TYPE_LABELS, type EntityInput, type Property } from './types'
 import { ENTITY_PRESETS, levelLabel } from './components/structure/entityPresets'
 import { deletePropertyAPI, getPropertiesAPI } from '@/lib/services/propertyService'
+import { refreshAccessibleLocations } from '@/hooks/useLocation'
 import { PageHeader } from '@/components/common/PageHeader'
 
 /** "tower" → "towers", "duplex" → "duplexes". */
@@ -90,6 +93,7 @@ export default function PropertyPage() {
     try {
       await deletePropertyAPI(id)
       setReloadToken((t) => t + 1)
+      await refreshAccessibleLocations()
     } catch {
       alert('Failed to delete property')
     }
@@ -107,8 +111,8 @@ export default function PropertyPage() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="flex items-center gap-3 text-[#005390]">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#005390] border-t-transparent" />
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
           <span className="text-sm font-medium">Loading properties...</span>
         </div>
       </div>
@@ -166,7 +170,7 @@ export default function PropertyPage() {
       {/* ── Search ────────────────────────────────────────────────────────── */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <input
+        <Input
           type="text"
           placeholder="Search by name or city..."
           value={search}
@@ -177,7 +181,7 @@ export default function PropertyPage() {
 
       {/* ── Empty state ─────────────────────────────────────────────────────── */}
       {filtered.length === 0 && (
-        <div className="rounded-3xl border border-dashed border-gray-300 bg-white/50 p-16 text-center">
+        <Card className="gap-0 rounded-3xl border border-dashed border-gray-300 bg-white/50 p-16 text-center">
           <Building2 className="mx-auto h-14 w-14 text-gray-300" />
           <h3 className="mt-4 text-lg font-bold text-gray-900">
             {properties.length === 0 ? 'No Properties Yet' : 'No Results Found'}
@@ -196,114 +200,126 @@ export default function PropertyPage() {
               Add Property
             </Button>
           )}
-        </div>
+        </Card>
       )}
 
       {/* ── Property cards ──────────────────────────────────────────────────── */}
       {filtered.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filtered.map((property) => (
-            <div
+            <Card
               key={property.id}
               role="button"
               tabIndex={0}
               onClick={() => navigate(`/property/${property.id}`)}
               onKeyDown={(e) => e.key === 'Enter' && navigate(`/property/${property.id}`)}
-              className="group relative rounded-3xl border border-white/50 bg-white/80 p-5 shadow-sm backdrop-blur-xl hover:shadow-lg hover:border-[#005390]/30 transition-all duration-200 cursor-pointer"
+              className="gap-0 group relative rounded-3xl border border-white/50 bg-white/80 p-5 shadow-sm backdrop-blur-xl hover:shadow-lg hover:border-[#005390]/30 transition-all duration-200 cursor-pointer"
             >
               {/* Header: name, kinds, location, actions */}
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#005390] shadow-md">
-                    <Building2 className="h-5 w-5 text-white" />
+              <CardHeader className="p-0">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#005390] shadow-md">
+                      <Building2 className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <CardTitle className="truncate text-sm font-bold leading-tight text-gray-900">
+                        {property.property_name}
+                      </CardTitle>
+                      <CardDescription className="mt-0.5 flex items-center gap-1 truncate text-xs text-gray-500">
+                        <MapPin className="h-3 w-3 shrink-0 text-[#005390]" />
+                        {[property.city, property.state].filter(Boolean).join(', ')}
+                      </CardDescription>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="truncate text-sm font-bold leading-tight text-gray-900">{property.property_name}</h3>
-                    <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-gray-500">
-                      <MapPin className="h-3 w-3 shrink-0 text-[#005390]" />
-                      {[property.city, property.state].filter(Boolean).join(', ')}
-                    </p>
+                  <div className="flex shrink-0 items-center gap-1 opacity-60 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate(`/property/${property.id}`)
+                      }}
+                      className="rounded-lg text-gray-600 transition-colors hover:bg-gray-100"
+                      title="View details"
+                      aria-label={`View ${property.property_name}`}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate(`/property/edit/${property.id}`)
+                      }}
+                      className="rounded-lg text-[#005390] transition-colors hover:bg-[#005390]/10"
+                      title="Edit property"
+                      aria-label={`Edit ${property.property_name}`}
+                    >
+                      <Edit className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={(e) => handleDelete(property.id, e)}
+                      className="rounded-lg text-red-500 transition-colors hover:bg-red-50"
+                      title="Delete property"
+                      aria-label={`Delete ${property.property_name}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-1 opacity-60 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      navigate(`/property/${property.id}`)
-                    }}
-                    className="rounded-lg p-1.5 text-gray-600 transition-colors hover:bg-gray-100"
-                    title="View details"
-                    aria-label={`View ${property.property_name}`}
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      navigate(`/property/edit/${property.id}`)
-                    }}
-                    className="rounded-lg p-1.5 text-[#005390] transition-colors hover:bg-[#005390]/10"
-                    title="Edit property"
-                    aria-label={`Edit ${property.property_name}`}
-                  >
-                    <Edit className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => handleDelete(property.id, e)}
-                    className="rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-50"
-                    title="Delete property"
-                    aria-label={`Delete ${property.property_name}`}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
 
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {(property.property_types ?? []).map((t) => (
-                  <span
-                    key={t}
-                    className="rounded-full border border-[#005390]/15 bg-[#005390]/5 px-2.5 py-0.5 text-[11px] font-semibold text-[#005390]"
-                  >
-                    {PROPERTY_TYPE_LABELS[t] ?? t}
-                  </span>
-                ))}
-              </div>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {(property.property_types ?? []).map((t) => (
+                    <span
+                      key={t}
+                      className="rounded-full border border-[#005390]/15 bg-[#005390]/5 px-2.5 py-0.5 text-[11px] font-semibold text-[#005390]"
+                    >
+                      {PROPERTY_TYPE_LABELS[t] ?? t}
+                    </span>
+                  ))}
+                </div>
+              </CardHeader>
 
               {/* Structure: one line per entity */}
-              <div className="mt-4 divide-y divide-gray-100 rounded-2xl border border-gray-100 bg-gray-50/60">
-                {(property.entities ?? []).length === 0 ? (
-                  <p className="px-3 py-2.5 text-xs text-gray-400">No structure added yet</p>
-                ) : (
-                  (property.entities ?? []).map((entity) => {
-                    const Icon = (ENTITY_PRESETS[entity.entity_type] ?? ENTITY_PRESETS.apartment).icon
-                    return (
-                      <div
-                        key={entity.id ?? entity.name}
-                        className="flex items-center justify-between gap-3 px-3 py-2.5"
-                      >
-                        <span className="flex min-w-0 items-center gap-2 text-xs font-semibold text-gray-800">
-                          <Icon className="h-3.5 w-3.5 shrink-0 text-[#005390]" />
-                          <span className="truncate">{entity.name}</span>
-                        </span>
-                        <span className="shrink-0 text-right text-[11px] text-gray-600">{entityLine(entity)}</span>
-                      </div>
-                    )
-                  })
-                )}
-              </div>
+              <CardContent className="p-0">
+                <div className="mt-4 divide-y divide-gray-100 rounded-2xl border border-gray-100 bg-gray-50/60">
+                  {(property.entities ?? []).length === 0 ? (
+                    <p className="px-3 py-2.5 text-xs text-gray-400">No structure added yet</p>
+                  ) : (
+                    (property.entities ?? []).map((entity) => {
+                      const Icon = (ENTITY_PRESETS[entity.entity_type] ?? ENTITY_PRESETS.apartment).icon
+                      return (
+                        <div
+                          key={entity.id ?? entity.name}
+                          className="flex items-center justify-between gap-3 px-3 py-2.5"
+                        >
+                          <span className="flex min-w-0 items-center gap-2 text-xs font-semibold text-gray-800">
+                            <Icon className="h-3.5 w-3.5 shrink-0 text-[#005390]" />
+                            <span className="truncate">{entity.name}</span>
+                          </span>
+                          <span className="shrink-0 text-right text-[11px] text-gray-600">{entityLine(entity)}</span>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
 
-              {/* Totals */}
-              <div className="mt-4 flex items-end justify-between">
-                <p className="text-xs text-gray-500">
-                  <span className="text-xl font-bold text-gray-900">{propertyUnits(property)}</span> units in total
-                </p>
-                {formatArea(property) && <span className="text-xs text-gray-500">{formatArea(property)}</span>}
-              </div>
-            </div>
+                {/* Totals */}
+                <div className="mt-4 flex items-end justify-between">
+                  <p className="text-xs text-gray-500">
+                    <span className="text-xl font-bold text-gray-900">{propertyUnits(property)}</span> units in total
+                  </p>
+                  {formatArea(property) && <span className="text-xs text-gray-500">{formatArea(property)}</span>}
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}

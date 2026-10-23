@@ -2,6 +2,7 @@ import React from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocationContext } from '@/hooks/useLocation'
+import { FullScreenLoader } from '@/components/ui/FullScreenLoader'
 
 import {
   getDepartmentManagerType,
@@ -31,14 +32,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const location = useLocation()
 
   if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
-        <div className="flex items-center gap-3 text-blue-600 font-semibold text-sm">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-          <span>Verifying authentication...</span>
-        </div>
-      </div>
-    )
+    return <FullScreenLoader message="Verifying authentication..." />
   }
 
   if (!isAuthenticated) {
@@ -70,14 +64,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (isLoadingPermissions) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
-        <div className="flex items-center gap-3 text-blue-600 font-semibold text-sm">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-          <span>Verifying location permissions...</span>
-        </div>
-      </div>
-    )
+    return <FullScreenLoader message="Verifying location permissions..." />
   }
 
   let isAllowed = true

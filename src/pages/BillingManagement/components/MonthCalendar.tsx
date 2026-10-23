@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { monthLabel } from './billingFormat'
@@ -61,25 +62,29 @@ export function MonthCalendar({ value, min, max, states = {}, disabled, onChange
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64 gap-2 p-2.5">
         <div className="flex items-center justify-between rounded-md bg-gray-50 px-1 py-0.5">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-xs"
             aria-label="Previous year"
             disabled={year <= minYear}
             onClick={() => setYear((y) => y - 1)}
-            className="rounded p-1 text-gray-500 hover:bg-gray-200 disabled:opacity-30"
+            className="h-7 w-7 rounded p-1 text-gray-500 hover:bg-gray-200 disabled:opacity-30"
           >
             <ChevronLeft className="h-4 w-4" />
-          </button>
+          </Button>
           <span className="text-sm font-semibold text-gray-900">{year}</span>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-xs"
             aria-label="Next year"
             disabled={year >= maxYear}
             onClick={() => setYear((y) => y + 1)}
-            className="rounded p-1 text-gray-500 hover:bg-gray-200 disabled:opacity-30"
+            className="h-7 w-7 rounded p-1 text-gray-500 hover:bg-gray-200 disabled:opacity-30"
           >
             <ChevronRight className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
         <div className="grid grid-cols-4 gap-1">
           {MONTHS.map((label, i) => {
@@ -88,15 +93,16 @@ export function MonthCalendar({ value, min, max, states = {}, disabled, onChange
             const selected = month === value
             const state = states[month]
             return (
-              <button
+              <Button
                 key={month}
                 type="button"
+                variant="ghost"
                 disabled={outOfRange}
                 onClick={() => pick(month)}
                 className={cn(
-                  'flex h-10 flex-col items-center justify-center rounded-md text-sm transition-colors',
+                  'h-10 flex flex-col items-center justify-center rounded-md text-sm transition-colors p-0',
                   selected
-                    ? 'bg-[#2b4f7e] font-semibold text-white'
+                    ? 'bg-[#2b4f7e] font-semibold text-white hover:bg-[#2b4f7e] hover:text-white'
                     : outOfRange
                       ? 'cursor-not-allowed text-gray-300'
                       : 'text-gray-700 hover:bg-gray-100',
@@ -109,7 +115,7 @@ export function MonthCalendar({ value, min, max, states = {}, disabled, onChange
                     !outOfRange && state ? (selected ? 'bg-white' : DOT[state]) : 'bg-transparent',
                   )}
                 />
-              </button>
+              </Button>
             )
           })}
         </div>
@@ -125,13 +131,14 @@ export function MonthCalendar({ value, min, max, states = {}, disabled, onChange
               <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Not billed
             </span>
           </span>
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => pick(max)}
-            className="text-xs font-medium text-[#2b6cb0] hover:underline"
+            className="h-auto p-0 text-xs font-medium text-[#2b6cb0] hover:bg-transparent hover:underline"
           >
             This month
-          </button>
+          </Button>
         </div>
       </PopoverContent>
     </Popover>

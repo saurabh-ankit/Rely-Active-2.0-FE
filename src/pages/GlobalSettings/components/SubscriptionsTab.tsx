@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import React, { useMemo, useState } from 'react'
 import {
   AlertCircle,
@@ -6,8 +7,8 @@ import {
   ChevronRight,
   Clock,
   IndianRupee,
+  Loader2,
   Package,
-  RefreshCw,
   Search,
   User,
 } from 'lucide-react'
@@ -18,6 +19,8 @@ import { formatDisplayDate } from '@/lib/utils'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { ChangePackageDialog } from '@/components/common/ChangePackageDialog'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 interface SubscriptionsTabProps {
   isPropertyMode?: boolean
@@ -187,7 +190,7 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
   return (
     <div className="space-y-6">
       {/* Header Container Matching Screenshot 2 */}
-      <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
             Package Subscriptions ({subscriptions.length})
@@ -197,7 +200,7 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
 
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
+          <Input
             type="text"
             placeholder="Search by resident name or flat..."
             value={searchTerm}
@@ -205,23 +208,23 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
             className="w-full h-10 pl-10 pr-4 text-xs rounded-2xl border border-gray-200 bg-white/90 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-xs"
           />
         </div>
-      </div>
+      </Card>
 
       {/* Main Content Area */}
       {isLoading ? (
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-400 shadow-xl backdrop-blur-xl">
-          <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#005390]" />
+        <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-400 shadow-xl backdrop-blur-xl">
+          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
           Loading package subscriptions...
-        </div>
+        </Card>
       ) : subscriptionsByResident.size === 0 ? (
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-500 shadow-xl backdrop-blur-xl">
+        <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-500 shadow-xl backdrop-blur-xl">
           <Package className="w-8 h-8 text-gray-400 mx-auto mb-2" />
           No package subscriptions recorded yet. Assign a package during resident onboarding.
-        </div>
+        </Card>
       ) : filteredResidentEntries.length === 0 ? (
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-8 text-center text-sm text-gray-500 shadow-xl backdrop-blur-xl">
+        <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-8 text-center text-sm text-gray-500 shadow-xl backdrop-blur-xl">
           No residents found matching &quot;{searchTerm}&quot;.
-        </div>
+        </Card>
       ) : (
         <div className="space-y-4">
           {filteredResidentEntries.map(([residentId, resSubs]) => {
@@ -237,15 +240,16 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
             const totalAddCost = additionalTasks.reduce((sum, t) => sum + (Number(t.price) || 0), 0)
 
             return (
-              <div
+              <Card
                 key={residentId}
-                className="rounded-3xl border border-white/60 bg-white/90 shadow-lg backdrop-blur-xl overflow-hidden transition-all duration-200"
+                className="gap-0 rounded-3xl border border-white/60 bg-white/90 shadow-lg backdrop-blur-xl overflow-hidden transition-all duration-200"
               >
                 {/* Resident Header Accordion Row */}
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => toggleResidentAccordion(residentId)}
-                  className="w-full flex items-center justify-between p-4 sm:p-5 bg-gray-50/70 hover:bg-gray-100/80 transition-colors text-left cursor-pointer border-b border-gray-100"
+                  className="w-full h-auto flex items-center justify-between p-4 sm:p-5 bg-gray-50/70 hover:bg-gray-100/80 transition-colors text-left cursor-pointer border-b border-gray-100 rounded-none whitespace-normal"
                 >
                   <div className="flex items-center gap-3.5">
                     <div className="flex size-7 items-center justify-center text-gray-500 transition-transform">
@@ -273,26 +277,26 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                       </div>
                     </div>
                   </div>
-                </button>
+                </Button>
 
                 {/* Subscriptions Table Inside Accordion */}
                 {isResidentExpanded && (
                   <div className="p-4 sm:p-6 space-y-6">
-                    <div className="overflow-x-auto rounded-2xl border border-gray-200 shadow-2xs">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead>
-                          <tr className="bg-gray-100/80 border-b border-gray-200 text-gray-600 font-bold uppercase tracking-wider text-[11px]">
-                            <th className="py-3 px-3 w-10 text-center"></th>
-                            <th className="py-3 px-4">Package Name</th>
-                            <th className="py-3 px-4">Start Date</th>
-                            <th className="py-3 px-4">End Date</th>
-                            <th className="py-3 px-4">Status</th>
-                            <th className="py-3 px-4">Days Utilized</th>
-                            <th className="py-3 px-4">Costed</th>
-                            <th className="py-3 px-4 text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 bg-white">
+                    <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-2xs">
+                      <Table className="w-full text-left text-xs border-collapse">
+                        <TableHeader>
+                          <TableRow className="bg-gray-100/80 border-b border-gray-200 text-gray-600 font-bold uppercase tracking-wider text-[11px]">
+                            <TableHead className="py-3 px-3 w-10 text-center"></TableHead>
+                            <TableHead className="py-3 px-4">Package Name</TableHead>
+                            <TableHead className="py-3 px-4">Start Date</TableHead>
+                            <TableHead className="py-3 px-4">End Date</TableHead>
+                            <TableHead className="py-3 px-4">Status</TableHead>
+                            <TableHead className="py-3 px-4">Days Utilized</TableHead>
+                            <TableHead className="py-3 px-4">Costed</TableHead>
+                            <TableHead className="py-3 px-4 text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody className="divide-y divide-gray-100 bg-white">
                           {resSubs.map((sub) => {
                             const isRowExpanded = expandedRows.has(sub.id)
                             const isActive = sub.status === 'ACTIVE'
@@ -301,24 +305,27 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
 
                             return (
                               <React.Fragment key={sub.id}>
-                                <tr className="hover:bg-gray-50/80 transition-colors">
+                                <TableRow className="hover:bg-gray-50/80 transition-colors">
                                   {/* Expand Chevron */}
-                                  <td className="py-3 px-3 text-center">
-                                    <button
+                                  <TableCell className="py-3 px-3 text-center">
+                                    <Button
                                       type="button"
+                                      variant="ghost"
+                                      size="icon-xs"
+                                      aria-label={isRowExpanded ? 'Collapse row details' : 'Expand row details'}
                                       onClick={() => toggleRowExpand(sub.id)}
-                                      className="size-7 inline-flex items-center justify-center rounded-lg hover:bg-gray-200/60 text-gray-500 cursor-pointer"
+                                      className="size-7 inline-flex items-center justify-center rounded-lg hover:bg-gray-200/60 text-gray-500 cursor-pointer p-0"
                                     >
                                       {isRowExpanded ? (
                                         <ChevronDown className="w-4 h-4" />
                                       ) : (
                                         <ChevronRight className="w-4 h-4" />
                                       )}
-                                    </button>
-                                  </td>
+                                    </Button>
+                                  </TableCell>
 
                                   {/* Package Name & Cost */}
-                                  <td className="py-3 px-4">
+                                  <TableCell className="py-3 px-4">
                                     <div className="font-bold text-gray-900">
                                       {sub.carePackage?.name || sub.carePackage?.packageName || 'Unnamed Package'}
                                     </div>
@@ -334,18 +341,18 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                                         sub.carePackage?.cost || sub.carePackage?.packageCost || sub.totalCost || 0,
                                       ).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </div>
-                                  </td>
+                                  </TableCell>
 
                                   {/* Start Date */}
-                                  <td className="py-3 px-4">
+                                  <TableCell className="py-3 px-4">
                                     <div className="flex items-center gap-1.5 text-gray-700">
                                       <Calendar className="w-3.5 h-3.5 text-gray-400" />
                                       <span>{formatDisplayDate(sub.startDate)}</span>
                                     </div>
-                                  </td>
+                                  </TableCell>
 
                                   {/* End Date */}
-                                  <td className="py-3 px-4">
+                                  <TableCell className="py-3 px-4">
                                     {sub.endDate ? (
                                       <div className="flex items-center gap-1.5 text-gray-700">
                                         <Calendar className="w-3.5 h-3.5 text-gray-400" />
@@ -354,27 +361,27 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                                     ) : (
                                       <span className="text-gray-400 font-medium">N/A</span>
                                     )}
-                                  </td>
+                                  </TableCell>
 
                                   {/* Status */}
-                                  <td className="py-3 px-4">{getStatusBadge(sub.status)}</td>
+                                  <TableCell className="py-3 px-4">{getStatusBadge(sub.status)}</TableCell>
 
                                   {/* Days Utilized */}
-                                  <td className="py-3 px-4 font-semibold text-gray-800">
+                                  <TableCell className="py-3 px-4 font-semibold text-gray-800">
                                     {sub.daysUtilized !== undefined ? `${sub.daysUtilized} days` : 'N/A'}
-                                  </td>
+                                  </TableCell>
 
                                   {/* Costed */}
-                                  <td className="py-3 px-4 font-bold text-gray-900">
+                                  <TableCell className="py-3 px-4 font-bold text-gray-900">
                                     ₹
                                     {Number(sub.costed || 0).toLocaleString('en-IN', {
                                       minimumFractionDigits: 2,
                                       maximumFractionDigits: 2,
                                     })}
-                                  </td>
+                                  </TableCell>
 
                                   {/* Actions */}
-                                  <td className="py-3 px-4 text-right">
+                                  <TableCell className="py-3 px-4 text-right">
                                     <div className="inline-flex items-center gap-2 justify-end">
                                       {isActive && (
                                         <Button
@@ -409,13 +416,13 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                                         </Button>
                                       )}
                                     </div>
-                                  </td>
-                                </tr>
+                                  </TableCell>
+                                </TableRow>
 
                                 {/* Expanded Row for Features */}
                                 {isRowExpanded && (
-                                  <tr>
-                                    <td colSpan={8} className="p-0">
+                                  <TableRow>
+                                    <TableCell colSpan={8} className="p-0">
                                       <div className="p-4 sm:p-5 bg-gray-50/90 border-t border-b border-gray-200 space-y-4">
                                         <div className="flex items-center gap-2">
                                           <IndianRupee className="h-4 w-4 text-gray-500" />
@@ -504,22 +511,23 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                                           )}
                                         </div>
                                       </div>
-                                    </td>
-                                  </tr>
+                                    </TableCell>
+                                  </TableRow>
                                 )}
                               </React.Fragment>
                             )
                           })}
-                        </tbody>
-                      </table>
+                        </TableBody>
+                      </Table>
                     </div>
 
                     {/* Additional Tasks Done Section Matching Screenshot 2 */}
                     <div className="border border-orange-200 rounded-2xl overflow-hidden bg-orange-50/40 shadow-2xs">
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         onClick={() => toggleAdditionalTasks(residentId)}
-                        className="w-full flex items-center justify-between p-3.5 sm:p-4 bg-orange-50/90 hover:bg-orange-100/70 transition-colors text-left cursor-pointer"
+                        className="w-full h-auto flex items-center justify-between p-3.5 sm:p-4 bg-orange-50/90 hover:bg-orange-100/70 transition-colors text-left cursor-pointer rounded-none whitespace-normal"
                       >
                         <div className="flex items-center gap-2">
                           <AlertCircle className="h-4 w-4 text-orange-600 shrink-0" />
@@ -539,7 +547,7 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                         ) : (
                           <ChevronRight className="h-4 w-4 text-gray-500" />
                         )}
-                      </button>
+                      </Button>
 
                       {isAddTasksExpanded && (
                         <div className="p-3 sm:p-4 space-y-3 bg-white border-t border-orange-100">
@@ -593,7 +601,7 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                     </div>
                   </div>
                 )}
-              </div>
+              </Card>
             )
           })}
         </div>

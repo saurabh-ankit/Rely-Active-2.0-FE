@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 export interface AppointmentCalendarEvent {
@@ -66,11 +67,12 @@ export const AppointmentsDayListDialog = ({
         ) : (
           <div className="space-y-3">
             {events.map((event) => (
-              <button
+              <Button
                 key={event.id}
                 type="button"
+                variant="ghost"
                 onClick={() => onSelectEvent(event)}
-                className="w-full text-left rounded-md border border-gray-200 overflow-hidden hover:border-[#2a517c]/40 hover:shadow-sm transition-colors"
+                className="h-auto p-0 flex flex-col items-stretch w-full text-left rounded-md border border-gray-200 overflow-hidden hover:border-[#2a517c]/40 hover:shadow-sm transition-colors whitespace-normal font-normal hover:bg-transparent"
               >
                 <div className="bg-[#2a517c] px-3 py-1.5 flex items-center justify-between gap-2">
                   <span className="text-xs font-bold text-white truncate uppercase tracking-wide">
@@ -89,7 +91,7 @@ export const AppointmentsDayListDialog = ({
                     {formatStatus(event.status)}
                   </Badge>
                 </div>
-              </button>
+              </Button>
             ))}
           </div>
         )}

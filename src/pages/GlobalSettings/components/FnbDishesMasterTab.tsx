@@ -1,5 +1,10 @@
+import { Input } from '@/components/ui/input'
 import React, { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   Plus,
   Edit2,
@@ -12,7 +17,6 @@ import {
   Square,
   ChevronDown,
   ChevronRight,
-  X,
   Building2,
   Layers,
   Tag,
@@ -22,6 +26,7 @@ import { getPropertiesAPI } from '@/lib/services/propertyService'
 import { useLocationContext } from '@/hooks/useLocation'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { useScrollLock } from '@/hooks/useScrollLock'
+import { Label } from '@/components/ui/label'
 
 const DISH_CATEGORIES = [
   { key: 'breakfast', label: 'Breakfast', icon: '🌅' },
@@ -411,37 +416,39 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
 
         {/* Hide Add Master Dish button in Location Mode */}
         {!isLocationMode && canCreateFnb && (
-          <button
+          <Button
             type="button"
             onClick={handleOpenCreate}
-            className="inline-flex items-center gap-2 bg-[#005390] text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-[#004070] transition-colors cursor-pointer shadow-xs shrink-0"
+            className="inline-flex items-center gap-2 bg-[#005390] text-white px-5 py-2.5 h-auto rounded-xl font-bold text-xs hover:bg-[#004070] transition-colors cursor-pointer shadow-xs shrink-0"
           >
             <Plus className="w-4 h-4" /> Add Master Dish
-          </button>
+          </Button>
         )}
       </div>
 
       {/* Category Pills Quick Filter */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => setActiveCategoryFilter('ALL')}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+          className={`px-3.5 py-1.5 h-auto rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
             activeCategoryFilter === 'ALL'
               ? 'bg-[#005390] text-white shadow-xs'
               : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
           }`}
         >
           <Layers className="w-3.5 h-3.5" /> All Dishes ({displayDishes.length})
-        </button>
+        </Button>
         {DISH_CATEGORIES.map((cat) => {
           const count = groupedDishes[cat.key]?.length || 0
           return (
-            <button
+            <Button
               key={cat.key}
               type="button"
+              variant="ghost"
               onClick={() => setActiveCategoryFilter(cat.key)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 h-auto rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                 activeCategoryFilter === cat.key
                   ? 'bg-[#005390] text-white shadow-xs'
                   : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
@@ -456,7 +463,7 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
               >
                 {count}
               </span>
-            </button>
+            </Button>
           )
         })}
       </div>
@@ -482,10 +489,11 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
             return (
               <div key={cat.key} className="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
                 {/* Category Header */}
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => toggleCategoryCollapse(cat.key)}
-                  className="w-full text-left px-5 py-3.5 bg-gray-50/80 border-b border-gray-200/80 flex items-center justify-between cursor-pointer hover:bg-gray-100/50 transition-colors"
+                  className="w-full h-auto text-left px-5 py-3.5 bg-gray-50/80 border-b border-gray-200/80 flex items-center justify-between cursor-pointer hover:bg-gray-100/50 transition-colors rounded-none"
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-lg">{cat.icon}</span>
@@ -497,7 +505,7 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                   <div className="text-gray-400 p-1">
                     {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </div>
-                </button>
+                </Button>
 
                 {/* Category Dishes Table */}
                 {!isCollapsed && (
@@ -507,20 +515,20 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                         No dishes listed in this category yet.
                       </div>
                     ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs text-gray-600 border-collapse">
-                          <thead className="bg-gray-50/50 text-gray-400 uppercase tracking-wider font-bold text-[10px] border-b border-gray-100">
-                            <tr>
-                              <th className="px-5 py-3">Dish Name & Description</th>
-                              <th className="px-5 py-3">Dietary Type</th>
-                              <th className="px-5 py-3">
+                      <div className="overflow-hidden">
+                        <Table className="w-full text-left text-xs text-gray-600 border-collapse">
+                          <TableHeader className="bg-gray-50/50 text-gray-400 uppercase tracking-wider font-bold text-[10px] border-b border-gray-100">
+                            <TableRow>
+                              <TableHead className="px-5 py-3">Dish Name & Description</TableHead>
+                              <TableHead className="px-5 py-3">Dietary Type</TableHead>
+                              <TableHead className="px-5 py-3">
                                 {isLocationMode ? 'Price (in this property)' : 'Base Price'}
-                              </th>
-                              {!isLocationMode && <th className="px-5 py-3">Assigned Properties</th>}
-                              <th className="px-5 py-3 text-right">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100">
+                              </TableHead>
+                              {!isLocationMode && <TableHead className="px-5 py-3">Assigned Properties</TableHead>}
+                              <TableHead className="px-5 py-3 text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody className="divide-y divide-gray-100">
                             {categoryDishes.map((dish) => {
                               const pd = locId ? dish.propertyDishes?.find((p) => p.locId === locId) : null
                               const effectivePrice = isLocationMode && pd ? pd.price : dish.basePrice
@@ -532,8 +540,8 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                               const isVeg = dish.dietaryType === 'veg'
 
                               return (
-                                <tr key={dish.id} className="hover:bg-gray-50/60 transition-colors">
-                                  <td className="px-5 py-3.5">
+                                <TableRow key={dish.id} className="hover:bg-gray-50/60 transition-colors">
+                                  <TableCell className="px-5 py-3.5">
                                     <div className="flex items-center gap-3">
                                       {dish.imageUrl ? (
                                         <img
@@ -555,8 +563,8 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                                         )}
                                       </div>
                                     </div>
-                                  </td>
-                                  <td className="px-5 py-3.5">
+                                  </TableCell>
+                                  <TableCell className="px-5 py-3.5">
                                     <span
                                       className={`px-2.5 py-1 rounded-full font-semibold capitalize text-[11px] border inline-block ${
                                         isNonVeg
@@ -568,12 +576,12 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                                     >
                                       {dish.dietaryType.replace('_', ' ')}
                                     </span>
-                                  </td>
-                                  <td className="px-5 py-3.5 font-extrabold text-gray-900 text-xs">
+                                  </TableCell>
+                                  <TableCell className="px-5 py-3.5 font-extrabold text-gray-900 text-xs">
                                     ₹{Number(effectivePrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                  </td>
+                                  </TableCell>
                                   {!isLocationMode && (
-                                    <td className="px-5 py-3.5">
+                                    <TableCell className="px-5 py-3.5">
                                       {assignedPropsCount === 0 ? (
                                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-gray-50 text-gray-400 border border-gray-200 italic">
                                           <Building2 className="w-3 h-3 text-gray-300" /> No Properties
@@ -597,37 +605,40 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                                             })}
                                         </div>
                                       )}
-                                    </td>
+                                    </TableCell>
                                   )}
-                                  <td className="px-5 py-3.5 text-right">
+                                  <TableCell className="px-5 py-3.5 text-right">
                                     <div className="inline-flex items-center justify-end gap-1.5">
                                       {canUpdateFnb && (
-                                        <button
+                                        <Button
                                           type="button"
+                                          variant="outline"
                                           onClick={() => handleOpenEdit(dish)}
-                                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-[#005390] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
+                                          className="inline-flex items-center gap-1 px-2.5 py-1 h-auto rounded-lg text-xs font-semibold bg-blue-50 text-[#005390] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
                                         >
                                           <Edit2 className="w-3.5 h-3.5" />
                                           {isLocationMode ? 'Edit Price' : 'Edit'}
-                                        </button>
+                                        </Button>
                                       )}
                                       {!isLocationMode && canDeleteFnb && (
-                                        <button
+                                        <Button
                                           type="button"
+                                          variant="ghost"
+                                          size="icon-xs"
                                           onClick={() => handleOpenDelete(dish)}
-                                          className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                          className="p-1.5 h-auto rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                                           title="Delete Dish"
                                         >
                                           <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
+                                        </Button>
                                       )}
                                     </div>
-                                  </td>
-                                </tr>
+                                  </TableCell>
+                                </TableRow>
                               )
                             })}
-                          </tbody>
-                        </table>
+                          </TableBody>
+                        </Table>
                       </div>
                     )}
                   </div>
@@ -639,320 +650,321 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
       )}
 
       {/* Price Override Modal for Location Mode */}
-      {overrideModalDish &&
-        locId &&
-        createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 my-auto">
-              <div className="flex items-start justify-between border-b border-gray-100 pb-3">
-                <div>
-                  <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                    <Tag className="w-4 h-4 text-[#005390]" /> Edit Property Price Override
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-0.5">{overrideModalDish.name}</p>
+      <Dialog
+        open={Boolean(overrideModalDish && locId)}
+        onOpenChange={(open) => {
+          if (!open) setOverrideModalDish(null)
+        }}
+      >
+        {overrideModalDish && locId && (
+          <DialogContent className="sm:max-w-md p-6 space-y-4">
+            <div className="flex items-start justify-between border-b border-gray-100 pb-3 pr-8">
+              <DialogHeader>
+                <DialogTitle className="text-base font-bold text-gray-900 flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-[#005390]" /> Edit Property Price Override
+                </DialogTitle>
+                <DialogDescription className="text-xs text-gray-500 mt-0.5">{overrideModalDish.name}</DialogDescription>
+              </DialogHeader>
+            </div>
+
+            {errorMsg && (
+              <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3 rounded-xl text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" /> {errorMsg}
+              </div>
+            )}
+
+            <form onSubmit={handleSavePriceOverride} className="space-y-4">
+              <div>
+                <span className="block text-xs font-semibold text-gray-700 mb-1">Base Price (Global)</span>
+                <div className="px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs font-bold text-gray-500">
+                  ₹{Number(overrideModalDish.basePrice).toFixed(2)}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setOverrideModalDish(null)}
-                  className="p-1 rounded-full text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
               </div>
 
-              {errorMsg && (
-                <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3 rounded-xl text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" /> {errorMsg}
-                </div>
-              )}
+              <div>
+                <label htmlFor="override-price-input" className="block text-xs font-semibold text-gray-700 mb-1">
+                  Location Specific Price (₹) <span className="text-red-500 font-bold ml-0.5">*</span>
+                </label>
+                <input
+                  id="override-price-input"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={overridePrice}
+                  onChange={(e) => setOverridePrice(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-xs font-extrabold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390]"
+                  required
+                />
+              </div>
 
-              <form onSubmit={handleSavePriceOverride} className="space-y-4">
-                <div>
-                  <span className="block text-xs font-semibold text-gray-700 mb-1">Base Price (Global)</span>
-                  <div className="px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs font-bold text-gray-500">
-                    ₹{Number(overrideModalDish.basePrice).toFixed(2)}
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setOverrideModalDish(null)}
+                  className="px-4 py-2 h-auto text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={overrideSaving}
+                  className="px-5 py-2 h-auto bg-[#005390] text-white text-xs font-bold rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {overrideSaving ? 'Saving...' : 'Update Price'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        )}
+      </Dialog>
+
+      {/* Wider Add / Edit Master Dish Modal (Global Mode) */}
+      <Dialog
+        open={Boolean(isModalOpen && !isLocationMode)}
+        onOpenChange={(open) => {
+          if (!open) setIsModalOpen(false)
+        }}
+      >
+        {isModalOpen && !isLocationMode && (
+          <DialogContent className="sm:max-w-3xl p-0 overflow-hidden max-h-[90vh] flex flex-col justify-between">
+            {/* Modal Header */}
+            <div className="border-b border-gray-100 p-6 pb-4 pr-12">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-blue-50 text-[#005390]">
+                    <Utensils className="w-5 h-5" />
                   </div>
-                </div>
+                  {editingDish ? 'Edit Master Dish' : 'Add Master Dish'}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-gray-500 mt-1">
+                  Define dish details, category, image upload, and assign target property locations.
+                </DialogDescription>
+              </DialogHeader>
+            </div>
 
-                <div>
-                  <label htmlFor="override-price-input" className="block text-xs font-semibold text-gray-700 mb-1">
-                    Location Specific Price (₹) <span className="text-red-500 font-bold ml-0.5">*</span>
-                  </label>
-                  <input
-                    id="override-price-input"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={overridePrice}
-                    onChange={(e) => setOverridePrice(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs font-extrabold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390]"
+            {errorMsg && (
+              <div className="mx-6 bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-xl text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" /> {errorMsg}
+              </div>
+            )}
+
+            {/* Modal Form Body */}
+            <form onSubmit={handleSubmit} className="space-y-6 overflow-y-auto px-6 pb-6 flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {/* Dish Name */}
+                <div className="sm:col-span-2">
+                  <Label htmlFor="dish-name-input" className="block text-xs font-semibold text-gray-700 mb-1">
+                    Dish Name <span className="text-red-500 font-bold ml-0.5">*</span>
+                  </Label>
+                  <Input
+                    id="dish-name-input"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Paneer Butter Masala"
+                    className="w-full px-3.5 py-2.5 text-xs font-medium border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390]"
                     required
                   />
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setOverrideModalDish(null)}
-                    className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={overrideSaving}
-                    className="px-5 py-2 bg-[#005390] text-white text-xs font-bold rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    {overrideSaving ? 'Saving...' : 'Update Price'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>,
-          document.body,
-        )}
-
-      {/* Wider Add / Edit Master Dish Modal (Global Mode) */}
-      {isModalOpen &&
-        !isLocationMode &&
-        createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 overflow-y-auto">
-            <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl space-y-6 relative my-auto max-h-[90vh] flex flex-col justify-between">
-              {/* Modal Header */}
-              <div className="flex items-start justify-between border-b border-gray-100 pb-4">
+                {/* Category (Enum based) */}
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-blue-50 text-[#005390]">
-                      <Utensils className="w-5 h-5" />
-                    </div>
-                    {editingDish ? 'Edit Master Dish' : 'Add Master Dish'}
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Define dish details, category, image upload, and assign target property locations.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {errorMsg && (
-                <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-xl text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" /> {errorMsg}
-                </div>
-              )}
-
-              {/* Modal Form Body */}
-              <form onSubmit={handleSubmit} className="space-y-6 overflow-y-auto pr-1 flex-1">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  {/* Dish Name */}
-                  <div className="sm:col-span-2">
-                    <label htmlFor="dish-name-input" className="block text-xs font-semibold text-gray-700 mb-1">
-                      Dish Name <span className="text-red-500 font-bold ml-0.5">*</span>
-                    </label>
-                    <input
-                      id="dish-name-input"
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Paneer Butter Masala"
-                      className="w-full px-3.5 py-2.5 text-xs font-medium border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390]"
-                      required
-                    />
-                  </div>
-
-                  {/* Category (Enum based) */}
-                  <div>
-                    <label htmlFor="dish-category-select" className="block text-xs font-semibold text-gray-700 mb-1">
-                      Category
-                    </label>
-                    <select
+                  <Label htmlFor="dish-category-select" className="block text-xs font-semibold text-gray-700 mb-1">
+                    Category
+                  </Label>
+                  <Select value={category} onValueChange={(val) => setCategory(val)}>
+                    <SelectTrigger
                       id="dish-category-select"
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-xs font-semibold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] bg-white text-gray-800"
+                      className="w-full px-3.5 py-2.5 text-xs font-semibold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] bg-white text-gray-800 h-auto"
                     >
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
                       {DISH_CATEGORIES.map((cat) => (
-                        <option key={cat.key} value={cat.key}>
+                        <SelectItem key={cat.key} value={cat.key}>
                           {cat.icon} {cat.label}
-                        </option>
+                        </SelectItem>
                       ))}
-                    </select>
-                  </div>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  {/* Dietary Type */}
-                  <div>
-                    <label htmlFor="dish-dietary-select" className="block text-xs font-semibold text-gray-700 mb-1">
-                      Dietary Type
-                    </label>
-                    <select
+                {/* Dietary Type */}
+                <div>
+                  <Label htmlFor="dish-dietary-select" className="block text-xs font-semibold text-gray-700 mb-1">
+                    Dietary Type
+                  </Label>
+                  <Select
+                    value={dietaryType}
+                    onValueChange={(val) => setDietaryType(val as 'veg' | 'non_veg' | 'egg' | 'jain' | 'vegan')}
+                  >
+                    <SelectTrigger
                       id="dish-dietary-select"
-                      value={dietaryType}
-                      onChange={(e) => setDietaryType(e.target.value as 'veg' | 'non_veg' | 'egg' | 'jain' | 'vegan')}
-                      className="w-full px-3.5 py-2.5 text-xs font-semibold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] bg-white text-gray-800"
+                      className="w-full px-3.5 py-2.5 text-xs font-semibold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] bg-white text-gray-800 h-auto"
                     >
-                      <option value="veg">🟢 Vegetarian</option>
-                      <option value="non_veg">🔴 Non-Vegetarian</option>
-                      <option value="egg">🟡 Eggitarian</option>
-                      <option value="jain">🟢 Jain</option>
-                      <option value="vegan">🌱 Vegan</option>
-                    </select>
-                  </div>
+                      <SelectValue placeholder="Dietary Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="veg">🟢 Vegetarian</SelectItem>
+                      <SelectItem value="non_veg">🔴 Non-Vegetarian</SelectItem>
+                      <SelectItem value="egg">🟡 Eggitarian</SelectItem>
+                      <SelectItem value="jain">🟢 Jain</SelectItem>
+                      <SelectItem value="vegan">🌱 Vegan</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  {/* Base Price */}
-                  <div>
-                    <label htmlFor="dish-base-price-input" className="block text-xs font-semibold text-gray-700 mb-1">
-                      Base Price (₹) for A-La-Carte
-                    </label>
-                    <input
-                      id="dish-base-price-input"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={basePrice}
-                      onChange={(e) => setBasePrice(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-xs font-bold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390]"
-                    />
-                  </div>
+                {/* Base Price */}
+                <div>
+                  <Label htmlFor="dish-base-price-input" className="block text-xs font-semibold text-gray-700 mb-1">
+                    Base Price (₹) for A-La-Carte
+                  </Label>
+                  <Input
+                    id="dish-base-price-input"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={basePrice}
+                    onChange={(e) => setBasePrice(e.target.value)}
+                    className="w-full px-3.5 py-2.5 text-xs font-bold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390]"
+                  />
+                </div>
 
-                  {/* Description */}
-                  <div>
-                    <label htmlFor="dish-desc-input" className="block text-xs font-semibold text-gray-700 mb-1">
-                      Description / Ingredients
-                    </label>
-                    <input
-                      id="dish-desc-input"
-                      type="text"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="e.g. Rich tomato gravy, fresh paneer..."
-                      className="w-full px-3.5 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390]"
-                    />
-                  </div>
+                {/* Description */}
+                <div>
+                  <Label htmlFor="dish-desc-input" className="block text-xs font-semibold text-gray-700 mb-1">
+                    Description / Ingredients
+                  </Label>
+                  <Input
+                    id="dish-desc-input"
+                    type="text"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="e.g. Rich tomato gravy, fresh paneer..."
+                    className="w-full px-3.5 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390]"
+                  />
+                </div>
 
-                  {/* File Upload for Image (FormData) */}
-                  <div className="sm:col-span-2">
-                    <label htmlFor="dish-image-input" className="block text-xs font-semibold text-gray-700 mb-1.5">
-                      Upload Dish Image
-                    </label>
-                    <div className="flex items-center gap-4 border border-gray-200 rounded-2xl p-4 bg-gray-50/50">
-                      {imagePreviewUrl ? (
-                        <img
-                          src={imagePreviewUrl}
-                          alt="Preview"
-                          className="w-16 h-16 rounded-xl object-cover border border-gray-200 shadow-2xs shrink-0"
-                        />
-                      ) : (
-                        <div className="w-16 h-16 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center border border-gray-200 shrink-0">
-                          <ImageIcon className="w-6 h-6" />
-                        </div>
-                      )}
-                      <div className="flex-1 space-y-1">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          id="dish-image-input"
-                          onChange={handleImageChange}
-                          className="hidden"
-                        />
-                        <label
-                          htmlFor="dish-image-input"
-                          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer shadow-2xs"
-                        >
-                          <Upload className="w-3.5 h-3.5 text-[#005390]" />
-                          {imageFile ? 'Change Uploaded File' : 'Choose Image File'}
-                        </label>
-                        <p className="text-[11px] text-gray-400">PNG, JPG, WEBP up to 10MB.</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Property Assignment Selector with Select All */}
-                  <div className="sm:col-span-2 border-t border-gray-100 pt-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="block text-xs font-bold text-gray-800 uppercase tracking-wider">
-                          Assign to Properties ({selectedPropertyIds.length}/{availableProperties.length})
-                        </span>
-                        <p className="text-[11px] text-gray-500">
-                          Select properties where this dish will be available.
-                        </p>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleSelectAllProperties}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#005390] hover:text-[#004070] cursor-pointer"
-                      >
-                        {isAllPropsSelected ? (
-                          <>
-                            <CheckSquare className="w-4 h-4 text-[#005390]" /> Deselect All
-                          </>
-                        ) : (
-                          <>
-                            <Square className="w-4 h-4 text-gray-400" /> Select All ({availableProperties.length})
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    {availableProperties.length === 0 ? (
-                      <div className="p-3 bg-gray-50 rounded-xl text-xs text-gray-400">No properties available.</div>
+                {/* File Upload for Image (FormData) */}
+                <div className="sm:col-span-2">
+                  <Label htmlFor="dish-image-input" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Upload Dish Image
+                  </Label>
+                  <div className="flex items-center gap-4 border border-gray-200 rounded-2xl p-4 bg-gray-50/50">
+                    {imagePreviewUrl ? (
+                      <img
+                        src={imagePreviewUrl}
+                        alt="Preview"
+                        className="w-16 h-16 rounded-xl object-cover border border-gray-200 shadow-2xs shrink-0"
+                      />
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-36 overflow-y-auto p-1">
-                        {availableProperties.map((prop) => {
-                          const isSelected = selectedPropertyIds.includes(prop.id)
-                          return (
-                            <button
-                              type="button"
-                              key={prop.id}
-                              onClick={() => handleToggleProperty(prop.id)}
-                              className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-between cursor-pointer transition-all ${
-                                isSelected
-                                  ? 'bg-blue-50/80 border-blue-200 text-[#005390]'
-                                  : 'bg-gray-50/50 border-gray-200 text-gray-600 hover:bg-gray-100/50'
-                              }`}
-                            >
-                              <span className="truncate max-w-[160px]">{getPropName(prop)}</span>
-                              {isSelected ? (
-                                <CheckSquare className="w-4 h-4 text-[#005390] shrink-0" />
-                              ) : (
-                                <Square className="w-4 h-4 text-gray-300 shrink-0" />
-                              )}
-                            </button>
-                          )
-                        })}
+                      <div className="w-16 h-16 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center border border-gray-200 shrink-0">
+                        <ImageIcon className="w-6 h-6" />
                       </div>
                     )}
+                    <div className="flex-1 space-y-1">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id="dish-image-input"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                      <Label
+                        htmlFor="dish-image-input"
+                        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer shadow-2xs"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-[#005390]" />
+                        {imageFile ? 'Change Uploaded File' : 'Choose Image File'}
+                      </Label>
+                      <p className="text-[11px] text-gray-400">PNG, JPG, WEBP up to 10MB.</p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="px-6 py-2.5 bg-[#005390] text-white text-xs font-bold rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50 shadow-xs"
-                  >
-                    {saving ? 'Saving Dish...' : 'Save Dish'}
-                  </button>
+                {/* Property Assignment Selector with Select All */}
+                <div className="sm:col-span-2 border-t border-gray-100 pt-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="block text-xs font-bold text-gray-800 uppercase tracking-wider">
+                        Assign to Properties ({selectedPropertyIds.length}/{availableProperties.length})
+                      </span>
+                      <p className="text-[11px] text-gray-500">Select properties where this dish will be available.</p>
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={handleSelectAllProperties}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#005390] hover:text-[#004070] cursor-pointer p-0 h-auto"
+                    >
+                      {isAllPropsSelected ? (
+                        <>
+                          <CheckSquare className="w-4 h-4 text-[#005390]" /> Deselect All
+                        </>
+                      ) : (
+                        <>
+                          <Square className="w-4 h-4 text-gray-400" /> Select All ({availableProperties.length})
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {availableProperties.length === 0 ? (
+                    <div className="p-3 bg-gray-50 rounded-xl text-xs text-gray-400">No properties available.</div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-36 overflow-y-auto p-1">
+                      {availableProperties.map((prop) => {
+                        const isSelected = selectedPropertyIds.includes(prop.id)
+                        return (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            key={prop.id}
+                            onClick={() => handleToggleProperty(prop.id)}
+                            className={`p-2.5 h-auto rounded-xl border text-xs font-semibold flex items-center justify-between cursor-pointer transition-all ${
+                              isSelected
+                                ? 'bg-blue-50/80 border-blue-200 text-[#005390]'
+                                : 'bg-gray-50/50 border-gray-200 text-gray-600 hover:bg-gray-100/50'
+                            }`}
+                          >
+                            <span className="truncate max-w-[160px]">{getPropName(prop)}</span>
+                            {isSelected ? (
+                              <CheckSquare className="w-4 h-4 text-[#005390] shrink-0" />
+                            ) : (
+                              <Square className="w-4 h-4 text-gray-300 shrink-0" />
+                            )}
+                          </Button>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
-              </form>
-            </div>
-          </div>,
-          document.body,
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 h-auto text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2.5 h-auto bg-[#005390] text-white text-xs font-bold rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50 shadow-xs"
+                >
+                  {saving ? 'Saving Dish...' : 'Save Dish'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
         )}
+      </Dialog>
 
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen &&

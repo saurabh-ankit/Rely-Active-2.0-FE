@@ -1,3 +1,5 @@
+import { Input } from '@/components/ui/input'
+import { Card } from '@/components/ui/card'
 import React, { useMemo, useState } from 'react'
 import {
   Activity,
@@ -23,6 +25,9 @@ import { AssignCareTaskDialog } from '@/components/common/AssignCareTaskDialog'
 import { CompleteCareTaskDialog } from '@/components/common/CompleteCareTaskDialog'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { Button } from '@/components/ui/button'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn, formatDisplayDate, formatDisplayDateTime } from '@/lib/utils'
 
 const getBillingLabel = (type?: string) => {
@@ -375,31 +380,31 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
       {/* ── Summary Matrix Cards (if not compact) ─────────────────────────── */}
       {!isCompact && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
+          <Card className="gap-0 rounded-2xl border-gray-100 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
             <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400">
               <span>Total Care Tasks</span>
               <HeartHandshake className="size-4 text-[#005390]" />
             </div>
             <div className="mt-2 text-2xl font-black text-gray-900 dark:text-white">{allCount}</div>
-          </div>
+          </Card>
 
-          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
+          <Card className="gap-0 rounded-2xl border-gray-100 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
             <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400">
               <span>Active / Pending</span>
               <Activity className="size-4 text-emerald-500" />
             </div>
             <div className="mt-2 text-2xl font-black text-emerald-600 dark:text-emerald-400">{pendingCount}</div>
-          </div>
+          </Card>
 
-          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
+          <Card className="gap-0 rounded-2xl border-gray-100 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
             <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400">
               <span>Completed Sessions</span>
               <CheckCircle2 className="size-4 text-purple-500" />
             </div>
             <div className="mt-2 text-2xl font-black text-purple-600 dark:text-purple-400">{completedCount}</div>
-          </div>
+          </Card>
 
-          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
+          <Card className="gap-0 rounded-2xl border-gray-100 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
             <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400">
               <span>Stopped</span>
               <StopCircle className="size-4 text-rose-500" />
@@ -407,61 +412,53 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
             <div className="mt-2 text-2xl font-black text-rose-600 dark:text-rose-400">
               {matrix?.totalStopped ?? assignments.filter((a) => a.isStopped).length}
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
       {/* ── Tabs Navigation Bar ───────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-3 dark:border-gray-800">
-        <div className="inline-flex items-center gap-1 rounded-2xl bg-slate-100/90 p-1.5 dark:bg-slate-800/70">
-          <button
-            type="button"
-            onClick={() => setActiveTab('PENDING')}
-            className={cn(
-              'flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer',
-              activeTab === 'PENDING'
-                ? 'bg-white text-amber-700 shadow-xs dark:bg-slate-900 dark:text-amber-400'
-                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white',
-            )}
-          >
-            <Clock className="size-3.5" />
-            <span>Pending Tasks</span>
-            <span
-              className={cn(
-                'rounded-full px-2 py-0.5 text-[10px] font-extrabold',
-                activeTab === 'PENDING'
-                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                  : 'bg-gray-200/80 text-gray-700 dark:bg-slate-700 dark:text-gray-300',
-              )}
-            >
-              {pendingCount}
-            </span>
-          </button>
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as AssignedTasksTabType)} className="gap-0">
+          <div className="rounded-2xl bg-card text-card-foreground/70 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100/80">
+            <TabsList className="inline-flex w-max min-w-full h-auto gap-2 justify-start bg-transparent p-0">
+              <TabsTrigger
+                value="PENDING"
+                className="flex h-10 items-center justify-center gap-2.5 whitespace-nowrap rounded-xl px-6 text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-md focus-visible:!ring-0 transition-all cursor-pointer"
+              >
+                <Clock className="size-4.5 shrink-0" />
+                <span>Pending Tasks</span>
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[10px] font-extrabold',
+                    activeTab === 'PENDING'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-gray-200/80 text-gray-700 dark:bg-slate-700 dark:text-gray-300',
+                  )}
+                >
+                  {pendingCount}
+                </span>
+              </TabsTrigger>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('COMPLETED')}
-            className={cn(
-              'flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer',
-              activeTab === 'COMPLETED'
-                ? 'bg-white text-emerald-700 shadow-xs dark:bg-slate-900 dark:text-emerald-400'
-                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white',
-            )}
-          >
-            <CheckCircle2 className="size-3.5" />
-            <span>Completed Tasks</span>
-            <span
-              className={cn(
-                'rounded-full px-2 py-0.5 text-[10px] font-extrabold',
-                activeTab === 'COMPLETED'
-                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                  : 'bg-gray-200/80 text-gray-700 dark:bg-slate-700 dark:text-gray-300',
-              )}
-            >
-              {completedCount}
-            </span>
-          </button>
-        </div>
+              <TabsTrigger
+                value="COMPLETED"
+                className="flex h-10 items-center justify-center gap-2.5 whitespace-nowrap rounded-xl px-6 text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-md focus-visible:!ring-0 transition-all cursor-pointer"
+              >
+                <CheckCircle2 className="size-4.5 shrink-0" />
+                <span>Completed Tasks</span>
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[10px] font-extrabold',
+                    activeTab === 'COMPLETED'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-gray-200/80 text-gray-700 dark:bg-slate-700 dark:text-gray-300',
+                  )}
+                >
+                  {completedCount}
+                </span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </Tabs>
 
         {/* Assign Button */}
         <Button
@@ -479,7 +476,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
         {/* Search */}
         <div className="relative min-w-[220px]">
           <Search className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-gray-400" />
-          <input
+          <Input
             type="text"
             placeholder={activeTab === 'COMPLETED' ? 'Search completed task or nurse...' : 'Search resident or task...'}
             value={searchTerm}
@@ -489,59 +486,61 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
         </div>
 
         {/* Source Filter (Available for both Pending and Completed views) */}
-        <select
-          value={sourceFilter}
-          onChange={(e) => setSourceFilter(e.target.value)}
-          className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 focus:border-[#005390] focus:outline-none dark:border-gray-800 dark:bg-slate-900 dark:text-gray-300"
-        >
-          <option value="ALL">All Sources</option>
-          <option value="PACKAGE">Package Wise</option>
-          <option value="ADDON">Add On Tasks</option>
-        </select>
+        <Select value={sourceFilter} onValueChange={(val) => setSourceFilter(val || 'ALL')}>
+          <SelectTrigger className="w-auto min-w-[130px] rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-300">
+            <SelectValue placeholder="All Sources" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All Sources</SelectItem>
+            <SelectItem value="PACKAGE">Package Wise</SelectItem>
+            <SelectItem value="ADDON">Add On Tasks</SelectItem>
+          </SelectContent>
+        </Select>
 
         {activeTab === 'COMPLETED' && (
           /* Completed Tab Status Filter */
-          <select
-            value={completedStatusFilter}
-            onChange={(e) => setCompletedStatusFilter(e.target.value)}
-            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 focus:border-[#005390] focus:outline-none dark:border-gray-800 dark:bg-slate-900 dark:text-gray-300"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
+          <Select value={completedStatusFilter} onValueChange={(val) => setCompletedStatusFilter(val || 'ALL')}>
+            <SelectTrigger className="w-auto min-w-[130px] rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-300">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Statuses</SelectItem>
+              <SelectItem value="COMPLETED">Completed</SelectItem>
+              <SelectItem value="CANCELLED">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
         )}
       </div>
 
       {/* ── Tables Container ──────────────────────────────────────────────── */}
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs dark:border-gray-800 dark:bg-slate-900">
-        <div className="overflow-x-auto">
+      <Card className="gap-0 overflow-hidden rounded-2xl border-gray-200 bg-white shadow-xs dark:border-gray-800 dark:bg-slate-900">
+        <div className="overflow-hidden">
           {activeTab === 'COMPLETED' ? (
             /* ══════════════════════════════════════════════════════════════════════
                COMPLETED TASKS TABLE
                ══════════════════════════════════════════════════════════════════════ */
-            <table className="w-full text-left text-xs text-gray-600 dark:text-gray-300">
-              <thead className="border-b border-gray-200 bg-slate-50/70 text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:border-gray-800 dark:bg-slate-800/40 dark:text-gray-400">
-                <tr>
-                  <th className="px-4 py-3.5">Care Task</th>
-                  {!isCompact && <th className="px-4 py-3.5">Resident</th>}
-                  <th className="px-4 py-3.5">Completed By</th>
-                  <th className="px-4 py-3.5">Completed At</th>
-                  <th className="px-4 py-3.5">Clinical Remarks / Notes</th>
-                  <th className="px-4 py-3.5 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+            <Table className="w-full text-left text-xs text-gray-600 dark:text-gray-300">
+              <TableHeader className="border-b border-gray-200 bg-slate-50/70 text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:border-gray-800 dark:bg-slate-800/40 dark:text-gray-400">
+                <TableRow>
+                  <TableHead className="px-4 py-3.5">Care Task</TableHead>
+                  {!isCompact && <TableHead className="px-4 py-3.5">Resident</TableHead>}
+                  <TableHead className="px-4 py-3.5">Completed By</TableHead>
+                  <TableHead className="px-4 py-3.5">Completed At</TableHead>
+                  <TableHead className="px-4 py-3.5">Clinical Remarks / Notes</TableHead>
+                  <TableHead className="px-4 py-3.5 text-center">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {isLoadingCompletions ? (
-                  <tr>
-                    <td colSpan={isCompact ? 5 : 6} className="py-12 text-center text-gray-400">
-                      <Loader2 className="mx-auto size-6 animate-spin text-[#005390]" />
+                  <TableRow>
+                    <TableCell colSpan={isCompact ? 5 : 6} className="py-12 text-center text-muted-foreground">
+                      <Loader2 className="mx-auto size-6 animate-spin text-primary" />
                       <p className="mt-2 text-xs">Loading completed care task sessions...</p>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : completions.length === 0 ? (
-                  <tr>
-                    <td colSpan={isCompact ? 5 : 6} className="py-12 text-center text-gray-400">
+                  <TableRow>
+                    <TableCell colSpan={isCompact ? 5 : 6} className="py-12 text-center text-gray-400">
                       <CheckCircle2 className="mx-auto size-8 text-gray-300 dark:text-gray-600" />
                       <p className="mt-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
                         No completed tasks found
@@ -550,8 +549,8 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                         When care tasks are marked as completed, each session record will appear here with full audit
                         details.
                       </p>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   completions.map((completion) => {
                     const taskName = completion.task?.careTaskName || 'Care Task'
@@ -575,12 +574,12 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                       Boolean(completion.assignment?.packageSubscriptionId)
 
                     return (
-                      <tr
+                      <TableRow
                         key={completion.id}
                         className="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/30"
                       >
                         {/* Care Task & Package / Addon Badge */}
-                        <td className="px-4 py-3.5">
+                        <TableCell className="px-4 py-3.5">
                           <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="font-bold text-gray-900 dark:text-white">{taskName}</span>
@@ -596,11 +595,11 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                               )}
                             </div>
                           </div>
-                        </td>
+                        </TableCell>
 
                         {/* Resident (when not compact) */}
                         {!isCompact && (
-                          <td className="px-4 py-3.5">
+                          <TableCell className="px-4 py-3.5">
                             <div className="flex items-center gap-2.5">
                               <div className="flex size-7 items-center justify-center rounded-lg bg-blue-50 text-[#005390] dark:bg-blue-950 dark:text-blue-400 font-bold text-[10px]">
                                 {resName.charAt(0)}
@@ -612,11 +611,11 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                                 </div>
                               </div>
                             </div>
-                          </td>
+                          </TableCell>
                         )}
 
                         {/* Completed By (Nurse / Staff) */}
-                        <td className="px-4 py-3.5">
+                        <TableCell className="px-4 py-3.5">
                           <div className="flex items-center gap-2">
                             <div className="flex size-7 items-center justify-center rounded-full bg-teal-50 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 font-bold text-[10px] border border-teal-200/70 dark:border-teal-800">
                               {nurseName.charAt(0).toUpperCase()}
@@ -626,18 +625,18 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                               <div className="text-[10px] text-gray-400">Clinical Staff</div>
                             </div>
                           </div>
-                        </td>
+                        </TableCell>
 
                         {/* Completed At Timestamp */}
-                        <td className="px-4 py-3.5">
+                        <TableCell className="px-4 py-3.5">
                           <div className="flex items-center gap-1.5 text-gray-800 dark:text-gray-200 font-medium text-xs">
                             <Clock className="size-3.5 text-gray-400 shrink-0" />
                             <span>{formatDisplayDateTime(completion.completedAt)}</span>
                           </div>
-                        </td>
+                        </TableCell>
 
                         {/* Clinical Remarks / Notes & Coverage */}
-                        <td className="px-4 py-3.5">
+                        <TableCell className="px-4 py-3.5">
                           <div className="flex flex-col gap-1 items-start">
                             {completion.description?.includes('Complimentary') ? (
                               <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
@@ -660,47 +659,47 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                               <span className="text-[11px] text-gray-400 italic">No notes recorded</span>
                             )}
                           </div>
-                        </td>
+                        </TableCell>
 
                         {/* Status */}
-                        <td className="px-4 py-3.5 text-center">
+                        <TableCell className="px-4 py-3.5 text-center">
                           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-extrabold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
                             <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400" />
                             COMPLETED
                           </span>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     )
                   })
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           ) : (
             /* ══════════════════════════════════════════════════════════════════════
                ASSIGNED TASKS TABLE (ALL & PENDING TABS)
                ══════════════════════════════════════════════════════════════════════ */
-            <table className="w-full text-left text-xs text-gray-600 dark:text-gray-300">
-              <thead className="border-b border-gray-200 bg-slate-50/70 text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:border-gray-800 dark:bg-slate-800/40 dark:text-gray-400">
-                <tr>
-                  {!isCompact && <th className="px-4 py-3.5">Resident</th>}
-                  <th className="px-4 py-3.5">Care Task</th>
-                  <th className="px-4 py-3.5">Billing Tier & Rate / Quota</th>
-                  <th className="px-4 py-3.5">Schedule & Timing</th>
-                  <th className="px-4 py-3.5 text-center">Status</th>
-                  <th className="px-4 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+            <Table className="w-full text-left text-xs text-gray-600 dark:text-gray-300">
+              <TableHeader className="border-b border-gray-200 bg-slate-50/70 text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:border-gray-800 dark:bg-slate-800/40 dark:text-gray-400">
+                <TableRow>
+                  {!isCompact && <TableHead className="px-4 py-3.5">Resident</TableHead>}
+                  <TableHead className="px-4 py-3.5">Care Task</TableHead>
+                  <TableHead className="px-4 py-3.5">Billing Tier & Rate / Quota</TableHead>
+                  <TableHead className="px-4 py-3.5">Schedule & Timing</TableHead>
+                  <TableHead className="px-4 py-3.5 text-center">Status</TableHead>
+                  <TableHead className="px-4 py-3.5 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {isLoadingAssignments ? (
-                  <tr>
-                    <td colSpan={isCompact ? 5 : 6} className="py-12 text-center text-gray-400">
-                      <Loader2 className="mx-auto size-6 animate-spin text-[#005390]" />
+                  <TableRow>
+                    <TableCell colSpan={isCompact ? 5 : 6} className="py-12 text-center text-muted-foreground">
+                      <Loader2 className="mx-auto size-6 animate-spin text-primary" />
                       <p className="mt-2 text-xs">Loading care task assignments...</p>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : displayedGroupedAssignments.length === 0 ? (
-                  <tr>
-                    <td colSpan={isCompact ? 5 : 6} className="py-12 text-center text-gray-400">
+                  <TableRow>
+                    <TableCell colSpan={isCompact ? 5 : 6} className="py-12 text-center text-gray-400">
                       <HeartHandshake className="mx-auto size-8 text-gray-300 dark:text-gray-600" />
                       <p className="mt-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
                         {activeTab === 'PENDING' ? 'No pending care tasks' : 'No care tasks found'}
@@ -710,8 +709,8 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                           ? 'All assigned tasks have been handled or none are currently active.'
                           : 'Care package bundled tasks and custom assigned tasks will appear here.'}
                       </p>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   displayedGroupedAssignments.map((group, groupIndex) => {
                     const residentOnly =
@@ -740,7 +739,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                     return (
                       <React.Fragment key={group.groupKey}>
                         {/* ── Slot 1 (Primary Task Row) ────────────────── */}
-                        <tr
+                        <TableRow
                           className={cn(
                             'transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30',
                             groupIndex > 0 && 'border-t-2 border-gray-200/90 dark:border-gray-700/80',
@@ -748,7 +747,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                         >
                           {/* Resident (when not compact) */}
                           {!isCompact && (
-                            <td
+                            <TableCell
                               rowSpan={slots.length}
                               className="px-4 py-3.5 align-top border-r border-gray-100/80 dark:border-gray-800/70 bg-white/70 dark:bg-slate-900/70"
                             >
@@ -761,11 +760,11 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                                   <div className="text-[10px] text-gray-400">{group.resident?.phone || 'No phone'}</div>
                                 </div>
                               </div>
-                            </td>
+                            </TableCell>
                           )}
 
                           {/* Care Task Column */}
-                          <td
+                          <TableCell
                             rowSpan={slots.length}
                             className="px-4 py-3.5 align-top border-r border-gray-100/80 dark:border-gray-800/70 bg-white/70 dark:bg-slate-900/70"
                           >
@@ -800,10 +799,10 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                                 </div>
                               )}
                             </div>
-                          </td>
+                          </TableCell>
 
                           {/* Billing Tier & Rate / Quota */}
-                          <td
+                          <TableCell
                             rowSpan={slots.length}
                             className="px-4 py-3.5 align-top border-r border-gray-100/80 dark:border-gray-800/70 bg-white/70 dark:bg-slate-900/70"
                           >
@@ -917,10 +916,10 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                                 )}
                               </div>
                             )}
-                          </td>
+                          </TableCell>
 
                           {/* Schedule & Timing (Slot 1) */}
-                          <td className="px-4 py-3.5 align-middle">
+                          <TableCell className="px-4 py-3.5 align-middle">
                             <div className="flex items-center gap-1.5 text-gray-700 dark:text-gray-300 font-medium text-xs">
                               <Clock className="size-3.5 text-[#005390] dark:text-sky-400 shrink-0" />
                               <span className="font-bold text-gray-900 dark:text-white">
@@ -953,10 +952,10 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                                 • {firstSlot.endDate ? `To: ${formatDisplayDate(firstSlot.endDate)}` : 'Lifetime'}
                               </span>
                             </div>
-                          </td>
+                          </TableCell>
 
                           {/* Status (Slot 1) */}
-                          <td className="px-4 py-3.5 align-middle text-center">
+                          <TableCell className="px-4 py-3.5 align-middle text-center">
                             <span
                               className={cn(
                                 'inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-extrabold',
@@ -971,45 +970,49 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                             >
                               {firstSlot.status}
                             </span>
-                          </td>
+                          </TableCell>
 
                           {/* Actions (Slot 1) */}
-                          <td className="px-4 py-3.5 align-middle text-right">
+                          <TableCell className="px-4 py-3.5 align-middle text-right">
                             <div className="flex items-center justify-end gap-1.5">
                               {firstSlot.status === 'ACTIVE' && (
-                                <button
+                                <Button
                                   type="button"
+                                  variant="ghost"
                                   onClick={() => setCompletingAssignment(firstSlot.rawAssignment)}
-                                  className="inline-flex min-w-[112px] items-center justify-center gap-1.5 rounded-md border border-emerald-700 bg-emerald-600 px-3 py-1.5 text-[11px] font-extrabold text-white shadow-sm transition-colors hover:bg-emerald-700 dark:border-emerald-500 dark:bg-emerald-600 dark:hover:bg-emerald-500 cursor-pointer"
+                                  className="h-auto inline-flex min-w-[112px] items-center justify-center gap-1.5 rounded-md border border-emerald-700 bg-emerald-600 px-3 py-1.5 text-[11px] font-extrabold text-white shadow-sm transition-colors hover:bg-emerald-700 hover:text-white dark:border-emerald-500 dark:bg-emerald-600 dark:hover:bg-emerald-500 cursor-pointer"
                                 >
                                   <CheckCircle2 className="size-3" />
                                   Complete Task
-                                </button>
+                                </Button>
                               )}
 
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
+                                size="icon-xs"
                                 onClick={() => handleDelete(firstSlot.id)}
                                 disabled={deleteMutation.isPending}
-                                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-rose-600 dark:hover:bg-slate-800 cursor-pointer"
+                                className="h-7 w-7 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-rose-600 dark:hover:bg-slate-800 cursor-pointer"
                                 title="Delete Assignment"
+                                aria-label="Delete Assignment"
                               >
                                 <Trash2 className="size-3.5" />
-                              </button>
+                              </Button>
                             </div>
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
 
                         {/* ── Additional Slots for the same task ──────── */}
                         {otherSlots.map((slot, sIdx) => {
                           const slotNum = sIdx + 2
                           return (
-                            <tr
+                            <TableRow
                               key={slot.id}
                               className="border-t border-dashed border-gray-200/70 dark:border-gray-800/60 transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
                             >
                               {/* Schedule & Timing (Subsequent Slot) */}
-                              <td className="px-4 py-3.5 align-middle">
+                              <TableCell className="px-4 py-3.5 align-middle">
                                 <div className="flex items-center gap-1.5 text-gray-700 dark:text-gray-300 font-medium text-xs">
                                   <Clock className="size-3.5 text-[#005390] dark:text-sky-400 shrink-0" />
                                   <span className="font-bold text-gray-900 dark:text-white">
@@ -1037,10 +1040,10 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                                   <span>From: {formatDisplayDate(slot.startDate)}</span>
                                   <span> • {slot.endDate ? `To: ${formatDisplayDate(slot.endDate)}` : 'Lifetime'}</span>
                                 </div>
-                              </td>
+                              </TableCell>
 
                               {/* Status (Subsequent Slot) */}
-                              <td className="px-4 py-3.5 align-middle text-center">
+                              <TableCell className="px-4 py-3.5 align-middle text-center">
                                 <span
                                   className={cn(
                                     'inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-extrabold',
@@ -1055,45 +1058,49 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                                 >
                                   {slot.status}
                                 </span>
-                              </td>
+                              </TableCell>
 
                               {/* Actions (Subsequent Slot) */}
-                              <td className="px-4 py-3.5 align-middle text-right">
+                              <TableCell className="px-4 py-3.5 align-middle text-right">
                                 <div className="flex items-center justify-end gap-1.5">
                                   {slot.status === 'ACTIVE' && (
-                                    <button
+                                    <Button
                                       type="button"
+                                      variant="ghost"
                                       onClick={() => setCompletingAssignment(slot.rawAssignment)}
-                                      className="inline-flex min-w-[112px] items-center justify-center gap-1.5 rounded-md border border-emerald-700 bg-emerald-600 px-3 py-1.5 text-[11px] font-extrabold text-white shadow-sm transition-colors hover:bg-emerald-700 dark:border-emerald-500 dark:bg-emerald-600 dark:hover:bg-emerald-500 cursor-pointer"
+                                      className="h-auto inline-flex min-w-[112px] items-center justify-center gap-1.5 rounded-md border border-emerald-700 bg-emerald-600 px-3 py-1.5 text-[11px] font-extrabold text-white shadow-sm transition-colors hover:bg-emerald-700 hover:text-white dark:border-emerald-500 dark:bg-emerald-600 dark:hover:bg-emerald-500 cursor-pointer"
                                     >
                                       <CheckCircle2 className="size-3" />
                                       Complete Task
-                                    </button>
+                                    </Button>
                                   )}
 
-                                  <button
+                                  <Button
                                     type="button"
+                                    variant="ghost"
+                                    size="icon-xs"
                                     onClick={() => handleDelete(slot.id)}
                                     disabled={deleteMutation.isPending}
-                                    className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-rose-600 dark:hover:bg-slate-800 cursor-pointer"
+                                    className="h-7 w-7 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-rose-600 dark:hover:bg-slate-800 cursor-pointer"
                                     title="Delete Assignment"
+                                    aria-label="Delete Assignment"
                                   >
                                     <Trash2 className="size-3.5" />
-                                  </button>
+                                  </Button>
                                 </div>
-                              </td>
-                            </tr>
+                              </TableCell>
+                            </TableRow>
                           )
                         })}
                       </React.Fragment>
                     )
                   })
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* ── Assign Care Task Modal ─────────────────────────────────────────── */}
       <AssignCareTaskDialog

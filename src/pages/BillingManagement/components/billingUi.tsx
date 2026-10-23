@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import type { InvoiceStatus, MonthBillingStatus } from '@/lib/types/billing'
@@ -97,43 +98,56 @@ export const TablePager = ({
   totalPages: number
   onPage: (page: number) => void
 }) => {
-  const btn = 'rounded-md p-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30'
   return (
     <div className="flex items-center justify-between px-1 pt-4 text-sm text-gray-700">
       <span>
         Page <b>{page}</b> of <b>{Math.max(1, totalPages)}</b>
       </span>
       <div className="flex items-center gap-1">
-        <button type="button" aria-label="First page" className={btn} disabled={page <= 1} onClick={() => onPage(1)}>
-          <ChevronsLeft className="h-4 w-4" />
-        </button>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-xs"
+          aria-label="First page"
+          className="h-7 w-7 rounded-md p-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30"
+          disabled={page <= 1}
+          onClick={() => onPage(1)}
+        >
+          <ChevronsLeft className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
           aria-label="Previous page"
-          className={btn}
+          className="h-7 w-7 rounded-md p-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30"
           disabled={page <= 1}
           onClick={() => onPage(page - 1)}
         >
           <ChevronLeft className="h-4 w-4" />
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-xs"
           aria-label="Next page"
-          className={btn}
+          className="h-7 w-7 rounded-md p-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30"
           disabled={page >= totalPages}
           onClick={() => onPage(page + 1)}
         >
           <ChevronRight className="h-4 w-4" />
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-xs"
           aria-label="Last page"
-          className={btn}
+          className="h-7 w-7 rounded-md p-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30"
           disabled={page >= totalPages}
           onClick={() => onPage(totalPages)}
         >
           <ChevronsRight className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
     </div>
   )

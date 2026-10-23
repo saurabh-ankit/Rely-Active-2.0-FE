@@ -11,7 +11,6 @@ import {
   List,
   User,
   Check,
-  X,
   FileText,
   Receipt,
   IndianRupee,
@@ -28,6 +27,7 @@ import { useLocationContext } from '@/hooks/useLocation'
 import { useDepartmentsQuery } from '@/hooks/react-query/rbac'
 import { useAuth } from '@/hooks/useAuth'
 import apiClient from '@/lib/api/axios'
+import { useTicketStore } from '@/lib/stores/ticketStore'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { getDepartmentManagerType } from '@/utils/departmentManager'
@@ -38,6 +38,14 @@ import { SelectPersonDrawer } from './components/SelectPersonDrawer'
 import { AddInvoiceModal } from './components/AddInvoiceModal'
 import { ConfirmStatusChangeDialog } from './components/ConfirmStatusChangeDialog'
 import { PageHeader } from '@/components/common/PageHeader'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
+import { FullScreenLoader } from '@/components/ui/FullScreenLoader'
 
 interface ParsedCompletion {
   notes: string | null
@@ -178,28 +186,13 @@ function formatTicketDateTime(dateVal?: string | Date | null) {
   return `${day} ${month}, ${time}`
 }
 
-/** Tickets the signed-in user has already opened, so the NEW tag can disappear. */
-const VIEWED_TICKETS_KEY = 'rely_viewed_tickets'
-
-const viewedTicketsStorageKey = (userId?: string | null) => `${VIEWED_TICKETS_KEY}_${userId || 'anon'}`
-
+/** Tickets the signed-in user has already opened, persisted via Zustand store. */
 const readViewedTickets = (userId?: string | null): string[] => {
-  try {
-    const raw = localStorage.getItem(viewedTicketsStorageKey(userId))
-    const parsed = raw ? JSON.parse(raw) : []
-    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : []
-  } catch {
-    return []
-  }
+  return useTicketStore.getState().getViewedTickets(userId)
 }
 
 const writeViewedTickets = (userId: string | undefined | null, ids: string[]) => {
-  try {
-    // Keep the list bounded; only recent tickets can still be new.
-    localStorage.setItem(viewedTicketsStorageKey(userId), JSON.stringify(ids.slice(-500)))
-  } catch {
-    // Private mode or storage disabled - the tag just keeps showing.
-  }
+  ids.forEach((id) => useTicketStore.getState().markTicketAsViewed(userId, id))
 }
 
 /** Used only until the real departments and job categories load. */
@@ -720,31 +713,24 @@ export default function TicketsPage() {
         actions={
           <>
             {canCreateTicket && (
-              <button
+              <Button
                 type="button"
                 onClick={() => setIsCreateModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-[#005390] hover:bg-[#004273] text-white text-sm font-semibold rounded-xl transition-all cursor-pointer shadow-xs"
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#005390] hover:bg-[#004273] text-white text-sm font-semibold rounded-xl transition-all cursor-pointer shadow-xs h-auto"
               >
                 <Plus className="w-4 h-4" /> Add New Ticket
-              </button>
+              </Button>
             )}
 
             {canUpdateTicket && (
               <div className="flex items-center gap-2.5 bg-white px-3.5 py-2 rounded-xl border border-gray-200 shadow-2xs">
                 <span className="text-xs font-semibold text-gray-700">Automate Tickets</span>
-                <button
-                  type="button"
-                  onClick={() => setAutomateTickets(!automateTickets)}
-                  className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    automateTickets ? 'bg-[#005390]' : 'bg-gray-200'
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                      automateTickets ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
+                <Switch
+                  checked={automateTickets}
+                  onCheckedChange={setAutomateTickets}
+                  aria-label="Toggle automate tickets"
+                  className="data-checked:bg-[#005390]"
+                />
               </div>
             )}
           </>
@@ -752,55 +738,53 @@ export default function TicketsPage() {
       />
 
       {/* Main Workspace Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[520px]">
+        <FullScreenLoader fullScreen={false} isVisible={isLoading} message="Loading tickets..." />
+
         {/* Left Column: Tickets Queue List (4 cols) */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-13rem)] min-h-[520px]">
+        <Card className="gap-0 lg:col-span-4 bg-white rounded-2xl border-gray-200 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-13rem)] min-h-[520px]">
           {/* Tab Filter Header with Primary Brand Blue */}
-          <div className="grid grid-cols-4 border-b border-gray-200 text-center font-bold text-[11px]">
-            <button
-              type="button"
-              onClick={() => setActiveTab('OPEN')}
-              className={`py-3.5 transition-colors cursor-pointer border-b-2 font-bold ${
-                activeTab === 'OPEN'
-                  ? 'bg-[#005390] text-white border-[#005390]'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-transparent'
-              }`}
+          <div className="relative z-30 p-2 border-b border-gray-100 bg-gray-50/50">
+            <Tabs
+              value={activeTab}
+              onValueChange={(val) => {
+                const nextTab = val as 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED'
+                if (nextTab !== activeTab) {
+                  setIsLoading(true)
+                  setActiveTab(nextTab)
+                }
+              }}
+              className="w-full gap-0"
             >
-              Open
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('IN_PROGRESS')}
-              className={`py-3.5 transition-colors cursor-pointer border-b-2 font-bold ${
-                activeTab === 'IN_PROGRESS'
-                  ? 'bg-[#005390] text-white border-[#005390]'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-transparent'
-              }`}
-            >
-              In Progress
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('COMPLETED')}
-              className={`py-3.5 transition-colors cursor-pointer border-b-2 font-bold ${
-                activeTab === 'COMPLETED'
-                  ? 'bg-[#005390] text-white border-[#005390]'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-transparent'
-              }`}
-            >
-              Completed
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('CLOSED')}
-              className={`py-3.5 transition-colors cursor-pointer border-b-2 font-bold ${
-                activeTab === 'CLOSED'
-                  ? 'bg-[#005390] text-white border-[#005390]'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-transparent'
-              }`}
-            >
-              Closed
-            </button>
+              <div className="rounded-2xl bg-card text-card-foreground/70 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100/80">
+                <TabsList className="grid grid-cols-4 w-full h-auto p-0 bg-transparent gap-1">
+                  <TabsTrigger
+                    value="OPEN"
+                    className="flex h-8 items-center justify-center rounded-xl px-2 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                  >
+                    Open
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="IN_PROGRESS"
+                    className="flex h-8 items-center justify-center rounded-xl px-2 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                  >
+                    In Progress
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="COMPLETED"
+                    className="flex h-8 items-center justify-center rounded-xl px-2 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                  >
+                    Completed
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="CLOSED"
+                    className="flex h-8 items-center justify-center rounded-xl px-2 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                  >
+                    Closed
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+            </Tabs>
           </div>
 
           {/* Tickets Scroll List */}
@@ -830,16 +814,20 @@ export default function TicketsPage() {
                     : t.createdAt
 
                 return (
-                  <button
+                  <Button
                     key={t.id}
                     type="button"
+                    variant="ghost"
                     onClick={() => {
                       setSelectedTicket(t)
                       markTicketViewed(t.id)
                     }}
-                    className={`w-full text-left p-4 transition-all cursor-pointer relative ${
-                      isSelected ? 'bg-[#005390] text-white shadow-2xs' : 'bg-white text-gray-900 hover:bg-gray-50'
-                    }`}
+                    className={cn(
+                      'w-full text-left justify-start items-stretch flex flex-col h-auto p-4 transition-all cursor-pointer relative rounded-none border-b border-gray-100 last:border-b-0 whitespace-normal font-normal',
+                      isSelected
+                        ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
+                        : 'bg-white text-gray-900 hover:bg-gray-50 hover:text-gray-900',
+                    )}
                   >
                     <div className="flex items-center justify-between text-xs font-mono mb-1">
                       <div className="flex items-center gap-1.5 min-w-0">
@@ -954,15 +942,15 @@ export default function TicketsPage() {
                           </span>
                         ))}
                     </div>
-                  </button>
+                  </Button>
                 )
               })
             )}
           </div>
-        </div>
+        </Card>
 
         {/* Right Column: Ticket Workspace Detail (8 cols) */}
-        <div className="lg:col-span-8 bg-white rounded-2xl border border-gray-200 shadow-sm p-6 h-[calc(100vh-13rem)] min-h-[520px] relative flex flex-col overflow-y-auto">
+        <Card className="gap-0 lg:col-span-8 bg-white rounded-2xl border-gray-200 shadow-sm p-6 h-[calc(100vh-13rem)] min-h-[520px] relative flex flex-col overflow-y-auto">
           {selectedTicket ? (
             isClosedView ? (
               /* CLOSED TICKET VIEW MATCHING SCREENSHOT */
@@ -1128,15 +1116,15 @@ export default function TicketsPage() {
                       <span className="text-xs font-semibold text-amber-900">
                         Review the resident request and the staff completion report below, then verify.
                       </span>
-                      <button
+                      <Button
                         type="button"
                         onClick={handleVerifyTicket}
                         disabled={verifying}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-bold rounded-xl shadow-2xs transition-colors cursor-pointer flex-shrink-0"
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-bold rounded-xl shadow-2xs transition-colors cursor-pointer flex-shrink-0 h-auto"
                       >
                         <ShieldCheck className="w-4 h-4" />
                         {verifying ? 'Verifying…' : 'Verify & Close Ticket'}
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -1224,17 +1212,17 @@ export default function TicketsPage() {
 
                 {/* Readonly Description Box */}
                 <div className="pt-2">
-                  <textarea
+                  <Textarea
                     rows={2}
                     readOnly
                     value={selectedTicket.title || selectedTicket.description || 'Hello'}
-                    className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-800 focus:outline-none resize-none shadow-2xs"
+                    className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-800 focus-visible:outline-none focus-visible:ring-0 resize-none shadow-2xs"
                   />
                 </div>
 
                 {/* Resident's request: photos and voice notes attached when raising the ticket */}
                 {requestMedia && (
-                  <div className="rounded-2xl border border-blue-200/80 bg-gradient-to-b from-blue-50/40 via-white to-blue-50/20 p-5 space-y-4 shadow-2xs">
+                  <Card className="gap-0 rounded-2xl border-blue-200/80 bg-gradient-to-b from-blue-50/40 via-white to-blue-50/20 p-5 space-y-4 shadow-2xs">
                     <div className="flex items-center gap-2.5 border-b border-blue-100 pb-3">
                       <div className="p-2 rounded-xl bg-blue-100 text-[#005390]">
                         <User className="w-5 h-5" />
@@ -1283,10 +1271,11 @@ export default function TicketsPage() {
                         </span>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 pt-1">
                           {requestMedia.photos.map((photoUrl, idx) => (
-                            <button
+                            <Button
                               type="button"
+                              variant="ghost"
                               key={`${photoUrl}-${idx}`}
-                              className="relative group rounded-xl overflow-hidden border border-gray-200 shadow-2xs aspect-video cursor-pointer bg-gray-100 p-0 text-left w-full block"
+                              className="relative group rounded-xl overflow-hidden border border-gray-200 shadow-2xs aspect-video cursor-pointer bg-gray-100 p-0 text-left w-full h-auto block hover:bg-gray-100"
                               onClick={() => setPreviewMediaUrl(photoUrl)}
                             >
                               <img
@@ -1297,12 +1286,12 @@ export default function TicketsPage() {
                               <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
                                 <Eye className="w-5 h-5" />
                               </div>
-                            </button>
+                            </Button>
                           ))}
                         </div>
                       </div>
                     )}
-                  </div>
+                  </Card>
                 )}
 
                 {/* Work Resolution & Completion Section (Invoice, Voice Note, Photos, Notes) */}
@@ -1311,7 +1300,7 @@ export default function TicketsPage() {
                   if (!completionData) return null
 
                   return (
-                    <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-b from-emerald-50/40 via-white to-emerald-50/20 p-5 space-y-4 shadow-2xs">
+                    <Card className="gap-0 rounded-2xl border-emerald-200/90 bg-gradient-to-b from-emerald-50/40 via-white to-emerald-50/20 p-5 space-y-4 shadow-2xs">
                       {/* Header with completion banner & invoice amount */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-100 pb-3">
                         <div className="flex items-center gap-2.5">
@@ -1395,8 +1384,9 @@ export default function TicketsPage() {
                           </span>
                           <div className="p-3 bg-white rounded-xl border border-gray-200 shadow-2xs flex items-center justify-between gap-3">
                             <div className="flex items-center gap-3 min-w-0">
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
                                 onClick={() => setPreviewMediaUrl(completionData.invoiceUrl)}
                                 className="w-14 h-14 rounded-xl border border-gray-200 overflow-hidden cursor-pointer hover:opacity-85 transition-opacity shadow-2xs p-0 bg-transparent flex-shrink-0"
                               >
@@ -1405,7 +1395,7 @@ export default function TicketsPage() {
                                   alt="Invoice Preview"
                                   className="w-full h-full object-cover"
                                 />
-                              </button>
+                              </Button>
                               <div className="min-w-0">
                                 <h4 className="text-xs font-bold text-gray-900 truncate">
                                   {completionData.invoiceNumber
@@ -1415,13 +1405,15 @@ export default function TicketsPage() {
                                 <p className="text-[10px] text-gray-500 mt-0.5">Click to preview full invoice bill</p>
                               </div>
                             </div>
-                            <button
+                            <Button
                               type="button"
+                              variant="outline"
+                              size="sm"
                               onClick={() => setPreviewMediaUrl(completionData.invoiceUrl)}
-                              className="px-3 py-1.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-xs font-bold text-gray-700 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+                              className="px-3 py-1.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-xs font-bold text-gray-700 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors h-auto"
                             >
                               <Eye className="w-3.5 h-3.5 text-gray-500" /> View Invoice
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       )}
@@ -1435,10 +1427,11 @@ export default function TicketsPage() {
                           </span>
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 pt-1">
                             {completionData.photos.map((photoUrl, idx) => (
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
                                 key={idx}
-                                className="relative group rounded-xl overflow-hidden border border-gray-200 shadow-2xs aspect-video cursor-pointer bg-gray-100 p-0 text-left w-full block"
+                                className="relative group rounded-xl overflow-hidden border border-gray-200 shadow-2xs aspect-video cursor-pointer bg-gray-100 p-0 text-left w-full h-auto block hover:bg-gray-100"
                                 onClick={() => setPreviewMediaUrl(photoUrl)}
                               >
                                 <img
@@ -1449,18 +1442,18 @@ export default function TicketsPage() {
                                 <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
                                   <Eye className="w-5 h-5" />
                                 </div>
-                              </button>
+                              </Button>
                             ))}
                           </div>
                         </div>
                       )}
-                    </div>
+                    </Card>
                   )
                 })()}
 
                 {/* Resident Feedback on the completed work */}
                 {selectedTicket.feedback && (
-                  <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-2xs space-y-3">
+                  <Card className="gap-0 bg-white rounded-2xl border-gray-200/80 p-4 shadow-2xs space-y-3">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="text-xs font-extrabold text-gray-900 tracking-wide uppercase flex items-center gap-2">
                         <MessageSquare className="w-4 h-4 text-[#005390]" />
@@ -1487,7 +1480,7 @@ export default function TicketsPage() {
                         ? ` · ${new Date(selectedTicket.feedback.createdAt).toLocaleString()}`
                         : ''}
                     </div>
-                  </div>
+                  </Card>
                 )}
               </div>
             ) : isInProgressView ? (
@@ -1519,16 +1512,17 @@ export default function TicketsPage() {
                   </div>
 
                   {/* Status Badge Dropdown */}
-                  <select
-                    value={selectedTicket.status}
-                    onChange={(e) => setPendingStatus(e.target.value as TicketStatus)}
-                    className="px-3 py-1.5 bg-amber-50/90 text-amber-800 border border-amber-200 rounded-xl text-xs font-extrabold focus:outline-none cursor-pointer shadow-2xs"
-                  >
-                    <option value="OPEN">Open</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="RESOLVED">Completed</option>
-                    <option value="CLOSED">Closed</option>
-                  </select>
+                  <Select value={selectedTicket.status} onValueChange={(val) => setPendingStatus(val as TicketStatus)}>
+                    <SelectTrigger className="px-3 py-1.5 bg-amber-50/90 text-amber-800 border border-amber-200 rounded-xl text-xs font-extrabold shadow-2xs h-auto w-auto">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="OPEN">Open</SelectItem>
+                      <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                      <SelectItem value="RESOLVED">Completed</SelectItem>
+                      <SelectItem value="CLOSED">Closed</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Progress Stepper Tracker Box styled with primary brand blue */}
@@ -1763,10 +1757,11 @@ export default function TicketsPage() {
                           </div>
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 pt-1">
                             {media.photos.map((photoUrl: string, idx: number) => (
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
                                 key={idx}
-                                className="relative group rounded-xl overflow-hidden border border-gray-200 shadow-2xs aspect-video cursor-pointer bg-gray-100 p-0 text-left w-full block"
+                                className="relative group rounded-xl overflow-hidden border border-gray-200 shadow-2xs aspect-video cursor-pointer bg-gray-100 p-0 text-left w-full h-auto block hover:bg-gray-100"
                                 onClick={() => setPreviewMediaUrl(photoUrl)}
                               >
                                 <img
@@ -1777,7 +1772,7 @@ export default function TicketsPage() {
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
                                   <Eye className="w-5 h-5" />
                                 </div>
-                              </button>
+                              </Button>
                             ))}
                           </div>
                         </div>
@@ -1833,13 +1828,15 @@ export default function TicketsPage() {
                     <span className="text-gray-500 font-semibold">TAT :</span>
                     <span className="font-bold text-gray-900">{selectedTicket.tatOption || '1-2 hour'}</span>
                     {canUpdateTicket && (
-                      <button
+                      <Button
                         type="button"
+                        variant="link"
+                        size="sm"
                         onClick={() => setIsTatModalOpen(true)}
-                        className="text-[#005390] hover:underline font-bold text-xs cursor-pointer ml-2"
+                        className="text-[#005390] hover:underline font-bold text-xs cursor-pointer ml-2 p-0 h-auto"
                       >
                         Change TAT
-                      </button>
+                      </Button>
                     )}
                   </div>
 
@@ -1848,13 +1845,15 @@ export default function TicketsPage() {
                     <span className="text-gray-500 font-semibold">Assigned :</span>
                     <span className="font-bold text-gray-900">{assignedName}</span>
                     {canUpdateTicket && (
-                      <button
+                      <Button
                         type="button"
+                        variant="link"
+                        size="sm"
                         onClick={() => setIsAssignDrawerOpen(true)}
-                        className="text-[#005390] hover:underline font-bold text-xs cursor-pointer ml-2"
+                        className="text-[#005390] hover:underline font-bold text-xs cursor-pointer ml-2 p-0 h-auto"
                       >
                         Change Assignee
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -1862,13 +1861,14 @@ export default function TicketsPage() {
                 {/* Add Invoice Details CTA Button styled with primary color */}
                 {canUpdateTicket && (
                   <div className="pt-6">
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
                       onClick={() => setIsInvoiceModalOpen(true)}
-                      className="w-full py-3.5 border-2 border-[#005390] text-[#005390] hover:bg-blue-50/60 rounded-xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-2xs"
+                      className="w-full py-3.5 h-auto border-2 border-[#005390] text-[#005390] hover:bg-blue-50/60 rounded-xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-2xs"
                     >
                       <Plus className="w-4 h-4" /> Add Invoice Details
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -1894,19 +1894,25 @@ export default function TicketsPage() {
                           Escalated
                         </span>
                       )}
-                      <select
+                      <Select
                         value={selectedTicket.status}
-                        onChange={(e) => setPendingStatus(e.target.value as TicketStatus)}
+                        onValueChange={(val) => setPendingStatus(val as TicketStatus)}
                         disabled={!canUpdateTicket}
-                        className={`px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-xs font-bold focus:outline-none ${
-                          canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'
-                        }`}
                       >
-                        <option value="OPEN">Open</option>
-                        <option value="IN_PROGRESS">In Progress</option>
-                        <option value="RESOLVED">Completed</option>
-                        <option value="CLOSED">Closed</option>
-                      </select>
+                        <SelectTrigger
+                          className={`px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-xs font-bold h-auto w-auto ${
+                            !canUpdateTicket ? 'cursor-not-allowed opacity-75' : ''
+                          }`}
+                        >
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="OPEN">Open</SelectItem>
+                          <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                          <SelectItem value="RESOLVED">Completed</SelectItem>
+                          <SelectItem value="CLOSED">Closed</SelectItem>
+                        </SelectContent>
+                      </Select>
 
                       {isSelfAssigned && (
                         <span className="px-2.5 py-1 bg-blue-50 text-[#005390] border border-blue-200 rounded-lg text-xs font-bold">
@@ -2003,10 +2009,11 @@ export default function TicketsPage() {
                           </div>
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 pt-1">
                             {media.photos.map((photoUrl: string, idx: number) => (
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
                                 key={idx}
-                                className="relative group rounded-xl overflow-hidden border border-gray-200 shadow-2xs aspect-video cursor-pointer bg-gray-100 p-0 text-left w-full block"
+                                className="relative group rounded-xl overflow-hidden border border-gray-200 shadow-2xs aspect-video cursor-pointer bg-gray-100 p-0 text-left w-full h-auto block hover:bg-gray-100"
                                 onClick={() => setPreviewMediaUrl(photoUrl)}
                               >
                                 <img
@@ -2017,7 +2024,7 @@ export default function TicketsPage() {
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
                                   <Eye className="w-5 h-5" />
                                 </div>
-                              </button>
+                              </Button>
                             ))}
                           </div>
                         </div>
@@ -2044,18 +2051,20 @@ export default function TicketsPage() {
                         dept.code === ticketDepartmentCode
 
                       return (
-                        <button
+                        <Button
                           key={dept.id}
                           type="button"
+                          variant="ghost"
                           disabled
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-not-allowed ${
+                          className={cn(
+                            'px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all cursor-not-allowed',
                             isSelected
-                              ? 'bg-[#005390] text-white shadow-2xs'
-                              : 'bg-gray-100/70 text-gray-400 opacity-60'
-                          }`}
+                              ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
+                              : 'bg-gray-100/70 text-gray-400 opacity-60 hover:bg-gray-100/70',
+                          )}
                         >
                           {dept.name}
-                        </button>
+                        </Button>
                       )
                     })}
                   </div>
@@ -2088,18 +2097,20 @@ export default function TicketsPage() {
                         )
 
                       return (
-                        <button
+                        <Button
                           key={sub.id}
                           type="button"
+                          variant="ghost"
                           disabled
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-not-allowed ${
+                          className={cn(
+                            'px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all cursor-not-allowed',
                             isSelected
-                              ? 'bg-[#005390] text-white shadow-2xs'
-                              : 'bg-gray-100/70 text-gray-400 opacity-60'
-                          }`}
+                              ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
+                              : 'bg-gray-100/70 text-gray-400 opacity-60 hover:bg-gray-100/70',
+                          )}
                         >
                           {sub.name}
-                        </button>
+                        </Button>
                       )
                     })}
                   </div>
@@ -2120,21 +2131,22 @@ export default function TicketsPage() {
                       const isSelected = selectedTicket.priority === p.key
 
                       return (
-                        <button
+                        <Button
                           key={p.key}
                           type="button"
+                          variant="ghost"
                           disabled={!canUpdateTicket}
                           onClick={() => canUpdateTicket && handleUpdateOption({ priority: p.key as TicketPriority })}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                            canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed'
-                          } ${
+                          className={cn(
+                            'px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all',
+                            canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed',
                             isSelected
-                              ? 'bg-[#005390] text-white shadow-2xs'
-                              : 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100'
-                          }`}
+                              ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
+                              : 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100',
+                          )}
                         >
                           {p.label}
-                        </button>
+                        </Button>
                       )
                     })}
                   </div>
@@ -2150,21 +2162,22 @@ export default function TicketsPage() {
                       const isSelected = selectedTicket.tatOption === tat
 
                       return (
-                        <button
+                        <Button
                           key={tat}
                           type="button"
+                          variant="ghost"
                           disabled={!canUpdateTicket}
                           onClick={() => canUpdateTicket && handleUpdateOption({ tatOption: tat })}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                            canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed'
-                          } ${
+                          className={cn(
+                            'px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all',
+                            canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed',
                             isSelected
-                              ? 'bg-[#005390] text-white shadow-2xs'
-                              : 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100'
-                          }`}
+                              ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
+                              : 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100',
+                          )}
                         >
                           {tat}
-                        </button>
+                        </Button>
                       )
                     })}
                   </div>
@@ -2173,22 +2186,22 @@ export default function TicketsPage() {
                 {/* Action Buttons */}
                 {canUpdateTicket && (
                   <div className="pt-4 flex flex-wrap items-center gap-3">
-                    <button
+                    <Button
                       type="button"
                       onClick={() => setIsAssignDrawerOpen(true)}
-                      className="px-5 py-2.5 bg-[#005390] hover:bg-[#004273] text-white text-xs font-extrabold rounded-xl flex items-center gap-2 transition-colors cursor-pointer shadow-sm"
+                      className="px-5 py-2.5 h-auto bg-[#005390] hover:bg-[#004273] text-white text-xs font-extrabold rounded-xl flex items-center gap-2 transition-colors cursor-pointer shadow-sm"
                     >
                       <UserPlus className="w-4 h-4" /> Assign Person
-                    </button>
+                    </Button>
 
                     {isSelfAssigned && selectedTicket.status !== 'CLOSED' && (
-                      <button
+                      <Button
                         type="button"
                         onClick={() => handleUpdateOption({ status: 'CLOSED' })}
-                        className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+                        className="px-5 py-2.5 h-auto bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-sm"
                       >
                         <CheckCircle2 className="w-4 h-4" /> Close Ticket
-                      </button>
+                      </Button>
                     )}
                   </div>
                 )}
@@ -2235,7 +2248,7 @@ export default function TicketsPage() {
               </p>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* Modals & Drawers */}
@@ -2263,72 +2276,66 @@ export default function TicketsPage() {
       />
 
       {/* Change TAT Modal */}
-      {isTatModalOpen && selectedTicket && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-5 space-y-4 border border-gray-100 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h3 className="text-sm font-bold text-gray-900">Change TAT SLA</h3>
-              <button
-                type="button"
-                onClick={() => setIsTatModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      <Dialog
+        open={Boolean(isTatModalOpen && selectedTicket)}
+        onOpenChange={(open) => {
+          if (!open) setIsTatModalOpen(false)
+        }}
+      >
+        {isTatModalOpen && selectedTicket && (
+          <DialogContent className="sm:max-w-sm p-5 space-y-4">
+            <DialogHeader className="border-b pb-3 pr-8">
+              <DialogTitle className="text-sm font-bold text-gray-900">Change TAT SLA</DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Set expected resolution time for ticket #{selectedTicket.ticketNumber}
+              </DialogDescription>
+            </DialogHeader>
             <div className="grid grid-cols-2 gap-2">
               {['30 mins', '1-2 hour', '2-5 hours', 'Custom'].map((option) => (
-                <button
+                <Button
                   key={option}
                   type="button"
+                  variant="outline"
                   onClick={() => {
                     handleUpdateOption({ tatOption: option })
                     setIsTatModalOpen(false)
                   }}
-                  className={`p-3 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
+                  className={cn(
+                    'p-3 h-auto rounded-xl border text-xs font-bold cursor-pointer transition-all',
                     selectedTicket.tatOption === option
-                      ? 'border-[#005390] bg-blue-50 text-[#005390]'
-                      : 'border-gray-200 hover:bg-gray-50 text-gray-700'
-                  }`}
+                      ? 'border-[#005390] bg-blue-50 text-[#005390] hover:bg-blue-100 hover:text-[#005390]'
+                      : 'border-gray-200 hover:bg-gray-50 text-gray-700',
+                  )}
                 >
                   {option}
-                </button>
+                </Button>
               ))}
             </div>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
 
       {/* Lightbox Image Preview Modal */}
-      {previewMediaUrl && (
-        <div
-          role="button"
-          tabIndex={0}
-          aria-label="Close preview"
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setPreviewMediaUrl(null)
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape' || e.key === 'Enter') setPreviewMediaUrl(null)
-          }}
-        >
-          <div className="relative max-w-4xl max-h-[90vh] bg-white rounded-2xl overflow-hidden shadow-2xl p-2">
-            <button
-              type="button"
-              onClick={() => setPreviewMediaUrl(null)}
-              className="absolute top-4 right-4 p-2 rounded-full bg-black/70 text-white hover:bg-black/90 z-10 transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+      <Dialog
+        open={Boolean(previewMediaUrl)}
+        onOpenChange={(open) => {
+          if (!open) setPreviewMediaUrl(null)
+        }}
+      >
+        {previewMediaUrl && (
+          <DialogContent className="sm:max-w-4xl p-2 bg-background border overflow-hidden">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Image Preview</DialogTitle>
+              <DialogDescription>Enlarged ticket attachment preview</DialogDescription>
+            </DialogHeader>
             <img
               src={previewMediaUrl}
               alt="Enlarged preview"
               className="w-full max-h-[82vh] object-contain rounded-xl"
             />
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
 
       <ConfirmStatusChangeDialog
         ticketNumber={selectedTicket?.ticketNumber}
@@ -2341,3 +2348,5 @@ export default function TicketsPage() {
     </div>
   )
 }
+
+export { TicketsPage }

@@ -1,9 +1,7 @@
 import { deleteToken, getMessaging, getToken, isSupported, onMessage, type MessagePayload } from 'firebase/messaging'
 import { getApp, getApps, initializeApp } from 'firebase/app'
 import { registerNotificationDeviceAPI, unregisterNotificationDeviceAPI } from '@/lib/services/notificationService'
-
-const REGISTERED_FCM_TOKEN_KEY = 'rely_active_web_push_token'
-const WEB_PUSH_DEVICE_ID_KEY = 'rely_active_web_push_device_id'
+import { usePushStore } from '@/lib/stores/pushStore'
 
 interface FirebaseWebConfig {
   apiKey: string
@@ -45,7 +43,7 @@ function getVapidKey(): string {
 }
 
 function getOrCreateDeviceId(): string {
-  const existing = window.localStorage.getItem(WEB_PUSH_DEVICE_ID_KEY)
+  const existing = usePushStore.getState().deviceId
   if (existing) {
     return existing
   }
@@ -55,7 +53,7 @@ function getOrCreateDeviceId(): string {
       ? crypto.randomUUID()
       : `web-${Math.random().toString(36).slice(2)}-${Date.now()}`
 
-  window.localStorage.setItem(WEB_PUSH_DEVICE_ID_KEY, generated)
+  usePushStore.getState().setDeviceId(generated)
   return generated
 }
 
@@ -133,12 +131,12 @@ export async function ensureWebPushRegistration(authToken?: string): Promise<str
     authToken,
   )
 
-  window.localStorage.setItem(REGISTERED_FCM_TOKEN_KEY, fcmToken)
+  usePushStore.getState().setRegisteredFcmToken(fcmToken)
   return fcmToken
 }
 
 export async function unregisterWebPushToken(authToken?: string): Promise<void> {
-  const storedToken = window.localStorage.getItem(REGISTERED_FCM_TOKEN_KEY)
+  const storedToken = usePushStore.getState().registeredFcmToken
 
   if (storedToken) {
     await unregisterNotificationDeviceAPI(
@@ -159,7 +157,7 @@ export async function unregisterWebPushToken(authToken?: string): Promise<void> 
     }
   }
 
-  window.localStorage.removeItem(REGISTERED_FCM_TOKEN_KEY)
+  usePushStore.getState().setRegisteredFcmToken(null)
 }
 
 export async function unregisterWebPushTokenSafe(authToken?: string): Promise<void> {

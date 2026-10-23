@@ -1,11 +1,15 @@
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Edit2, Plus, Trash2, X } from 'lucide-react'
+import { Edit2, Plus, Trash2 } from 'lucide-react'
 import { z } from 'zod'
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import {
   createAmenityAPI,
@@ -181,18 +185,19 @@ export function AmenitiesTab() {
         accessorKey: 'isActive',
         header: 'Status',
         cell: ({ row }) => (
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => handleToggleStatus(row.original)}
-            className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors cursor-pointer ${
+            className={`px-2.5 py-1 h-auto rounded-full text-[11px] font-bold transition-colors cursor-pointer ${
               row.original.isActive
-                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-700'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-500'
             }`}
             title={row.original.isActive ? 'Click to deactivate' : 'Click to activate'}
           >
             {row.original.isActive ? 'Active' : 'Inactive'}
-          </button>
+          </Button>
         ),
       },
       {
@@ -200,22 +205,28 @@ export function AmenitiesTab() {
         header: () => <div className="text-right">Actions</div>,
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => handleOpenEdit(row.original)}
               className="p-2 rounded-lg text-[#005390] hover:bg-blue-50 transition-colors cursor-pointer"
               title="Edit amenity"
+              aria-label="Edit amenity"
             >
               <Edit2 className="w-4 h-4" />
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => handleDelete(row.original)}
               className="p-2 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
               title="Delete amenity"
+              aria-label="Delete amenity"
             >
               <Trash2 className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         ),
       },
@@ -233,30 +244,27 @@ export function AmenitiesTab() {
           placeholder="Search amenities by name or description"
           className="sm:max-w-sm"
         />
-        <button
+        <Button
           type="button"
           onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#005390] px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#004274]"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#005390] px-4 py-2 h-auto text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#004274] cursor-pointer"
         >
           <Plus className="h-4 w-4" /> Add Amenity
-        </button>
+        </Button>
       </div>
 
       <DataTable columns={columns} data={filtered} isLoading={loading} pageSize={10} />
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-          <div className="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
-              <h3 className="text-sm font-bold text-gray-900">{editing ? 'Edit Amenity' : 'Create Amenity'}</h3>
-              <button
-                type="button"
-                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-                onClick={() => setIsModalOpen(false)}
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" />
-              </button>
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        {isModalOpen && (
+          <DialogContent className="sm:max-w-2xl p-0 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5 pr-12">
+              <DialogHeader>
+                <DialogTitle className="text-sm font-bold text-gray-900">
+                  {editing ? 'Edit Amenity' : 'Create Amenity'}
+                </DialogTitle>
+                <DialogDescription className="sr-only">Configure community amenity details</DialogDescription>
+              </DialogHeader>
             </div>
 
             <form className="space-y-4 px-5 py-4" onSubmit={handleSubmit(onSubmit)}>
@@ -268,29 +276,29 @@ export function AmenitiesTab() {
 
               <div className="grid gap-4">
                 <div>
-                  <label
+                  <Label
                     htmlFor="amenity-name"
                     className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-600"
                   >
                     Amenity Name *
-                  </label>
+                  </Label>
                   <Input id="amenity-name" {...register('name')} placeholder="e.g. Swimming Pool" />
                   {errors.name && <p className="mt-1 text-[11px] font-medium text-rose-600">{errors.name.message}</p>}
                 </div>
               </div>
 
               <div>
-                <label
+                <Label
                   htmlFor="amenity-description"
                   className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-600"
                 >
                   Description
-                </label>
-                <textarea
+                </Label>
+                <Textarea
                   id="amenity-description"
                   {...register('description')}
                   rows={3}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus-visible:border-[#005390] focus-visible:ring-2 focus-visible:ring-[#005390]/20"
                   placeholder="Optional details for admins and staff"
                 />
                 {errors.description && (
@@ -303,39 +311,41 @@ export function AmenitiesTab() {
                   <p className="text-[11px] font-bold uppercase tracking-wider text-gray-600">Quick suggestions</p>
                   <div className="flex flex-wrap gap-2">
                     {availableSuggestions.map((item) => (
-                      <button
+                      <Button
                         key={item}
                         type="button"
+                        variant="ghost"
                         onClick={() => setValue('name', item, { shouldValidate: true })}
-                        className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-semibold text-gray-700 hover:border-[#005390]/30 hover:bg-[#005390]/10 hover:text-[#005390]"
+                        className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 h-auto text-[11px] font-semibold text-gray-700 hover:border-[#005390]/30 hover:bg-[#005390]/10 hover:text-[#005390] cursor-pointer"
                       >
                         {item}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
               )}
 
               <div className="flex items-center justify-end gap-2 border-t border-gray-100 pt-3">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setIsModalOpen(false)}
-                  className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                  className="rounded-lg border border-gray-200 px-3 py-2 h-auto text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={saving}
-                  className="rounded-lg bg-[#005390] px-4 py-2 text-xs font-bold text-white hover:bg-[#004274] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-lg bg-[#005390] px-4 py-2 h-auto text-xs font-bold text-white hover:bg-[#004274] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
                 >
                   {saving ? 'Saving...' : editing ? 'Update Amenity' : 'Create Amenity'}
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   )
 }

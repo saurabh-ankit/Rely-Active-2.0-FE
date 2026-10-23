@@ -36,6 +36,8 @@ import { PackagesTab } from './components/PackagesTab'
 import { GstTaxSettingsTab } from './components/GstTaxSettingsTab'
 import { AmenitiesTab } from './components/AmenitiesTab'
 import { PageHeader } from '@/components/common/PageHeader'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 
 interface SettingItem {
   id: string
@@ -320,13 +322,14 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
   if (activeView === 'fnb-meal-slots') {
     return (
       <div className="space-y-6 pb-10">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </button>
+        </Button>
         <FnbGlobalMealSlotsTab />
       </div>
     )
@@ -335,13 +338,14 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
   if (activeView === 'fnb-packages') {
     return (
       <div className="space-y-6 pb-10">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </button>
+        </Button>
         <FnbGlobalPackagesTab />
       </div>
     )
@@ -350,13 +354,14 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
   if (activeView === 'fnb-dishes') {
     return (
       <div className="space-y-6 pb-10">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </button>
+        </Button>
         <FnbDishesMasterTab />
       </div>
     )
@@ -365,13 +370,14 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
   if (activeView === 'specializations') {
     return (
       <div className="space-y-6 pb-10">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </button>
+        </Button>
         <SpecializationsTab />
       </div>
     )
@@ -380,13 +386,14 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
   if (activeView === 'vitals') {
     return (
       <div className="space-y-6 pb-10">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </button>
+        </Button>
         <VitalsTab />
       </div>
     )
@@ -395,13 +402,14 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
   if (activeView === 'lab-tests') {
     return (
       <div className="space-y-6 pb-10">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </button>
+        </Button>
         <LabTestsTab />
       </div>
     )
@@ -410,13 +418,14 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
   if (activeView === 'global-services') {
     return (
       <div className="space-y-6 pb-10">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </button>
+        </Button>
         <GlobalServicesTab />
       </div>
     )
@@ -425,13 +434,14 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
   if (activeView === 'tasks') {
     return (
       <div className="space-y-6 pb-10">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </button>
+        </Button>
         <TasksTab />
       </div>
     )
@@ -440,13 +450,14 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
   if (activeView === 'packages') {
     return (
       <div className="space-y-6 pb-10">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </button>
+        </Button>
         <PackagesTab />
       </div>
     )
@@ -455,13 +466,14 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
   if (activeView === 'gst-tax') {
     return (
       <div className="space-y-6 pb-10">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </button>
+        </Button>
         <GstTaxSettingsTab />
       </div>
     )
@@ -470,13 +482,14 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
   if (activeView === 'amenities') {
     return (
       <div className="space-y-6 pb-10">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </button>
+        </Button>
         <AmenitiesTab />
       </div>
     )
@@ -485,13 +498,14 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
   if (activeView === 'residents') {
     return (
       <div className="space-y-6 pb-10">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </button>
+        </Button>
         <ResidentListScreen isGlobalMode={true} />
       </div>
     )
@@ -500,13 +514,14 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
   if (activeView === 'users') {
     return (
       <div className="space-y-6 pb-10">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </button>
+        </Button>
         <AdminUserManagement initialMode="list" />
       </div>
     )
@@ -526,7 +541,10 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
         const showGroupHeadings = section.groups.length > 1
         const settingCount = section.groups.reduce((n, g) => n + g.items.length, 0)
         return (
-          <section key={section.id} className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+          <Card
+            key={section.id}
+            className="gap-0 overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm"
+          >
             {/* Main heading */}
             <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-[#005390] to-[#0a6bb3] px-6 py-5 text-white">
               <div className="flex items-center gap-4">
@@ -563,11 +581,12 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
                       {group.items.map((item) => {
                         const Icon = item.icon
                         return (
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
                             key={item.id}
                             onClick={() => handleCardClick(item)}
-                            className="group w-full text-left cursor-pointer rounded-2xl border border-gray-200 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-[#005390]/30 hover:shadow-md"
+                            className="group w-full h-auto text-left block justify-start cursor-pointer rounded-2xl border border-gray-200 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-[#005390]/30 hover:shadow-md whitespace-normal"
                           >
                             <div className="flex items-center space-x-3.5 mb-2.5">
                               <div className="rounded-xl bg-[#005390]/10 p-2.5 text-[#005390] transition-colors group-hover:bg-[#005390] group-hover:text-white">
@@ -578,7 +597,7 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
                               </h4>
                             </div>
                             <p className="text-xs text-gray-500 leading-relaxed">{item.description}</p>
-                          </button>
+                          </Button>
                         )
                       })}
                     </div>
@@ -586,7 +605,7 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
                 )
               })}
             </div>
-          </section>
+          </Card>
         )
       })}
     </div>

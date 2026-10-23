@@ -1,7 +1,12 @@
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { useCallback, useEffect, useState } from 'react'
-import { Plus, Edit2, Trash2, X, Building2, CheckSquare, Square, Clock, IndianRupee } from 'lucide-react'
+import { Plus, Edit2, Trash2, Building2, CheckSquare, Square, Clock, IndianRupee } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import api from '@/lib/api/axios'
 import { toast } from 'sonner'
 
@@ -202,44 +207,49 @@ export default function FnbGlobalSpecialSlotsTab() {
   return (
     <div className="space-y-6">
       {/* Top Header Card */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
-        <div>
-          <h2 className="text-base font-extrabold text-gray-900 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-amber-500" />
-            Special Meal Slots Master
-          </h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Configure special meal slot categories (e.g. Festival Specials, Chef Specials, Weekend Feasts) and assign
-            them to properties.
-          </p>
-        </div>
-        <Button
-          onClick={handleOpenAddModal}
-          className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs shrink-0 cursor-pointer"
-        >
-          <Plus className="w-4 h-4 mr-1.5" /> Add Special Meal Slot
-        </Button>
-      </div>
+      <Card className="gap-0 bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+        <CardHeader className="p-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 shrink-0">
+                <Clock className="w-5 h-5" />
+              </div>
+              <CardTitle className="text-xl font-bold text-gray-900">Special Meal Slots Master</CardTitle>
+            </div>
+            <CardDescription className="text-xs text-gray-500 mt-1">
+              Configure special meal slot categories (e.g. Festival Specials, Chef Specials, Weekend Feasts) and assign
+              them to properties.
+            </CardDescription>
+          </div>
+
+          <Button
+            onClick={handleOpenAddModal}
+            className="inline-flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004070] transition-colors cursor-pointer shrink-0"
+          >
+            <Plus className="w-4 h-4" /> Add Special Meal Slot
+          </Button>
+        </CardHeader>
+      </Card>
 
       {/* Special Slots List */}
       {loading ? (
-        <div className="p-12 text-center text-gray-400 text-sm bg-white rounded-2xl border border-gray-200">
+        <Card className="p-12 text-center text-gray-400 text-sm bg-white rounded-2xl border-gray-200">
           Loading special meal slots...
-        </div>
+        </Card>
       ) : specialSlots.length === 0 ? (
-        <div className="p-12 text-center bg-white rounded-2xl border border-gray-200 space-y-3">
+        <Card className="p-12 text-center bg-white rounded-2xl border-gray-200 space-y-3">
           <Clock className="w-10 h-10 text-gray-300 mx-auto" />
           <p className="font-bold text-gray-700 text-sm">No Special Meal Slots Found</p>
           <p className="text-xs text-gray-400 max-w-sm mx-auto">
             Click "Add Special Meal Slot" to define custom special slots for events or festivals.
           </p>
-        </div>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {specialSlots.map((slot) => (
-            <div
+            <Card
               key={slot.id}
-              className="bg-white rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/20 to-white p-4 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+              className="gap-0 rounded-2xl border-amber-200/80 bg-gradient-to-br from-amber-50/20 to-white p-4 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4"
             >
               <div className="space-y-3">
                 <div className="flex items-start justify-between">
@@ -290,39 +300,32 @@ export default function FnbGlobalSpecialSlotsTab() {
                   <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
                 </Button>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
 
       {/* Add / Edit Special Meal Slot Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150 border border-gray-100 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <div>
-                <h3 className="font-extrabold text-base text-gray-900">
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        {isModalOpen && (
+          <DialogContent className="sm:max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3 pr-8">
+              <DialogHeader>
+                <DialogTitle className="font-extrabold text-base text-gray-900">
                   {editingSlot ? 'Edit Special Meal Slot' : 'Add Special Meal Slot'}
-                </h3>
-                <p className="text-xs text-gray-500">
+                </DialogTitle>
+                <DialogDescription className="text-xs text-gray-500">
                   Configure special slot details, base price, and assigned properties.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+                </DialogDescription>
+              </DialogHeader>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="global-special-slot-name" className="block text-xs font-bold text-gray-700 mb-1">
+                <Label htmlFor="global-special-slot-name" className="block text-xs font-bold text-gray-700 mb-1">
                   Special Slot Name <span className="text-red-500">*</span>
-                </label>
-                <input
+                </Label>
+                <Input
                   id="global-special-slot-name"
                   type="text"
                   placeholder="e.g. Festival Special, Sunday Brunch, Chef Special"
@@ -334,12 +337,12 @@ export default function FnbGlobalSpecialSlotsTab() {
               </div>
 
               <div>
-                <label htmlFor="global-special-slot-price" className="block text-xs font-bold text-gray-700 mb-1">
+                <Label htmlFor="global-special-slot-price" className="block text-xs font-bold text-gray-700 mb-1">
                   Global Base Price (₹)
-                </label>
+                </Label>
                 <div className="relative">
                   <span className="absolute left-3 top-2 text-xs text-gray-400 font-bold">₹</span>
-                  <input
+                  <Input
                     id="global-special-slot-price"
                     type="number"
                     step="0.01"
@@ -353,16 +356,16 @@ export default function FnbGlobalSpecialSlotsTab() {
               </div>
 
               <div>
-                <label htmlFor="global-special-slot-description" className="block text-xs font-bold text-gray-700 mb-1">
+                <Label htmlFor="global-special-slot-description" className="block text-xs font-bold text-gray-700 mb-1">
                   Description
-                </label>
-                <textarea
+                </Label>
+                <Textarea
                   id="global-special-slot-description"
                   rows={2}
                   placeholder="Optional details about this special meal slot"
                   value={formData.description}
                   onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2 text-xs font-medium text-gray-900 focus:outline-none focus:border-[#005390] focus:bg-white transition-all"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2 text-xs font-medium text-gray-900 focus-visible:outline-none focus-visible:border-[#005390] focus-visible:bg-white transition-all"
                 />
               </div>
 
@@ -370,22 +373,24 @@ export default function FnbGlobalSpecialSlotsTab() {
               <div className="space-y-2 pt-2 border-t border-gray-100">
                 <div className="flex items-center justify-between">
                   <span className="block text-xs font-bold text-gray-700">Assign to Properties</span>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={toggleAllProperties}
-                    className="text-xs text-[#005390] font-bold hover:underline cursor-pointer"
+                    className="text-xs text-[#005390] font-bold hover:underline cursor-pointer p-0 h-auto hover:bg-transparent"
                   >
                     {isAllPropsSelected ? 'Deselect All' : 'Select All'}
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                   {propertyAssignments.map((pa) => (
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
                       key={pa.locId}
                       onClick={() => togglePropertyAssignment(pa.locId)}
-                      className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
+                      className={`w-full flex items-center justify-between p-2.5 h-auto rounded-xl border text-xs cursor-pointer transition-all ${
                         pa.enabled
                           ? 'bg-blue-50/70 border-blue-200 text-[#005390] font-bold'
                           : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300'
@@ -400,7 +405,7 @@ export default function FnbGlobalSpecialSlotsTab() {
                       ) : (
                         <Square className="w-4 h-4 text-gray-300" />
                       )}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -423,9 +428,9 @@ export default function FnbGlobalSpecialSlotsTab() {
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   )
 }
