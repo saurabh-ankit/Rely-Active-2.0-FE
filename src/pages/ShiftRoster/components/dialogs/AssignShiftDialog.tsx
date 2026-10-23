@@ -841,9 +841,10 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                       const disabled = !inRange || isWeekOff
                       const checked = workingDays.includes(day)
                       return (
-                        <button
+                        <Button
                           key={day}
                           type="button"
+                          variant="ghost"
                           disabled={disabled}
                           aria-pressed={checked}
                           onClick={() => toggleDay(day)}
@@ -856,14 +857,14 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                           }
                           className={`h-9 rounded-lg border text-xs font-semibold capitalize transition-colors ${
                             disabled
-                              ? 'cursor-not-allowed border-dashed border-gray-200 text-gray-300'
+                              ? 'cursor-not-allowed border-dashed border-gray-200 text-gray-300 hover:bg-transparent'
                               : checked
-                                ? 'cursor-pointer border-[#2a517c] bg-[#2a517c] text-white'
-                                : 'cursor-pointer border-gray-200 bg-white text-gray-600 hover:border-[#2a517c]/40'
+                                ? 'cursor-pointer border-[#2a517c] bg-[#2a517c] text-white hover:bg-[#2a517c] hover:text-white'
+                                : 'cursor-pointer border-gray-200 bg-white text-gray-600 hover:border-[#2a517c]/40 hover:bg-transparent'
                           }`}
                         >
                           {day.slice(0, 3)}
-                        </button>
+                        </Button>
                       )
                     })}
                   </div>
@@ -907,13 +908,14 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                                 const disabled = isMedicalUnitOnly && o.value === 'area'
                                 const active = current === o.value
                                 return (
-                                  <button
+                                  <Button
                                     key={o.value}
                                     type="button"
+                                    variant="ghost"
                                     disabled={disabled}
                                     aria-pressed={active}
                                     onClick={() => choose(o.value)}
-                                    className={`rounded-lg border px-3 py-2 text-left transition-colors ${
+                                    className={`h-auto flex flex-col items-stretch rounded-lg border px-3 py-2 text-left transition-colors whitespace-normal font-normal hover:bg-transparent ${
                                       disabled
                                         ? 'cursor-not-allowed border-dashed border-gray-200 opacity-50'
                                         : active
@@ -927,7 +929,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                                       {o.label}
                                     </p>
                                     <p className="text-[11px] text-gray-500">{o.hint}</p>
-                                  </button>
+                                  </Button>
                                 )
                               })}
                             </div>

@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -72,18 +73,18 @@ const FormSection = ({
   description?: string
   children: React.ReactNode
 }) => (
-  <section className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
-    <div className="mb-4 flex items-start gap-3">
+  <Card className="gap-0 rounded-2xl border-gray-200 bg-white p-4 sm:p-5 shadow-xs">
+    <CardHeader className="p-0 mb-4 flex-row items-start gap-3 space-y-0">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#005390]/10 text-[#005390]">
         <Icon className="h-4 w-4" />
       </div>
-      <div>
-        <h3 className="text-sm font-bold text-gray-900">{title}</h3>
-        {description && <p className="text-xs text-gray-500">{description}</p>}
+      <div className="space-y-0.5">
+        <CardTitle className="text-sm font-bold text-gray-900">{title}</CardTitle>
+        {description && <CardDescription className="text-xs text-gray-500">{description}</CardDescription>}
       </div>
-    </div>
-    <div className="space-y-4">{children}</div>
-  </section>
+    </CardHeader>
+    <CardContent className="p-0 space-y-4">{children}</CardContent>
+  </Card>
 )
 
 const eventTypeSchema = z.enum(['regular', 'special'])
@@ -1014,7 +1015,8 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                 ).map(([value, label, hint]) => {
                   const active = eventForm.eventType === value
                   return (
-                    <button
+                    <Button
+                      variant="ghost"
                       key={value}
                       type="button"
                       aria-pressed={active}
@@ -1032,17 +1034,17 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                         }
                       }}
                       className={cn(
-                        'flex cursor-pointer flex-col rounded-xl border p-3 text-left transition-colors',
+                        'flex cursor-pointer flex-col h-auto rounded-xl border p-3 text-left transition-colors whitespace-normal font-normal items-start justify-start',
                         active
                           ? value === 'special'
-                            ? 'border-purple-400 bg-purple-50 ring-2 ring-purple-400/20'
-                            : 'border-[#005390] bg-[#005390]/5 ring-2 ring-[#005390]/20'
+                            ? 'border-purple-400 bg-purple-50 ring-2 ring-purple-400/20 hover:bg-purple-50'
+                            : 'border-[#005390] bg-[#005390]/5 ring-2 ring-[#005390]/20 hover:bg-[#005390]/5'
                           : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50',
                       )}
                     >
                       <span className="text-sm font-semibold text-gray-900">{label}</span>
                       <span className="text-xs text-gray-500">{hint}</span>
-                    </button>
+                    </Button>
                   )
                 })}
               </div>
@@ -1104,7 +1106,8 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                 render={({ field }) => (
                   <div className="flex flex-wrap gap-1.5" role="group" aria-label="Frequency">
                     {frequencyOptions.map((opt) => (
-                      <button
+                      <Button
+                        variant="ghost"
                         key={opt.value}
                         type="button"
                         aria-pressed={field.value === opt.value}
@@ -1119,12 +1122,12 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                         className={cn(
                           'h-8 cursor-pointer rounded-lg border px-3.5 text-xs font-semibold transition-colors',
                           field.value === opt.value
-                            ? 'border-[#005390] bg-[#005390] text-white shadow-xs'
-                            : 'border-gray-200 bg-white text-gray-600 hover:border-[#005390]/40 hover:text-[#005390]',
+                            ? 'border-[#005390] bg-[#005390] text-white shadow-xs hover:bg-[#005390] hover:text-white'
+                            : 'border-gray-200 bg-white text-gray-600 hover:border-[#005390]/40 hover:text-[#005390] hover:bg-white',
                         )}
                       >
                         {opt.label}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 )}
@@ -1171,7 +1174,9 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-blue-50 text-[#005390] border border-blue-100"
                     >
                       {day.label}
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
                         type="button"
                         onClick={() =>
                           setValue(
@@ -1179,11 +1184,11 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                             (eventForm.recurrenceDaysOfWeek || []).filter((value) => value !== day.value),
                           )
                         }
-                        className="p-0.5 rounded hover:bg-blue-100 transition-colors cursor-pointer"
+                        className="p-0.5 h-auto rounded hover:bg-blue-100 hover:text-[#005390] transition-colors cursor-pointer"
                         aria-label={`Remove ${day.label}`}
                       >
                         <X className="h-3 w-3" />
-                      </button>
+                      </Button>
                     </span>
                   ))}
                 </div>
@@ -1365,7 +1370,8 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                     const isBooked = availability?.available === false
                     const isSelected = eventForm.venueId === venue.id
                     return (
-                      <button
+                      <Button
+                        variant="ghost"
                         key={venue.id}
                         type="button"
                         disabled={isBooked}
@@ -1375,11 +1381,11 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                           setValue('selectedServices', [])
                           clearErrors('venueId')
                         }}
-                        className={`w-full text-left rounded-xl border px-3 py-3 transition-colors ${
+                        className={`w-full text-left h-auto rounded-xl border px-3 py-3 font-normal whitespace-normal transition-colors flex-col items-stretch justify-start ${
                           isBooked
-                            ? 'bg-red-50/80 border-red-200 cursor-not-allowed opacity-90'
+                            ? 'bg-red-50/80 border-red-200 cursor-not-allowed opacity-90 hover:bg-red-50/80'
                             : isSelected
-                              ? 'bg-white border-[#005390] ring-2 ring-[#005390]/20 shadow-sm'
+                              ? 'bg-white border-[#005390] ring-2 ring-[#005390]/20 shadow-sm hover:bg-white'
                               : 'bg-white border-gray-200 hover:border-[#005390]/50 hover:bg-white cursor-pointer'
                         }`}
                       >
@@ -1421,7 +1427,7 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                             </span>
                           )}
                         </div>
-                      </button>
+                      </Button>
                     )
                   })}
                 </div>
@@ -1523,7 +1529,7 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
           {(() => {
             const posterSrc = posterPreview || eventForm.poster
             return (
-              <label
+              <Label
                 htmlFor="event-poster-input"
                 className={cn(
                   'group relative flex cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed transition-colors',
@@ -1556,7 +1562,7 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                   className="sr-only"
                   onChange={handlePosterFileChange}
                 />
-              </label>
+              </Label>
             )
           })()}
         </FormSection>
@@ -1632,7 +1638,9 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
         <h2 className="text-2xl font-bold text-gray-700">{isEditMode ? 'Edit Event' : 'Create an Event'}</h2>
       </div>
 
-      <div className="mt-5 flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white">{formFields}</div>
+      <Card className="gap-0 mt-5 flex flex-col overflow-hidden rounded-2xl border-gray-200 bg-white shadow-xs">
+        {formFields}
+      </Card>
     </div>
   )
 }

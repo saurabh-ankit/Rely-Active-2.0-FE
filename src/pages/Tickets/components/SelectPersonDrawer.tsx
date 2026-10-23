@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
-import { X, Loader2, Check, CalendarClock, MapPin, ChevronDown, UserCheck, Users } from 'lucide-react'
+import { Loader2, Check, CalendarClock, MapPin, ChevronDown, UserCheck, Users } from 'lucide-react'
 import apiClient from '@/lib/api/axios'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import { useAuth } from '@/hooks/useAuth'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import type { AssignableEmployee, EmployeeShiftInfo, Ticket } from '@/lib/types'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   isOpen: boolean
@@ -209,13 +211,14 @@ export function SelectPersonDrawer({ isOpen, ticket, locationId, onClose, onAssi
           isSelected ? 'border-[#005390] bg-blue-50/40 shadow-2xs' : 'border-gray-200 bg-white hover:border-gray-300'
         }`}
       >
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => {
             setSelectedUserId(options.id)
             setExpandedId(isExpanded ? null : options.id)
           }}
-          className="w-full text-left p-3.5 flex items-start gap-3 cursor-pointer"
+          className="w-full text-left p-3.5 h-auto flex items-start gap-3 rounded-2xl justify-start whitespace-normal hover:bg-transparent"
         >
           <div
             className={`w-10 h-10 rounded-full text-white font-bold text-xs flex items-center justify-center shrink-0 ${options.avatarClass}`}
@@ -256,7 +259,7 @@ export function SelectPersonDrawer({ isOpen, ticket, locationId, onClose, onAssi
             {isSelected && <Check className="w-4.5 h-4.5 text-[#005390]" />}
             <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
           </div>
-        </button>
+        </Button>
 
         {isExpanded && <div className="px-3.5 pb-3.5">{<ShiftDetails shift={options.shift} />}</div>}
       </div>
@@ -295,115 +298,120 @@ export function SelectPersonDrawer({ isOpen, ticket, locationId, onClose, onAssi
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[85vh]">
-        {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-gray-100 flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-[#005390]" />
-              Assign Ticket
-            </h2>
-            <p className="text-xs text-gray-500 mt-1">
-              <span className="font-mono font-bold text-gray-700">{ticket.ticketNumber}</span>
-              {[departmentName, jobCategoryName].filter(Boolean).length > 0
-                ? ` · ${[departmentName, jobCategoryName].filter(Boolean).join(' · ')}`
-                : ''}
-              {!isLoading && inDepartmentCount > 0 ? ` · ${inDepartmentCount} in this department` : ''}
-              {!isLoading && otherEmployees.length > 0 ? ` · ${onShiftCount} on shift now` : ''}
-            </p>
+    <Dialog
+      open={Boolean(isOpen && ticket)}
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+    >
+      {isOpen && ticket && (
+        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden max-h-[85vh] flex flex-col">
+          {/* Header */}
+          <div className="px-6 pt-6 pb-4 border-b border-gray-100 flex items-start justify-between gap-4 pr-12">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <UserCheck className="w-5 h-5 text-[#005390]" />
+                Assign Ticket
+              </DialogTitle>
+              <DialogDescription className="text-xs text-gray-500 mt-1">
+                <span className="font-mono font-bold text-gray-700">{ticket.ticketNumber}</span>
+                {[departmentName, jobCategoryName].filter(Boolean).length > 0
+                  ? ` · ${[departmentName, jobCategoryName].filter(Boolean).join(' · ')}`
+                  : ''}
+                {!isLoading && inDepartmentCount > 0 ? ` · ${inDepartmentCount} in this department` : ''}
+                {!isLoading && otherEmployees.length > 0 ? ` · ${onShiftCount} on shift now` : ''}
+              </DialogDescription>
+            </DialogHeader>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
 
-        {/* Staff list */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
-          {isLoading ? (
-            <div className="py-12 text-center text-gray-400">
-              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#005390]" />
-              <p className="text-xs font-medium">Loading department staff…</p>
-            </div>
-          ) : (
-            <>
-              {renderCard({
-                id: SELF_ID,
-                name: 'Self',
-                initials: 'S',
-                avatarClass: 'bg-[#005390]',
-                totalAssigned: currentUserMetrics?.totalAssigned ?? 0,
-                openCount: currentUserMetrics?.openCount ?? 0,
-                closedCount: currentUserMetrics?.closedCount ?? 0,
-                shift: currentUserMetrics?.shift ?? null,
-                subtitle: user?.email || undefined,
-              })}
+          {/* Staff list */}
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+            {isLoading ? (
+              <div className="py-12 text-center text-muted-foreground">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
+                <p className="text-xs font-medium">Loading department staff…</p>
+              </div>
+            ) : (
+              <>
+                {renderCard({
+                  id: SELF_ID,
+                  name: 'Self',
+                  initials: 'S',
+                  avatarClass: 'bg-[#005390]',
+                  totalAssigned: currentUserMetrics?.totalAssigned ?? 0,
+                  openCount: currentUserMetrics?.openCount ?? 0,
+                  closedCount: currentUserMetrics?.closedCount ?? 0,
+                  shift: currentUserMetrics?.shift ?? null,
+                  subtitle: user?.email || undefined,
+                })}
 
-              {renderGroup(
-                categoryMatches,
-                jobCategoryName ? `${jobCategoryName} specialists` : 'Matching category',
-                'Posted to this ticket\u2019s category',
-              )}
+                {renderGroup(
+                  categoryMatches,
+                  jobCategoryName ? `${jobCategoryName} specialists` : 'Matching category',
+                  'Posted to this ticket\u2019s category',
+                )}
 
-              {renderGroup(
-                departmentMates,
-                departmentName ? `${departmentName} \u2014 other categories` : 'Same department',
-                'Same department, a different category',
-              )}
+                {renderGroup(
+                  departmentMates,
+                  departmentName ? `${departmentName} \u2014 other categories` : 'Same department',
+                  'Same department, a different category',
+                )}
 
-              {inDepartmentCount === 0 && otherStaff.length > 0 && (departmentName || jobCategoryName) && (
-                <p className="px-1 py-2 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-xl">
-                  No staff are posted to{' '}
-                  {[jobCategoryName, departmentName].filter(Boolean).join(' in ') || 'this ticket\u2019s category'}.
-                  Showing everyone at this property instead.
-                </p>
-              )}
+                {inDepartmentCount === 0 && otherStaff.length > 0 && (departmentName || jobCategoryName) && (
+                  <p className="px-1 py-2 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-xl">
+                    No staff are posted to{' '}
+                    {[jobCategoryName, departmentName].filter(Boolean).join(' in ') || 'this ticket\u2019s category'}.
+                    Showing everyone at this property instead.
+                  </p>
+                )}
 
-              {otherStaff.length > 0 &&
-                (inDepartmentCount === 0 || showOtherStaff ? (
-                  renderGroup(otherStaff, 'Other departments', 'Outside this ticket\u2019s department')
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setShowOtherStaff(true)}
-                    className="w-full py-2.5 rounded-xl border border-dashed border-gray-300 text-[11px] font-bold text-gray-500 hover:text-gray-700 hover:border-gray-400 transition-colors cursor-pointer"
-                  >
-                    Show staff from other departments ({otherStaff.length})
-                  </button>
-                ))}
+                {otherStaff.length > 0 &&
+                  (inDepartmentCount === 0 || showOtherStaff ? (
+                    renderGroup(otherStaff, 'Other departments', 'Outside this ticket\u2019s department')
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowOtherStaff(true)}
+                      className="w-full py-2.5 h-auto rounded-xl border border-dashed border-gray-300 text-[11px] font-bold text-gray-500 hover:text-gray-700 hover:border-gray-400 transition-colors cursor-pointer"
+                    >
+                      Show staff from other departments ({otherStaff.length})
+                    </Button>
+                  ))}
 
-              {otherEmployees.length === 0 && (
-                <p className="py-8 text-center text-xs font-semibold text-gray-400">
-                  No other staff available for this department.
-                </p>
-              )}
-            </>
-          )}
-        </div>
+                {otherEmployees.length === 0 && (
+                  <p className="py-8 text-center text-xs font-semibold text-gray-400">
+                    No other staff available for this department.
+                  </p>
+                )}
+              </>
+            )}
+          </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-3xl flex items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2.5 text-xs font-bold text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleAssign}
-            disabled={isSubmitting}
-            className="px-6 py-2.5 bg-[#005390] hover:bg-[#004070] disabled:opacity-60 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer shadow-2xs flex items-center justify-center gap-2 min-w-[120px]"
-          >
-            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Assign Ticket'}
-          </button>
-        </div>
-      </div>
-    </div>
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-3xl flex items-center justify-end gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              className="px-4 py-2.5 text-xs font-bold text-gray-600 hover:text-gray-900 border-none bg-transparent hover:bg-gray-200 transition-colors cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleAssign}
+              disabled={isSubmitting}
+              className="px-6 py-2.5 bg-[#005390] hover:bg-[#004070] disabled:opacity-60 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer shadow-2xs flex items-center justify-center gap-2 min-w-[120px]"
+            >
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Assign Ticket'}
+            </Button>
+          </div>
+        </DialogContent>
+      )}
+    </Dialog>
   )
 }

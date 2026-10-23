@@ -1,6 +1,9 @@
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import type React from 'react'
 import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import type { EntityInput, UnitInput, UnitType } from '../../types'
 import {
@@ -27,9 +30,9 @@ const numberOrNull = (value: string) => (value === '' ? null : Number(value))
 function Field({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <label htmlFor={id} className="block text-[11px] font-semibold uppercase tracking-wider text-gray-600">
+      <Label htmlFor={id} className="block text-[11px] font-semibold uppercase tracking-wider text-gray-600">
         {label}
-      </label>
+      </Label>
       {children}
     </div>
   )
@@ -82,7 +85,7 @@ export function HomeEditor({
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Field id={id('number')} label={`${word} number`}>
-          <input
+          <Input
             id={id('number')}
             value={unit.unit_number}
             onChange={(e) => onChange({ ...unit, unit_number: e.target.value })}
@@ -90,7 +93,7 @@ export function HomeEditor({
           />
         </Field>
         <Field id={id('plot')} label="Plot size (sqft)">
-          <input
+          <Input
             id={id('plot')}
             type="number"
             min={0}
@@ -101,38 +104,41 @@ export function HomeEditor({
         </Field>
         {isVilla ? (
           <Field id={id('config')} label="Configuration">
-            <select
-              id={id('config')}
-              value={home.configuration ?? 'G+1'}
-              onChange={(e) => update({ configuration: e.target.value })}
-              className={cn(fieldClass, okBorder)}
-            >
-              {CONFIGURATION_OPTIONS.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            <Select value={home.configuration ?? 'G+1'} onValueChange={(val) => update({ configuration: val || '' })}>
+              <SelectTrigger id={id('config')} className={cn(fieldClass, okBorder, 'h-auto')}>
+                <SelectValue placeholder="Configuration" />
+              </SelectTrigger>
+              <SelectContent>
+                {CONFIGURATION_OPTIONS.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
         ) : (
           <Field id={id('form')} label="Asset form">
-            <select
-              id={id('form')}
+            <Select
               value={home.assetForm ?? 'Independent House'}
-              onChange={(e) => update({ assetForm: e.target.value })}
-              className={cn(fieldClass, okBorder)}
+              onValueChange={(val) => update({ assetForm: val || '' })}
             >
-              {ASSET_FORM_OPTIONS.map((f) => (
-                <option key={f} value={f}>
-                  {f}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger id={id('form')} className={cn(fieldClass, okBorder, 'h-auto')}>
+                <SelectValue placeholder="Asset form" />
+              </SelectTrigger>
+              <SelectContent>
+                {ASSET_FORM_OPTIONS.map((f) => (
+                  <SelectItem key={f} value={f}>
+                    {f}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
         )}
         {!isVilla && (
           <Field id={id('carpet')} label="Carpet area (sqft)">
-            <input
+            <Input
               id={id('carpet')}
               type="number"
               min={0}
@@ -143,21 +149,21 @@ export function HomeEditor({
           </Field>
         )}
         <Field id={id('bhk')} label="BHK configuration">
-          <select
-            id={id('bhk')}
-            value={home.bhk}
-            onChange={(e) => update({ bhk: e.target.value as UnitType })}
-            className={cn(fieldClass, okBorder)}
-          >
-            {HOME_BHK_OPTIONS.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
+          <Select value={home.bhk || undefined} onValueChange={(val) => update({ bhk: val as UnitType })}>
+            <SelectTrigger id={id('bhk')} className={cn(fieldClass, okBorder, 'h-auto')}>
+              <SelectValue placeholder="BHK configuration" />
+            </SelectTrigger>
+            <SelectContent>
+              {HOME_BHK_OPTIONS.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
         <Field id={id('pps')} label="Price per sqft (INR)">
-          <input
+          <Input
             id={id('pps')}
             type="number"
             min={0}

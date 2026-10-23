@@ -1,3 +1,5 @@
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 import { Layers, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -16,10 +18,10 @@ export function BulkAddControl({ label, onAdd }: BulkAddProps) {
   const valid = Number.isInteger(count) && count >= 1 && count <= 50
   return (
     <div className="flex items-center gap-1.5 px-1 py-1">
-      <label htmlFor="bulk-add-count" className="sr-only">
+      <Label htmlFor="bulk-add-count" className="sr-only">
         How many {plural(label, 2)} to add
-      </label>
-      <input
+      </Label>
+      <Input
         id="bulk-add-count"
         type="number"
         min={1}
@@ -28,14 +30,16 @@ export function BulkAddControl({ label, onAdd }: BulkAddProps) {
         onChange={(e) => setCount(e.target.valueAsNumber)}
         className="h-7 w-16 rounded-md border border-gray-200 bg-white px-1.5 text-[11px] outline-none focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20"
       />
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         disabled={!valid}
         onClick={() => onAdd(count)}
-        className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-blue-600 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-blue-600 hover:bg-white hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50 h-auto"
       >
         <Plus className="h-3 w-3" /> Add {plural(label, valid ? count : 2)}
-      </button>
+      </Button>
     </div>
   )
 }

@@ -1,9 +1,13 @@
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import type { BlockInput, EntityInput, FloorInput, UnitInput, UnitType } from '../../types'
-import { ENTITY_PRESETS, levelLabel, newUnit, UNIT_TYPE_OPTIONS } from './entityPresets'
+import { ENTITY_PRESETS, formatUnitType, levelLabel, newUnit, UNIT_TYPE_OPTIONS } from './entityPresets'
 
 const inputClass =
   'w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20'
@@ -52,54 +56,57 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
           No {unitName.toLowerCase()}s yet. Add some below.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-gray-200">
-          <table className="w-full min-w-[520px] text-left text-xs">
-            <thead className="bg-gray-50 text-[11px] font-semibold text-gray-500">
-              <tr>
-                <th className="px-3 py-2">{unitName} no.</th>
-                <th className="px-3 py-2">Type</th>
-                <th className="px-3 py-2">Area (sqft)</th>
+        <div className="overflow-hidden rounded-xl border border-gray-200">
+          <Table className="min-w-[520px] text-left text-xs">
+            <TableHeader className="bg-gray-50 text-[11px] font-semibold text-gray-500">
+              <TableRow>
+                <TableHead className="px-3 py-2">{unitName} no.</TableHead>
+                <TableHead className="px-3 py-2">Type</TableHead>
+                <TableHead className="px-3 py-2">Area (sqft)</TableHead>
                 {preset.attributes.map((a) => (
-                  <th key={a.key} className="px-3 py-2">
+                  <TableHead key={a.key} className="px-3 py-2">
                     {a.label}
                     {a.suffix ? ` (${a.suffix})` : ''}
-                  </th>
+                  </TableHead>
                 ))}
-                <th className="w-10 px-3 py-2">
+                <TableHead className="w-10 px-3 py-2">
                   <span className="sr-only">Remove</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-gray-100">
               {units.map((unit, index) => {
                 const duplicate = (numberCounts.get(unit.unit_number.trim().toLowerCase()) ?? 0) > 1
                 return (
-                  <tr key={unit.id ?? index}>
-                    <td className="px-3 py-1.5">
-                      <input
+                  <TableRow key={unit.id ?? index}>
+                    <TableCell className="px-3 py-1.5">
+                      <Input
                         aria-label={`${unitName} number`}
                         value={unit.unit_number}
                         onChange={(e) => update(index, { unit_number: e.target.value })}
                         className={cn(inputClass, duplicate && 'border-red-400 bg-red-50')}
                         title={duplicate ? 'This number is already used in the property' : undefined}
                       />
-                    </td>
-                    <td className="px-3 py-1.5">
-                      <select
-                        aria-label="Type"
-                        value={unit.unit_type}
-                        onChange={(e) => update(index, { unit_type: e.target.value as UnitType })}
-                        className={inputClass}
+                    </TableCell>
+                    <TableCell className="px-3 py-1.5">
+                      <Select
+                        value={unit.unit_type || undefined}
+                        onValueChange={(val) => update(index, { unit_type: val as UnitType })}
                       >
-                        {UNIT_TYPE_OPTIONS.map((t) => (
-                          <option key={t} value={t}>
-                            {t.replace('_', ' ')}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-3 py-1.5">
-                      <input
+                        <SelectTrigger aria-label="Type" className={cn(inputClass, 'h-auto')}>
+                          <SelectValue placeholder="Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {UNIT_TYPE_OPTIONS.map((t) => (
+                            <SelectItem key={t} value={t}>
+                              {formatUnitType(t)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="px-3 py-1.5">
+                      <Input
                         aria-label="Area"
                         type="number"
                         min={0}
@@ -109,10 +116,10 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
                         }
                         className={inputClass}
                       />
-                    </td>
+                    </TableCell>
                     {preset.attributes.map((a) => (
-                      <td key={a.key} className="px-3 py-1.5">
-                        <input
+                      <TableCell key={a.key} className="px-3 py-1.5">
+                        <Input
                           aria-label={a.label}
                           type="number"
                           min={0}
@@ -120,32 +127,34 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
                           onChange={(e) => updateAttribute(index, a.key, e.target.value)}
                           className={inputClass}
                         />
-                      </td>
+                      </TableCell>
                     ))}
-                    <td className="px-3 py-1.5 text-right">
-                      <button
+                    <TableCell className="px-3 py-1.5 text-right">
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon-xs"
                         aria-label={`Remove ${unit.unit_number}`}
                         onClick={() => onChange(units.filter((_, i) => i !== index))}
                         className="cursor-pointer rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </td>
-                  </tr>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 )
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
 
       <div className="flex flex-wrap items-end gap-2 rounded-xl bg-gray-50 p-3">
         <div className="space-y-1">
-          <label htmlFor={`qa-prefix-${entity.name}`} className="text-[11px] text-gray-500">
+          <Label htmlFor={`qa-prefix-${entity.name}`} className="text-[11px] text-gray-500">
             Number prefix
-          </label>
-          <input
+          </Label>
+          <Input
             id={`qa-prefix-${entity.name}`}
             value={prefix}
             onChange={(e) => setPrefix(e.target.value)}
@@ -153,10 +162,10 @@ function UnitGrid({ entity, units, onChange, numberCounts }: UnitGridProps) {
           />
         </div>
         <div className="space-y-1">
-          <label htmlFor={`qa-count-${entity.name}`} className="text-[11px] text-gray-500">
+          <Label htmlFor={`qa-count-${entity.name}`} className="text-[11px] text-gray-500">
             How many
-          </label>
-          <input
+          </Label>
+          <Input
             id={`qa-count-${entity.name}`}
             type="number"
             min={1}
@@ -210,10 +219,10 @@ export function EntityUnitsEditor({ entity, onChange, numberCounts }: EntityUnit
           <section key={floor.id ?? index} className="space-y-3 rounded-xl border border-gray-200 p-4">
             <div className="flex flex-wrap items-end gap-3">
               <div className="space-y-1">
-                <label htmlFor={`floor-no-${index}`} className="text-[11px] text-gray-500">
+                <Label htmlFor={`floor-no-${index}`} className="text-[11px] text-gray-500">
                   {floorName} no.
-                </label>
-                <input
+                </Label>
+                <Input
                   id={`floor-no-${index}`}
                   type="number"
                   value={floor.floor_number}
@@ -222,10 +231,10 @@ export function EntityUnitsEditor({ entity, onChange, numberCounts }: EntityUnit
                 />
               </div>
               <div className="min-w-40 flex-1 space-y-1">
-                <label htmlFor={`floor-name-${index}`} className="text-[11px] text-gray-500">
+                <Label htmlFor={`floor-name-${index}`} className="text-[11px] text-gray-500">
                   Name
-                </label>
-                <input
+                </Label>
+                <Input
                   id={`floor-name-${index}`}
                   value={floor.floor_name ?? ''}
                   placeholder={`${floorName} ${floor.floor_number}`}
@@ -278,10 +287,10 @@ export function EntityUnitsEditor({ entity, onChange, numberCounts }: EntityUnit
         <section key={block.id ?? index} className="space-y-3 rounded-xl border border-gray-200 p-4">
           <div className="flex flex-wrap items-end gap-3">
             <div className="min-w-48 flex-1 space-y-1">
-              <label htmlFor={`block-name-${index}`} className="text-[11px] text-gray-500">
+              <Label htmlFor={`block-name-${index}`} className="text-[11px] text-gray-500">
                 {blockName} name
-              </label>
-              <input
+              </Label>
+              <Input
                 id={`block-name-${index}`}
                 value={block.block_name}
                 onChange={(e) => patchBlock(index, { block_name: e.target.value })}

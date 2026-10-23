@@ -1,4 +1,5 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { EventRegistration } from '@/lib/services/eventService'
 import { Home } from 'lucide-react'
 import { useMemo } from 'react'
@@ -110,20 +111,20 @@ export function OpenAttendanceAccordion({ registrations }: { registrations: Even
                 <span className="text-sm font-normal text-gray-700">{last ? dateTime(last) : '-'}</span>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
-                <div className="overflow-x-auto rounded-lg border border-gray-100">
-                  <table className="w-full table-fixed text-sm">
-                    <thead className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
-                      <tr>
-                        <th className="w-[40%] px-3 py-2 font-semibold">Person</th>
-                        <th className="w-[20%] px-3 py-2 font-semibold">Contact</th>
-                        <th className="w-[20%] px-3 py-2 font-semibold">Came at</th>
-                        <th className="w-[20%] px-3 py-2 font-semibold">Marked by</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
+                <div className="overflow-hidden rounded-lg border border-gray-100">
+                  <Table className="w-full table-fixed text-sm">
+                    <TableHeader className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
+                      <TableRow>
+                        <TableHead className="w-[40%] px-3 py-2 font-semibold">Person</TableHead>
+                        <TableHead className="w-[20%] px-3 py-2 font-semibold">Contact</TableHead>
+                        <TableHead className="w-[20%] px-3 py-2 font-semibold">Came at</TableHead>
+                        <TableHead className="w-[20%] px-3 py-2 font-semibold">Marked by</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="divide-y divide-gray-100">
                       {g.people.map((p) => (
-                        <tr key={p.id}>
-                          <td className="px-3 py-2.5">
+                        <TableRow key={p.id}>
+                          <TableCell className="px-3 py-2.5">
                             <span className="font-medium text-gray-900">{p.name}</span>{' '}
                             <span
                               className={
@@ -135,14 +136,16 @@ export function OpenAttendanceAccordion({ registrations }: { registrations: Even
                               {p.isResident ? 'Resident' : p.relation}
                             </span>
                             {!p.isResident && <span className="ml-1 text-xs text-gray-500">of {p.residentName}</span>}
-                          </td>
-                          <td className="px-3 py-2.5 text-gray-700">{p.contact || '-'}</td>
-                          <td className="px-3 py-2.5 text-gray-700">{p.attendedAt ? dateTime(p.attendedAt) : '-'}</td>
-                          <td className="px-3 py-2.5 text-gray-700">{p.markedBy || '-'}</td>
-                        </tr>
+                          </TableCell>
+                          <TableCell className="px-3 py-2.5 text-gray-700">{p.contact || '-'}</TableCell>
+                          <TableCell className="px-3 py-2.5 text-gray-700">
+                            {p.attendedAt ? dateTime(p.attendedAt) : '-'}
+                          </TableCell>
+                          <TableCell className="px-3 py-2.5 text-gray-700">{p.markedBy || '-'}</TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               </AccordionContent>
             </AccordionItem>

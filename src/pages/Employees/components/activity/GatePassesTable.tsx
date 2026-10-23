@@ -1,5 +1,6 @@
 import { Building2, Car, Phone, UserRound } from 'lucide-react'
 import { cn, getFileUrl } from '@/lib/utils'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { GateActivityRecord, GatePersonAction } from '@/lib/types/employeeActivity'
 import { StatusPill } from './shared'
 import { formatDuration, formatWhen } from './utils'
@@ -148,49 +149,49 @@ const insideFor = (r: GateActivityRecord) =>
 /** Gate entries this employee approved, checked in or checked out, with every party named. */
 export const GatePassesTable = ({ rows }: { rows: GateActivityRecord[] }) => (
   <>
-    <div className="hidden overflow-x-auto lg:block">
-      <table className="w-full text-left">
-        <thead>
-          <tr className="border-b border-gray-100 text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:border-gray-800">
-            <th className="py-2.5 pr-4 font-bold">Visitor</th>
-            <th className="py-2.5 pr-4 font-bold">Visit</th>
-            <th className="py-2.5 pr-4 font-bold">Raised by</th>
-            <th className="py-2.5 pr-4 font-bold">Approved by</th>
-            <th className="py-2.5 pr-4 font-bold">Checked in</th>
-            <th className="py-2.5 pr-4 font-bold">Checked out</th>
-            <th className="py-2.5 font-bold">Status</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+    <div className="hidden overflow-hidden lg:block">
+      <Table className="w-full text-left">
+        <TableHeader>
+          <TableRow className="border-b border-gray-100 text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:border-gray-800">
+            <TableHead className="py-2.5 pr-4 font-bold">Visitor</TableHead>
+            <TableHead className="py-2.5 pr-4 font-bold">Visit</TableHead>
+            <TableHead className="py-2.5 pr-4 font-bold">Raised by</TableHead>
+            <TableHead className="py-2.5 pr-4 font-bold">Approved by</TableHead>
+            <TableHead className="py-2.5 pr-4 font-bold">Checked in</TableHead>
+            <TableHead className="py-2.5 pr-4 font-bold">Checked out</TableHead>
+            <TableHead className="py-2.5 font-bold">Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
           {rows.map((r) => (
-            <tr key={r.id} className="align-top">
-              <td className="max-w-[260px] py-3 pr-4">
+            <TableRow key={r.id} className="align-top">
+              <TableCell className="max-w-[260px] py-3 pr-4">
                 <Visitor r={r} />
                 <MyRoles roles={r.myRoles} />
-              </td>
-              <td className="py-3 pr-4">
+              </TableCell>
+              <TableCell className="py-3 pr-4">
                 <Visit r={r} />
-              </td>
-              <td className="py-3 pr-4">
+              </TableCell>
+              <TableCell className="py-3 pr-4">
                 <RaisedBy r={r} />
-              </td>
-              <td className="py-3 pr-4">
+              </TableCell>
+              <TableCell className="py-3 pr-4">
                 <Approval r={r} />
-              </td>
-              <td className="whitespace-nowrap py-3 pr-4">
+              </TableCell>
+              <TableCell className="whitespace-nowrap py-3 pr-4">
                 <GateTime action={r.checkIn} empty={r.status === 'Rejected' ? 'Not let in' : '—'} />
-              </td>
-              <td className="whitespace-nowrap py-3 pr-4">
+              </TableCell>
+              <TableCell className="whitespace-nowrap py-3 pr-4">
                 <GateTime action={r.checkOut} empty={r.status === 'Inside' ? 'Still inside' : '—'} />
                 {insideFor(r) && <p className="text-[11px] text-gray-400">{insideFor(r)}</p>}
-              </td>
-              <td className="py-3">
+              </TableCell>
+              <TableCell className="py-3">
                 <StatusPill value={r.status} />
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
 
     {/* Below desktop width: one card per entry */}

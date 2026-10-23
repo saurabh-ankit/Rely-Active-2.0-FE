@@ -1,7 +1,11 @@
+import { Input } from '@/components/ui/input'
 import { Check } from 'lucide-react'
 import type { CarePackage } from '@/lib/types/medical'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { AssignedPackage } from './AssignedPackage'
+import { Label } from '@/components/ui/label'
 
 export interface FamilyCareRow {
   /** Index in the form's familyMembers array. */
@@ -39,7 +43,7 @@ export function FamilyCarePackages({ packages, rows, onPick, onStartDate }: Fami
       {rows.map((row) => {
         const keepsCurrent = !!row.current && row.carePackageId === row.current.packageId
         return (
-          <div key={row.key} className="rounded-2xl border border-gray-200 bg-white p-4">
+          <Card key={row.key} className="gap-0 rounded-2xl border-gray-200 bg-white p-4">
             <div className="mb-3 flex items-center gap-2">
               <span className="text-xs font-bold text-gray-900">{row.name}</span>
               <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-semibold text-purple-700">
@@ -72,11 +76,11 @@ export function FamilyCarePackages({ packages, rows, onPick, onStartDate }: Fami
                   ))}
                 </div>
                 {row.carePackageId && (
-                  <label className="mt-3 block border-t border-gray-100 pt-3 text-xs">
+                  <Label className="mt-3 block border-t border-gray-100 pt-3 text-xs">
                     <span className="mb-1 block font-semibold text-gray-700">
                       Package start date <span className="text-rose-600">*</span>
                     </span>
-                    <input
+                    <Input
                       type="date"
                       value={row.startDate}
                       disabled={keepsCurrent}
@@ -88,11 +92,11 @@ export function FamilyCarePackages({ packages, rows, onPick, onStartDate }: Fami
                         Current package since {dmy(row.current!.startDate)}
                       </span>
                     )}
-                  </label>
+                  </Label>
                 )}
               </>
             )}
-          </div>
+          </Card>
         )
       })}
     </div>
@@ -113,15 +117,18 @@ function Option({
   onClick: () => void
 }) {
   return (
-    <button
+    <Button
+      variant="ghost"
       type="button"
       onClick={onClick}
       className={cn(
-        'rounded-xl border p-3 text-left transition-all hover:shadow-sm',
-        selected ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20' : 'border-gray-200 hover:border-gray-300',
+        'rounded-xl border p-3 text-left transition-all hover:shadow-sm h-auto flex flex-col items-stretch justify-start whitespace-normal font-normal',
+        selected
+          ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20 hover:bg-blue-50/50'
+          : 'border-gray-200 hover:border-gray-300 hover:bg-white',
       )}
     >
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 w-full">
         <span className="truncate text-xs font-bold text-gray-900">{title}</span>
         {selected && (
           <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[#005390] text-white">
@@ -129,8 +136,8 @@ function Option({
           </span>
         )}
       </div>
-      {price && <p className="mt-1 text-xs font-bold text-[#005390]">{price}</p>}
-      {hint && <p className="mt-1 text-[11px] text-gray-500">{hint}</p>}
-    </button>
+      {price && <p className="mt-1 text-xs font-bold text-[#005390] w-full">{price}</p>}
+      {hint && <p className="mt-1 text-[11px] text-gray-500 w-full">{hint}</p>}
+    </Button>
   )
 }

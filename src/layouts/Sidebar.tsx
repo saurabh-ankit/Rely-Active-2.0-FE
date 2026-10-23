@@ -20,6 +20,7 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { useLocationContext } from '@/hooks/useLocation'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 import { getDepartmentManagerType } from '@/utils/departmentManager'
 
@@ -222,13 +223,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       >
         <div className="h-full flex flex-col p-1 md:p-2 lg:p-3 pr-0 md:pr-0 lg:pr-0">
           <div className="md:hidden absolute top-2 right-2 z-10">
-            <button
+            <Button
+              variant="ghost"
+              size="icon-xs"
               type="button"
               onClick={onClose}
-              className="p-2 rounded-full bg-white/30 backdrop-blur-sm shadow-lg border border-white/40 hover:bg-white/40 transition-all duration-200"
+              aria-label="Close sidebar"
+              className="rounded-full bg-white/30 backdrop-blur-sm shadow-lg border border-white/40 hover:bg-white/40 transition-all duration-200"
             >
               <X className="h-4 w-4 text-gray-700" />
-            </button>
+            </Button>
           </div>
 
           <div className="flex-1 bg-white/20 backdrop-blur-md rounded-2xl shadow-xl border border-white/30 p-2 md:p-3 overflow-hidden">

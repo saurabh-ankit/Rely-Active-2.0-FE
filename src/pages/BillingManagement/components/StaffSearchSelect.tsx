@@ -1,5 +1,7 @@
+import { Input } from '@/components/ui/input'
 import { useState } from 'react'
 import { Check, ChevronsUpDown, Loader2, Search, UserRound, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useUsersQuery } from '@/hooks/react-query/user'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -76,20 +78,22 @@ export function StaffSearchSelect({ value, onChange, placeholder = 'Search staff
           {!value && <ChevronsUpDown className="h-4 w-4 shrink-0 text-gray-400" />}
         </PopoverTrigger>
         {value && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-xs"
             aria-label="Clear staff member"
             onClick={() => onChange(null)}
-            className="absolute top-1/2 right-2.5 -translate-y-1/2 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            className="absolute top-1/2 right-2.5 -translate-y-1/2 h-6 w-6 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
           >
             <X className="h-3.5 w-3.5" />
-          </button>
+          </Button>
         )}
       </div>
       <PopoverContent align="start" className="w-(--anchor-width) min-w-72 gap-0 p-0">
         <div className="flex items-center gap-2 border-b border-gray-100 px-3">
           <Search className="h-4 w-4 shrink-0 text-gray-400" />
-          <input
+          <Input
             // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
             value={search}
@@ -110,12 +114,13 @@ export function StaffSearchSelect({ value, onChange, placeholder = 'Search staff
             </p>
           ) : (
             options.map((o) => (
-              <button
+              <Button
                 key={o.id}
                 type="button"
+                variant="ghost"
                 onClick={() => pick(o)}
                 className={cn(
-                  'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm hover:bg-gray-100',
+                  'h-auto flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm hover:bg-gray-100 whitespace-normal font-normal justify-start',
                   value?.id === o.id && 'bg-[#2b4f7e]/5',
                 )}
               >
@@ -127,7 +132,7 @@ export function StaffSearchSelect({ value, onChange, placeholder = 'Search staff
                   {o.detail && <span className="block truncate text-xs text-gray-500">{o.detail}</span>}
                 </span>
                 {value?.id === o.id && <Check className="h-4 w-4 shrink-0 text-[#2b4f7e]" />}
-              </button>
+              </Button>
             ))
           )}
         </div>

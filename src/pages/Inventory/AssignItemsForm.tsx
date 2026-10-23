@@ -194,38 +194,40 @@ export function AssignItemsForm({
               <div className="space-y-1.5">
                 <span className="block text-xs font-semibold text-gray-700">Assign to</span>
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => {
                       edit()
                       setRecipientType('resident')
                       setRecipient(null)
                     }}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`h-auto px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                       recipientType === 'resident'
-                        ? 'bg-[#005390] text-white shadow-sm'
+                        ? 'bg-[#005390] text-white shadow-sm hover:bg-[#005390] hover:text-white'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
                     <User className="w-3.5 h-3.5" />
                     Resident
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => {
                       edit()
                       setRecipientType('staff')
                       setRecipient(null)
                     }}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`h-auto px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                       recipientType === 'staff'
-                        ? 'bg-[#005390] text-white shadow-sm'
+                        ? 'bg-[#005390] text-white shadow-sm hover:bg-[#005390] hover:text-white'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
                     <Users className="w-3.5 h-3.5" />
                     Staff
-                  </button>
+                  </Button>
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">

@@ -44,7 +44,7 @@ export interface ResidentPersonalDetailsTabProps {
   fnbSubscriptions: FnbSubscriptionItem[]
   getSlotDisplayName: (slot: string) => string
   canUpdateResident: boolean
-  onAssignFoodPackage: () => void
+  onAssignFoodPackage?: () => void
 }
 
 const parseDate = (value?: string | null) => {

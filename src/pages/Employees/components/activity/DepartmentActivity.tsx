@@ -22,6 +22,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { useEmployeeActivityRecords } from '@/hooks/react-query/user'
 import { Panel } from '@/components/common/DetailPanel'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import type {
   CareActivityStats,
@@ -257,37 +258,37 @@ const TicketsTable = ({ rows }: { rows: TicketActivityRecord[] }) => {
   return (
     <>
       {/* Desktop: a table that scans like the employee directory */}
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="border-b border-gray-100 text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:border-gray-800">
-              <th className="py-2.5 pr-4 font-bold">Ticket</th>
-              <th className="py-2.5 pr-4 font-bold">Resident</th>
-              <th className="py-2.5 pr-4 font-bold">Raised</th>
-              <th className="py-2.5 pr-4 font-bold">Time taken</th>
-              <th className="py-2.5 pr-4 font-bold">Priority</th>
-              <th className="py-2.5 font-bold">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+      <div className="hidden overflow-hidden md:block">
+        <Table className="w-full text-left">
+          <TableHeader>
+            <TableRow className="border-b border-gray-100 text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:border-gray-800">
+              <TableHead className="py-2.5 pr-4 font-bold">Ticket</TableHead>
+              <TableHead className="py-2.5 pr-4 font-bold">Resident</TableHead>
+              <TableHead className="py-2.5 pr-4 font-bold">Raised</TableHead>
+              <TableHead className="py-2.5 pr-4 font-bold">Time taken</TableHead>
+              <TableHead className="py-2.5 pr-4 font-bold">Priority</TableHead>
+              <TableHead className="py-2.5 font-bold">Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
             {rows.map((r) => (
-              <tr key={r.id} className="align-top">
-                <td className="max-w-[320px] py-3 pr-4">{ticket(r)}</td>
-                <td className="py-3 pr-4">{resident(r)}</td>
-                <td className="whitespace-nowrap py-3 pr-4">{raised(r)}</td>
-                <td className="whitespace-nowrap py-3 pr-4">
+              <TableRow key={r.id} className="align-top">
+                <TableCell className="max-w-[320px] py-3 pr-4">{ticket(r)}</TableCell>
+                <TableCell className="py-3 pr-4">{resident(r)}</TableCell>
+                <TableCell className="whitespace-nowrap py-3 pr-4">{raised(r)}</TableCell>
+                <TableCell className="whitespace-nowrap py-3 pr-4">
                   <TicketTiming r={r} />
-                </td>
-                <td className="py-3 pr-4">
+                </TableCell>
+                <TableCell className="py-3 pr-4">
                   <PriorityTag value={r.priority} />
-                </td>
-                <td className="py-3">
+                </TableCell>
+                <TableCell className="py-3">
                   <StatusPill value={r.status} />
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {/* Mobile: one card per ticket */}

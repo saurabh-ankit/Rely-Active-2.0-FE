@@ -1,5 +1,6 @@
 import { Check, Minus, X } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { WeekDay } from '@/lib/types/roster'
 import type { UserItem } from '@/lib/types'
 import { getUserDisplayName } from '../../utils'
@@ -43,15 +44,15 @@ const EmployeeAvailabilityDialog = ({
             Select employees and a date range to view availability.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs border-collapse">
-              <thead>
-                <tr>
-                  <th className="text-left font-semibold text-gray-600 px-2 py-2 border-b border-gray-200 sticky left-0 bg-white">
+          <div className="overflow-hidden">
+            <Table className="w-full text-xs">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-left font-semibold text-gray-600 px-2 py-2 border-b border-gray-200 sticky left-0 bg-white">
                     Employee
-                  </th>
+                  </TableHead>
                   {days.map((day) => (
-                    <th
+                    <TableHead
                       key={day}
                       className={`text-center font-semibold px-2 py-2 border-b border-gray-200 capitalize ${
                         isSelected(day) ? 'text-gray-700' : 'text-gray-300'
@@ -59,24 +60,24 @@ const EmployeeAvailabilityDialog = ({
                       title={isSelected(day) ? undefined : 'Not a working day on this roster'}
                     >
                       {day.slice(0, 3)}
-                    </th>
+                    </TableHead>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {employees.map((emp) => {
                   const offs = getWeekOffSet(emp)
                   return (
-                    <tr key={emp.id} className="border-b border-gray-100 last:border-0">
-                      <td className="px-2 py-2.5 font-medium text-[#1e3a5a] sticky left-0 bg-white whitespace-nowrap">
+                    <TableRow key={emp.id} className="border-b border-gray-100 last:border-0">
+                      <TableCell className="px-2 py-2.5 font-medium text-[#1e3a5a] sticky left-0 bg-white whitespace-nowrap">
                         {getUserDisplayName(emp)}
-                      </td>
+                      </TableCell>
                       {days.map((day) => {
                         // Week off wins: the employee isn't rostered that day even if it's picked.
                         const weekOff = offs.has(day)
                         const picked = isSelected(day)
                         return (
-                          <td key={day} className={`px-2 py-2.5 text-center ${picked ? '' : 'bg-gray-50'}`}>
+                          <TableCell key={day} className={`px-2 py-2.5 text-center ${picked ? '' : 'bg-gray-50'}`}>
                             {weekOff ? (
                               <X className="inline-block h-4 w-4 text-rose-500" aria-label="Week off" />
                             ) : picked ? (
@@ -84,14 +85,14 @@ const EmployeeAvailabilityDialog = ({
                             ) : (
                               <Minus className="inline-block h-4 w-4 text-gray-300" aria-label="Not rostered" />
                             )}
-                          </td>
+                          </TableCell>
                         )
                       })}
-                    </tr>
+                    </TableRow>
                   )
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
             <p className="text-[11px] text-gray-500 mt-3">
               <Check className="inline-block h-3 w-3 text-emerald-600 align-text-bottom" /> On roster ·{' '}
               <Minus className="inline-block h-3 w-3 text-gray-400 align-text-bottom" /> Not rostered (day not picked) ·{' '}

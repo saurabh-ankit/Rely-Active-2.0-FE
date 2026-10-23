@@ -1,5 +1,6 @@
 import { ArrowLeftRight, CalendarDays, ChevronRight, Clock3, Coffee, MapPin, Users, UserCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { RosterPermission } from '../RosterPermission'
@@ -69,9 +70,9 @@ const RosterShiftCard = ({
   const canSelect = selectable && !event.isCoverDuty && !!event.shiftEmployeeDateId
 
   return (
-    <article
+    <Card
       className={cn(
-        'group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white',
+        'gap-0 group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white',
         'shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(42,81,124,0.06)]',
         'transition-all duration-200 hover:-translate-y-0.5 hover:border-[#2a517c]/25',
         'hover:shadow-[0_4px_12px_rgba(15,23,42,0.06),0_16px_32px_rgba(42,81,124,0.10)]',
@@ -79,18 +80,23 @@ const RosterShiftCard = ({
       )}
     >
       {canSelect && (
-        <div className="absolute left-3 top-3 z-10">
+        <div className="absolute left-3.5 top-6 z-10">
           <Checkbox
             checked={selected}
             onCheckedChange={(checked) => onSelectChange?.(checked === true)}
             aria-label={`Select roster on ${event.date}`}
-            className="h-4 w-4 border-white bg-white/90 shadow-sm data-[state=checked]:border-[#2a517c] data-[state=checked]:bg-[#2a517c]"
+            className="h-4 w-4 border-white/70 bg-white/20 shadow-xs hover:bg-white/30 data-checked:border-white data-checked:bg-white data-checked:text-[#005390]"
             onClick={(e) => e.stopPropagation()}
           />
         </div>
       )}
-      <button type="button" onClick={() => onAction('details')} className="w-full text-left">
-        <div className="relative bg-gradient-to-br from-[#1e3a5a] via-[#2a517c] to-[#3a6a9a] px-4 py-3.5">
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={() => onAction('details')}
+        className="h-auto p-0 flex flex-col items-stretch w-full text-left rounded-none whitespace-normal font-normal hover:bg-transparent"
+      >
+        <div className="relative bg-gradient-to-br from-[#1e3a5a] via-[#2a517c] to-[#3a6a9a] px-4 py-3.5 w-full">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_55%)]" />
           <div className={cn('relative flex items-start justify-between gap-3', canSelect && 'pl-6')}>
             <div className="min-w-0">
@@ -108,7 +114,7 @@ const RosterShiftCard = ({
           </div>
         </div>
 
-        <div className="space-y-3 px-4 py-4">
+        <div className="space-y-3 px-4 py-4 w-full">
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2 text-sm text-slate-700">
               <CalendarDays className="h-4 w-4 shrink-0 text-slate-400" />
@@ -138,14 +144,15 @@ const RosterShiftCard = ({
             </p>
           ) : null}
         </div>
-      </button>
+      </Button>
 
       {showAssignedResidents && (
         <div className="px-4 pb-3">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => onAction('residents')}
-            className="flex w-full items-center gap-3 rounded-xl border border-[#2a517c]/10 bg-[#2a517c]/5 px-3 py-2.5 text-left transition-colors hover:bg-[#2a517c]/10"
+            className="h-auto flex w-full items-center gap-3 rounded-xl border border-[#2a517c]/10 bg-[#2a517c]/5 px-3 py-2.5 text-left transition-colors hover:bg-[#2a517c]/10 whitespace-normal font-normal"
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#2a517c]/10">
               <Users className="h-4 w-4 text-[#2a517c]" />
@@ -155,7 +162,7 @@ const RosterShiftCard = ({
               <p className="text-xs text-[#2a517c]/70">Configure client-care roster</p>
             </div>
             <ChevronRight className="h-4 w-4 shrink-0 text-[#2a517c]/60" />
-          </button>
+          </Button>
         </div>
       )}
 
@@ -211,7 +218,7 @@ const RosterShiftCard = ({
           </RosterPermission>
         </div>
       )}
-    </article>
+    </Card>
   )
 }
 

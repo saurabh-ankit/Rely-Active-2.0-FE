@@ -1,5 +1,6 @@
 import { Button as ButtonPrimitive } from '@base-ui/react/button'
 import { cva, type VariantProps } from 'class-variance-authority'
+import { Loader2 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { THEME_COLORS } from '@/lib/constants/theme'
@@ -71,11 +72,7 @@ function Button({
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     >
-      {isLoading ? (
-        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-      ) : (
-        icon
-      )}
+      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : icon}
       {label || children}
     </ButtonPrimitive>
   )

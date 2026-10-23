@@ -1,6 +1,8 @@
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { type FieldPath, useFieldArray, useForm, useWatch } from 'react-hook-form'
+import { type FieldPath, useFieldArray, useForm, useWatch, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Camera,
@@ -8,10 +10,10 @@ import {
   CheckCircle2,
   IndianRupee,
   KeyRound,
+  Loader2,
   Mail,
   Phone,
   Plus,
-  RefreshCw,
   ShieldAlert,
   Trash2,
   UserPlus,
@@ -46,6 +48,8 @@ import { useLocationContext } from '@/hooks/useLocation'
 import { z } from 'zod'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PageHeader } from '@/components/common/PageHeader'
 import { cn, getFileUrl } from '@/lib/utils'
 import { floorLabel, isHiddenFloor } from '@/utils/unitLabel'
@@ -85,21 +89,21 @@ function StepCard({
   children: React.ReactNode
 }) {
   return (
-    <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-2xs md:p-6 dark:border-gray-800 dark:bg-slate-900">
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+    <Card className="gap-0 rounded-2xl border-gray-100 bg-white p-5 shadow-2xs md:p-6 dark:border-gray-800 dark:bg-slate-900">
+      <CardHeader className="mb-5 flex flex-wrap flex-row items-start justify-between gap-3 p-0">
         <div className="flex items-start gap-3">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#005390] text-xs font-bold text-white">
             {step}
           </span>
           <div>
-            <h2 className="text-base font-bold text-gray-900 dark:text-white">{title}</h2>
-            {hint && <p className="text-xs text-gray-500">{hint}</p>}
+            <CardTitle className="text-base font-bold text-gray-900 dark:text-white">{title}</CardTitle>
+            {hint && <CardDescription className="text-xs text-gray-500">{hint}</CardDescription>}
           </div>
         </div>
         {action}
-      </div>
-      {children}
-    </section>
+      </CardHeader>
+      <CardContent className="p-0">{children}</CardContent>
+    </Card>
   )
 }
 
@@ -118,15 +122,16 @@ function ChoiceCard({
   onSelect: () => void
 }) {
   return (
-    <button
+    <Button
+      variant="ghost"
       type="button"
       aria-pressed={selected}
       disabled={disabled}
       onClick={onSelect}
       className={cn(
-        'flex w-full items-start gap-3 rounded-xl border p-3.5 text-left transition-colors',
+        'flex w-full h-auto items-start gap-3 rounded-xl border p-3.5 text-left transition-colors font-normal whitespace-normal justify-start',
         selected
-          ? 'border-[#005390] bg-[#005390]/5 ring-2 ring-[#005390]/15'
+          ? 'border-[#005390] bg-[#005390]/5 ring-2 ring-[#005390]/15 hover:bg-[#005390]/5'
           : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50',
         disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
       )}
@@ -143,7 +148,7 @@ function ChoiceCard({
         <span className="block text-sm font-semibold text-gray-900">{title}</span>
         <span className="block text-xs text-gray-500">{hint}</span>
       </span>
-    </button>
+    </Button>
   )
 }
 
@@ -1370,7 +1375,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
 
       {isLoading ? (
         <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center text-sm text-gray-400">
-          <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#005390]" />
+          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
           Loading flats…
         </div>
       ) : (
@@ -1457,131 +1462,145 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
               {/* Entity (Apartment, Villa…) — only when the property has more than one */}
               {showEntityPicker && (
                 <div>
-                  <label htmlFor="select-entity" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  <Label htmlFor="select-entity" className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Type <span className="text-red-500 font-bold">*</span>
-                  </label>
-                  <select
-                    id="select-entity"
-                    value={selectedEntityKey}
-                    onChange={(e) => handleEntityChange(e.target.value)}
-                    className={selectClass}
-                  >
-                    <option value="">Select…</option>
-                    {entityOptions.map((e) => (
-                      <option key={e.key} value={e.key}>
-                        {e.name}
-                      </option>
-                    ))}
-                  </select>
+                  </Label>
+                  <Select value={selectedEntityKey || undefined} onValueChange={(val) => handleEntityChange(val || '')}>
+                    <SelectTrigger id="select-entity" className={cn(selectClass, 'h-auto')}>
+                      <SelectValue placeholder="Select…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {entityOptions.map((e) => (
+                        <SelectItem key={e.key} value={e.key}>
+                          {e.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
               {/* Block (named by the entity, e.g. Tower) — skipped for entities without blocks */}
               {showBlockPicker && (
                 <div>
-                  <label htmlFor="select-block" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  <Label htmlFor="select-block" className="block text-xs font-semibold text-gray-700 mb-1.5">
                     {blockWord} <span className="text-red-500 font-bold">*</span>
-                  </label>
-                  <select
-                    id="select-block"
-                    value={selectedBlockId}
+                  </Label>
+                  <Select
+                    value={selectedBlockId || undefined}
                     disabled={showEntityPicker && !selectedEntityKey}
-                    onChange={(e) => handleBlockChange(e.target.value)}
-                    className={selectClass}
+                    onValueChange={(val) => handleBlockChange(val || '')}
                   >
-                    <option value="">
-                      {showEntityPicker && !selectedEntityKey ? 'Select a type first…' : 'Select…'}
-                    </option>
-                    {blockChoices.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.block_name}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger id="select-block" className={cn(selectClass, 'h-auto')}>
+                      <SelectValue
+                        placeholder={showEntityPicker && !selectedEntityKey ? 'Select a type first…' : 'Select…'}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {blockChoices.map((b) => (
+                        <SelectItem key={b.id} value={b.id}>
+                          {b.block_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
               {/* Floor Selection (not shown for villas, plots… which have no floors) */}
               {!floorsHidden && (
                 <div>
-                  <label htmlFor="select-floor" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  <Label htmlFor="select-floor" className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Floor <span className="text-red-500 font-bold">*</span>
-                  </label>
-                  <select
-                    id="select-floor"
-                    value={selectedFloorId}
-                    disabled={!selectedBlockId}
-                    onChange={(e) => handleFloorChange(e.target.value)}
-                    className={selectClass}
+                  </Label>
+                  <Select
+                    value={selectedFloorId || undefined}
+                    disabled={!selectedBlockId || floors.length === 0}
+                    onValueChange={(val) => handleFloorChange(val || '')}
                   >
-                    {!selectedBlockId ? (
-                      <option value="">Select Block first...</option>
-                    ) : floors.length === 0 ? (
-                      <option value="">No floors in this block</option>
-                    ) : (
-                      <>
-                        <option value="">Select Floor...</option>
-                        {floors.map((f) => (
-                          <option key={f.id} value={f.id}>
-                            {f.label}
-                          </option>
-                        ))}
-                      </>
-                    )}
-                  </select>
+                    <SelectTrigger id="select-floor" className={cn(selectClass, 'h-auto')}>
+                      <SelectValue
+                        placeholder={
+                          !selectedBlockId
+                            ? 'Select Block first...'
+                            : floors.length === 0
+                              ? 'No floors in this block'
+                              : 'Select Floor...'
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {floors.map((f) => (
+                        <SelectItem key={f.id} value={f.id}>
+                          {f.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
               {/* Unit Selection */}
               <div>
-                <label htmlFor="select-unit" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                <Label htmlFor="select-unit" className="block text-xs font-semibold text-gray-700 mb-1.5">
                   {unitWord} <span className="text-red-500 font-bold">*</span>
-                </label>
-                <select
-                  id="select-unit"
-                  {...register('unitId')}
-                  disabled={!selectedFloorId}
-                  className={`h-9 w-full rounded-xl border bg-white px-3.5 py-1 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20 shadow-2xs ${
-                    errors.unitId ? 'border-red-500 focus:ring-red-500/20' : 'border-gray-200'
-                  } disabled:bg-gray-100 disabled:opacity-70`}
-                >
-                  {!selectedFloorId ? (
-                    <option value="">
-                      {!floorsHidden
-                        ? 'Select Floor first...'
-                        : showBlockPicker
-                          ? `Select a ${blockWord.toLowerCase()} first…`
-                          : 'Select a type first…'}
-                    </option>
-                  ) : filteredFloorUnits.length === 0 ? (
-                    <option value="">No {unitWord.toLowerCase()}s available</option>
-                  ) : (
-                    <>
-                      <option value="">Select {unitWord}…</option>
-                      {filteredFloorUnits.map((u) => {
-                        const isOccupied = checkIsUnitOccupied(u)
-                        const isDisabled = isOccupied && (!isEditMode || u.id !== watchedUnitId)
+                </Label>
+                <Controller
+                  control={control}
+                  name="unitId"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value || undefined}
+                      onValueChange={(val) => field.onChange(val || '')}
+                      disabled={!selectedFloorId}
+                    >
+                      <SelectTrigger
+                        id="select-unit"
+                        className={cn(
+                          'h-9 w-full rounded-xl border bg-white px-3.5 py-1 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20 shadow-2xs disabled:bg-gray-100 disabled:opacity-70',
+                          errors.unitId ? 'border-red-500 focus:ring-red-500/20' : 'border-gray-200',
+                        )}
+                      >
+                        <SelectValue
+                          placeholder={
+                            !selectedFloorId
+                              ? !floorsHidden
+                                ? 'Select Floor first...'
+                                : showBlockPicker
+                                  ? `Select a ${blockWord.toLowerCase()} first…`
+                                  : 'Select a type first…'
+                              : filteredFloorUnits.length === 0
+                                ? `No ${unitWord.toLowerCase()}s available`
+                                : `Select ${unitWord}…`
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredFloorUnits.map((u) => {
+                          const isOccupied = checkIsUnitOccupied(u)
+                          const isDisabled = isOccupied && (!isEditMode || u.id !== watchedUnitId)
 
-                        return (
-                          <option
-                            key={u.id}
-                            value={u.id}
-                            disabled={isDisabled}
-                            className={
-                              isDisabled ? 'text-gray-400 bg-gray-100 font-normal' : 'text-gray-900 font-medium'
-                            }
-                          >
-                            {u.unit_number}
-                            {u.unit_type ? ` · ${u.unit_type}` : ''}
-                            {isDisabled
-                              ? ' · Occupied'
-                              : ` · ${(u.occupancyStatus || 'VACANT').toLowerCase().replace(/_/g, ' ')}`}
-                          </option>
-                        )
-                      })}
-                    </>
+                          return (
+                            <SelectItem
+                              key={u.id}
+                              value={u.id}
+                              disabled={isDisabled}
+                              className={
+                                isDisabled ? 'text-gray-400 bg-gray-100 font-normal' : 'text-gray-900 font-medium'
+                              }
+                            >
+                              {u.unit_number}
+                              {u.unit_type ? ` · ${u.unit_type}` : ''}
+                              {isDisabled
+                                ? ' · Occupied'
+                                : ` · ${(u.occupancyStatus || 'VACANT').toLowerCase().replace(/_/g, ' ')}`}
+                            </SelectItem>
+                          )
+                        })}
+                      </SelectContent>
+                    </Select>
                   )}
-                </select>
+                />
                 {errors.unitId && <p className="mt-1 text-xs font-semibold text-red-500">{errors.unitId.message}</p>}
               </div>
             </div>
@@ -1600,7 +1619,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
             <div className="space-y-5">
               <div className="flex flex-col gap-5 sm:flex-row">
                 <div className="relative shrink-0 self-center sm:self-start">
-                  <label
+                  <Label
                     htmlFor="main-resident-photo-upload"
                     className="flex h-24 w-24 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 transition hover:border-[#005390]"
                     title="Upload photo"
@@ -1613,7 +1632,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                         <span className="text-[10px] font-semibold text-gray-500">Add photo</span>
                       </>
                     )}
-                  </label>
+                  </Label>
                   <input
                     type="file"
                     accept="image/*"
@@ -1622,15 +1641,17 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                     className="hidden"
                   />
                   {watchedPhotoUrl && (
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
                       type="button"
                       onClick={() => setValue('photoUrl', '')}
-                      className="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white shadow-md transition hover:bg-red-600"
+                      className="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 h-auto text-white shadow-md transition hover:bg-red-600 hover:text-white"
                       title="Remove photo"
                       aria-label="Remove photo"
                     >
                       <X className="h-3 w-3" />
-                    </button>
+                    </Button>
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -1655,44 +1676,83 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div>
-                  <label htmlFor="resident-gender-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  <Label htmlFor="resident-gender-select" className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Gender <span className="text-red-500 font-bold">*</span>
-                  </label>
-                  <select
-                    id="resident-gender-select"
-                    {...register('gender')}
-                    className={cn(
-                      selectClass,
-                      errors.gender && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+                  </Label>
+                  <Controller
+                    control={control}
+                    name="gender"
+                    render={({ field }) => (
+                      <Select value={field.value || undefined} onValueChange={(val) => field.onChange(val || 'MALE')}>
+                        <SelectTrigger
+                          id="resident-gender-select"
+                          className={cn(
+                            selectClass,
+                            'h-auto',
+                            errors.gender && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+                          )}
+                        >
+                          <SelectValue placeholder="Gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MALE">Male</SelectItem>
+                          <SelectItem value="FEMALE">Female</SelectItem>
+                          <SelectItem value="OTHER">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
                     )}
-                  >
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                    <option value="OTHER">Other</option>
-                  </select>
+                  />
                   {errors.gender && <p className="mt-1 text-xs font-semibold text-red-500">{errors.gender.message}</p>}
                 </div>
 
-                <Input label="Date of Birth" required type="date" {...register('dob')} error={errors.dob?.message} />
+                <Controller
+                  control={control}
+                  name="dob"
+                  render={({ field }) => (
+                    <Input
+                      label="Date of Birth"
+                      required
+                      type="date"
+                      name={field.name}
+                      ref={field.ref}
+                      value={field.value || ''}
+                      onChange={(e) => field.onChange(e.target.value)}
+                      onBlur={field.onBlur}
+                      min="1900-01-01"
+                      max={new Date().toISOString().split('T')[0]}
+                      error={errors.dob?.message}
+                    />
+                  )}
+                />
 
                 <div>
-                  <label
+                  <Label
                     htmlFor="resident-blood-group-select"
                     className="block text-xs font-semibold text-gray-700 mb-1.5"
                   >
                     Blood Group
-                  </label>
-                  <select id="resident-blood-group-select" {...register('bloodGroup')} className={selectClass}>
-                    <option value="">Not known</option>
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                  </select>
+                  </Label>
+                  <Controller
+                    control={control}
+                    name="bloodGroup"
+                    render={({ field }) => (
+                      <Select value={field.value || undefined} onValueChange={(val) => field.onChange(val || '')}>
+                        <SelectTrigger id="resident-blood-group-select" className={cn(selectClass, 'h-auto')}>
+                          <SelectValue placeholder="Not known" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="A+">A+</SelectItem>
+                          <SelectItem value="A-">A-</SelectItem>
+                          <SelectItem value="B+">B+</SelectItem>
+                          <SelectItem value="B-">B-</SelectItem>
+                          <SelectItem value="AB+">AB+</SelectItem>
+                          <SelectItem value="AB-">AB-</SelectItem>
+                          <SelectItem value="O+">O+</SelectItem>
+                          <SelectItem value="O-">O-</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
               </div>
 
@@ -1752,13 +1812,14 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                 <div className="flex flex-col justify-start">
                   <span className="block text-xs font-bold text-gray-700 mb-1.5">Who receives the rent?</span>
                   <div className="grid grid-cols-2 gap-2.5">
-                    <button
+                    <Button
+                      variant="ghost"
                       type="button"
                       onClick={() => setValue('payRentToCompany', false, { shouldValidate: true })}
                       className={cn(
-                        'flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left',
+                        'flex items-center justify-center gap-2 p-2.5 h-auto rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left',
                         !watchedPayRentToCompany
-                          ? 'border-[#005390] bg-[#005390]/10 text-[#005390] ring-1 ring-[#005390] shadow-2xs'
+                          ? 'border-[#005390] bg-[#005390]/10 text-[#005390] ring-1 ring-[#005390] shadow-2xs hover:bg-[#005390]/10 hover:text-[#005390]'
                           : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50',
                       )}
                     >
@@ -1770,15 +1831,16 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                         className="w-3.5 h-3.5 text-[#005390]"
                       />
                       <span>Owner directly</span>
-                    </button>
+                    </Button>
 
-                    <button
+                    <Button
+                      variant="ghost"
                       type="button"
                       onClick={() => setValue('payRentToCompany', true, { shouldValidate: true })}
                       className={cn(
-                        'flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left',
+                        'flex items-center justify-center gap-2 p-2.5 h-auto rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left',
                         watchedPayRentToCompany
-                          ? 'border-[#005390] bg-[#005390]/10 text-[#005390] ring-1 ring-[#005390] shadow-2xs'
+                          ? 'border-[#005390] bg-[#005390]/10 text-[#005390] ring-1 ring-[#005390] shadow-2xs hover:bg-[#005390]/10 hover:text-[#005390]'
                           : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50',
                       )}
                     >
@@ -1790,7 +1852,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                         className="w-3.5 h-3.5 text-[#005390]"
                       />
                       <span>Company</span>
-                    </button>
+                    </Button>
                   </div>
                   <p className="text-[11px] text-gray-500 mt-2 font-medium">
                     {watchedPayRentToCompany
@@ -1832,9 +1894,9 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                     const fmErrors = errors.familyMembers?.[idx]
 
                     return (
-                      <div
+                      <Card
                         key={fieldItem.id}
-                        className="p-5 bg-white border border-gray-200/90 rounded-2xl shadow-xs space-y-4 relative transition hover:border-[#005390]/40"
+                        className="gap-0 p-5 bg-white border-gray-200/90 rounded-2xl shadow-xs space-y-4 relative transition hover:border-[#005390]/40"
                       >
                         {/* Card Header */}
                         <div className="flex items-center justify-between border-b border-gray-100 pb-3">
@@ -1851,14 +1913,17 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                               {fm.relation || 'Relative'}
                             </span>
                           </div>
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
                             type="button"
                             onClick={() => handleRemoveFamilyMember(idx)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition"
+                            className="p-1.5 h-auto text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition"
+                            aria-label="Remove Member"
                             title="Remove Member"
                           >
                             <Trash2 className="w-4 h-4" />
-                          </button>
+                          </Button>
                         </div>
 
                         {/* Vertical Form Grid inside Family Member Card */}
@@ -1890,22 +1955,25 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                               }
                               className="hidden"
                             />
-                            <label
+                            <Label
                               htmlFor={`fm-photo-upload-${idx}`}
                               className="absolute -bottom-1.5 -right-1.5 bg-[#005390] text-white p-1 rounded-lg shadow-sm cursor-pointer hover:bg-[#003d6b] transition"
                               title="Upload Photo"
                             >
                               <Camera className="w-3 h-3" />
-                            </label>
+                            </Label>
                             {fm.photoUrl && (
-                              <button
+                              <Button
+                                variant="ghost"
+                                size="icon-xs"
                                 type="button"
                                 onClick={() => setValue(`familyMembers.${idx}.photoUrl`, '')}
-                                className="absolute -top-1.5 -right-1.5 bg-red-500 text-white p-0.5 rounded-full shadow-sm hover:bg-red-600 transition"
+                                className="absolute -top-1.5 -right-1.5 bg-red-500 text-white p-0.5 h-auto rounded-full shadow-sm hover:bg-red-600 hover:text-white transition"
+                                aria-label="Remove Photo"
                                 title="Remove Photo"
                               >
                                 <X className="w-2.5 h-2.5" />
-                              </button>
+                              </Button>
                             )}
                           </div>
 
@@ -1914,13 +1982,13 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                             {/* Row 1: First Name & Last Name */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <div>
-                                <label
+                                <Label
                                   htmlFor={`fm-first-name-${idx}`}
                                   className="block text-xs font-semibold text-gray-700 mb-1"
                                 >
                                   First Name <span className="text-red-500 font-bold">*</span>
-                                </label>
-                                <input
+                                </Label>
+                                <Input
                                   id={`fm-first-name-${idx}`}
                                   type="text"
                                   placeholder="e.g. Ananya"
@@ -1937,13 +2005,13 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                 )}
                               </div>
                               <div>
-                                <label
+                                <Label
                                   htmlFor={`fm-last-name-${idx}`}
                                   className="block text-xs font-semibold text-gray-700 mb-1"
                                 >
                                   Last Name
-                                </label>
-                                <input
+                                </Label>
+                                <Input
                                   id={`fm-last-name-${idx}`}
                                   type="text"
                                   placeholder="e.g. Sharma"
@@ -1956,53 +2024,81 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                             {/* Row 2: Relation & Gender */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <div>
-                                <label
+                                <Label
                                   htmlFor={`fm-relation-select-${idx}`}
                                   className="block text-xs font-semibold text-gray-700 mb-1"
                                 >
                                   Relation <span className="text-red-500 font-bold">*</span>
-                                </label>
-                                <select
-                                  id={`fm-relation-select-${idx}`}
-                                  {...register(`familyMembers.${idx}.relation`)}
-                                  className={cn(
-                                    'h-9 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20',
-                                    fmErrors?.relation && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+                                </Label>
+                                <Controller
+                                  control={control}
+                                  name={`familyMembers.${idx}.relation` as const}
+                                  render={({ field }) => (
+                                    <Select
+                                      value={field.value || undefined}
+                                      onValueChange={(val) => field.onChange(val || 'Spouse')}
+                                    >
+                                      <SelectTrigger
+                                        id={`fm-relation-select-${idx}`}
+                                        className={cn(
+                                          'h-9 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20',
+                                          fmErrors?.relation &&
+                                            'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+                                        )}
+                                      >
+                                        <SelectValue placeholder="Relation" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="Spouse">Spouse</SelectItem>
+                                        <SelectItem value="Son">Son</SelectItem>
+                                        <SelectItem value="Daughter">Daughter</SelectItem>
+                                        <SelectItem value="Father">Father</SelectItem>
+                                        <SelectItem value="Mother">Mother</SelectItem>
+                                        <SelectItem value="Brother">Brother</SelectItem>
+                                        <SelectItem value="Sister">Sister</SelectItem>
+                                        <SelectItem value="Other">Other</SelectItem>
+                                      </SelectContent>
+                                    </Select>
                                   )}
-                                >
-                                  <option value="Spouse">Spouse</option>
-                                  <option value="Son">Son</option>
-                                  <option value="Daughter">Daughter</option>
-                                  <option value="Father">Father</option>
-                                  <option value="Mother">Mother</option>
-                                  <option value="Brother">Brother</option>
-                                  <option value="Sister">Sister</option>
-                                  <option value="Other">Other</option>
-                                </select>
+                                />
                                 {fmErrors?.relation && (
                                   <p className="mt-1 text-xs font-semibold text-red-500">{fmErrors.relation.message}</p>
                                 )}
                               </div>
 
                               <div>
-                                <label
+                                <Label
                                   htmlFor={`fm-gender-select-${idx}`}
                                   className="block text-xs font-semibold text-gray-700 mb-1"
                                 >
                                   Gender <span className="text-red-500 font-bold">*</span>
-                                </label>
-                                <select
-                                  id={`fm-gender-select-${idx}`}
-                                  {...register(`familyMembers.${idx}.gender`)}
-                                  className={cn(
-                                    'h-9 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20',
-                                    fmErrors?.gender && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+                                </Label>
+                                <Controller
+                                  control={control}
+                                  name={`familyMembers.${idx}.gender` as const}
+                                  render={({ field }) => (
+                                    <Select
+                                      value={field.value || undefined}
+                                      onValueChange={(val) => field.onChange(val || 'MALE')}
+                                    >
+                                      <SelectTrigger
+                                        id={`fm-gender-select-${idx}`}
+                                        className={cn(
+                                          'h-9 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20',
+                                          fmErrors?.gender &&
+                                            'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+                                        )}
+                                      >
+                                        <SelectValue placeholder="Gender" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="MALE">Male</SelectItem>
+                                        <SelectItem value="FEMALE">Female</SelectItem>
+                                        <SelectItem value="OTHER">Other</SelectItem>
+                                      </SelectContent>
+                                    </Select>
                                   )}
-                                >
-                                  <option value="MALE">Male</option>
-                                  <option value="FEMALE">Female</option>
-                                  <option value="OTHER">Other</option>
-                                </select>
+                                />
                                 {fmErrors?.gender && (
                                   <p className="mt-1 text-xs font-semibold text-red-500">{fmErrors.gender.message}</p>
                                 )}
@@ -2012,19 +2108,31 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                             {/* Row 3: Date of Birth & Blood Group */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <div>
-                                <label
+                                <Label
                                   htmlFor={`fm-dob-input-${idx}`}
                                   className="block text-xs font-semibold text-gray-700 mb-1"
                                 >
                                   Date of Birth <span className="text-red-500 font-bold">*</span>
-                                </label>
-                                <input
-                                  id={`fm-dob-input-${idx}`}
-                                  type="date"
-                                  {...register(`familyMembers.${idx}.dob`)}
-                                  className={cn(
-                                    'h-9 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20',
-                                    fmErrors?.dob && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+                                </Label>
+                                <Controller
+                                  control={control}
+                                  name={`familyMembers.${idx}.dob`}
+                                  render={({ field }) => (
+                                    <Input
+                                      id={`fm-dob-input-${idx}`}
+                                      type="date"
+                                      name={field.name}
+                                      ref={field.ref}
+                                      value={field.value || ''}
+                                      onChange={(e) => field.onChange(e.target.value)}
+                                      onBlur={field.onBlur}
+                                      min="1900-01-01"
+                                      max={new Date().toISOString().split('T')[0]}
+                                      className={cn(
+                                        'h-9 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20',
+                                        fmErrors?.dob && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+                                      )}
+                                    />
                                   )}
                                 />
                                 {fmErrors?.dob && (
@@ -2033,40 +2141,52 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                               </div>
 
                               <div>
-                                <label
+                                <Label
                                   htmlFor={`fm-blood-group-select-${idx}`}
                                   className="block text-xs font-semibold text-gray-700 mb-1"
                                 >
                                   Blood Group
-                                </label>
-                                <select
-                                  id={`fm-blood-group-select-${idx}`}
-                                  {...register(`familyMembers.${idx}.bloodGroup`)}
-                                  className="h-9 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20"
-                                >
-                                  <option value="">Not known</option>
-                                  <option value="A+">A+</option>
-                                  <option value="A-">A-</option>
-                                  <option value="B+">B+</option>
-                                  <option value="B-">B-</option>
-                                  <option value="AB+">AB+</option>
-                                  <option value="AB-">AB-</option>
-                                  <option value="O+">O+</option>
-                                  <option value="O-">O-</option>
-                                </select>
+                                </Label>
+                                <Controller
+                                  control={control}
+                                  name={`familyMembers.${idx}.bloodGroup` as const}
+                                  render={({ field }) => (
+                                    <Select
+                                      value={field.value || undefined}
+                                      onValueChange={(val) => field.onChange(val || '')}
+                                    >
+                                      <SelectTrigger
+                                        id={`fm-blood-group-select-${idx}`}
+                                        className="h-9 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-900 font-medium focus:border-[#005390] focus:outline-none focus:ring-2 focus:ring-[#005390]/20"
+                                      >
+                                        <SelectValue placeholder="Not known" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="A+">A+</SelectItem>
+                                        <SelectItem value="A-">A-</SelectItem>
+                                        <SelectItem value="B+">B+</SelectItem>
+                                        <SelectItem value="B-">B-</SelectItem>
+                                        <SelectItem value="AB+">AB+</SelectItem>
+                                        <SelectItem value="AB-">AB-</SelectItem>
+                                        <SelectItem value="O+">O+</SelectItem>
+                                        <SelectItem value="O-">O-</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  )}
+                                />
                               </div>
                             </div>
 
                             {/* Row 4: Phone & Email */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <div>
-                                <label
+                                <Label
                                   htmlFor={`fm-phone-input-${idx}`}
                                   className="block text-xs font-semibold text-gray-700 mb-1"
                                 >
                                   Mobile number <span className="text-red-500 font-bold">*</span>
-                                </label>
-                                <input
+                                </Label>
+                                <Input
                                   id={`fm-phone-input-${idx}`}
                                   type="text"
                                   placeholder="e.g. 9876543210"
@@ -2082,13 +2202,13 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                               </div>
 
                               <div>
-                                <label
+                                <Label
                                   htmlFor={`fm-email-input-${idx}`}
                                   className="block text-xs font-semibold text-gray-700 mb-1"
                                 >
                                   Email <span className="text-red-500 font-bold">*</span>
-                                </label>
-                                <input
+                                </Label>
+                                <Input
                                   id={`fm-email-input-${idx}`}
                                   type="email"
                                   placeholder="e.g. member@example.com"
@@ -2114,18 +2234,17 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
 
                               return (
                                 <div className="pt-3 border-t border-gray-100">
-                                  <label
+                                  <Label
                                     htmlFor={`fm-login-access-${idx}`}
                                     className="inline-flex items-center gap-2 text-xs font-semibold text-[#005390] cursor-pointer"
                                   >
-                                    <input
+                                    <Checkbox
                                       id={`fm-login-access-${idx}`}
-                                      type="checkbox"
                                       checked={isCurrentlyEnabled}
-                                      onChange={(e) => {
-                                        const checked = e.target.checked
-                                        setEnabledFmLogins((prev) => ({ ...prev, [idx]: checked }))
-                                        if (checked) {
+                                      onCheckedChange={(checked) => {
+                                        const isChecked = checked === true
+                                        setEnabledFmLogins((prev) => ({ ...prev, [idx]: isChecked }))
+                                        if (isChecked) {
                                           if (!fm?.username) {
                                             setValue(
                                               `familyMembers.${idx}.username`,
@@ -2138,22 +2257,22 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                                           setValue(`familyMembers.${idx}.password`, '', { shouldValidate: true })
                                         }
                                       }}
-                                      className="rounded border-gray-300 text-[#005390] focus:ring-[#005390]"
+                                      className="data-checked:border-[#005390] data-checked:bg-[#005390] data-checked:text-white"
                                     />
                                     <KeyRound className="w-3.5 h-3.5" />
                                     Give this member their own app login
-                                  </label>
+                                  </Label>
 
                                   {isCurrentlyEnabled && (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2.5 p-3 bg-blue-50/60 border border-blue-100 rounded-xl">
                                       <div>
-                                        <label
+                                        <Label
                                           htmlFor={`fm-username-input-${idx}`}
                                           className="block text-[10px] font-semibold text-gray-600 mb-1"
                                         >
                                           Username
-                                        </label>
-                                        <input
+                                        </Label>
+                                        <Input
                                           id={`fm-username-input-${idx}`}
                                           type="text"
                                           placeholder="e.g. priya_101"
@@ -2187,7 +2306,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                             })()}
                           </div>
                         </div>
-                      </div>
+                      </Card>
                     )
                   })}
                 </div>
@@ -2204,7 +2323,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
               <div className="space-y-5">
                 {isLoadingPackages ? (
                   <div className="text-center py-6 text-xs text-gray-400">
-                    <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-[#005390]" />
+                    <Loader2 className="w-4 h-4 animate-spin mx-auto mb-1 text-primary" />
                     Loading care packages...
                   </div>
                 ) : carePackages.length === 0 ? (
@@ -2224,14 +2343,15 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {/* Option for No Package */}
-                    <button
+                    <Button
+                      variant="ghost"
                       type="button"
                       onClick={() => pickCarePackage('')}
                       className={cn(
-                        'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full',
+                        'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full h-auto whitespace-normal font-normal items-stretch',
                         !watchedCarePackageId
-                          ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20'
-                          : 'border-gray-200 bg-white hover:border-gray-300',
+                          ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20 hover:bg-blue-50/50'
+                          : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-white',
                       )}
                     >
                       <div>
@@ -2245,22 +2365,23 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                         </div>
                         <p className="text-[11px] text-gray-500 mt-1">Skip the care package for now.</p>
                       </div>
-                    </button>
+                    </Button>
 
                     {/* Available Care Packages */}
                     {carePackages.map((pkg) => {
                       const isSelected = watchedCarePackageId === pkg.id
                       const taskCount = pkg.features?.length || pkg.tasks?.length || 0
                       return (
-                        <button
+                        <Button
+                          variant="ghost"
                           key={pkg.id}
                           type="button"
                           onClick={() => pickCarePackage(pkg.id)}
                           className={cn(
-                            'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full',
+                            'cursor-pointer rounded-2xl border p-4 transition-all duration-200 hover:shadow-md flex flex-col justify-between text-left w-full h-auto whitespace-normal font-normal items-stretch',
                             isSelected
-                              ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20'
-                              : 'border-gray-200 bg-white hover:border-gray-300',
+                              ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20 hover:bg-blue-50/50'
+                              : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-white',
                           )}
                         >
                           <div>
@@ -2303,7 +2424,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
                               </div>
                             )}
                           </div>
-                        </button>
+                        </Button>
                       )
                     })}
                   </div>
@@ -2311,17 +2432,17 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
 
                 {watchedCarePackageId && !originalCare && (
                   <div className="flex flex-wrap items-end gap-3 border-t border-gray-100 pt-4">
-                    <label className="block text-xs">
+                    <Label className="block text-xs">
                       <span className="mb-1 block font-semibold text-gray-700">
                         Package start date <span className="text-rose-600">*</span>
                       </span>
-                      <input
+                      <Input
                         type="date"
                         {...register('carePackageStartDate')}
                         disabled={keepsCurrentCare}
                         className="h-9 rounded-lg border border-gray-200 px-3 text-xs focus:border-[#005390] focus:outline-none disabled:bg-gray-50 disabled:text-gray-500"
                       />
-                    </label>
+                    </Label>
                     <p className="pb-2 text-[11px] text-gray-500">
                       {keepsCurrentCare
                         ? 'Current package – its start date stays as it is.'
@@ -2425,10 +2546,11 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
               className="bg-[#005390] hover:bg-[#003d6b] text-white rounded-xl shadow-md shadow-[#005390]/20 font-semibold"
             >
               {isSubmitting ? (
-                <span className="inline-flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  {isEditMode ? 'Saving…' : 'Onboarding…'}
-                </span>
+                isEditMode ? (
+                  'Saving…'
+                ) : (
+                  'Onboarding…'
+                )
               ) : (
                 <span className="inline-flex items-center gap-2">
                   <Plus className="w-4 h-4" />

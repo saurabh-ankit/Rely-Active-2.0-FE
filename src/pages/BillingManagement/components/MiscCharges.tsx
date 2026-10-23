@@ -142,7 +142,7 @@ export function MiscCharges({ unitId, residents }: MiscChargesProps) {
               <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             </div>
             <div className="flex items-end gap-2 sm:col-span-2">
-              <label className="flex h-9 flex-1 cursor-pointer items-center gap-2 truncate rounded-md border border-dashed border-gray-300 px-3 text-xs text-gray-600 hover:bg-gray-50">
+              <Label className="flex h-9 flex-1 cursor-pointer items-center gap-2 truncate rounded-md border border-dashed border-gray-300 px-3 text-xs text-gray-600 hover:bg-gray-50">
                 <Paperclip className="h-4 w-4 shrink-0" />
                 <span className="truncate">{file ? file.name : 'Attach bill'}</span>
                 <input
@@ -151,7 +151,7 @@ export function MiscCharges({ unitId, residents }: MiscChargesProps) {
                   accept="image/*,application/pdf"
                   onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                 />
-              </label>
+              </Label>
               <Button
                 className="bg-[#2a517c] text-white hover:bg-[#476587]"
                 disabled={!valid || create.isPending || uploading}
@@ -173,7 +173,7 @@ export function MiscCharges({ unitId, residents }: MiscChargesProps) {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center py-10">
-              <Loader2 className="h-6 w-6 animate-spin text-[#2b4f7e]" />
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
           ) : items.length === 0 ? (
             <p className="py-10 text-center text-sm text-gray-500">No miscellaneous charges logged for this flat.</p>

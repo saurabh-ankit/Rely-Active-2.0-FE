@@ -10,6 +10,7 @@ import {
   Edit,
   FileText,
   Hash,
+  Loader2,
   Mail,
   MapPin,
   Phone,
@@ -19,8 +20,10 @@ import {
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { z } from 'zod'
 import EditCompanyModal from './components/EditCompanyModal'
 import type { CompanyData, CustomFieldItem } from './components/EditCompanyModal'
@@ -239,8 +242,8 @@ export default function CompanyPage() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="flex items-center gap-3 text-indigo-600">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
           <span className="text-sm font-medium">Loading company details...</span>
         </div>
       </div>
@@ -259,7 +262,7 @@ export default function CompanyPage() {
         />
 
         {/* Full Page Form Card */}
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 md:p-8 shadow-xl backdrop-blur-xl">
+        <Card className="gap-0 rounded-3xl border-white/60 bg-white/80 p-6 md:p-8 shadow-xl backdrop-blur-xl">
           {errorMessage && (
             <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-medium text-red-700">
               {errorMessage}
@@ -420,7 +423,7 @@ export default function CompanyPage() {
                 <div className="space-y-3">
                   {customFields.map((field, idx) => (
                     <div key={idx} className="flex flex-wrap items-center gap-3 rounded-2xl bg-gray-50 p-3">
-                      <input
+                      <Input
                         type="text"
                         placeholder="Field Label"
                         value={field.fieldLabel}
@@ -428,22 +431,26 @@ export default function CompanyPage() {
                         className="flex-1 rounded-xl border border-gray-200 px-3 py-1.5 text-xs text-gray-900 min-w-[120px]"
                       />
 
-                      <select
+                      <Select
                         value={field.fieldType}
-                        onChange={(e) =>
-                          updateCustomField(idx, 'fieldType', e.target.value as CustomFieldItem['fieldType'])
+                        onValueChange={(val) =>
+                          updateCustomField(idx, 'fieldType', val as CustomFieldItem['fieldType'])
                         }
-                        className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs text-gray-900"
                       >
-                        <option value="text">Text</option>
-                        <option value="number">Number</option>
-                        <option value="date">Date</option>
-                        <option value="select">Select</option>
-                        <option value="bool">Boolean</option>
-                        <option value="document">Document</option>
-                      </select>
+                        <SelectTrigger className="w-[120px] rounded-xl border border-gray-200 px-3 py-1.5 text-xs text-gray-900 bg-white">
+                          <SelectValue placeholder="Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="text">Text</SelectItem>
+                          <SelectItem value="number">Number</SelectItem>
+                          <SelectItem value="date">Date</SelectItem>
+                          <SelectItem value="select">Select</SelectItem>
+                          <SelectItem value="bool">Boolean</SelectItem>
+                          <SelectItem value="document">Document</SelectItem>
+                        </SelectContent>
+                      </Select>
 
-                      <input
+                      <Input
                         type="text"
                         placeholder="Field Value"
                         value={field.fieldValue || ''}
@@ -451,13 +458,15 @@ export default function CompanyPage() {
                         className="flex-1 rounded-xl border border-gray-200 px-3 py-1.5 text-xs text-gray-900 min-w-[140px]"
                       />
 
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        aria-label="Remove custom field"
                         onClick={() => removeCustomField(idx)}
-                        className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-100"
+                        className="h-7 w-7 rounded-lg p-1.5 text-rose-500 hover:text-rose-600 hover:bg-rose-100"
                       >
                         <Trash2 className="h-4 w-4" />
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -474,7 +483,7 @@ export default function CompanyPage() {
               />
             </div>
           </form>
-        </div>
+        </Card>
       </div>
     )
   }
@@ -483,7 +492,7 @@ export default function CompanyPage() {
   return (
     <div className="w-full space-y-6 pb-12">
       {/* Header Banner */}
-      <div className="rounded-3xl border border-white/60 bg-gradient-to-r from-white/90 via-white/85 to-indigo-50/50 p-6 shadow-xl backdrop-blur-xl">
+      <Card className="gap-0 rounded-3xl border-white/60 bg-gradient-to-r from-white/90 via-white/85 to-indigo-50/50 p-6 shadow-xl backdrop-blur-xl">
         <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
             {company.document_path && isImageFile(company.document_path, company.document_name) ? (
@@ -520,11 +529,11 @@ export default function CompanyPage() {
             label={TEXT_LIBRARY.BUTTONS.EDIT_COMPANY}
           />
         </div>
-      </div>
+      </Card>
 
       {/* Basic Details Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl flex items-start gap-4">
+        <Card className="gap-0 rounded-3xl border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl flex flex-row items-start gap-4">
           <div className="p-3 rounded-2xl bg-blue-50 text-blue-600">
             <Mail className="h-5 w-5" />
           </div>
@@ -532,9 +541,9 @@ export default function CompanyPage() {
             <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Email Address</span>
             <span className="text-sm font-medium text-gray-900">{company.email_id || '-'}</span>
           </div>
-        </div>
+        </Card>
 
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl flex items-start gap-4">
+        <Card className="gap-0 rounded-3xl border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl flex flex-row items-start gap-4">
           <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600">
             <Phone className="h-5 w-5" />
           </div>
@@ -544,9 +553,9 @@ export default function CompanyPage() {
             </span>
             <span className="text-sm font-medium text-gray-900">{company.contact_number || '-'}</span>
           </div>
-        </div>
+        </Card>
 
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl flex items-start gap-4">
+        <Card className="gap-0 rounded-3xl border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl flex flex-row items-start gap-4">
           <div className="p-3 rounded-2xl bg-purple-50 text-purple-600">
             <Hash className="h-5 w-5" />
           </div>
@@ -554,170 +563,186 @@ export default function CompanyPage() {
             <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400">GST Number</span>
             <span className="text-sm font-medium text-gray-900">{company.company_gst_number || '-'}</span>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* Head Office & Bank Details */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Head Office */}
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl space-y-4">
-          <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
-            <MapPin className="h-5 w-5 text-indigo-600" />
-            <h2 className="text-lg font-bold text-gray-900">Head Office Address</h2>
-          </div>
-          <p className="text-sm text-gray-600 whitespace-pre-line">
-            {company.company_head_office_address || 'No address details configured.'}
-          </p>
-        </div>
+        <Card className="gap-0 rounded-3xl border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl space-y-4">
+          <CardHeader className="p-0 border-b border-gray-100 pb-3">
+            <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-indigo-600" />
+              Head Office Address
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <p className="text-sm text-gray-600 whitespace-pre-line">
+              {company.company_head_office_address || 'No address details configured.'}
+            </p>
+          </CardContent>
+        </Card>
 
         {/* Bank Details */}
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl space-y-4">
-          <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
-            <CreditCard className="h-5 w-5 text-indigo-600" />
-            <h2 className="text-lg font-bold text-gray-900">Bank Details</h2>
-          </div>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="block text-xs text-gray-400">Bank Name</span>
-              <span className="font-medium text-gray-800">{company.bank_name || '-'}</span>
+        <Card className="gap-0 rounded-3xl border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl space-y-4">
+          <CardHeader className="p-0 border-b border-gray-100 pb-3">
+            <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-indigo-600" />
+              Bank Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="block text-xs text-gray-400">Bank Name</span>
+                <span className="font-medium text-gray-800">{company.bank_name || '-'}</span>
+              </div>
+              <div>
+                <span className="block text-xs text-gray-400">Branch Name</span>
+                <span className="font-medium text-gray-800">{company.branch_name || '-'}</span>
+              </div>
+              <div>
+                <span className="block text-xs text-gray-400">Account Number</span>
+                <span className="font-medium text-gray-800">{company.account_no || '-'}</span>
+              </div>
+              <div>
+                <span className="block text-xs text-gray-400">IFSC Code</span>
+                <span className="font-medium text-gray-800">{company.ifsc_code || '-'}</span>
+              </div>
             </div>
-            <div>
-              <span className="block text-xs text-gray-400">Branch Name</span>
-              <span className="font-medium text-gray-800">{company.branch_name || '-'}</span>
-            </div>
-            <div>
-              <span className="block text-xs text-gray-400">Account Number</span>
-              <span className="font-medium text-gray-800">{company.account_no || '-'}</span>
-            </div>
-            <div>
-              <span className="block text-xs text-gray-400">IFSC Code</span>
-              <span className="font-medium text-gray-800">{company.ifsc_code || '-'}</span>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Files & Accountant Info */}
-      <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl space-y-4">
-        <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
-          <UserCheck className="h-5 w-5 text-indigo-600" />
-          <h2 className="text-lg font-bold text-gray-900">Files & Accountant Details</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
-          <div>
-            <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">
-              Accountant Name
-            </span>
-            <span className="font-medium text-gray-800 text-base">{company.accountant_name || '-'}</span>
-            {company.document_description && (
-              <div className="mt-3">
-                <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-0.5">
-                  Document Description
-                </span>
-                <span className="text-xs text-gray-600">{company.document_description}</span>
-              </div>
-            )}
-          </div>
+      <Card className="gap-0 rounded-3xl border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl space-y-4">
+        <CardHeader className="p-0 border-b border-gray-100 pb-3">
+          <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <UserCheck className="h-5 w-5 text-indigo-600" />
+            Files & Accountant Details
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+            <div>
+              <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">
+                Accountant Name
+              </span>
+              <span className="font-medium text-gray-800 text-base">{company.accountant_name || '-'}</span>
+              {company.document_description && (
+                <div className="mt-3">
+                  <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-0.5">
+                    Document Description
+                  </span>
+                  <span className="text-xs text-gray-600">{company.document_description}</span>
+                </div>
+              )}
+            </div>
 
-          <div>
-            <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
-              Company Logo / Document
-            </span>
-            {company.document_path ? (
-              <div className="group relative rounded-2xl border border-gray-200/80 bg-white p-3 shadow-sm hover:shadow-md transition-all duration-300 max-w-xs">
-                {isImageFile(company.document_path, company.document_name) ? (
-                  <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-gray-50/80 border border-gray-100 min-h-[120px]">
+            <div>
+              <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
+                Company Logo / Document
+              </span>
+              {company.document_path ? (
+                <div className="group relative rounded-2xl border border-gray-200/80 bg-white p-3 shadow-sm hover:shadow-md transition-all duration-300 max-w-xs">
+                  {isImageFile(company.document_path, company.document_name) ? (
+                    <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-gray-50/80 border border-gray-100 min-h-[120px]">
+                      <img
+                        src={getFileUrl(company.document_path)}
+                        alt={company.document_name || 'Company Logo'}
+                        className="h-28 max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-indigo-50/50 text-indigo-600 min-h-[80px]">
+                      <FileText className="h-8 w-8 shrink-0" />
+                      <span className="text-xs font-medium text-gray-700 truncate">
+                        {company.document_name || 'Document File'}
+                      </span>
+                    </div>
+                  )}
+                  <div className="mt-3 flex items-center justify-between pt-2 border-t border-gray-100">
+                    <span
+                      className="text-[11px] text-gray-400 font-medium truncate max-w-[140px]"
+                      title={company.document_name}
+                    >
+                      {company.document_name || 'Uploaded File'}
+                    </span>
+                    <a
+                      href={getFileUrl(company.document_path)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Download
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <span className="text-gray-400 italic text-xs">No document or logo uploaded</span>
+              )}
+            </div>
+
+            <div>
+              <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
+                Accountant Signature
+              </span>
+              {company.accountant_signature ? (
+                <div className="group relative rounded-2xl border border-gray-200/80 bg-white p-3 shadow-sm hover:shadow-md transition-all duration-300 max-w-xs">
+                  <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-gray-50/80 border border-gray-100">
                     <img
-                      src={getFileUrl(company.document_path)}
-                      alt={company.document_name || 'Company Logo'}
-                      className="h-28 max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                      src={getFileUrl(company.accountant_signature)}
+                      alt="Accountant Signature"
+                      className="h-20 max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
                     />
                   </div>
-                ) : (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-indigo-50/50 text-indigo-600 min-h-[80px]">
-                    <FileText className="h-8 w-8 shrink-0" />
-                    <span className="text-xs font-medium text-gray-700 truncate">
-                      {company.document_name || 'Document File'}
-                    </span>
-                  </div>
-                )}
-                <div className="mt-3 flex items-center justify-between pt-2 border-t border-gray-100">
-                  <span
-                    className="text-[11px] text-gray-400 font-medium truncate max-w-[140px]"
-                    title={company.document_name}
-                  >
-                    {company.document_name || 'Uploaded File'}
-                  </span>
-                  <a
-                    href={getFileUrl(company.document_path)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    Download
-                  </a>
                 </div>
-              </div>
-            ) : (
-              <span className="text-gray-400 italic text-xs">No document or logo uploaded</span>
-            )}
+              ) : (
+                <span className="text-gray-400 italic text-xs">No signature uploaded</span>
+              )}
+            </div>
           </div>
-
-          <div>
-            <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
-              Accountant Signature
-            </span>
-            {company.accountant_signature ? (
-              <div className="group relative rounded-2xl border border-gray-200/80 bg-white p-3 shadow-sm hover:shadow-md transition-all duration-300 max-w-xs">
-                <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-gray-50/80 border border-gray-100">
-                  <img
-                    src={getFileUrl(company.accountant_signature)}
-                    alt="Accountant Signature"
-                    className="h-20 max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
-                  />
-                </div>
-              </div>
-            ) : (
-              <span className="text-gray-400 italic text-xs">No signature uploaded</span>
-            )}
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Custom Fields List */}
       {company.customFields && company.customFields.length > 0 && (
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl space-y-4">
-          <h2 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3">Custom Configured Fields</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {company.customFields.map((cf, idx) => (
-              <div key={idx} className="rounded-2xl border bg-gray-50/50 p-4">
-                <span className="block text-xs font-semibold uppercase text-gray-400 mb-1">
-                  {cf.fieldLabel || cf.fieldName}
-                </span>
-                {cf.fieldType === 'document' && cf.fieldValue ? (
-                  <div className="space-y-1.5">
-                    {isImageFile(cf.fieldValue) && (
-                      <div className="overflow-hidden rounded-lg border bg-white p-1 max-w-[180px]">
-                        <img src={getFileUrl(cf.fieldValue)} alt={cf.fieldLabel} className="h-16 object-contain" />
-                      </div>
-                    )}
-                    <a
-                      href={getFileUrl(cf.fieldValue)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs text-indigo-600 font-medium hover:underline"
-                    >
-                      <Download className="h-3.5 w-3.5" /> View File
-                    </a>
-                  </div>
-                ) : (
-                  <span className="text-sm font-medium text-gray-800">{String(cf.fieldValue || '-')}</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        <Card className="gap-0 rounded-3xl border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl space-y-4">
+          <CardHeader className="p-0 border-b border-gray-100 pb-3">
+            <CardTitle className="text-lg font-bold text-gray-900">Custom Configured Fields</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {company.customFields.map((cf, idx) => (
+                <div key={idx} className="rounded-2xl border bg-gray-50/50 p-4">
+                  <span className="block text-xs font-semibold uppercase text-gray-400 mb-1">
+                    {cf.fieldLabel || cf.fieldName}
+                  </span>
+                  {cf.fieldType === 'document' && cf.fieldValue ? (
+                    <div className="space-y-1.5">
+                      {isImageFile(cf.fieldValue) && (
+                        <div className="overflow-hidden rounded-lg border bg-white p-1 max-w-[180px]">
+                          <img src={getFileUrl(cf.fieldValue)} alt={cf.fieldLabel} className="h-16 object-contain" />
+                        </div>
+                      )}
+                      <a
+                        href={getFileUrl(cf.fieldValue)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs text-indigo-600 font-medium hover:underline"
+                      >
+                        <Download className="h-3.5 w-3.5" /> View File
+                      </a>
+                    </div>
+                  ) : (
+                    <span className="text-sm font-medium text-gray-800">{String(cf.fieldValue || '-')}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Modal for Editing */}
