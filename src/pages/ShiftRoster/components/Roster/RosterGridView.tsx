@@ -385,7 +385,7 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={() => toggleEmployee(employee.id)}
-                          className="border-slate-400 bg-white data-checked:border-[#2a517c] data-checked:bg-[#2a517c] data-checked:text-white cursor-pointer"
+                          className="border-slate-400 bg-white data-checked:border-[#005390] data-checked:bg-[#005390] data-checked:text-white cursor-pointer"
                           aria-label={`Select ${employee.name}`}
                         />
                         <span className="truncate">{employee.name}</span>

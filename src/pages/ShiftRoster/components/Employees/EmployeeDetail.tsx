@@ -502,7 +502,7 @@ const EmployeeDetail = () => {
                   )}
                 >
                   {event.date === today && (
-                    <span className="absolute -top-2.5 left-3 z-10 rounded-full bg-[#005390] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                    <span className="absolute -top-2.5 left-10 z-10 rounded-full bg-[#005390] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
                       Today
                     </span>
                   )}

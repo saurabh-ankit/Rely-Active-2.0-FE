@@ -1119,7 +1119,7 @@ export default function GateManagementPage() {
                   >
                     <Checkbox
                       id={`verify-item-${item.id}`}
-                      className="data-checked:bg-indigo-600 data-checked:border-indigo-600 data-checked:text-white"
+                      className="data-checked:bg-[#005390] data-checked:border-[#005390] data-checked:text-white"
                       checked={checkedItems.includes(item.id as string)}
                       onCheckedChange={(checked) => {
                         if (checked) {

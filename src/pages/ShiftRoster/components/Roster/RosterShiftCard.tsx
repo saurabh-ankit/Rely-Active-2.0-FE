@@ -80,12 +80,12 @@ const RosterShiftCard = ({
       )}
     >
       {canSelect && (
-        <div className="absolute left-3 top-3 z-10">
+        <div className="absolute left-3.5 top-6 z-10">
           <Checkbox
             checked={selected}
             onCheckedChange={(checked) => onSelectChange?.(checked === true)}
             aria-label={`Select roster on ${event.date}`}
-            className="h-4 w-4 border-white bg-white/90 shadow-sm data-[state=checked]:border-[#2a517c] data-[state=checked]:bg-[#2a517c]"
+            className="h-4 w-4 border-white/70 bg-white/20 shadow-xs hover:bg-white/30 data-checked:border-white data-checked:bg-white data-checked:text-[#005390]"
             onClick={(e) => e.stopPropagation()}
           />
         </div>

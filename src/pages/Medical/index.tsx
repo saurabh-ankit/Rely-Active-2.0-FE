@@ -120,16 +120,16 @@ export const MedicalPage: React.FC<MedicalPageProps> = ({ initialTab }) => {
           <TabsList className="inline-flex w-max min-w-full h-auto gap-2 justify-start bg-transparent p-0">
             <TabsTrigger
               value="care"
-              className="flex h-10 items-center justify-center gap-2.5 whitespace-nowrap rounded-xl px-6 text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-md focus-visible:!ring-0 transition-all cursor-pointer"
+              className="flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-5 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-md focus-visible:!ring-0 transition-all cursor-pointer"
             >
-              <HeartPulse className="size-4.5 shrink-0" />
+              <HeartPulse className="size-4 shrink-0" />
               Care
             </TabsTrigger>
             <TabsTrigger
               value="appointments"
-              className="flex h-10 items-center justify-center gap-2.5 whitespace-nowrap rounded-xl px-6 text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-md focus-visible:!ring-0 transition-all cursor-pointer"
+              className="flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-5 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-md focus-visible:!ring-0 transition-all cursor-pointer"
             >
-              <CalendarDays className="size-4.5 shrink-0" />
+              <CalendarDays className="size-4 shrink-0" />
               Appointments
             </TabsTrigger>
           </TabsList>
