@@ -10,9 +10,9 @@ import {
   History,
   KeyRound,
   LayoutGrid,
+  Loader2,
   Mail,
   Phone,
-  RefreshCw,
   ShieldAlert,
   User,
   UserCheck,
@@ -20,6 +20,7 @@ import {
 import { useEmployeeActivitySummary, useUserByIdQuery } from '@/hooks/react-query/user'
 import { useLocationStore } from '@/lib/stores/locationStore'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { RoleBadges } from '@/components/employees/EmployeeCells'
 import { HeroFact, InfoList, NotAdded, Panel } from '@/components/common/DetailPanel'
 import { ResponsiveTabs, type TabItem } from '@/components/common/ResponsiveTabs'
@@ -108,22 +109,23 @@ export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ is
 
   const backLabel = isGlobal ? 'Back to Global Employee Directory' : 'Back to Employee Directory'
   const backButton = (
-    <button
+    <Button
+      variant="ghost"
       type="button"
       onClick={() => navigate(backUrl)}
-      className="inline-flex cursor-pointer items-center gap-2 text-xs font-bold text-gray-600 transition-colors hover:text-[#005390]"
+      className="p-0 h-auto inline-flex cursor-pointer items-center gap-2 text-xs font-bold text-gray-600 transition-colors hover:text-[#005390] hover:bg-transparent"
     >
       <ArrowLeft className="h-4 w-4" />
       {backLabel}
-    </button>
+    </Button>
   )
 
   if (isLoading) {
     return (
       <div className="w-full space-y-6 pb-12">
         {backButton}
-        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center text-sm text-gray-400">
-          <RefreshCw className="mx-auto mb-2 h-6 w-6 animate-spin text-[#005390]" />
+        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center text-sm text-muted-foreground">
+          <Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin text-primary" />
           Loading employee profile…
         </div>
       </div>
@@ -191,13 +193,13 @@ export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ is
 
   const activityKind = activitySummary?.kind ?? 'none'
   const activityToolbar = (
-    <div className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white px-5 py-3 shadow-2xs sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-slate-900">
+    <Card className="gap-0 flex flex-col gap-3 rounded-2xl border-gray-100 bg-white px-5 py-3 shadow-2xs sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-slate-900">
       <p className="text-xs text-gray-500">
         Activity for <span className="font-semibold text-gray-800 dark:text-gray-200">{fullName}</span>
         {activitySummary?.departmentName ? ` · ${activitySummary.departmentName}` : ''}
       </p>
       <RangeFilter value={activityRange} onChange={setActivityRange} />
-    </div>
+    </Card>
   )
   const activityTabs: TabItem[] = []
   if (id && activityAccess.canView && activityKind !== 'none') {
@@ -386,7 +388,7 @@ export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ is
       {backButton}
 
       {/* Summary: who this is and where they sit */}
-      <div className="rounded-2xl border border-gray-100 bg-white shadow-2xs dark:border-gray-800 dark:bg-slate-900">
+      <Card className="gap-0 rounded-2xl border-gray-100 bg-white shadow-2xs dark:border-gray-800 dark:bg-slate-900">
         <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between md:p-6">
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#005390] to-sky-600 text-xl font-bold text-white shadow-sm">
@@ -475,7 +477,7 @@ export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ is
             }
           />
         </div>
-      </div>
+      </Card>
 
       {visibleTabs.length > 0 ? (
         <ResponsiveTabs

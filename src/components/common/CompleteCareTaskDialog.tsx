@@ -1,11 +1,13 @@
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import React, { useState, useMemo } from 'react'
-import { createPortal } from 'react-dom'
 import { CheckCircle2, Loader2, X, Sparkles, AlertCircle } from 'lucide-react'
 import { useCompleteCareTaskMutation, useCareTaskAssignmentByIdQuery } from '@/hooks/react-query/medical'
 import type { CareTaskAssignment } from '@/lib/types/medical'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { Button } from '@/components/ui/button'
 import { formatDisplayDate, cn } from '@/lib/utils'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 
 export interface CompleteCareTaskDialogProps {
   open: boolean
@@ -91,13 +93,16 @@ const CompleteCareTaskDialogContent: React.FC<CompleteCareTaskDialogContentProps
   return (
     <div className="relative w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden rounded-3xl border border-white/40 bg-white p-6 shadow-2xl dark:border-gray-800 dark:bg-slate-900 sm:p-7 my-auto animate-in zoom-in-95 duration-200">
       {/* Close Button */}
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-sm"
         onClick={() => onOpenChange(false)}
-        className="absolute top-5 right-5 rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800 dark:hover:text-gray-300 cursor-pointer"
+        className="absolute top-5 right-5 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800 dark:hover:text-gray-300"
       >
         <X className="size-5" />
-      </button>
+        <span className="sr-only">Close</span>
+      </Button>
 
       <div className="flex items-center gap-3 shrink-0">
         <div className="flex size-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
@@ -206,13 +211,13 @@ const CompleteCareTaskDialogContent: React.FC<CompleteCareTaskDialogContentProps
         <form id="complete-care-task-form" onSubmit={handleSubmit} className="mt-4 space-y-4">
           {/* Clinical Remarks / Notes */}
           <div className="space-y-1.5">
-            <label
+            <Label
               htmlFor="completion-remarks-input"
               className="text-xs font-semibold text-gray-700 dark:text-gray-300"
             >
               Session Remarks / Observation Notes (Optional)
-            </label>
-            <textarea
+            </Label>
+            <Textarea
               id="completion-remarks-input"
               rows={3}
               value={notes}
@@ -226,13 +231,15 @@ const CompleteCareTaskDialogContent: React.FC<CompleteCareTaskDialogContentProps
 
       {/* Footer Actions */}
       <div className="flex items-center justify-end gap-3 pt-3 mt-2 border-t border-gray-100 dark:border-gray-800 shrink-0">
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => onOpenChange(false)}
           className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-slate-800 cursor-pointer"
         >
           Cancel
-        </button>
+        </Button>
         <Button
           type="submit"
           form="complete-care-task-form"
@@ -258,27 +265,26 @@ export const CompleteCareTaskDialog: React.FC<CompleteCareTaskDialogProps> = ({
   assignment,
   onSuccess,
 }) => {
-  if (!open || !assignment) return null
-
-  return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
-      <button
-        type="button"
-        aria-label="Close dialog backdrop"
-        tabIndex={-1}
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs cursor-default"
-        onClick={() => onOpenChange(false)}
-      />
-      <div className="relative z-10 w-full max-w-xl max-h-[90vh] my-auto">
-        <CompleteCareTaskDialogContent
-          key={assignment.id}
-          onOpenChange={onOpenChange}
-          assignment={assignment}
-          onSuccess={onSuccess}
-        />
-      </div>
-    </div>,
-    document.body,
+  return (
+    <Dialog open={Boolean(open && assignment)} onOpenChange={onOpenChange}>
+      {open && assignment && (
+        <DialogContent
+          className="p-0 border-none bg-transparent shadow-none max-w-xl max-h-[90vh] sm:max-w-xl"
+          showCloseButton={false}
+        >
+          <DialogTitle className="sr-only">Complete Care Task</DialogTitle>
+          <DialogDescription className="sr-only">
+            Mark care task as completed and record nurse observations.
+          </DialogDescription>
+          <CompleteCareTaskDialogContent
+            key={assignment.id}
+            onOpenChange={onOpenChange}
+            assignment={assignment}
+            onSuccess={onSuccess}
+          />
+        </DialogContent>
+      )}
+    </Dialog>
   )
 }
 

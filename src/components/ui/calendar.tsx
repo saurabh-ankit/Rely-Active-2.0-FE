@@ -1,17 +1,73 @@
 'use client'
 
 import * as React from 'react'
-import { DayPicker, getDefaultClassNames, type DayButton, type Locale } from 'react-day-picker'
+import { DayPicker, getDefaultClassNames, Dropdown, type DayButton, type Locale } from 'react-day-picker'
 
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from 'lucide-react'
+
+function CalendarDropdown({
+  value,
+  onChange,
+  options,
+  disabled,
+  className,
+  'aria-label': ariaLabel,
+}: React.ComponentProps<typeof Dropdown>) {
+  const selectedOption = options?.find((opt) => opt.value === value)
+
+  const handleValueChange = (newVal: string) => {
+    if (newVal !== undefined && newVal !== null && onChange) {
+      const syntheticEvent = {
+        target: { value: newVal },
+        currentTarget: { value: newVal },
+      } as React.ChangeEvent<HTMLSelectElement>
+      onChange(syntheticEvent)
+    }
+  }
+
+  return (
+    <Select
+      value={value !== undefined ? String(value) : undefined}
+      onValueChange={handleValueChange}
+      disabled={disabled}
+    >
+      <SelectTrigger
+        size="sm"
+        aria-label={ariaLabel}
+        className={cn(
+          'h-7 w-auto min-w-[4rem] px-2 py-0 text-xs font-semibold rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700/60 shadow-2xs gap-1.5 focus:border-[#005390] focus:ring-1 focus:ring-[#005390]',
+          className,
+        )}
+      >
+        <SelectValue placeholder={selectedOption?.label}>{selectedOption?.label}</SelectValue>
+      </SelectTrigger>
+      <SelectContent
+        className="min-w-[5.5rem] max-h-56 p-1 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 z-50"
+        align="center"
+      >
+        {options?.map((option) => (
+          <SelectItem
+            key={option.value}
+            value={String(option.value)}
+            disabled={option.disabled}
+            className="text-xs py-1.5 px-2 font-medium"
+          >
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
 
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
-  captionLayout = 'label',
+  captionLayout = 'dropdown',
   buttonVariant = 'ghost',
   locale,
   formatters,
@@ -41,33 +97,27 @@ function Calendar({
         root: cn('w-fit', defaultClassNames.root),
         months: cn('relative flex flex-col gap-4 md:flex-row', defaultClassNames.months),
         month: cn('flex w-full flex-col gap-4', defaultClassNames.month),
-        nav: cn('absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1', defaultClassNames.nav),
+        nav: cn(
+          'absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1 pointer-events-none',
+          defaultClassNames.nav,
+        ),
         button_previous: cn(
           buttonVariants({ variant: buttonVariant }),
-          'size-(--cell-size) p-0 select-none aria-disabled:opacity-50',
+          'size-(--cell-size) p-0 select-none aria-disabled:opacity-50 pointer-events-auto',
           defaultClassNames.button_previous,
         ),
         button_next: cn(
           buttonVariants({ variant: buttonVariant }),
-          'size-(--cell-size) p-0 select-none aria-disabled:opacity-50',
+          'size-(--cell-size) p-0 select-none aria-disabled:opacity-50 pointer-events-auto',
           defaultClassNames.button_next,
         ),
         month_caption: cn(
-          'flex h-(--cell-size) w-full items-center justify-center px-(--cell-size)',
+          'flex h-(--cell-size) w-full items-center justify-center px-8',
           defaultClassNames.month_caption,
         ),
         dropdowns: cn(
-          'flex h-(--cell-size) w-full items-center justify-center gap-1.5 text-sm font-medium',
+          'flex h-(--cell-size) items-center justify-center gap-1.5 text-xs font-medium',
           defaultClassNames.dropdowns,
-        ),
-        dropdown_root: cn('relative rounded-(--cell-radius)', defaultClassNames.dropdown_root),
-        dropdown: cn('absolute inset-0 bg-popover opacity-0', defaultClassNames.dropdown),
-        caption_label: cn(
-          'font-medium select-none',
-          captionLayout === 'label'
-            ? 'text-sm'
-            : 'flex items-center gap-1 rounded-(--cell-radius) text-sm [&>svg]:size-3.5 [&>svg]:text-muted-foreground',
-          defaultClassNames.caption_label,
         ),
         month_grid: cn('w-full border-collapse', defaultClassNames.month_grid),
         weekdays: cn('flex', defaultClassNames.weekdays),
@@ -107,6 +157,7 @@ function Calendar({
         Root: ({ className, rootRef, ...props }) => {
           return <div data-slot="calendar" ref={rootRef} className={cn(className)} {...props} />
         },
+        Dropdown: CalendarDropdown,
         Chevron: ({ className, orientation, ...props }) => {
           if (orientation === 'left') {
             return <ChevronLeftIcon className={cn('size-4', className)} {...props} />
@@ -116,7 +167,7 @@ function Calendar({
             return <ChevronRightIcon className={cn('size-4', className)} {...props} />
           }
 
-          return <ChevronDownIcon className={cn('size-4', className)} {...props} />
+          return <ChevronDownIcon className={cn('size-3.5', className)} {...props} />
         },
         DayButton: ({ ...props }) => <CalendarDayButton locale={locale} {...props} />,
         WeekNumber: ({ children, ...props }) => {

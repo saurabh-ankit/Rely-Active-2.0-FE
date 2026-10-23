@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { ExternalLink, FileText, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { TableCell, TableRow } from '@/components/ui/table'
 import { useResidentDocumentsQuery } from '@/hooks/react-query/resident'
 import { formatDisplayDate, getFileUrl } from '@/lib/utils'
 import { ClinicalCard, ClinicalErrorBanner, ClinicalTable } from './ClinicalShared'
@@ -51,14 +52,14 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({ residentId, canUpdat
           empty={{ icon: FileText, title: 'No documents', description: 'Uploaded resident documents appear here.' }}
         >
           {documents.map((doc) => (
-            <tr key={doc.id} className="align-top hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
-              <td className="px-4 py-3.5">
+            <TableRow key={doc.id} className="align-top hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+              <TableCell className="px-4 py-3.5">
                 <div className="font-semibold text-gray-900 dark:text-white">{doc.name}</div>
                 {doc.fileName && <div className="text-[11px] text-gray-400 break-all">{doc.fileName}</div>}
-              </td>
-              <td className="px-4 py-3.5 whitespace-pre-wrap break-words">{doc.note || '-'}</td>
-              <td className="px-4 py-3.5 whitespace-nowrap">{formatDisplayDate(doc.createdAt)}</td>
-              <td className="px-4 py-3.5">
+              </TableCell>
+              <TableCell className="px-4 py-3.5 whitespace-pre-wrap break-words">{doc.note || '-'}</TableCell>
+              <TableCell className="px-4 py-3.5 whitespace-nowrap">{formatDisplayDate(doc.createdAt)}</TableCell>
+              <TableCell className="px-4 py-3.5">
                 <a
                   href={getFileUrl(doc.fileUrl)}
                   target="_blank"
@@ -67,8 +68,8 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({ residentId, canUpdat
                 >
                   <ExternalLink className="size-3.5" /> View
                 </a>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
         </ClinicalTable>
       </ClinicalCard>

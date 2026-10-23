@@ -1,8 +1,11 @@
 import type React from 'react'
-import { ChevronLeft, ChevronRight, Flag, Inbox, RefreshCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Flag, Inbox, Loader2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { RANGE_PRESETS, humanize, statusLabel, type DateRange } from './utils'
+import { DatePicker } from '@/components/ui/date-picker'
 
 /** Shared pieces for the employee activity tabs. */
 
@@ -12,45 +15,45 @@ export const RangeFilter = ({ value, onChange }: { value: DateRange; onChange: (
     return r.from === value.from && r.to === value.to
   })?.key
 
-  const inputCls =
-    'h-9 rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-700 outline-none focus:border-[#005390] dark:border-gray-700 dark:bg-slate-900 dark:text-gray-200'
-
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="inline-flex rounded-xl border border-gray-200 bg-slate-50 p-0.5 dark:border-gray-700 dark:bg-slate-800">
         {RANGE_PRESETS.map((p) => (
-          <button
+          <Button
             key={p.key}
             type="button"
+            variant="ghost"
             onClick={() => onChange(p.range())}
             className={cn(
-              'cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
+              'h-auto cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-transparent',
               activePreset === p.key
                 ? 'bg-white text-[#005390] shadow-xs dark:bg-slate-900'
                 : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200',
             )}
           >
             {p.label}
-          </button>
+          </Button>
         ))}
       </div>
       <div className="flex items-center gap-1.5">
-        <input
-          type="date"
+        <DatePicker
           aria-label="From date"
           value={value.from}
-          max={value.to}
-          onChange={(e) => e.target.value && onChange({ ...value, from: e.target.value })}
-          className={inputCls}
+          maxDate={value.to}
+          onChange={(from) => from && onChange({ ...value, from })}
+          placeholder="From"
+          clearable={false}
+          className="w-[140px] h-9 text-xs font-semibold"
         />
         <span className="text-xs text-gray-400">to</span>
-        <input
-          type="date"
+        <DatePicker
           aria-label="To date"
           value={value.to}
-          min={value.from}
-          onChange={(e) => e.target.value && onChange({ ...value, to: e.target.value })}
-          className={inputCls}
+          minDate={value.from}
+          onChange={(to) => to && onChange({ ...value, to })}
+          placeholder="To"
+          clearable={false}
+          className="w-[140px] h-9 text-xs font-semibold"
         />
       </div>
     </div>
@@ -78,16 +81,16 @@ export const StatTile = ({
     slate: 'bg-slate-100 text-slate-600',
   }
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-2xs dark:border-gray-800 dark:bg-slate-900">
+    <Card className="gap-0 flex flex-row items-center gap-3 rounded-2xl border-gray-100 bg-white p-4 shadow-2xs dark:border-gray-800 dark:bg-slate-900">
       <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', tones[tone])}>
         <Icon className="h-5 w-5" />
       </div>
-      <div className="min-w-0">
-        <p className="text-[11px] font-medium text-gray-500">{label}</p>
-        <p className="text-xl font-bold text-gray-900 dark:text-white">{value}</p>
+      <CardContent className="min-w-0 p-0">
+        <CardDescription className="text-[11px] font-medium text-gray-500">{label}</CardDescription>
+        <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">{value}</CardTitle>
         {hint && <p className="truncate text-[11px] text-gray-400">{hint}</p>}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -156,16 +159,17 @@ export const FilterChips = ({
     {options.map((o) => {
       const active = o.value === value
       return (
-        <button
+        <Button
           key={o.value || 'all'}
           type="button"
+          variant="ghost"
           role="tab"
           aria-selected={active}
           onClick={() => onChange(o.value)}
           className={cn(
-            'inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-colors',
+            'h-auto inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-colors',
             active
-              ? 'border-[#005390] bg-[#005390] text-white'
+              ? 'border-[#005390] bg-[#005390] text-white hover:bg-[#005390] hover:text-white'
               : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-900 dark:border-gray-700 dark:bg-slate-900 dark:text-gray-300',
           )}
         >
@@ -180,25 +184,25 @@ export const FilterChips = ({
               {o.count}
             </span>
           )}
-        </button>
+        </Button>
       )
     })}
   </div>
 )
 
 export const LoadingState = ({ label }: { label: string }) => (
-  <div className="p-8 text-center text-xs text-gray-400">
-    <RefreshCw className="mx-auto mb-2 h-5 w-5 animate-spin text-[#005390]" />
+  <div className="p-8 text-center text-xs text-muted-foreground">
+    <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin text-primary" />
     {label}
   </div>
 )
 
 export const EmptyState = ({ label, hint }: { label: string; hint?: string }) => (
-  <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center dark:border-gray-700">
+  <Card className="gap-0 rounded-xl border border-dashed border-gray-200 p-8 text-center dark:border-gray-700 bg-transparent shadow-none">
     <Inbox className="mx-auto mb-2 h-6 w-6 text-gray-300" />
     <p className="text-sm font-semibold text-gray-500">{label}</p>
     {hint && <p className="mx-auto mt-1 max-w-md text-xs text-gray-400">{hint}</p>}
-  </div>
+  </Card>
 )
 
 export const Pager = ({
@@ -213,32 +217,34 @@ export const Pager = ({
   onChange: (page: number) => void
 }) => {
   if (totalPages <= 1) return null
-  const btn =
-    'inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700'
   return (
     <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-gray-800">
       <span>
         Page {page} of {totalPages} · {total} records
       </span>
       <div className="flex gap-1.5">
-        <button
+        <Button
           type="button"
-          className={btn}
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 rounded-lg border-gray-200 text-gray-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700"
           disabled={page <= 1}
           onClick={() => onChange(page - 1)}
           aria-label="Previous page"
         >
           <ChevronLeft className="h-4 w-4" />
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className={btn}
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 rounded-lg border-gray-200 text-gray-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700"
           disabled={page >= totalPages}
           onClick={() => onChange(page + 1)}
           aria-label="Next page"
         >
           <ChevronRight className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
     </div>
   )

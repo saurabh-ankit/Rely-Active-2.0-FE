@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom'
 import { Layers } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function SectionPage({ title }: { title?: string }) {
   const location = useLocation()
@@ -17,16 +18,18 @@ export default function SectionPage({ title }: { title?: string }) {
     <div className="space-y-6">
       <PageHeader icon={Layers} title={sectionName} />
 
-      <div className="rounded-3xl border border-white/40 bg-white/70 p-8 text-center shadow-xl backdrop-blur-xl dark:border-gray-800 dark:bg-slate-900/80">
-        <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
-          <Layers className="h-7 w-7" />
-        </div>
-        <h3 className="mt-4 text-xl font-bold text-gray-900 dark:text-white">{sectionName} Module</h3>
-        <p className="mt-2 text-sm text-gray-500 max-w-md mx-auto">
-          This section is registered under Rely Active 2.0 navigation structure. Data models and workflows are active
-          and connected.
-        </p>
-      </div>
+      <Card className="gap-0 rounded-3xl border border-white/40 bg-white/70 p-8 text-center shadow-xl backdrop-blur-xl dark:border-gray-800 dark:bg-slate-900/80">
+        <CardHeader className="p-0 flex flex-col items-center">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
+            <Layers className="h-7 w-7" />
+          </div>
+          <CardTitle className="mt-4 text-xl font-bold text-gray-900 dark:text-white">{sectionName} Module</CardTitle>
+          <CardDescription className="mt-2 text-sm text-gray-500 max-w-md mx-auto">
+            This section is registered under Rely Active 2.0 navigation structure. Data models and workflows are active
+            and connected.
+          </CardDescription>
+        </CardHeader>
+      </Card>
     </div>
   )
 }

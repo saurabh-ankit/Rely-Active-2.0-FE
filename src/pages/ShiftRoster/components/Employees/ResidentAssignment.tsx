@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useLocationStore } from '@/lib/stores/locationStore'
@@ -172,13 +173,14 @@ const ResidentAssignment = () => {
       <div className="flex flex-wrap gap-3 items-end">
         <div className="space-y-1">
           <Label>Date</Label>
-          <Input
-            type="date"
+          <DatePicker
             value={selectedDate}
-            onChange={(e) => {
-              setSelectedDate(e.target.value)
+            onChange={(val) => {
+              setSelectedDate(val)
               setSelectedShiftDateId('')
             }}
+            placeholder="Select date"
+            className="w-[160px]"
           />
         </div>
         <div className="space-y-1 min-w-[200px]">

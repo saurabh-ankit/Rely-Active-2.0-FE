@@ -1,5 +1,9 @@
+import { Input } from '@/components/ui/input'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Plus,
   Edit2,
@@ -9,7 +13,6 @@ import {
   AlertCircle,
   Building2,
   Lock,
-  X,
   CheckSquare,
   Square,
 } from 'lucide-react'
@@ -17,6 +20,8 @@ import api from '@/lib/api/axios'
 import { getPropertiesAPI } from '@/lib/services/propertyService'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import type { GlobalMealSlot } from './FnbGlobalMealSlotsTab'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 export interface Property {
   id: string
@@ -221,9 +226,9 @@ export function FnbGlobalPackagesTab() {
     }
   }
 
-  const togglePropertyAssignment = (index: number) => {
+  const togglePropertyAssignment = (index: number, nextEnabled?: boolean) => {
     const updated = [...propertyAssignments]
-    updated[index].enabled = !updated[index].enabled
+    updated[index].enabled = nextEnabled !== undefined ? nextEnabled : !updated[index].enabled
     setPropertyAssignments(updated)
   }
 
@@ -325,13 +330,13 @@ export function FnbGlobalPackagesTab() {
             Create global meal package blueprints and assign specific property locations.
           </p>
         </div>
-        <button
+        <Button
           type="button"
           onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#005390] hover:bg-[#004070] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 h-auto bg-[#005390] hover:bg-[#004070] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Create Global Package
-        </button>
+        </Button>
       </div>
 
       {loading ? (
@@ -426,16 +431,21 @@ export function FnbGlobalPackagesTab() {
                   Status: {pkg.isActive ? <span className="text-emerald-600 font-bold">Active</span> : 'Inactive'}
                 </span>
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon-xs"
                     onClick={() => handleOpenEdit(pkg)}
                     className="p-2 text-gray-500 hover:text-[#005390] hover:bg-gray-50 rounded-xl transition-colors cursor-pointer"
                     title="Edit Package"
+                    aria-label="Edit Package"
                   >
                     <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon-xs"
                     onClick={() => handleDelete(pkg)}
                     disabled={pkg.hasOptedResidents}
                     className={`p-2 transition-colors cursor-pointer rounded-xl ${
@@ -446,9 +456,12 @@ export function FnbGlobalPackagesTab() {
                     title={
                       pkg.hasOptedResidents ? 'Cannot delete package with active opted residents' : 'Delete Package'
                     }
+                    aria-label={
+                      pkg.hasOptedResidents ? 'Cannot delete package with active opted residents' : 'Delete Package'
+                    }
                   >
                     {pkg.hasOptedResidents ? <Lock className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -457,286 +470,285 @@ export function FnbGlobalPackagesTab() {
       )}
 
       {/* Create / Edit Modal */}
-      {isModalOpen &&
-        createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 overflow-y-auto">
-            <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl space-y-6 relative my-auto max-h-[90vh] flex flex-col justify-between">
-              <div className="flex items-start justify-between border-b border-gray-100 pb-4">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                    <Utensils className="w-5 h-5 text-[#005390]" />
-                    {editingPkg ? 'Edit Global Package Template' : 'Create Global Package Template'}
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Configure package features and assign property pricing directly.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        {isModalOpen && (
+          <DialogContent className="sm:max-w-4xl p-0 overflow-hidden max-h-[90vh] flex flex-col justify-between">
+            <div className="flex items-start justify-between border-b border-gray-100 p-6 pb-4 pr-12">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Utensils className="w-5 h-5 text-[#005390]" />
+                  {editingPkg ? 'Edit Global Package Template' : 'Create Global Package Template'}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-gray-500 mt-1">
+                  Configure package features and assign property pricing directly.
+                </DialogDescription>
+              </DialogHeader>
+            </div>
+
+            {errorMsg && (
+              <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-xl text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" /> {errorMsg}
               </div>
+            )}
 
-              {errorMsg && (
-                <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-xl text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" /> {errorMsg}
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-6 overflow-y-auto pr-1 flex-1">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Left Column: Basic Details */}
-                  <div className="space-y-4">
-                    <div>
-                      <label htmlFor="pkg-name-input" className="block text-xs font-semibold text-gray-700 mb-1">
-                        Package Name <span className="text-red-500 font-bold ml-0.5">*</span>
-                      </label>
-                      <input
-                        id="pkg-name-input"
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="e.g. Full Board - 4 Meals"
-                        className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390]"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="pkg-code-input" className="block text-xs font-semibold text-gray-700 mb-1">
-                        Package Code <span className="text-red-500 font-bold ml-0.5">*</span>
-                      </label>
-                      <input
-                        id="pkg-code-input"
-                        type="text"
-                        value={code}
-                        onChange={(e) => setCode(e.target.value.toUpperCase())}
-                        placeholder="e.g. PKG-FULL"
-                        disabled={Boolean(editingPkg)}
-                        className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] disabled:bg-gray-50"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="pkg-dietary-select" className="block text-xs font-semibold text-gray-700 mb-1">
-                        Dietary Type
-                      </label>
-                      <select
-                        id="pkg-dietary-select"
-                        value={dietaryType}
-                        onChange={(e) =>
-                          setDietaryType(e.target.value as 'veg' | 'non_veg' | 'egg' | 'jain' | 'mixed' | 'vegan')
-                        }
-                        className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390]"
-                      >
-                        <option value="veg">Vegetarian</option>
-                        <option value="non_veg">Non-Vegetarian</option>
-                        <option value="egg">Eggitarian</option>
-                        <option value="jain">Jain</option>
-                        <option value="vegan">Vegan</option>
-                        <option value="mixed">Mixed / Choice</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs font-semibold text-gray-700">Included Meal Slots</span>
-                        {enabledPropIds.length > 1 && (
-                          <span className="text-[10px] font-bold text-[#005390] bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
-                            Common Slots in {enabledPropIds.length} Locations
-                          </span>
-                        )}
-                      </div>
-
-                      {enabledPropIds.length === 0 ? (
-                        <div className="p-3.5 rounded-2xl border border-dashed border-amber-200 bg-amber-50/60 text-xs text-amber-800 flex items-start gap-2.5">
-                          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                          <div>
-                            <div className="font-bold text-amber-900 mb-0.5">No Property Selected</div>
-                            <div className="text-[11px] text-amber-700 leading-relaxed">
-                              Please select property location(s) under <strong>ASSIGN TO PROPERTIES</strong> to view
-                              their available meal slots.
-                            </div>
-                          </div>
-                        </div>
-                      ) : availableMealSlotsForSelectedProps.length === 0 ? (
-                        <div className="p-3.5 rounded-2xl border border-rose-200 bg-rose-50/70 text-xs text-rose-800 flex items-start gap-2.5">
-                          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                          <div>
-                            <div className="font-bold text-rose-900 mb-0.5">No Common Meal Slots Found</div>
-                            <div className="text-[11px] text-rose-700 leading-relaxed">
-                              The selected locations (<strong>{selectedPropNames}</strong>) do not share any common
-                              configured meal slots. Please ensure matching meal slots are assigned to all target
-                              properties.
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-2.5">
-                          {/* Prominent Clear Banner Note */}
-                          <div className="p-3 rounded-xl border border-blue-100 bg-blue-50/60 text-xs text-blue-900 flex items-start gap-2.5">
-                            <AlertCircle className="w-4 h-4 text-[#005390] shrink-0 mt-0.5" />
-                            <div className="text-[11px] leading-relaxed">
-                              {enabledPropIds.length === 1 ? (
-                                <>
-                                  Displaying meal slots configured for{' '}
-                                  <strong>{enabledPropAssignments[0].propertyName}</strong>.
-                                </>
-                              ) : (
-                                <>
-                                  <strong>Common Meal Slots Note:</strong> Showing meal slots commonly available across
-                                  all selected locations (<strong>{selectedPropNames}</strong>). Only meal slots present
-                                  in all target properties can be included in this package template.
-                                </>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Meal Slots Grid */}
-                          <div className="grid grid-cols-2 gap-2">
-                            {availableMealSlotsForSelectedProps.map((ms) => {
-                              const codeLower = (ms.code || ms.name || '').toLowerCase()
-                              const selected = includedSlots.includes(ms.id) || includedSlots.includes(codeLower)
-                              return (
-                                <button
-                                  key={ms.id}
-                                  type="button"
-                                  onClick={() => toggleSlot(ms.id)}
-                                  className={`p-2.5 rounded-xl border text-xs font-medium text-left transition-colors flex items-center justify-between cursor-pointer ${
-                                    selected
-                                      ? 'border-[#005390] bg-blue-50/50 text-[#005390] ring-1 ring-[#005390]'
-                                      : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                                  }`}
-                                >
-                                  <div>
-                                    <div className="font-bold text-gray-900">{ms.name}</div>
-                                    <div className="text-[10px] text-gray-400 font-mono">
-                                      {ms.startTime} - {ms.endTime}
-                                    </div>
-                                  </div>
-                                  {selected && <CheckCircle className="w-4 h-4 text-[#005390]" />}
-                                </button>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <label htmlFor="pkg-desc-textarea" className="block text-xs font-semibold text-gray-700 mb-1">
-                        Description
-                      </label>
-                      <textarea
-                        id="pkg-desc-textarea"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        rows={3}
-                        placeholder="Optional details about this package template..."
-                        className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390]"
-                      />
-                    </div>
+            <form onSubmit={handleSubmit} className="space-y-6 overflow-y-auto px-6 pb-6 flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left Column: Basic Details */}
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="pkg-name-input" className="block text-xs font-semibold text-gray-700 mb-1">
+                      Package Name <span className="text-red-500 font-bold ml-0.5">*</span>
+                    </Label>
+                    <Input
+                      id="pkg-name-input"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g. Full Board - 4 Meals"
+                      className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390]"
+                      required
+                    />
                   </div>
 
-                  {/* Right Column: Property Assignments */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                      <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                        <Building2 className="w-3.5 h-3.5 text-[#005390]" /> Assign to Properties (
-                        {propertyAssignments.filter((pa) => pa.enabled).length}/{propertyAssignments.length})
-                      </h4>
-                      {propertyAssignments.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={handleSelectAllProperties}
-                          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#005390] hover:text-[#004070] cursor-pointer"
-                        >
-                          {isAllPropsSelected ? (
-                            <>
-                              <CheckSquare className="w-4 h-4 text-[#005390]" /> Deselect All
-                            </>
-                          ) : (
-                            <>
-                              <Square className="w-4 h-4 text-gray-400" /> Select All ({propertyAssignments.length})
-                            </>
-                          )}
-                        </button>
+                  <div>
+                    <label htmlFor="pkg-code-input" className="block text-xs font-semibold text-gray-700 mb-1">
+                      Package Code <span className="text-red-500 font-bold ml-0.5">*</span>
+                    </label>
+                    <input
+                      id="pkg-code-input"
+                      type="text"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.toUpperCase())}
+                      placeholder="e.g. PKG-FULL"
+                      disabled={Boolean(editingPkg)}
+                      className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] disabled:bg-gray-50"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="pkg-dietary-select" className="block text-xs font-semibold text-gray-700 mb-1">
+                      Dietary Type
+                    </label>
+                    <Select
+                      value={dietaryType}
+                      onValueChange={(val) =>
+                        setDietaryType(val as 'veg' | 'non_veg' | 'egg' | 'jain' | 'mixed' | 'vegan')
+                      }
+                    >
+                      <SelectTrigger
+                        id="pkg-dietary-select"
+                        className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] h-auto bg-white"
+                      >
+                        <SelectValue placeholder="Dietary Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="veg">Vegetarian</SelectItem>
+                        <SelectItem value="non_veg">Non-Vegetarian</SelectItem>
+                        <SelectItem value="egg">Eggitarian</SelectItem>
+                        <SelectItem value="jain">Jain</SelectItem>
+                        <SelectItem value="vegan">Vegan</SelectItem>
+                        <SelectItem value="mixed">Mixed / Choice</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-semibold text-gray-700">Included Meal Slots</span>
+                      {enabledPropIds.length > 1 && (
+                        <span className="text-[10px] font-bold text-[#005390] bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                          Common Slots in {enabledPropIds.length} Locations
+                        </span>
                       )}
                     </div>
 
-                    {propertyAssignments.length === 0 ? (
-                      <div className="p-8 text-center text-gray-400 bg-gray-50 rounded-xl text-xs">
-                        No properties available in location.
+                    {enabledPropIds.length === 0 ? (
+                      <div className="p-3.5 rounded-2xl border border-dashed border-amber-200 bg-amber-50/60 text-xs text-amber-800 flex items-start gap-2.5">
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <div className="font-bold text-amber-900 mb-0.5">No Property Selected</div>
+                          <div className="text-[11px] text-amber-700 leading-relaxed">
+                            Please select property location(s) under <strong>ASSIGN TO PROPERTIES</strong> to view their
+                            available meal slots.
+                          </div>
+                        </div>
+                      </div>
+                    ) : availableMealSlotsForSelectedProps.length === 0 ? (
+                      <div className="p-3.5 rounded-2xl border border-rose-200 bg-rose-50/70 text-xs text-rose-800 flex items-start gap-2.5">
+                        <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                        <div>
+                          <div className="font-bold text-rose-900 mb-0.5">No Common Meal Slots Found</div>
+                          <div className="text-[11px] text-rose-700 leading-relaxed">
+                            The selected locations (<strong>{selectedPropNames}</strong>) do not share any common
+                            configured meal slots. Please ensure matching meal slots are assigned to all target
+                            properties.
+                          </div>
+                        </div>
                       </div>
                     ) : (
-                      <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
-                        {propertyAssignments.map((pa, idx) => (
-                          <div
-                            key={pa.locId}
-                            className={`p-3.5 rounded-xl border transition-all text-xs flex items-center justify-between gap-3 ${
-                              pa.enabled
-                                ? 'border-[#005390] bg-blue-50/40 shadow-xs'
-                                : 'border-gray-200 bg-gray-50/50 opacity-70'
-                            }`}
-                          >
-                            <label className="flex items-center gap-3 cursor-pointer select-none font-semibold text-gray-800 flex-1">
-                              <input
-                                type="checkbox"
-                                checked={pa.enabled}
-                                onChange={() => togglePropertyAssignment(idx)}
-                                className="w-4 h-4 rounded text-[#005390] focus:ring-[#005390] cursor-pointer"
-                              />
-                              <span>{pa.propertyName}</span>
-                            </label>
-
-                            {pa.enabled && (
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-gray-500 font-medium">₹</span>
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  min="0"
-                                  value={pa.price}
-                                  onChange={(e) => handlePropertyPriceChange(idx, e.target.value)}
-                                  placeholder="Price / mo"
-                                  className="w-28 px-2.5 py-1.5 text-xs font-bold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#005390] bg-white"
-                                  required={pa.enabled}
-                                />
-                                <span className="text-[10px] text-gray-400">/mo</span>
-                              </div>
+                      <div className="space-y-2.5">
+                        {/* Prominent Clear Banner Note */}
+                        <div className="p-3 rounded-xl border border-blue-100 bg-blue-50/60 text-xs text-blue-900 flex items-start gap-2.5">
+                          <AlertCircle className="w-4 h-4 text-[#005390] shrink-0 mt-0.5" />
+                          <div className="text-[11px] leading-relaxed">
+                            {enabledPropIds.length === 1 ? (
+                              <>
+                                Displaying meal slots configured for{' '}
+                                <strong>{enabledPropAssignments[0].propertyName}</strong>.
+                              </>
+                            ) : (
+                              <>
+                                <strong>Common Meal Slots Note:</strong> Showing meal slots commonly available across
+                                all selected locations (<strong>{selectedPropNames}</strong>). Only meal slots present
+                                in all target properties can be included in this package template.
+                              </>
                             )}
                           </div>
-                        ))}
+                        </div>
+
+                        {/* Meal Slots Grid */}
+                        <div className="grid grid-cols-2 gap-2">
+                          {availableMealSlotsForSelectedProps.map((ms) => {
+                            const codeLower = (ms.code || ms.name || '').toLowerCase()
+                            const selected = includedSlots.includes(ms.id) || includedSlots.includes(codeLower)
+                            return (
+                              <Button
+                                key={ms.id}
+                                type="button"
+                                variant="ghost"
+                                onClick={() => toggleSlot(ms.id)}
+                                className={`p-2.5 h-auto rounded-xl border text-xs font-medium text-left transition-colors flex items-center justify-between cursor-pointer ${
+                                  selected
+                                    ? 'border-[#005390] bg-blue-50/50 text-[#005390] ring-1 ring-[#005390]'
+                                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                                }`}
+                              >
+                                <div>
+                                  <div className="font-bold text-gray-900">{ms.name}</div>
+                                  <div className="text-[10px] text-gray-400 font-mono">
+                                    {ms.startTime} - {ms.endTime}
+                                  </div>
+                                </div>
+                                {selected && <CheckCircle className="w-4 h-4 text-[#005390]" />}
+                              </Button>
+                            )
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>
+
+                  <div>
+                    <Label htmlFor="pkg-desc-textarea" className="block text-xs font-semibold text-gray-700 mb-1">
+                      Description
+                    </Label>
+                    <Textarea
+                      id="pkg-desc-textarea"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      rows={3}
+                      placeholder="Optional details about this package template..."
+                      className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#005390]"
+                    />
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="px-6 py-2.5 bg-[#005390] text-white text-sm font-medium rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    {saving ? 'Saving...' : 'Save Package & Assignments'}
-                  </button>
+                {/* Right Column: Property Assignments */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-[#005390]" /> Assign to Properties (
+                      {propertyAssignments.filter((pa) => pa.enabled).length}/{propertyAssignments.length})
+                    </h4>
+                    {propertyAssignments.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={handleSelectAllProperties}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#005390] hover:text-[#004070] cursor-pointer p-0 h-auto"
+                      >
+                        {isAllPropsSelected ? (
+                          <>
+                            <CheckSquare className="w-4 h-4 text-[#005390]" /> Deselect All
+                          </>
+                        ) : (
+                          <>
+                            <Square className="w-4 h-4 text-gray-400" /> Select All ({propertyAssignments.length})
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+
+                  {propertyAssignments.length === 0 ? (
+                    <div className="p-8 text-center text-gray-400 bg-gray-50 rounded-xl text-xs">
+                      No properties available in location.
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                      {propertyAssignments.map((pa, idx) => (
+                        <div
+                          key={pa.locId}
+                          className={`p-3.5 rounded-xl border transition-all text-xs flex items-center justify-between gap-3 ${
+                            pa.enabled
+                              ? 'border-[#005390] bg-blue-50/40 shadow-xs'
+                              : 'border-gray-200 bg-gray-50/50 opacity-70'
+                          }`}
+                        >
+                          <label className="flex items-center gap-3 cursor-pointer select-none font-semibold text-gray-800 flex-1">
+                            <Checkbox
+                              checked={pa.enabled}
+                              onCheckedChange={(checked) => togglePropertyAssignment(idx, checked === true)}
+                              className="data-checked:border-[#005390] data-checked:bg-[#005390] data-checked:text-white"
+                            />
+                            <span>{pa.propertyName}</span>
+                          </label>
+
+                          {pa.enabled && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-gray-500 font-medium">₹</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={pa.price}
+                                onChange={(e) => handlePropertyPriceChange(idx, e.target.value)}
+                                placeholder="Price / mo"
+                                className="w-28 px-2.5 py-1.5 text-xs font-bold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#005390] bg-white"
+                                required={pa.enabled}
+                              />
+                              <span className="text-[10px] text-gray-400">/mo</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </form>
-            </div>
-          </div>,
-          document.body,
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 h-auto text-sm text-gray-600 hover:bg-gray-100 rounded-xl cursor-pointer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2.5 h-auto bg-[#005390] text-white text-sm font-medium rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save Package & Assignments'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
         )}
+      </Dialog>
     </div>
   )
 }

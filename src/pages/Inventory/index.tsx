@@ -18,11 +18,12 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
+import { Card } from '@/components/ui/card'
 import { InventoryTabs } from '@/components/inventory/InventoryTabs'
 import { ActiveStatus, InventoryStatus } from '@/components/inventory/InventoryStatus'
 import StatCard from '@/pages/AssetManagement/components/StatCard'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
-import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Empty, EmptyHeader, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { useLocation } from '@/hooks/useLocation'
@@ -110,13 +111,14 @@ function CategoryList({ locationId, onSelect }: { locationId: string; onSelect: 
               icon={FolderOpen}
               image={row.original.image}
               title={
-                <button
+                <Button
                   type="button"
-                  className="cursor-pointer text-left hover:text-[#005390] hover:underline"
+                  variant="ghost"
+                  className="h-auto p-0 cursor-pointer text-left hover:text-[#005390] hover:underline hover:bg-transparent font-normal whitespace-normal justify-start inline"
                   onClick={() => onSelect(row.original)}
                 >
                   {row.original.name}
-                </button>
+                </Button>
               }
               subtitle={row.original.description}
             />
@@ -178,14 +180,15 @@ function CategoryInventory({
     <div className="min-w-0 space-y-6">
       {/* Where we are: Inventory › category */}
       <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-gray-500">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => navigate({})}
-          className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 hover:bg-gray-100 hover:text-[#005390]"
+          className="h-auto p-0 inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 hover:bg-gray-100 hover:text-[#005390]"
         >
           <ArrowLeft className="size-3.5" />
           Back to Categories
-        </button>
+        </Button>
         <ChevronRight className="size-3.5 text-gray-300" />
         <span>Inventory</span>
         <ChevronRight className="size-3.5 text-gray-300" />
@@ -193,7 +196,7 @@ function CategoryInventory({
       </nav>
 
       {/* The category this page is about */}
-      <div className="flex flex-wrap items-center gap-4 rounded-3xl border border-[#005390]/15 bg-gradient-to-r from-[#005390]/[0.07] to-white p-5">
+      <Card className="gap-0 flex flex-row flex-wrap items-center gap-4 rounded-3xl border border-[#005390]/15 bg-gradient-to-r from-[#005390]/[0.07] to-white p-5 ring-0 shadow-none">
         {category.data.image ? (
           <img
             src={category.data.image}
@@ -205,14 +208,14 @@ function CategoryInventory({
             <FolderOpen className="size-8" />
           </span>
         )}
-        <div className="min-w-0">
+        <div className="min-w-0 flex flex-col items-start text-left">
           <span className="inline-flex rounded-full bg-[#005390]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#005390]">
             Category
           </span>
           <h2 className="mt-1 break-words text-2xl font-bold text-gray-900">{category.data.name}</h2>
           {category.data.description && <p className="text-sm text-gray-500">{category.data.description}</p>}
         </div>
-      </div>
+      </Card>
       {stats.isError ? (
         <ErrorNotice error={stats.error} retry={() => void stats.refetch()} />
       ) : (
@@ -463,14 +466,22 @@ function SupplierFilter({
 }) {
   const suppliers = useCenterOptions(locationId, 'suppliers')
   return (
-    <NativeSelect aria-label="Filter by supplier" value={value} onChange={(e) => onChange(e.target.value)}>
-      <NativeSelectOption value="">All Suppliers</NativeSelectOption>
-      {suppliers.data?.map((s) => (
-        <NativeSelectOption key={s.id} value={s.id}>
-          {s.name}
-        </NativeSelectOption>
-      ))}
-    </NativeSelect>
+    <Select value={value || 'all'} onValueChange={(val) => onChange(val === 'all' ? '' : val)}>
+      <SelectTrigger
+        aria-label="Filter by supplier"
+        className="w-auto min-w-[140px] h-9 text-xs font-semibold rounded-xl bg-white dark:bg-slate-800 border-gray-200 dark:border-gray-700"
+      >
+        <SelectValue placeholder="All Suppliers" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All Suppliers</SelectItem>
+        {suppliers.data?.map((s) => (
+          <SelectItem key={s.id} value={s.id}>
+            {s.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }
 function ItemList({
@@ -496,13 +507,14 @@ function ItemList({
         <EntityCell
           icon={Package}
           title={
-            <button
+            <Button
               type="button"
-              className="cursor-pointer text-left hover:text-[#005390] hover:underline"
+              variant="ghost"
+              className="h-auto p-0 cursor-pointer text-left hover:text-[#005390] hover:underline hover:bg-transparent font-normal whitespace-normal justify-start inline"
               onClick={() => onSelect(row.original.id)}
             >
               {row.original.name}
-            </button>
+            </Button>
           }
         />
       ),
@@ -553,14 +565,15 @@ function ItemList({
               {item.maxQuantity ? quantityDisplay(item.maxQuantity, item) : '—'}
             </span>
             {low && canCreate && (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={onPO}
-                className="inline-flex w-fit cursor-pointer items-center gap-1 rounded-md border border-[#005390]/30 bg-[#005390]/5 px-2 py-0.5 text-[11px] font-semibold text-[#005390] hover:bg-[#005390]/10"
+                className="h-auto inline-flex w-fit cursor-pointer items-center gap-1 rounded-md border border-[#005390]/30 bg-[#005390]/5 px-2 py-0.5 text-[11px] font-semibold text-[#005390] hover:bg-[#005390]/10"
               >
                 <Plus className="size-3" />
                 Create PO
-              </button>
+              </Button>
             )}
           </div>
         )
@@ -585,16 +598,20 @@ function ItemList({
         filterActions={
           <div className="flex flex-wrap gap-3">
             <SupplierFilter locationId={locationId} value={supplierId} onChange={setSupplierId} />
-            <NativeSelect
-              aria-label="Filter by stock"
-              value={stockFilter}
-              onChange={(e) => setStockFilter(e.target.value)}
-            >
-              <NativeSelectOption value="">All Stock</NativeSelectOption>
-              <NativeSelectOption value="below_min">Below Minimum</NativeSelectOption>
-              <NativeSelectOption value="below_threshold">Below Threshold</NativeSelectOption>
-              <NativeSelectOption value="out_of_stock">Out of Stock</NativeSelectOption>
-            </NativeSelect>
+            <Select value={stockFilter || 'all'} onValueChange={(val) => setStockFilter(val === 'all' ? '' : val)}>
+              <SelectTrigger
+                aria-label="Filter by stock"
+                className="w-auto min-w-[140px] h-9 text-xs font-semibold rounded-xl bg-white dark:bg-slate-800 border-gray-200 dark:border-gray-700"
+              >
+                <SelectValue placeholder="All Stock" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Stock</SelectItem>
+                <SelectItem value="below_min">Below Minimum</SelectItem>
+                <SelectItem value="below_threshold">Below Threshold</SelectItem>
+                <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         }
 
@@ -656,14 +673,22 @@ function POList({
         filterActions={
           <div className="flex flex-wrap gap-3">
             <SupplierFilter locationId={locationId} value={supplierId} onChange={setSupplierId} />
-            <NativeSelect aria-label="Filter PO status" value={status} onChange={(e) => setStatus(e.target.value)}>
-              <NativeSelectOption value="">All Statuses</NativeSelectOption>
-              {Object.entries(poStatusLabels).map(([value, label]) => (
-                <NativeSelectOption key={value} value={value}>
-                  {label}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+            <Select value={status || 'all'} onValueChange={(val) => setStatus(val === 'all' ? '' : val)}>
+              <SelectTrigger
+                aria-label="Filter PO status"
+                className="w-auto min-w-[140px] h-9 text-xs font-semibold rounded-xl bg-white dark:bg-slate-800 border-gray-200 dark:border-gray-700"
+              >
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                {Object.entries(poStatusLabels).map(([val, label]) => (
+                  <SelectItem key={val} value={val}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         }
 
@@ -776,26 +801,28 @@ function TransactionList({
         filterActions={
           <div className="flex flex-wrap items-end gap-3">
             <SupplierFilter locationId={locationId} value={supplierId} onChange={setSupplierId} />
-            <label htmlFor="transaction-from" className="flex flex-col gap-1 text-sm">
-              From
-              <Input
+            <div className="flex flex-col gap-1 text-sm">
+              <span className="text-xs font-medium text-gray-700">From</span>
+              <DatePicker
                 id="transaction-from"
-                type="date"
                 value={startDate}
-                max={endDate || undefined}
-                onChange={(e) => setStartDate(e.target.value)}
+                maxDate={endDate || undefined}
+                onChange={setStartDate}
+                placeholder="From date"
+                className="w-[150px]"
               />
-            </label>
-            <label htmlFor="transaction-to" className="flex flex-col gap-1 text-sm">
-              To
-              <Input
+            </div>
+            <div className="flex flex-col gap-1 text-sm">
+              <span className="text-xs font-medium text-gray-700">To</span>
+              <DatePicker
                 id="transaction-to"
-                type="date"
                 value={endDate}
-                min={startDate || undefined}
-                onChange={(e) => setEndDate(e.target.value)}
+                minDate={startDate || undefined}
+                onChange={setEndDate}
+                placeholder="To date"
+                className="w-[150px]"
               />
-            </label>
+            </div>
           </div>
         }
 

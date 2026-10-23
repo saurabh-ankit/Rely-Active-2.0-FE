@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import React, { useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import {
@@ -19,6 +20,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Calendar, CalendarDayButton } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useResidentTimelineQuery } from '@/hooks/react-query/resident'
@@ -137,7 +139,7 @@ const TimelineEntry: React.FC<{ event: ResidentTimelineEvent; isLast: boolean }>
       >
         <Icon className="size-4" />
       </div>
-      <div className="min-w-0 flex-1 rounded-2xl border border-gray-200 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
+      <Card className="gap-0 min-w-0 flex-1 rounded-2xl border-gray-200 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-sm font-bold text-gray-900 dark:text-white">{event.title}</h3>
@@ -175,7 +177,7 @@ const TimelineEntry: React.FC<{ event: ResidentTimelineEvent; isLast: boolean }>
             )}
           </div>
         )}
-      </div>
+      </Card>
     </li>
   )
 }
@@ -256,21 +258,22 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({ residentId, minDate })
             <div className="flex items-center justify-between border-b border-gray-100 pb-2 dark:border-gray-800">
               <span className={filterLabelClass}>Filter by event type</span>
               {types.length > 0 && (
-                <button
+                <Button
+                  variant="link"
                   type="button"
                   onClick={() => {
                     setTypes([])
                     setPage(1)
                   }}
-                  className="text-[11px] font-bold text-[#005390] hover:underline"
+                  className="p-0 h-auto text-[11px] font-bold text-[#005390] hover:text-[#004274] hover:underline hover:bg-transparent dark:text-sky-400 dark:hover:text-sky-300"
                 >
                   Clear
-                </button>
+                </Button>
               )}
             </div>
             <div className="mt-3 space-y-2.5">
               {TYPE_FILTERS.map((option) => (
-                <label
+                <Label
                   key={option.value}
                   className="flex cursor-pointer items-center gap-2.5 text-xs font-medium text-gray-700 dark:text-gray-300"
                 >
@@ -279,7 +282,7 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({ residentId, minDate })
                     onCheckedChange={(checked) => toggleType(option.value, Boolean(checked))}
                   />
                   {option.label}
-                </label>
+                </Label>
               ))}
             </div>
           </div>

@@ -283,10 +283,17 @@ export const AppointmentsCalendar = () => {
             const overflowCount = Math.max(0, dayEvents.length - MAX_VISIBLE)
 
             return (
-              <button
+              <div
                 key={key}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => setSelectedDay(dateStr)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setSelectedDay(dateStr)
+                  }
+                }}
                 className={`min-h-[120px] p-2 bg-white flex flex-col gap-1 text-left w-full hover:bg-gray-50 transition-colors cursor-pointer ${
                   isToday ? 'bg-[#2a517c]/5' : ''
                 }`}
@@ -295,16 +302,17 @@ export const AppointmentsCalendar = () => {
 
                 <div className="flex-1 flex flex-col gap-1.5 overflow-hidden">
                   {visibleEvents.map((event) => (
-                    <button
+                    <Button
                       key={event.id}
                       type="button"
-                      className="space-y-0.5 text-left w-full cursor-pointer"
+                      variant="ghost"
+                      className="h-auto p-0 flex flex-col items-stretch space-y-0.5 text-left w-full cursor-pointer whitespace-normal font-normal hover:bg-transparent"
                       onClick={(e) => {
                         e.stopPropagation()
                         void openAppointments(event)
                       }}
                     >
-                      <div className="bg-[#2a517c] px-1.5 py-0.5 rounded-sm flex items-center justify-between gap-1">
+                      <div className="bg-[#2a517c] px-1.5 py-0.5 rounded-sm flex items-center justify-between gap-1 w-full">
                         <span className="text-[8px] font-black text-white truncate uppercase tracking-tighter block max-w-[70%]">
                           {event.shiftName}
                         </span>
@@ -312,19 +320,19 @@ export const AppointmentsCalendar = () => {
                           {event.slotTimeRange || event.shiftTime}
                         </span>
                       </div>
-                      <div className={getStatusClasses(event.status)}>
+                      <div className={`w-full ${getStatusClasses(event.status)}`}>
                         <div className="font-semibold truncate text-[#1e3a5a]">{event.employeeName}</div>
                         <div className="text-[8px] font-medium text-gray-500 uppercase tracking-wider mt-0.5">
                           {event.jobLabel}
                         </div>
                       </div>
-                    </button>
+                    </Button>
                   ))}
                   {overflowCount > 0 && (
                     <span className="text-[11px] font-semibold text-[#2a517c] pl-0.5">+{overflowCount}</span>
                   )}
                 </div>
-              </button>
+              </div>
             )
           })}
         </div>

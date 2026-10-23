@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import { BarChart3 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Cell, Pie, PieChart } from 'recharts'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 import { cn } from '@/lib/utils'
 import { SERIES, formatNumber } from './chartUtils'
@@ -22,13 +23,13 @@ export function Panel({
   className?: string
 }) {
   return (
-    <section
+    <Card
       className={cn(
-        'flex min-w-0 flex-col rounded-[24px] border border-white/80 bg-white/80 p-5 shadow-lg backdrop-blur-xl',
+        'gap-0 min-w-0 rounded-[24px] border border-white/80 bg-white/80 p-5 shadow-lg backdrop-blur-xl',
         className,
       )}
     >
-      <header className="mb-4 flex items-start justify-between gap-3">
+      <CardHeader className="mb-4 flex flex-row items-start justify-between gap-3 p-0">
         <div className="flex min-w-0 items-center gap-2.5">
           {Icon && (
             <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#005390]/10 text-[#005390]">
@@ -36,14 +37,14 @@ export function Panel({
             </span>
           )}
           <div className="min-w-0">
-            <h3 className="truncate text-sm font-bold text-[#1f2937]">{title}</h3>
-            {subtitle && <p className="truncate text-[11px] text-gray-500">{subtitle}</p>}
+            <CardTitle className="truncate text-sm font-bold text-[#1f2937]">{title}</CardTitle>
+            {subtitle && <CardDescription className="truncate text-[11px] text-gray-500">{subtitle}</CardDescription>}
           </div>
         </div>
         {action}
-      </header>
-      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
-    </section>
+      </CardHeader>
+      <CardContent className="flex min-h-0 flex-1 flex-col p-0">{children}</CardContent>
+    </Card>
   )
 }
 
@@ -70,13 +71,14 @@ export function StatTile({
     violet: 'bg-violet-50 text-violet-700',
     slate: 'bg-slate-100 text-slate-700',
   }
-  const Tag = onClick ? 'button' : 'div'
   return (
-    <Tag
-      type={onClick ? 'button' : undefined}
+    <Card
       onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
       className={cn(
-        'flex min-w-0 items-start gap-3 rounded-[20px] border border-white/80 bg-white/80 p-4 text-left shadow-md backdrop-blur-xl',
+        'gap-0 flex-row min-w-0 items-start gap-3 rounded-[20px] border border-white/80 bg-white/80 p-4 text-left shadow-md backdrop-blur-xl',
         onClick && 'cursor-pointer transition-shadow hover:shadow-lg',
       )}
     >
@@ -88,7 +90,7 @@ export function StatTile({
         <span className="block truncate text-2xl leading-tight font-black text-[#1f2937]">{value}</span>
         {hint && <span className="block truncate text-[11px] text-gray-500">{hint}</span>}
       </span>
-    </Tag>
+    </Card>
   )
 }
 

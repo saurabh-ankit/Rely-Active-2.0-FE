@@ -197,13 +197,14 @@ export function RecordPaymentModal({ invoice, onOpenChange }: RecordPaymentModal
                 Amount received <span className="text-rose-600">*</span>
               </Label>
               {Number(amount) !== remaining && (
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => setAmount(remaining.toFixed(2))}
-                  className="text-xs font-medium text-[#2b6cb0] hover:underline"
+                  className="h-auto p-0 text-xs font-medium text-[#2b6cb0] hover:bg-transparent hover:underline"
                 >
                   Pay full balance
-                </button>
+                </Button>
               )}
             </div>
             <div className="relative">
@@ -275,21 +276,22 @@ export function RecordPaymentModal({ invoice, onOpenChange }: RecordPaymentModal
                 const Icon = METHOD_META[m].icon
                 const active = m === method
                 return (
-                  <button
+                  <Button
                     key={m}
                     type="button"
+                    variant="ghost"
                     aria-pressed={active}
                     onClick={() => setMethod(m)}
                     className={cn(
-                      'flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors',
+                      'h-auto flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors whitespace-normal font-normal justify-start',
                       active
-                        ? 'border-[#2b4f7e] bg-[#2b4f7e]/[0.06] font-semibold text-[#2b4f7e] ring-1 ring-[#2b4f7e]'
+                        ? 'border-[#2b4f7e] bg-[#2b4f7e]/[0.06] font-semibold text-[#2b4f7e] ring-1 ring-[#2b4f7e] hover:bg-[#2b4f7e]/[0.06] hover:text-[#2b4f7e]'
                         : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50',
                     )}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
                     <span className="truncate">{PAYMENT_METHOD_LABEL[m]}</span>
-                  </button>
+                  </Button>
                 )
               })}
             </div>
@@ -332,17 +334,19 @@ export function RecordPaymentModal({ invoice, onOpenChange }: RecordPaymentModal
                 <div className="flex h-10 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm">
                   <Paperclip className="h-4 w-4 shrink-0 text-gray-400" />
                   <span className="min-w-0 flex-1 truncate">{image.name}</span>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon-xs"
                     aria-label="Remove file"
                     onClick={() => setImage(null)}
-                    className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                    className="h-6 w-6 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
                   >
                     <X className="h-3.5 w-3.5" />
-                  </button>
+                  </Button>
                 </div>
               ) : (
-                <label className="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 text-sm text-gray-600 hover:border-[#2b4f7e] hover:bg-[#2b4f7e]/[0.03]">
+                <Label className="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 text-sm text-gray-600 hover:border-[#2b4f7e] hover:bg-[#2b4f7e]/[0.03]">
                   <Paperclip className="h-4 w-4 shrink-0" />
                   <span className="truncate">Attach cheque / slip</span>
                   <input
@@ -358,7 +362,7 @@ export function RecordPaymentModal({ invoice, onOpenChange }: RecordPaymentModal
                       setImage(file)
                     }}
                   />
-                </label>
+                </Label>
               )}
             </div>
           </div>

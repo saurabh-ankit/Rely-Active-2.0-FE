@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FieldGroup } from '@/components/ui/field'
 import { useCenterOptions, useCenterMutation } from '@/hooks/react-query/centerInventory'
 import type { PurchaseOrder, PurchaseOrderInput } from '@/lib/types/centerInventory'
@@ -83,6 +83,7 @@ export function PurchaseOrderForm({
             event.preventDefault()
             setError(null)
             try {
+              if (!supplierId) throw new Error('Please select a supplier')
               if (new Set(lines.map((l) => l.itemId)).size !== lines.length)
                 throw new Error('Each item may appear only once')
               const input: PurchaseOrderInput = {
@@ -115,24 +116,26 @@ export function PurchaseOrderForm({
         >
           <FieldGroup>
             <FormField id="po-supplier" label="Supplier *">
-              <NativeSelect
-                id="po-supplier"
-                value={supplierId}
-                required
-                onChange={(e) => {
-                  setSupplierId(e.target.value)
+              <Select
+                value={supplierId || undefined}
+                onValueChange={(val) => {
+                  setSupplierId(val ?? '')
                   setLines([{ key: generateUUID(), itemId: '', packages: 1, price: 0 }])
                 }}
               >
-                <NativeSelectOption value="">Select supplier</NativeSelectOption>
-                {suppliers.data
-                  ?.filter((s) => s.isActive)
-                  .map((s) => (
-                    <NativeSelectOption key={s.id} value={s.id}>
-                      {s.name}
-                    </NativeSelectOption>
-                  ))}
-              </NativeSelect>
+                <SelectTrigger id="po-supplier" className="w-full h-9 text-xs">
+                  <SelectValue placeholder="Select supplier" />
+                </SelectTrigger>
+                <SelectContent>
+                  {suppliers.data
+                    ?.filter((s) => s.isActive)
+                    .map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
             </FormField>
             {lines.map((line, index) => {
               const item = eligible.find((i) => i.id === line.itemId)
@@ -155,21 +158,23 @@ export function PurchaseOrderForm({
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
                     <FormField id={`po-item-${index}`} label="Item *">
-                      <NativeSelect
-                        id={`po-item-${index}`}
-                        value={line.itemId}
-                        required
-                        onChange={(e) => update(index, { itemId: e.target.value })}
+                      <Select
+                        value={line.itemId || undefined}
+                        onValueChange={(val) => update(index, { itemId: val ?? '' })}
                       >
-                        <NativeSelectOption value="">Select item</NativeSelectOption>
-                        {eligible
-                          .filter((i) => i.id === line.itemId || !lines.some((l) => l.itemId === i.id))
-                          .map((i) => (
-                            <NativeSelectOption key={i.id} value={i.id}>
-                              {i.name}
-                            </NativeSelectOption>
-                          ))}
-                      </NativeSelect>
+                        <SelectTrigger id={`po-item-${index}`} className="w-full h-9 text-xs">
+                          <SelectValue placeholder="Select item" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {eligible
+                            .filter((i) => i.id === line.itemId || !lines.some((l) => l.itemId === i.id))
+                            .map((i) => (
+                              <SelectItem key={i.id} value={i.id}>
+                                {i.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
                     </FormField>
                     <FormField id={`po-quantity-${index}`} label={`Quantity (${item?.packType ?? 'packages'}) *`}>
                       <Input

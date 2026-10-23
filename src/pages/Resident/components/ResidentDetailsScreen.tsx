@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { format, isValid, parseISO } from 'date-fns'
-import { ArrowLeft, CalendarDays, Edit, HeartPulse, Home, Phone, RefreshCw, User, Users } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Edit, HeartPulse, Home, Loader2, Phone, User, Users } from 'lucide-react'
 import type { ResidentItem } from '@/lib/types'
 import { residentService } from '@/lib/services/residentService'
 import { AssignCareTaskDialog } from '@/components/common/AssignCareTaskDialog'
 import { AssignCareTeamDialog } from '@/components/common/AssignCareTeamDialog'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { ResponsiveTabs, type TabItem } from '@/components/common/ResponsiveTabs'
 import { HeroFact, NotAdded } from '@/components/common/DetailPanel'
 import { cn, getFileUrl } from '@/lib/utils'
 import { fnbService } from '@/lib/services/fnbService'
@@ -135,18 +137,19 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   if (isLoading) {
     return (
       <div className="w-full space-y-6 pb-12">
-        <button
+        <Button
+          variant="ghost"
           type="button"
           onClick={() => navigate(backUrl)}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+          className="p-0 h-auto inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] hover:bg-transparent transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />{' '}
           {isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}
-        </button>
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-400 shadow-xl backdrop-blur-xl">
-          <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#005390]" />
+        </Button>
+        <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-400 shadow-xl backdrop-blur-xl">
+          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
           Loading resident profile & family details...
-        </div>
+        </Card>
       </div>
     )
   }
@@ -154,17 +157,18 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   if (error || !resident) {
     return (
       <div className="w-full space-y-6 pb-12">
-        <button
+        <Button
+          variant="ghost"
           type="button"
           onClick={() => navigate(backUrl)}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+          className="p-0 h-auto inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] hover:bg-transparent transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />{' '}
           {isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}
-        </button>
-        <div className="rounded-3xl bg-rose-50 border border-rose-200 p-8 text-center text-xs text-rose-700 font-bold shadow-xs">
+        </Button>
+        <Card className="gap-0 rounded-3xl bg-rose-50 border border-rose-200 p-8 text-center text-xs text-rose-700 font-bold shadow-xs">
           {error || 'Resident profile not found.'}
-        </div>
+        </Card>
       </div>
     )
   }
@@ -175,17 +179,18 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   return (
     <div className="w-full space-y-6 pb-16">
       {/* Top Back Navigation */}
-      <button
+      <Button
+        variant="ghost"
         type="button"
         onClick={() => navigate(backUrl)}
-        className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer"
+        className="p-0 h-auto inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] hover:bg-transparent transition-colors cursor-pointer"
       >
         <ArrowLeft className="w-4 h-4" />{' '}
         {isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}
-      </button>
+      </Button>
 
       {/* Summary: who they are, where they live, and the main actions */}
-      <div className="rounded-2xl border border-gray-100 bg-white shadow-2xs dark:border-gray-800 dark:bg-slate-900">
+      <Card className="gap-0 rounded-2xl border border-gray-100 bg-white shadow-2xs dark:border-gray-800 dark:bg-slate-900">
         <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between md:p-6">
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#005390] to-sky-600 text-xl font-bold text-white shadow-sm">
@@ -301,58 +306,63 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
             }
           />
         </div>
-      </div>
+      </Card>
 
       {/* Tab bar */}
-      <div className="flex border-b border-gray-200 space-x-6 text-sm font-semibold text-gray-500 overflow-x-auto">
-        {tabAccess.personal && (
-          <button
-            type="button"
-            onClick={() => setActiveTab('personal')}
-            className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-              activeTab === 'personal' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
-            }`}
-          >
-            <User className="w-4 h-4" /> Profile
-          </button>
-        )}
-        {tabAccess.medical && (
-          <button
-            type="button"
-            onClick={() => setActiveTab('medical')}
-            className={`pb-3 border-b-2 flex items-center gap-2 transition-colors cursor-pointer shrink-0 ${
-              activeTab === 'medical' ? 'border-[#005390] text-[#005390]' : 'border-transparent hover:text-gray-800'
-            }`}
-          >
-            <HeartPulse className="w-4 h-4 text-rose-500" /> Medical
-          </button>
-        )}
-      </div>
+      {(() => {
+        const detailTabs: TabItem[] = [
+          ...(tabAccess.personal
+            ? [
+                {
+                  value: 'personal',
+                  label: 'Profile',
+                  shortLabel: 'Profile',
+                  icon: User,
+                  content: (
+                    <ResidentPersonalDetailsTab
+                      resident={resident}
+                      fnbSubscriptions={fnbSubscriptions}
+                      getSlotDisplayName={getSlotDisplayName}
+                      canUpdateResident={canUpdateResident}
+                      onAssignFoodPackage={() => navigate(editUrl)}
+                    />
+                  ),
+                },
+              ]
+            : []),
+          ...(tabAccess.medical
+            ? [
+                {
+                  value: 'medical',
+                  label: 'Medical',
+                  shortLabel: 'Medical',
+                  icon: HeartPulse,
+                  content: (
+                    <ResidentMedicalTab
+                      resident={resident}
+                      canUpdateResident={medicalAccess.canUpdate}
+                      onAssignCareTeam={() => setIsCareTeamModalOpen(true)}
+                      onAssignCareTask={() => setIsCareTaskModalOpen(true)}
+                    />
+                  ),
+                },
+              ]
+            : []),
+        ]
 
-      {!activeTab && (
-        <div className="rounded-2xl border border-gray-100 bg-white p-10 text-center text-sm text-gray-500">
-          You don&apos;t have access to this resident&apos;s Profile or Medical sections.
-        </div>
-      )}
-
-      {activeTab === 'personal' && (
-        <ResidentPersonalDetailsTab
-          resident={resident}
-          fnbSubscriptions={fnbSubscriptions}
-          getSlotDisplayName={getSlotDisplayName}
-          canUpdateResident={canUpdateResident}
-          onAssignFoodPackage={() => navigate(editUrl)}
-        />
-      )}
-
-      {activeTab === 'medical' && (
-        <ResidentMedicalTab
-          resident={resident}
-          canUpdateResident={medicalAccess.canUpdate}
-          onAssignCareTeam={() => setIsCareTeamModalOpen(true)}
-          onAssignCareTask={() => setIsCareTaskModalOpen(true)}
-        />
-      )}
+        return detailTabs.length > 0 ? (
+          <ResponsiveTabs
+            value={activeTab || undefined}
+            onValueChange={(val) => setActiveTab(val as ResidentDetailTab)}
+            tabs={detailTabs}
+            className="w-full"
+          />
+        ) : (
+          <Card className="gap-0 rounded-2xl border border-gray-100 bg-white p-10 text-center text-sm text-gray-500">
+            You don&apos;t have access to this resident&apos;s Profile or Medical sections.
+          </Card>
+        )
+      })()}
 
       {/* Assign Care Task Modal */}
       {resident && (

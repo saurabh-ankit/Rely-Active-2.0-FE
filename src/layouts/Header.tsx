@@ -93,18 +93,19 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
         <div className="flex items-center gap-1.5 md:gap-4">
           {/* Location Dropdown */}
           <div className="relative" ref={locationDropdownRef}>
-            <button
+            <Button
+              variant="ghost"
               type="button"
               onClick={() => {
                 setShowLocationDropdown((prev) => !prev)
                 setShowProfileDropdown(false)
               }}
-              className="flex items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 shadow-lg rounded-full px-4 py-1.5 text-xs font-semibold text-gray-800 transition-all hover:bg-white/30 cursor-pointer"
+              className="h-auto flex items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 shadow-lg rounded-full px-4 py-1.5 text-xs font-semibold text-gray-800 transition-all hover:bg-white/30 cursor-pointer"
             >
               <Building2 className="h-3.5 w-3.5 text-[#005390]" />
               <span>{selectedLocationName || 'Select Property'}</span>
               <ChevronDown className="h-3.5 w-3.5 text-gray-500 opacity-80" />
-            </button>
+            </Button>
 
             {showLocationDropdown && (
               <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-white/40 bg-white/95 p-2 shadow-2xl backdrop-blur-xl z-50">
@@ -120,16 +121,17 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
                   <div className="px-3 py-2 text-xs text-gray-400">No properties available</div>
                 ) : (
                   accessibleLocations.map((p: PropertyLocationItem) => (
-                    <button
+                    <Button
                       key={p.id}
+                      variant="ghost"
                       type="button"
                       onClick={() => {
                         selectLocation(p)
                         setShowLocationDropdown(false)
                       }}
-                      className={`w-full text-left px-3 py-2 text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-between gap-2 ${
+                      className={`w-full text-left px-3 py-2 h-auto text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-between gap-2 font-normal ${
                         selectedLocationName === p.property_name
-                          ? 'bg-[#005390] font-semibold text-white shadow-sm'
+                          ? 'bg-[#005390] font-semibold text-white shadow-sm hover:bg-[#005390] hover:text-white'
                           : 'hover:bg-[#005390]/10 hover:text-[#005390] text-gray-700'
                       }`}
                     >
@@ -142,7 +144,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
                         <span className="truncate">{p.property_name}</span>
                       </div>
                       {selectedLocationName === p.property_name && <span className="text-[10px] shrink-0">✓</span>}
-                    </button>
+                    </Button>
                   ))
                 )}
               </div>
@@ -158,13 +160,15 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
 
           {/* User Avatar */}
           <div className="relative" ref={profileDropdownRef}>
-            <button
+            <Button
+              variant="ghost"
               type="button"
               onClick={() => {
                 setShowProfileDropdown((prev) => !prev)
                 setShowLocationDropdown(false)
               }}
-              className="relative h-10 w-10 rounded-full p-0 cursor-pointer overflow-hidden shadow-lg ring-4 ring-white/80 transition-transform hover:scale-105"
+              aria-label="User profile menu"
+              className="relative h-10 w-10 rounded-full p-0 cursor-pointer overflow-hidden shadow-lg ring-4 ring-white/80 transition-transform hover:scale-105 hover:bg-transparent"
             >
               <div className="flex h-full w-full items-center justify-center bg-[#005390] text-white font-bold text-sm shadow-[#005390]/20">
                 {userPhoto ? (
@@ -173,7 +177,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
                   <span>{userInitial}</span>
                 )}
               </div>
-            </button>
+            </Button>
 
             {showProfileDropdown && (
               <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-white/40 bg-white/95 p-2 shadow-2xl backdrop-blur-xl z-50">
@@ -207,14 +211,15 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
                     Global Settings
                   </Link>
                 )}
-                <button
+                <Button
+                  variant="ghost"
                   type="button"
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 rounded-xl font-medium mt-1 border-t border-gray-100 cursor-pointer transition-colors"
+                  className="w-full h-auto justify-start flex items-center gap-2 px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-600 rounded-xl font-medium mt-1 border-t border-gray-100 cursor-pointer transition-colors"
                 >
                   <LogOut className="h-4 w-4" />
                   Sign Out
-                </button>
+                </Button>
               </div>
             )}
           </div>

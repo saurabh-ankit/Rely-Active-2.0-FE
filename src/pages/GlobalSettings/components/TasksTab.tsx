@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useForm, useWatch } from 'react-hook-form'
@@ -15,6 +16,7 @@ import {
   CalendarDays,
   Sparkles,
   Lock,
+  Loader2,
 } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
 import {
@@ -26,7 +28,12 @@ import {
 import type { CareTask, BillingType, Task } from '@/lib/types/medical'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { DataTable } from '@/components/ui/data-table'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { z } from 'zod'
 
 export type { BillingType, CareTask, Task }
@@ -407,22 +414,28 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
 
           return (
             <div className="flex items-center justify-end gap-1.5">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-xs"
                 onClick={() => handleOpenEdit(task)}
                 className="p-1.5 rounded-lg text-[#005390] hover:bg-blue-50 transition-colors cursor-pointer dark:hover:bg-sky-950/40"
                 title="Edit Care Task"
+                aria-label="Edit Care Task"
               >
                 <Edit2 className="w-3.5 h-3.5" />
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-xs"
                 onClick={() => handleOpenDelete(task)}
                 className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer dark:hover:bg-rose-950/40"
                 title="Delete Care Task"
+                aria-label="Delete Care Task"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              </Button>
             </div>
           )
         },
@@ -434,33 +447,33 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
   return (
     <div className="space-y-6">
       {/* Top Banner & Stats */}
-      <div className="bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <Card className="gap-0 bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+        <CardHeader className="p-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-[#005390]/10 text-[#005390]">
                 <HeartHandshake className="w-5 h-5" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900">Care Tasks</h2>
+              <CardTitle className="text-xl font-bold text-gray-900">Care Tasks</CardTitle>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <CardDescription className="text-xs text-gray-500 mt-1">
               Configure and manage Care Tasks with multi-tier pricing and images.
-            </p>
+            </CardDescription>
           </div>
 
-          <button
+          <Button
             type="button"
             onClick={handleOpenCreate}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004170] transition-colors cursor-pointer shrink-0"
+            className="inline-flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004170] transition-colors cursor-pointer shrink-0"
           >
             <Plus className="w-4 h-4" />
             Create Care Task
-          </button>
-        </div>
-      </div>
+          </Button>
+        </CardHeader>
+      </Card>
 
       {/* Filter & Search Bar */}
-      <div className="bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center gap-3 justify-between">
+      <Card className="gap-0 bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center gap-3 justify-between">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <Input
@@ -474,90 +487,89 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
             <span className="font-semibold">Per page:</span>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value))
+            <Select
+              value={String(pageSize)}
+              onValueChange={(val) => {
+                setPageSize(Number(val))
                 setCurrentPage(1)
               }}
-              className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 focus:border-[#005390] focus:outline-none cursor-pointer"
             >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
+              <SelectTrigger className="w-[70px] h-8 rounded-xl border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700">
+                <SelectValue placeholder="10" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Table Section */}
-      <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-5 shadow-sm">
-        {isLoading ? (
-          <div className="py-16 text-center">
-            <div className="w-8 h-8 border-3 border-[#005390] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-xs text-gray-500 font-medium">Loading care tasks...</p>
-          </div>
-        ) : careTasks.length === 0 ? (
-          <div className="py-16 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center mx-auto mb-3 border border-gray-100">
-              <HeartHandshake className="w-6 h-6 text-gray-400" />
+      <Card className="gap-0 bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-5 shadow-sm">
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="py-16 text-center">
+              <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
+              <p className="text-xs text-muted-foreground font-medium">Loading care tasks...</p>
             </div>
-            <h3 className="text-sm font-bold text-gray-800">No Care Tasks Found</h3>
-            <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
-              {searchQuery ? 'Try adjusting your search terms.' : 'Get started by creating your first Care Task.'}
-            </p>
-            {!searchQuery && (
-              <button
-                type="button"
-                onClick={handleOpenCreate}
-                className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#005390] text-white text-xs font-bold hover:bg-[#004170] cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" /> Create Care Task
-              </button>
-            )}
-          </div>
-        ) : (
-          <DataTable
-            columns={columns}
-            data={careTasks}
-            isLoading={isLoading}
-            manualPagination={true}
-            pageCount={pagination.totalPages}
-            pageIndex={currentPage - 1}
-            onPageChange={(newPageIndex) => setCurrentPage(newPageIndex + 1)}
-            totalCount={pagination.total}
-            pageSize={pageSize}
-          />
-        )}
-      </div>
+          ) : careTasks.length === 0 ? (
+            <div className="py-16 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center mx-auto mb-3 border border-gray-100">
+                <HeartHandshake className="w-6 h-6 text-gray-400" />
+              </div>
+              <h3 className="text-sm font-bold text-gray-800">No Care Tasks Found</h3>
+              <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
+                {searchQuery ? 'Try adjusting your search terms.' : 'Get started by creating your first Care Task.'}
+              </p>
+              {!searchQuery && (
+                <Button
+                  type="button"
+                  onClick={handleOpenCreate}
+                  className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-2 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold hover:bg-[#004170] cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Create Care Task
+                </Button>
+              )}
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={careTasks}
+              isLoading={isLoading}
+              manualPagination={true}
+              pageCount={pagination.totalPages}
+              pageIndex={currentPage - 1}
+              onPageChange={(newPageIndex) => setCurrentPage(newPageIndex + 1)}
+              totalCount={pagination.total}
+              pageSize={pageSize}
+            />
+          )}
+        </CardContent>
+      </Card>
 
       {/* Create / Edit Modal Dialog */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-lg overflow-hidden animate-in fade-in duration-200 max-h-[90vh] flex flex-col">
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        {isModalOpen && (
+          <DialogContent className="sm:max-w-lg p-0 overflow-hidden max-h-[90vh] flex flex-col">
             {/* Modal Header */}
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 shrink-0">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 shrink-0 pr-12">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-[#005390]/10 text-[#005390]">
                   {editingTask ? <Edit2 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                 </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-sm">
+                <DialogHeader>
+                  <DialogTitle className="font-bold text-gray-900 text-sm">
                     {editingTask ? 'Edit Care Task' : 'Create Care Task'}
-                  </h3>
-                  <p className="text-[11px] text-gray-500 mt-0.5">
+                  </DialogTitle>
+                  <DialogDescription className="text-[11px] text-gray-500 mt-0.5">
                     Configure task details, select billing type (Monthly or Session), and set task rate.
-                  </p>
-                </div>
+                  </DialogDescription>
+                </DialogHeader>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
 
             {/* Modal Form */}
@@ -571,10 +583,10 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
 
               {/* 1. Care Task Name (Required) */}
               <div>
-                <label htmlFor="careTaskName" className="block text-xs font-bold text-gray-700 mb-1">
+                <Label htmlFor="careTaskName" className="block text-xs font-bold text-gray-700 mb-1">
                   1. Care Task Name <span className="text-rose-500">*</span>
-                </label>
-                <input
+                </Label>
+                <Input
                   id="careTaskName"
                   type="text"
                   {...register('careTaskName')}
@@ -586,10 +598,10 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
 
               {/* 2. Care Task Description (Optional) */}
               <div>
-                <label htmlFor="careTaskDescription" className="block text-xs font-bold text-gray-700 mb-1">
+                <Label htmlFor="careTaskDescription" className="block text-xs font-bold text-gray-700 mb-1">
                   2. Care Task Description <span className="text-gray-400 font-normal">(Optional)</span>
-                </label>
-                <textarea
+                </Label>
+                <Textarea
                   id="careTaskDescription"
                   {...register('careTaskDescription')}
                   rows={3}
@@ -610,10 +622,11 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                 {/* Billing Type Toggle Selection */}
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   {/* Monthly */}
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => setValue('billingType', 'MONTHLY')}
-                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                    className={`p-3 h-auto rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-2.5 whitespace-normal ${
                       watchBillingType === 'MONTHLY'
                         ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20 shadow-xs'
                         : 'border-gray-200 bg-white hover:border-gray-300'
@@ -633,13 +646,14 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                       </div>
                       <p className="text-[10px] text-gray-500 mt-0.5">Fixed recurring monthly charge</p>
                     </div>
-                  </button>
+                  </Button>
 
                   {/* Session */}
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => setValue('billingType', 'SESSION')}
-                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                    className={`p-3 h-auto rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-2.5 whitespace-normal ${
                       watchBillingType === 'SESSION'
                         ? 'border-[#005390] bg-blue-50/50 ring-2 ring-[#005390]/20 shadow-xs'
                         : 'border-gray-200 bg-white hover:border-gray-300'
@@ -659,7 +673,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                       </div>
                       <p className="text-[10px] text-gray-500 mt-0.5">Pay per completed session</p>
                     </div>
-                  </button>
+                  </Button>
                 </div>
                 {errors.billingType && (
                   <p className="text-[11px] text-rose-500 mb-2 font-medium">{errors.billingType.message}</p>
@@ -667,15 +681,15 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
 
                 {/* Price Input */}
                 <div className="rounded-2xl border border-gray-200 bg-gray-50/60 p-3.5">
-                  <label htmlFor="care-task-price" className="block text-xs font-bold text-gray-800 mb-1.5">
+                  <Label htmlFor="care-task-price" className="block text-xs font-bold text-gray-800 mb-1.5">
                     {watchBillingType === 'SESSION' ? 'Session Rate (₹)' : 'Monthly Rate (₹)'}{' '}
                     <span className="text-rose-500">*</span>
-                  </label>
+                  </Label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
                       ₹
                     </span>
-                    <input
+                    <Input
                       id="care-task-price"
                       type="number"
                       min="0"
@@ -694,9 +708,9 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
 
               {/* 4. Task Image (Optional) */}
               <div>
-                <label htmlFor="care-task-image-input" className="block text-xs font-bold text-gray-700 mb-1">
+                <Label htmlFor="care-task-image-input" className="block text-xs font-bold text-gray-700 mb-1">
                   4. Task Image <span className="text-gray-400 font-normal">(Optional)</span>
-                </label>
+                </Label>
                 <div className="flex items-center gap-3.5 border border-gray-200 rounded-2xl p-3 bg-gray-50/50">
                   {imagePreviewUrl ? (
                     <div className="relative group shrink-0">
@@ -705,14 +719,17 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                         alt="Care Task Preview"
                         className="w-14 h-14 rounded-xl object-cover border border-gray-200 shadow-xs"
                       />
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label="Remove image"
                         onClick={handleRemoveImage}
                         className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white rounded-full p-1 shadow-sm hover:bg-rose-600 transition-colors cursor-pointer"
                         title="Remove image"
                       >
                         <X className="w-3 h-3" />
-                      </button>
+                      </Button>
                     </div>
                   ) : (
                     <div className="w-14 h-14 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center border border-gray-200 shrink-0">
@@ -727,13 +744,13 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                       onChange={handleImageChange}
                       className="hidden"
                     />
-                    <label
+                    <Label
                       htmlFor="care-task-image-input"
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer shadow-2xs"
                     >
                       <Upload className="w-3.5 h-3.5 text-[#005390]" />
                       {imageFile || imagePreviewUrl ? 'Change Image' : 'Choose Image'}
-                    </label>
+                    </Label>
                     <p className="text-[11px] text-gray-400">PNG, JPG, WEBP up to 10MB.</p>
                   </div>
                 </div>
@@ -741,67 +758,73 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
 
               {/* Modal Actions */}
               <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 sticky bottom-0 bg-white">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setIsModalOpen(false)}
                   disabled={isSubmitting}
-                  className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="px-4 py-2 h-auto rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004170] transition-colors cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-5 py-2 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004170] transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {isSubmitting && (
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  )}
+                  {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   {editingTask ? 'Save Changes' : 'Create Care Task'}
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
 
       {/* Delete Confirmation Modal */}
-      {isDeleteModalOpen && taskToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-sm overflow-hidden p-6 text-center animate-in fade-in duration-200">
+      <Dialog
+        open={Boolean(isDeleteModalOpen && taskToDelete)}
+        onOpenChange={(open) => {
+          if (!open) setIsDeleteModalOpen(false)
+        }}
+      >
+        {isDeleteModalOpen && taskToDelete && (
+          <DialogContent className="sm:max-w-sm p-6 text-center">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-3 border border-rose-100">
               <Trash2 className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-bold text-gray-900">Delete Care Task?</h3>
-            <p className="text-xs text-gray-500 mt-1">
-              Are you sure you want to delete{' '}
-              <strong className="text-gray-800 font-semibold">{taskToDelete.careTaskName}</strong>?
-            </p>
+            <DialogHeader className="text-center">
+              <DialogTitle className="text-base font-bold text-gray-900 text-center">Delete Care Task?</DialogTitle>
+              <DialogDescription className="text-xs text-gray-500 mt-1 text-center">
+                Are you sure you want to delete{' '}
+                <strong className="text-gray-800 font-semibold">{taskToDelete.careTaskName}</strong>?
+              </DialogDescription>
+            </DialogHeader>
 
             <div className="flex items-center justify-center gap-2 mt-6">
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => setIsDeleteModalOpen(false)}
                 disabled={isDeleting}
-                className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                className="px-4 py-2 h-auto rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="destructive"
                 onClick={handleConfirmDelete}
                 disabled={isDeleting}
-                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold shadow-md hover:bg-rose-700 transition-colors cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-5 py-2 h-auto rounded-xl bg-rose-600 text-white text-xs font-bold shadow-md hover:bg-rose-700 transition-colors cursor-pointer disabled:opacity-50"
               >
-                {isDeleting && (
-                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                )}
+                {isDeleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Delete Care Task
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   )
 }

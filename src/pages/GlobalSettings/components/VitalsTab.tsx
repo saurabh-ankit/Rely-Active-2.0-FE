@@ -1,8 +1,13 @@
+import { Label } from '@/components/ui/label'
+import { Card, CardDescription, CardTitle } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Activity, AlertCircle, Edit2, Plus, Trash2, Upload, X } from 'lucide-react'
+import { Activity, AlertCircle, Edit2, Plus, Trash2, Upload } from 'lucide-react'
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import {
   createVitalSettingAPI,
@@ -432,22 +437,28 @@ export function VitalsTab() {
         header: () => <div className="text-right">Actions</div>,
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => handleOpenEdit(row.original)}
               className="p-2 rounded-lg text-[#005390] hover:bg-blue-50 transition-colors cursor-pointer"
               title="Edit vital"
+              aria-label="Edit vital"
             >
               <Edit2 className="w-4 h-4" />
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => handleDelete(row.original)}
               className="p-2 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
               title="Delete vital"
+              aria-label="Delete vital"
             >
               <Trash2 className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         ),
       },
@@ -458,24 +469,36 @@ export function VitalsTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Activity className="w-5 h-5 text-[#005390]" /> Vital Settings
-          </h2>
-          <p className="text-xs text-gray-500 mt-1">
-            Create and manage vitals for patient monitoring.
-            {vitals.length > 0 ? ` ${vitals.length} vital${vitals.length === 1 ? '' : 's'} configured.` : ''}
-          </p>
+      <Card className="gap-0 bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-[#005390]/10 text-[#005390] shrink-0">
+                <Activity className="w-5 h-5" />
+              </div>
+              <CardTitle className="text-xl font-bold text-gray-900 whitespace-nowrap">Vital Settings</CardTitle>
+            </div>
+            <CardDescription className="text-xs text-gray-500 mt-1 whitespace-nowrap">
+              Create and manage vitals for patient monitoring.
+            </CardDescription>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0 self-start sm:self-auto">
+            {vitals.length > 0 && (
+              <span className="rounded-full bg-[#005390]/10 px-3 py-1 text-xs font-semibold text-[#005390] whitespace-nowrap">
+                {vitals.length} {vitals.length === 1 ? 'vital' : 'vitals'}
+              </span>
+            )}
+            <Button
+              type="button"
+              onClick={handleOpenCreate}
+              className="inline-flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004170] transition-colors cursor-pointer shrink-0"
+            >
+              <Plus className="w-4 h-4" /> Add New Vital
+            </Button>
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#005390] hover:bg-[#004070] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
-        >
-          <Plus className="w-4 h-4" /> Add New Vital
-        </button>
-      </div>
+      </Card>
 
       <DataTable
         columns={columns}
@@ -486,47 +509,41 @@ export function VitalsTab() {
         searchPlaceholder="Search vitals by name or unit..."
       />
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-5 relative my-auto max-h-[90vh] flex flex-col">
-            <div className="flex items-start justify-between border-b border-gray-100 pb-4">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        {isModalOpen && (
+          <DialogContent className="sm:max-w-lg p-0 overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="flex items-start justify-between border-b border-gray-100 p-6 pb-4 pr-12">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold text-gray-900">
                   {editing ? 'Edit Vital Setting' : 'Add New Vital Setting'}
-                </h3>
-                <p className="text-xs text-gray-500 mt-1">
+                </DialogTitle>
+                <DialogDescription className="text-xs text-gray-500 mt-1">
                   {editing ? 'Update existing vital configuration.' : 'Create a new vital for patient monitoring.'}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+                </DialogDescription>
+              </DialogHeader>
             </div>
 
             {errorMsg && (
-              <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-xl text-xs flex items-center gap-2">
+              <div className="mx-6 bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-xl text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" /> {errorMsg}
               </div>
             )}
 
-            <form onSubmit={onSubmit} noValidate className="space-y-5 overflow-y-auto px-1 flex-1">
+            <form onSubmit={onSubmit} noValidate className="space-y-5 overflow-y-auto px-6 pb-6 flex-1">
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label htmlFor="vital-name" className="block text-xs font-semibold text-gray-700">
+                  <Label htmlFor="vital-name" className="block text-xs font-semibold text-gray-700">
                     Vital Name *
-                  </label>
+                  </Label>
                   {!editing && (
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
                       onClick={() => setShowPredefined((v) => !v)}
-                      className="text-[11px] font-bold text-[#005390] hover:underline cursor-pointer"
+                      className="text-[11px] font-bold text-[#005390] hover:underline cursor-pointer p-0 h-auto hover:bg-transparent"
                     >
                       {showPredefined ? 'Hide Predefined' : 'Choose Predefined'}
-                    </button>
+                    </Button>
                   )}
                 </div>
                 <Input
@@ -540,18 +557,19 @@ export function VitalsTab() {
                 {showPredefined && availablePredefined.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2 max-h-32 overflow-y-auto">
                     {availablePredefined.map((preset) => (
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         key={preset.name}
                         onClick={() => handleSelectPredefined(preset)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
+                        className={`px-3 py-1.5 h-auto rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
                           formData.name === preset.name
-                            ? 'bg-[#005390] border-[#005390] text-white'
+                            ? 'bg-[#005390] border-[#005390] text-white hover:bg-[#005390]'
                             : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-[#005390] hover:text-[#005390]'
                         }`}
                       >
                         {preset.name}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 )}
@@ -576,13 +594,14 @@ export function VitalsTab() {
                     className="w-14 h-14 rounded-lg object-cover border border-gray-200 bg-white"
                   />
                   <div>
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
                       onClick={() => fileInputRef.current?.click()}
-                      className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:border-[#005390] hover:text-[#005390] transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-2 px-3 py-2 h-auto bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:border-[#005390] hover:text-[#005390] transition-colors cursor-pointer"
                     >
                       <Upload className="w-3.5 h-3.5" /> Upload Image
-                    </button>
+                    </Button>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -596,16 +615,16 @@ export function VitalsTab() {
               </div>
 
               <div>
-                <label htmlFor="vital-description" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                <Label htmlFor="vital-description" className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Description
-                </label>
-                <textarea
+                </Label>
+                <Textarea
                   id="vital-description"
                   rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
                   placeholder="Describe what this vital measures"
-                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-hidden focus:ring-2 focus:ring-[#005390]/30 focus:border-[#005390]"
+                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#005390]/30 focus-visible:border-[#005390]"
                 />
               </div>
 
@@ -613,18 +632,19 @@ export function VitalsTab() {
                 <p className="block text-xs font-semibold text-gray-700 mb-1.5">Input Type</p>
                 <div className="inline-flex rounded-xl border border-gray-200 p-1 bg-gray-50">
                   {(['single', 'composite'] as VitalInputType[]).map((type) => (
-                    <button
+                    <Button
                       key={type}
                       type="button"
+                      variant="ghost"
                       onClick={() => setFormData((prev) => ({ ...prev, inputType: type }))}
-                      className={`px-4 py-2 rounded-lg text-xs font-bold capitalize transition-colors cursor-pointer ${
+                      className={`px-4 py-2 h-auto rounded-lg text-xs font-bold capitalize transition-colors cursor-pointer ${
                         formData.inputType === type
-                          ? 'bg-[#005390] text-white shadow-sm'
+                          ? 'bg-[#005390] text-white shadow-sm hover:bg-[#005390]'
                           : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
                       {type}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -634,13 +654,13 @@ export function VitalsTab() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {THRESHOLD_FIELDS.map((field) => (
                     <div key={field}>
-                      <label
+                      <Label
                         htmlFor={`vital-threshold-${field}`}
                         className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1"
                       >
                         {getThresholdLabel(field, formData.name)}
-                      </label>
-                      <input
+                      </Label>
+                      <Input
                         id={`vital-threshold-${field}`}
                         type="number"
                         step="any"
@@ -655,25 +675,26 @@ export function VitalsTab() {
               </div>
 
               <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-5">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 text-xs font-bold text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+                  className="px-4 py-2.5 h-auto text-xs font-bold text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#005390] hover:bg-[#004070] disabled:opacity-60 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 h-auto bg-[#005390] hover:bg-[#004070] disabled:opacity-60 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
                 >
                   {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create Vital'}
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   )
 }

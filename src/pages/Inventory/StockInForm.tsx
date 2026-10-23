@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FieldGroup } from '@/components/ui/field'
 import { useCenterOptions, useCenterMutation } from '@/hooks/react-query/centerInventory'
 import type { PurchaseOrder, ReceiptInput, StockTransaction } from '@/lib/types/centerInventory'
@@ -98,6 +98,7 @@ export function StockInForm({
             event.preventDefault()
             setError(null)
             try {
+              if (!supplierId) throw new Error('Please select a supplier')
               const received = lines.filter((l) => l.packages > 0)
               if (!received.length) throw new Error('Enter at least one received quantity')
               if (!po && received.length !== lines.length) throw new Error('Complete or remove empty receipt lines')
@@ -136,25 +137,27 @@ export function StockInForm({
           <FieldGroup>
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField id="receipt-supplier" label="Supplier *">
-                <NativeSelect
-                  id="receipt-supplier"
-                  value={supplierId}
+                <Select
+                  value={supplierId || undefined}
                   disabled={!!po}
-                  required
-                  onChange={(e) => {
-                    setSupplierId(e.target.value)
+                  onValueChange={(val) => {
+                    setSupplierId(val ?? '')
                     setLines([newLine()])
                   }}
                 >
-                  <NativeSelectOption value="">Select supplier</NativeSelectOption>
-                  {suppliers.data
-                    ?.filter((s) => s.isActive || s.id === po?.supplierId)
-                    .map((s) => (
-                      <NativeSelectOption value={s.id} key={s.id}>
-                        {s.name}
-                      </NativeSelectOption>
-                    ))}
-                </NativeSelect>
+                  <SelectTrigger id="receipt-supplier" className="w-full h-9 text-xs">
+                    <SelectValue placeholder="Select supplier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {suppliers.data
+                      ?.filter((s) => s.isActive || s.id === po?.supplierId)
+                      .map((s) => (
+                        <SelectItem value={s.id} key={s.id}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </FormField>
               <FormField id="receipt-date" label="Transaction Date *">
                 <Input id="receipt-date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
@@ -191,19 +194,21 @@ export function StockInForm({
                   )}
                   <div className="grid gap-3 sm:grid-cols-3">
                     <FormField id={`receipt-item-${index}`} label="Item *">
-                      <NativeSelect
-                        id={`receipt-item-${index}`}
-                        required
-                        value={line.itemId}
-                        onChange={(e) => update(index, { itemId: e.target.value })}
+                      <Select
+                        value={line.itemId || undefined}
+                        onValueChange={(val) => update(index, { itemId: val ?? '' })}
                       >
-                        <NativeSelectOption value="">Select item</NativeSelectOption>
-                        {eligible.map((i) => (
-                          <NativeSelectOption value={i.id} key={i.id}>
-                            {i.name}
-                          </NativeSelectOption>
-                        ))}
-                      </NativeSelect>
+                        <SelectTrigger id={`receipt-item-${index}`} className="w-full h-9 text-xs">
+                          <SelectValue placeholder="Select item" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {eligible.map((i) => (
+                            <SelectItem value={i.id} key={i.id}>
+                              {i.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </FormField>
                     <FormField
                       id={`receipt-quantity-${index}`}

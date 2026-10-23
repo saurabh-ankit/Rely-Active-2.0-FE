@@ -4,6 +4,8 @@ import { CheckCircle2, Moon, Pill, Sun, Sunrise, Sunset, Syringe, XCircle, type 
 import { MedicationMealTiming } from '@/lib/constants/medication'
 import type { MedicationAdministrationKind, MedicationTimeOfDay, ResidentMedicationItem } from '@/lib/types/resident'
 import { cn } from '@/lib/utils'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { ClinicalRowActions } from './ClinicalRowActions'
 import { MEAL_TIMING_SHORT_LABELS, ROUTE_LABELS, TIME_OF_DAY_LABELS } from './clinicalConstants'
 import {
@@ -72,9 +74,9 @@ export const MedicationCard: React.FC<MedicationCardProps> = ({
   const selectedTimes = timings.flatMap((t) => (t?.selected ? [formatTime12h(t.time)] : []))
 
   return (
-    <div
+    <Card
       className={cn(
-        'rounded-2xl border border-gray-200 bg-gradient-to-br from-slate-50 to-white p-3.5 shadow-sm space-y-2.5 dark:border-gray-800 dark:from-slate-900 dark:to-slate-900/60',
+        'gap-0 rounded-2xl border-gray-200 bg-gradient-to-br from-slate-50 to-white p-3.5 shadow-sm space-y-2.5 dark:border-gray-800 dark:from-slate-900 dark:to-slate-900/60',
         status === 'ENDED' && 'opacity-70',
       )}
     >
@@ -197,19 +199,20 @@ export const MedicationCard: React.FC<MedicationCardProps> = ({
           >
             {badge.label}
           </span>
-          <button
+          <Button
+            variant="link"
             type="button"
             onClick={onViewLog}
-            className="text-[11px] font-semibold text-[#005390] hover:underline dark:text-sky-400"
+            className="p-0 h-auto text-[11px] font-semibold text-[#005390] hover:text-[#004274] hover:underline hover:bg-transparent dark:text-sky-400 dark:hover:text-sky-300"
           >
             View log
-          </button>
+          </Button>
         </div>
         {canUpdate && (
           <ClinicalRowActions label={isInsulin ? 'insulin' : 'medication'} onEdit={onEdit} onDelete={onDelete} />
         )}
       </div>
-    </div>
+    </Card>
   )
 }
 

@@ -1,3 +1,5 @@
+import { Label } from '@/components/ui/label'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useForm } from 'react-hook-form'
@@ -11,7 +13,6 @@ import {
   Building2,
   CheckSquare,
   Square,
-  X,
   Upload,
   Image as ImageIcon,
   Briefcase,
@@ -21,6 +22,9 @@ import { getPropertiesAPI } from '@/lib/services/propertyService'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { z } from 'zod'
 
 const propertyAssignmentFormSchema = z.object({
@@ -219,11 +223,12 @@ export function GlobalServicesTab() {
     setIsModalOpen(true)
   }
 
-  const togglePropertyAssignment = (index: number) => {
+  const togglePropertyAssignment = (index: number, nextEnabled?: boolean) => {
     const updated = [...propertyAssignments]
+    const willBeEnabled = nextEnabled !== undefined ? nextEnabled : !updated[index].enabled
     updated[index] = {
       ...updated[index],
-      enabled: !updated[index].enabled,
+      enabled: willBeEnabled,
     }
     if (updated[index].enabled && (!updated[index].price || Number(updated[index].price) === 0)) {
       updated[index].price = basePrice || 0
@@ -428,22 +433,28 @@ export function GlobalServicesTab() {
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => handleOpenEdit(row.original)}
               className="p-2 rounded-lg text-[#005390] hover:bg-blue-50 transition-colors cursor-pointer"
               title="Edit service"
+              aria-label="Edit service"
             >
               <Edit2 className="w-4 h-4" />
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => handleDelete(row.original)}
               className="p-2 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
               title="Delete service"
+              aria-label="Delete service"
             >
               <Trash2 className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         ),
       },
@@ -454,23 +465,29 @@ export function GlobalServicesTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Briefcase className="w-5 h-5 text-[#005390]" /> Event Global Services
-          </h2>
-          <p className="text-xs text-gray-500 mt-1">
-            Create and manage global service templates with property-specific pricing.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#005390] hover:bg-[#004070] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
-        >
-          <Plus className="w-4 h-4" /> Add Event Global Service
-        </button>
-      </div>
+      <Card className="gap-0 bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+        <CardHeader className="p-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-[#005390]/10 text-[#005390] shrink-0">
+                <Briefcase className="w-5 h-5" />
+              </div>
+              <CardTitle className="text-xl font-bold text-gray-900">Event Global Services</CardTitle>
+            </div>
+            <CardDescription className="text-xs text-gray-500 mt-1">
+              Create and manage global service templates with property-specific pricing.
+            </CardDescription>
+          </div>
+
+          <Button
+            type="button"
+            onClick={handleOpenCreate}
+            className="inline-flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004170] transition-colors cursor-pointer shrink-0"
+          >
+            <Plus className="w-4 h-4" /> Add Event Global Service
+          </Button>
+        </CardHeader>
+      </Card>
 
       <DataTable
         columns={columns}
@@ -481,30 +498,23 @@ export function GlobalServicesTab() {
         searchPlaceholder="Search services by name or description..."
       />
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl space-y-6 relative my-auto max-h-[90vh] flex flex-col">
-            <div className="flex items-start justify-between border-b border-gray-100 pb-4">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        {isModalOpen && (
+          <DialogContent className="sm:max-w-4xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="flex items-start justify-between border-b border-gray-100 p-6 pb-4 pr-12">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
                   <Briefcase className="w-5 h-5 text-[#005390]" />
                   {editingService ? 'Edit Event Global Service' : 'Add Event Global Service'}
-                </h3>
-                <p className="text-xs text-gray-500 mt-1">
+                </DialogTitle>
+                <DialogDescription className="text-xs text-gray-500 mt-1">
                   Configure service details and assign property pricing directly.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+                </DialogDescription>
+              </DialogHeader>
             </div>
 
             {errorMsg && (
-              <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-xl text-xs flex items-center gap-2">
+              <div className="mx-6 bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-xl text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" /> {errorMsg}
               </div>
             )}
@@ -512,7 +522,7 @@ export function GlobalServicesTab() {
             <form
               onSubmit={handleSubmit(onSubmit, onInvalid)}
               noValidate
-              className="space-y-6 overflow-y-auto px-1 flex-1"
+              className="space-y-6 overflow-y-auto px-6 pb-6 flex-1"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
@@ -540,9 +550,9 @@ export function GlobalServicesTab() {
                   />
 
                   <div>
-                    <label htmlFor="service-image-input" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    <Label htmlFor="service-image-input" className="block text-xs font-semibold text-gray-700 mb-1.5">
                       Service Image
-                    </label>
+                    </Label>
                     <div className="flex items-center gap-4 border border-gray-200 rounded-2xl p-4 bg-gray-50/50">
                       {imagePreviewUrl ? (
                         <img
@@ -563,13 +573,13 @@ export function GlobalServicesTab() {
                           onChange={handleImageChange}
                           className="hidden"
                         />
-                        <label
+                        <Label
                           htmlFor="service-image-input"
                           className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer shadow-2xs"
                         >
                           <Upload className="w-3.5 h-3.5 text-[#005390]" />
                           {imageFile ? 'Change Uploaded File' : 'Choose Image File'}
-                        </label>
+                        </Label>
                         <p className="text-[11px] text-gray-400">PNG, JPG, WEBP up to 10MB.</p>
                       </div>
                     </div>
@@ -598,10 +608,11 @@ export function GlobalServicesTab() {
                       {propertyAssignments.filter((pa) => pa.enabled).length}/{propertyAssignments.length})
                     </h4>
                     {propertyAssignments.length > 0 && (
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         onClick={handleSelectAllProperties}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#005390] hover:text-[#004070] cursor-pointer"
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#005390] hover:text-[#004070] cursor-pointer p-0 h-auto"
                       >
                         {isAllPropsSelected ? (
                           <>
@@ -612,7 +623,7 @@ export function GlobalServicesTab() {
                             <Square className="w-4 h-4 text-gray-400" /> Select All ({propertyAssignments.length})
                           </>
                         )}
-                      </button>
+                      </Button>
                     )}
                   </div>
 
@@ -631,21 +642,20 @@ export function GlobalServicesTab() {
                               : 'border-gray-200 bg-gray-50/50 opacity-70'
                           }`}
                         >
-                          <label className="flex items-center gap-3 cursor-pointer select-none font-semibold text-gray-800">
-                            <input
-                              type="checkbox"
+                          <Label className="flex items-center gap-3 cursor-pointer select-none font-semibold text-gray-800">
+                            <Checkbox
                               checked={pa.enabled}
-                              onChange={() => togglePropertyAssignment(idx)}
-                              className="w-4 h-4 rounded text-[#005390] focus:ring-[#005390] cursor-pointer"
+                              onCheckedChange={(checked) => togglePropertyAssignment(idx, checked === true)}
+                              className="data-checked:border-[#005390] data-checked:bg-[#005390] data-checked:text-white"
                             />
                             <span>{pa.propertyName}</span>
-                          </label>
+                          </Label>
 
                           {pa.enabled && (
                             <div className="flex items-center gap-2 pl-7">
                               <div className="flex items-center gap-1">
                                 <span className="text-gray-500 font-medium text-[10px]">Qty</span>
-                                <input
+                                <Input
                                   type="number"
                                   min="1"
                                   step="1"
@@ -658,7 +668,7 @@ export function GlobalServicesTab() {
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <span className="text-gray-500 font-medium">₹</span>
-                                <input
+                                <Input
                                   type="number"
                                   step="0.01"
                                   min="0"
@@ -679,25 +689,26 @@ export function GlobalServicesTab() {
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl cursor-pointer"
+                  className="px-4 py-2 h-auto text-sm text-gray-600 hover:bg-gray-100 rounded-xl cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={saving}
-                  className="px-6 py-2.5 bg-[#005390] text-white text-sm font-medium rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50"
+                  className="px-6 py-2.5 h-auto bg-[#005390] text-white text-sm font-medium rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : 'Save Service & Assignments'}
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   )
 }

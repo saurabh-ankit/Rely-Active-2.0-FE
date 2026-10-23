@@ -36,7 +36,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useDebounce } from '@/hooks/useDebounce'
 import {
   useInventoryList,
@@ -154,15 +154,22 @@ function useListState() {
       update({ order: next[0]?.desc ? 'DESC' : 'ASC', page: '1' })
     },
     filter: (
-      <NativeSelect
-        aria-label="Filter status"
-        value={search.get('status') ?? ''}
-        onChange={(e) => update({ status: e.target.value, page: '1' })}
+      <Select
+        value={search.get('status') || 'all'}
+        onValueChange={(val) => update({ status: val === 'all' ? '' : val, page: '1' })}
       >
-        <NativeSelectOption value="">All statuses</NativeSelectOption>
-        <NativeSelectOption value="true">Active</NativeSelectOption>
-        <NativeSelectOption value="false">Inactive</NativeSelectOption>
-      </NativeSelect>
+        <SelectTrigger
+          aria-label="Filter status"
+          className="w-[140px] h-9 text-xs font-semibold rounded-xl bg-white dark:bg-slate-800 border-gray-200 dark:border-gray-700"
+        >
+          <SelectValue placeholder="All statuses" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All statuses</SelectItem>
+          <SelectItem value="true">Active</SelectItem>
+          <SelectItem value="false">Inactive</SelectItem>
+        </SelectContent>
+      </Select>
     ),
   }
 }
@@ -562,27 +569,33 @@ function CategoryItems() {
                   filterActions={
                     <>
                       {state.filter}
-                      <NativeSelect
-                        aria-label="Filter supplier"
-                        value={vendorId}
-                        onChange={(e) =>
+                      <Select
+                        value={vendorId || 'all'}
+                        onValueChange={(val) =>
                           setCategorySearch((previous) => {
                             const next = new URLSearchParams(previous)
-                            if (e.target.value) next.set('vendorId', e.target.value)
+                            if (val && val !== 'all') next.set('vendorId', val)
                             else next.delete('vendorId')
                             next.set('page', '1')
                             return next
                           })
                         }
-                        className="w-auto h-9 text-xs"
                       >
-                        <NativeSelectOption value="">All suppliers</NativeSelectOption>
-                        {vendors.data?.map((v) => (
-                          <NativeSelectOption key={v.id} value={v.id}>
-                            {v.name}
-                          </NativeSelectOption>
-                        ))}
-                      </NativeSelect>
+                        <SelectTrigger
+                          aria-label="Filter supplier"
+                          className="w-auto min-w-[140px] h-9 text-xs font-semibold rounded-xl bg-white dark:bg-slate-800 border-gray-200 dark:border-gray-700"
+                        >
+                          <SelectValue placeholder="All suppliers" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All suppliers</SelectItem>
+                          {vendors.data?.map((v) => (
+                            <SelectItem key={v.id} value={v.id}>
+                              {v.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <Button
                         variant="outline"
                         className="rounded-xl border-gray-200"

@@ -5,6 +5,7 @@ import { AlertCircle, Building2, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TEXT_LIBRARY } from '@/lib/constants/textLibrary'
 import { getFileUrl, isImageFile } from '@/lib/utils'
 import { companySchema, type CompanyFormValues } from '../index'
@@ -368,7 +369,7 @@ export default function EditCompanyModal({ isOpen, onClose, company, onSave }: E
               <div className="space-y-3">
                 {customFields.map((field, idx) => (
                   <div key={idx} className="flex flex-wrap items-center gap-3 rounded-2xl bg-gray-50 p-3">
-                    <input
+                    <Input
                       type="text"
                       placeholder="Field Label"
                       value={field.fieldLabel}
@@ -376,22 +377,24 @@ export default function EditCompanyModal({ isOpen, onClose, company, onSave }: E
                       className="flex-1 rounded-xl border border-gray-200 px-3 py-1.5 text-xs text-gray-900 min-w-[120px]"
                     />
 
-                    <select
+                    <Select
                       value={field.fieldType}
-                      onChange={(e) =>
-                        updateCustomField(idx, 'fieldType', e.target.value as CustomFieldItem['fieldType'])
-                      }
-                      className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs text-gray-900"
+                      onValueChange={(val) => updateCustomField(idx, 'fieldType', val as CustomFieldItem['fieldType'])}
                     >
-                      <option value="text">Text</option>
-                      <option value="number">Number</option>
-                      <option value="date">Date</option>
-                      <option value="select">Select</option>
-                      <option value="bool">Boolean</option>
-                      <option value="document">Document</option>
-                    </select>
+                      <SelectTrigger className="w-[120px] rounded-xl border border-gray-200 px-3 py-1.5 text-xs text-gray-900 bg-white">
+                        <SelectValue placeholder="Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="text">Text</SelectItem>
+                        <SelectItem value="number">Number</SelectItem>
+                        <SelectItem value="date">Date</SelectItem>
+                        <SelectItem value="select">Select</SelectItem>
+                        <SelectItem value="bool">Boolean</SelectItem>
+                        <SelectItem value="document">Document</SelectItem>
+                      </SelectContent>
+                    </Select>
 
-                    <input
+                    <Input
                       type="text"
                       placeholder="Field Value"
                       value={field.fieldValue || ''}
@@ -399,13 +402,16 @@ export default function EditCompanyModal({ isOpen, onClose, company, onSave }: E
                       className="flex-1 rounded-xl border border-gray-200 px-3 py-1.5 text-xs text-gray-900 min-w-[140px]"
                     />
 
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      aria-label="Remove custom field"
                       onClick={() => removeCustomField(idx)}
-                      className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-100"
+                      className="h-7 w-7 rounded-lg p-1.5 text-rose-500 hover:text-rose-600 hover:bg-rose-100"
                     >
                       <Trash2 className="h-4 w-4" />
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>

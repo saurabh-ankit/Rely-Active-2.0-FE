@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { type FieldPath, useForm, useWatch } from 'react-hook-form'
@@ -20,6 +21,8 @@ import api from '@/lib/api/axios'
 import { useAuth } from '@/hooks/useAuth'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -257,16 +260,19 @@ export default function UserProfilePage() {
   return (
     <div className="w-full space-y-6 pb-12">
       {/* Top Header Navigation */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-gray-100 rounded-2xl p-5 shadow-2xs">
+      <Card className="gap-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border-gray-100 rounded-2xl p-5 shadow-2xs">
         <div className="flex items-center gap-3">
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="icon"
             onClick={() => navigate(-1)}
             className="p-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
             title="Go Back"
+            aria-label="Go Back"
           >
             <ArrowLeft className="w-5 h-5" />
-          </button>
+          </Button>
           <div>
             <h1 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
               <User className="w-5 h-5 text-[#005390]" />
@@ -277,16 +283,16 @@ export default function UserProfilePage() {
             </p>
           </div>
         </div>
-      </div>
+      </Card>
 
       {loading ? (
-        <div className="bg-white rounded-3xl p-12 text-center text-gray-400 font-medium shadow-sm border border-gray-100">
+        <Card className="gap-0 bg-white rounded-3xl p-12 text-center text-gray-400 font-medium shadow-sm border-gray-100">
           Loading profile details...
-        </div>
+        </Card>
       ) : (
         <div className="space-y-6">
           {/* Profile Overview Card */}
-          <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center md:items-start justify-between gap-6 relative overflow-hidden">
+          <Card className="gap-0 bg-white rounded-3xl p-6 md:p-8 shadow-sm border-gray-100 flex flex-col md:flex-row items-center md:items-start justify-between gap-6 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/50 rounded-full blur-3xl -z-0 pointer-events-none" />
 
             <div className="flex flex-col md:flex-row items-center gap-6 z-10 text-center md:text-left">
@@ -299,7 +305,7 @@ export default function UserProfilePage() {
                     <span>{userInitial}</span>
                   )}
                 </div>
-                <label
+                <Label
                   htmlFor="user-profile-page-avatar-input"
                   className="absolute -bottom-1 -right-1 bg-white border border-gray-200 p-2 rounded-full text-gray-700 hover:text-[#005390] hover:bg-blue-50 cursor-pointer shadow-md transition-transform group-hover:scale-110"
                   title="Upload New Photo"
@@ -312,7 +318,7 @@ export default function UserProfilePage() {
                     onChange={handlePhotoChange}
                     className="hidden"
                   />
-                </label>
+                </Label>
               </div>
 
               {/* User Title & Info */}
@@ -340,23 +346,25 @@ export default function UserProfilePage() {
                 Active Account
               </span>
             </div>
-          </div>
+          </Card>
 
           {/* Profile Edit Form */}
           <form onSubmit={handleSubmit(handleSave)} className="space-y-6" noValidate>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Personal Information Card */}
-              <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 space-y-4">
-                <h3 className="text-sm font-extrabold text-gray-900 uppercase tracking-wider flex items-center gap-2 pb-2 border-b border-gray-100">
-                  <User className="w-4 h-4 text-[#005390]" /> Personal Information
-                </h3>
+              <Card className="gap-0 bg-white rounded-3xl p-6 md:p-8 shadow-sm border-gray-100 space-y-4">
+                <CardHeader className="p-0 border-b border-gray-100 pb-2">
+                  <CardTitle className="text-sm font-extrabold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                    <User className="w-4 h-4 text-[#005390]" /> Personal Information
+                  </CardTitle>
+                </CardHeader>
 
-                <div className="space-y-4">
+                <CardContent className="p-0 space-y-4">
                   <div>
-                    <label htmlFor="page-profile-first-name" className="block text-xs font-bold text-gray-700 mb-1.5">
+                    <Label htmlFor="page-profile-first-name" className="block text-xs font-bold text-gray-700 mb-1.5">
                       First Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       id="page-profile-first-name"
                       type="text"
                       {...registerFiltered('firstName', lettersOnly)}
@@ -372,10 +380,10 @@ export default function UserProfilePage() {
                   </div>
 
                   <div>
-                    <label htmlFor="page-profile-last-name" className="block text-xs font-bold text-gray-700 mb-1.5">
+                    <Label htmlFor="page-profile-last-name" className="block text-xs font-bold text-gray-700 mb-1.5">
                       Last Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       id="page-profile-last-name"
                       type="text"
                       {...registerFiltered('lastName', lettersOnly)}
@@ -391,11 +399,11 @@ export default function UserProfilePage() {
                   </div>
 
                   <div>
-                    <label htmlFor="page-profile-email" className="block text-xs font-bold text-gray-700 mb-1.5">
+                    <Label htmlFor="page-profile-email" className="block text-xs font-bold text-gray-700 mb-1.5">
                       Email Address <span className="text-red-500">*</span>
-                    </label>
+                    </Label>
                     <div className="relative">
-                      <input
+                      <Input
                         id="page-profile-email"
                         type="email"
                         {...register('email')}
@@ -411,11 +419,11 @@ export default function UserProfilePage() {
                   </div>
 
                   <div>
-                    <label htmlFor="page-profile-phone" className="block text-xs font-bold text-gray-700 mb-1.5">
+                    <Label htmlFor="page-profile-phone" className="block text-xs font-bold text-gray-700 mb-1.5">
                       Phone Number <span className="text-red-500">*</span>
-                    </label>
+                    </Label>
                     <div className="relative">
-                      <input
+                      <Input
                         id="page-profile-phone"
                         type="text"
                         {...register('phone')}
@@ -429,21 +437,22 @@ export default function UserProfilePage() {
                     </div>
                     {errors.phone && <p className="mt-1 text-xs font-semibold text-red-500">{errors.phone.message}</p>}
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Security & Password Card */}
-              <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 space-y-4 flex flex-col justify-between">
-                <div className="space-y-4">
-                  <h3 className="text-sm font-extrabold text-gray-900 uppercase tracking-wider flex items-center gap-2 pb-2 border-b border-gray-100">
+              <Card className="gap-0 bg-white rounded-3xl p-6 md:p-8 shadow-sm border-gray-100 space-y-4 flex flex-col justify-between">
+                <CardHeader className="p-0 border-b border-gray-100 pb-2">
+                  <CardTitle className="text-sm font-extrabold text-gray-900 uppercase tracking-wider flex items-center gap-2">
                     <KeyRound className="w-4 h-4 text-[#005390]" /> Security & Change Password
-                  </h3>
-
-                  <p className="text-xs text-gray-500 leading-relaxed">
+                  </CardTitle>
+                  <CardDescription className="text-xs text-gray-500 leading-relaxed mt-1">
                     Update your account login password. Leave these fields blank if you wish to retain your current
                     password.
-                  </p>
+                  </CardDescription>
+                </CardHeader>
 
+                <CardContent className="p-0 space-y-4">
                   <div className="space-y-4 pt-1">
                     <Input
                       id="page-profile-new-password"
@@ -465,26 +474,27 @@ export default function UserProfilePage() {
                       icon={<Lock className="w-4 h-4 text-gray-400" />}
                     />
                   </div>
-                </div>
+                </CardContent>
 
                 <div className="pt-6 border-t border-gray-100 flex items-center justify-end gap-3">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => navigate(-1)}
-                    className="px-5 py-3 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-2xl transition-colors cursor-pointer"
+                    className="h-auto px-5 py-3 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-2xl transition-colors cursor-pointer"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
                     disabled={saving}
-                    className="inline-flex items-center gap-2 bg-[#005390] text-white px-7 py-3 rounded-2xl font-bold text-xs hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50 shadow-lg shadow-[#005390]/25"
+                    className="h-auto inline-flex items-center gap-2 bg-[#005390] text-white px-7 py-3 rounded-2xl font-bold text-xs hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50 shadow-lg shadow-[#005390]/25"
                   >
                     <Save className="w-4 h-4" />
                     {saving ? 'Saving Changes...' : 'Save Profile Changes'}
-                  </button>
+                  </Button>
                 </div>
-              </div>
+              </Card>
             </div>
           </form>
         </div>

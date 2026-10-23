@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { RosterCalendarEvent } from './RosterDetailDialog'
 import { groupRostersByShift } from '../../utils'
@@ -59,10 +60,11 @@ const RosterDayListDialog = ({ open, onOpenChange, date, events, onSelectEvent }
                 <ul className="divide-y divide-gray-100">
                   {group.events.map((event) => (
                     <li key={event.id}>
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         onClick={() => onSelectEvent(event)}
-                        className="flex w-full items-start justify-between gap-2 bg-gray-50 px-3 py-2.5 text-left transition-colors hover:bg-[#2a517c]/5"
+                        className="h-auto p-0 flex w-full items-start justify-between gap-2 bg-gray-50 px-3 py-2.5 text-left transition-colors hover:bg-[#2a517c]/5 whitespace-normal font-normal rounded-none"
                       >
                         <div className="min-w-0">
                           <div className="truncate font-semibold text-[#1e3a5a]">{event.employeeName}</div>
@@ -83,7 +85,7 @@ const RosterDayListDialog = ({ open, onOpenChange, date, events, onSelectEvent }
                         >
                           {formatStatus(event.status)}
                         </Badge>
-                      </button>
+                      </Button>
                     </li>
                   ))}
                 </ul>

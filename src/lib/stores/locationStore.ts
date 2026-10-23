@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type { UserLocationPermissionItem } from '@/lib/types'
 
 export interface PropertyLocationItem {
@@ -28,60 +29,9 @@ export interface LocationState {
   resetLocationState: () => void
 }
 
-export const useLocationStore = create<LocationState>()((set, get) => ({
-  selectedLocationId: localStorage.getItem(ACTIVE_PROP_ID_KEY),
-  selectedLocationName: localStorage.getItem(ACTIVE_PROP_NAME_KEY),
-  accessibleLocations: [],
-  locationPermissions: [],
-  showLocationModal: false,
-  isLoadingLocations: false,
-  isLoadingPermissions: false,
-
-  setSelectedLocation: (id, name) => {
-    const currentId = get().selectedLocationId
-    const currentName = get().selectedLocationName
-    if (currentId === id && currentName === name) return
-
-    if (id) localStorage.setItem(ACTIVE_PROP_ID_KEY, id)
-    else localStorage.removeItem(ACTIVE_PROP_ID_KEY)
-
-    if (name) localStorage.setItem(ACTIVE_PROP_NAME_KEY, name)
-    else localStorage.removeItem(ACTIVE_PROP_NAME_KEY)
-
-    set({ selectedLocationId: id, selectedLocationName: name })
-  },
-
-  setAccessibleLocations: (accessibleLocations) => {
-    const current = get().accessibleLocations
-    if (JSON.stringify(current) === JSON.stringify(accessibleLocations)) return
-    set({ accessibleLocations })
-  },
-
-  setLocationPermissions: (locationPermissions) => {
-    const current = get().locationPermissions
-    if (JSON.stringify(current) === JSON.stringify(locationPermissions)) return
-    set({ locationPermissions })
-  },
-
-  setShowLocationModal: (showLocationModal) => {
-    if (get().showLocationModal === showLocationModal) return
-    set({ showLocationModal })
-  },
-
-  setIsLoadingLocations: (isLoadingLocations) => {
-    if (get().isLoadingLocations === isLoadingLocations) return
-    set({ isLoadingLocations })
-  },
-
-  setIsLoadingPermissions: (isLoadingPermissions) => {
-    if (get().isLoadingPermissions === isLoadingPermissions) return
-    set({ isLoadingPermissions })
-  },
-
-  resetLocationState: () => {
-    localStorage.removeItem(ACTIVE_PROP_ID_KEY)
-    localStorage.removeItem(ACTIVE_PROP_NAME_KEY)
-    set({
+export const useLocationStore = create<LocationState>()(
+  persist(
+    (set, get) => ({
       selectedLocationId: null,
       selectedLocationName: null,
       accessibleLocations: [],
@@ -89,6 +39,59 @@ export const useLocationStore = create<LocationState>()((set, get) => ({
       showLocationModal: false,
       isLoadingLocations: false,
       isLoadingPermissions: false,
-    })
-  },
-}))
+
+      setSelectedLocation: (id, name) => {
+        const currentId = get().selectedLocationId
+        const currentName = get().selectedLocationName
+        if (currentId === id && currentName === name) return
+        set({ selectedLocationId: id, selectedLocationName: name })
+      },
+
+      setAccessibleLocations: (accessibleLocations) => {
+        const current = get().accessibleLocations
+        if (JSON.stringify(current) === JSON.stringify(accessibleLocations)) return
+        set({ accessibleLocations })
+      },
+
+      setLocationPermissions: (locationPermissions) => {
+        const current = get().locationPermissions
+        if (JSON.stringify(current) === JSON.stringify(locationPermissions)) return
+        set({ locationPermissions })
+      },
+
+      setShowLocationModal: (showLocationModal) => {
+        if (get().showLocationModal === showLocationModal) return
+        set({ showLocationModal })
+      },
+
+      setIsLoadingLocations: (isLoadingLocations) => {
+        if (get().isLoadingLocations === isLoadingLocations) return
+        set({ isLoadingLocations })
+      },
+
+      setIsLoadingPermissions: (isLoadingPermissions) => {
+        if (get().isLoadingPermissions === isLoadingPermissions) return
+        set({ isLoadingPermissions })
+      },
+
+      resetLocationState: () => {
+        set({
+          selectedLocationId: null,
+          selectedLocationName: null,
+          accessibleLocations: [],
+          locationPermissions: [],
+          showLocationModal: false,
+          isLoadingLocations: false,
+          isLoadingPermissions: false,
+        })
+      },
+    }),
+    {
+      name: 'rely-active-location-storage',
+      partialize: (state) => ({
+        selectedLocationId: state.selectedLocationId,
+        selectedLocationName: state.selectedLocationName,
+      }),
+    },
+  ),
+)

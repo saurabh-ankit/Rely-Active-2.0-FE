@@ -8,8 +8,9 @@ import { PackagesTab } from '@/pages/GlobalSettings/components/PackagesTab'
 import { SubscriptionsTab } from '@/pages/GlobalSettings/components/SubscriptionsTab'
 import { AssignedTasksTab } from '@/pages/Medical/components/AssignedTasksTab'
 import { AppointmentsCalendar } from '@/pages/Medical/components/appointments/AppointmentsCalendar'
-import { cn } from '@/lib/utils'
 import { PageHeader } from '@/components/common/PageHeader'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { ResponsiveTabs, type TabItem } from '@/components/common/ResponsiveTabs'
 
 export type MedicalSection = 'care' | 'appointments'
 export type MedicalTab = 'tasks' | 'packages' | 'subscriptions' | 'assigned'
@@ -58,6 +59,37 @@ export const MedicalPage: React.FC<MedicalPageProps> = ({ initialTab }) => {
     setSearchParams({ section: 'care', tab })
   }
 
+  const careTabs: TabItem[] = [
+    {
+      value: 'tasks',
+      label: 'Care Tasks',
+      shortLabel: 'Tasks',
+      icon: HeartHandshake,
+      content: <TasksTab isPropertyMode={true} forcedPropertyId={selectedLocationId} />,
+    },
+    {
+      value: 'packages',
+      label: 'Care Packages',
+      shortLabel: 'Packages',
+      icon: Boxes,
+      content: <PackagesTab isPropertyMode={true} forcedPropertyId={selectedLocationId} />,
+    },
+    {
+      value: 'subscriptions',
+      label: 'Package Subscriptions',
+      shortLabel: 'Subscriptions',
+      icon: Package,
+      content: <SubscriptionsTab isPropertyMode={true} forcedPropertyId={selectedLocationId} />,
+    },
+    {
+      value: 'assigned',
+      label: 'Clinical Care Tasks',
+      shortLabel: 'Clinical',
+      icon: Activity,
+      content: <AssignedTasksTab forcedPropertyId={selectedLocationId} />,
+    },
+  ]
+
   return (
     <div className="space-y-6 pb-12">
       <PageHeader
@@ -79,116 +111,43 @@ export const MedicalPage: React.FC<MedicalPageProps> = ({ initialTab }) => {
       />
 
       {/* Top-level: Care | Appointments */}
-      <div className="grid w-full grid-cols-2 gap-3 border-b border-gray-200/80 pb-4">
-        <button
-          type="button"
-          onClick={() => handleSectionChange('care')}
-          className={cn(
-            'inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-2xl px-8 text-sm font-bold transition-all cursor-pointer shadow-sm shrink-0 border',
-            activeSection === 'care'
-              ? 'border-[#005390] bg-[#005390] text-white shadow-lg shadow-[#005390]/25'
-              : 'border-white/80 bg-white/90 text-gray-600 hover:border-[#005390]/20 hover:bg-white hover:text-[#005390]',
-          )}
-        >
-          <HeartPulse className="w-4 h-4" />
-          Care
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleSectionChange('appointments')}
-          className={cn(
-            'inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-2xl px-8 text-sm font-bold transition-all cursor-pointer shadow-sm shrink-0 border',
-            activeSection === 'appointments'
-              ? 'border-[#005390] bg-[#005390] text-white shadow-lg shadow-[#005390]/25'
-              : 'border-white/80 bg-white/90 text-gray-600 hover:border-[#005390]/20 hover:bg-white hover:text-[#005390]',
-          )}
-        >
-          <CalendarDays className="w-4 h-4" />
-          Appointments
-        </button>
-      </div>
-
-      {activeSection === 'care' && (
-        <>
-          {/* Care subtabs */}
-          <div className="grid w-full grid-cols-1 gap-3 pb-1 sm:grid-cols-2 xl:grid-cols-4">
-            <button
-              type="button"
-              onClick={() => handleTabChange('tasks')}
-              className={cn(
-                'inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-2xl px-6 text-xs font-bold transition-all cursor-pointer shadow-sm shrink-0 border',
-                activeTab === 'tasks'
-                  ? 'border-[#005390] bg-[#005390] text-white shadow-lg shadow-[#005390]/20'
-                  : 'border-white/80 bg-white/90 text-gray-600 hover:border-[#005390]/20 hover:bg-white hover:text-[#005390]',
-              )}
+      <Tabs
+        value={activeSection}
+        onValueChange={(val) => handleSectionChange(val as MedicalSection)}
+        className="w-full gap-4"
+      >
+        <div className="rounded-2xl bg-card text-card-foreground/70 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100/80">
+          <TabsList className="inline-flex w-max min-w-full h-auto gap-2 justify-start bg-transparent p-0">
+            <TabsTrigger
+              value="care"
+              className="flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-5 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-md focus-visible:!ring-0 transition-all cursor-pointer"
             >
-              <HeartHandshake className="w-4 h-4" />
-              Care Tasks
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleTabChange('packages')}
-              className={cn(
-                'inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-2xl px-6 text-xs font-bold transition-all cursor-pointer shadow-sm shrink-0 border',
-                activeTab === 'packages'
-                  ? 'border-[#005390] bg-[#005390] text-white shadow-lg shadow-[#005390]/20'
-                  : 'border-white/80 bg-white/90 text-gray-600 hover:border-[#005390]/20 hover:bg-white hover:text-[#005390]',
-              )}
+              <HeartPulse className="size-4 shrink-0" />
+              Care
+            </TabsTrigger>
+            <TabsTrigger
+              value="appointments"
+              className="flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-5 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-md focus-visible:!ring-0 transition-all cursor-pointer"
             >
-              <Boxes className="w-4 h-4" />
-              Care Packages
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleTabChange('subscriptions')}
-              className={cn(
-                'inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-2xl px-6 text-xs font-bold transition-all cursor-pointer shadow-sm shrink-0 border',
-                activeTab === 'subscriptions'
-                  ? 'border-[#005390] bg-[#005390] text-white shadow-lg shadow-[#005390]/20'
-                  : 'border-white/80 bg-white/90 text-gray-600 hover:border-[#005390]/20 hover:bg-white hover:text-[#005390]',
-              )}
-            >
-              <Package className="w-4 h-4" />
-              Package Subscriptions
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleTabChange('assigned')}
-              className={cn(
-                'inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-2xl px-6 text-xs font-bold transition-all cursor-pointer shadow-sm shrink-0 border',
-                activeTab === 'assigned'
-                  ? 'border-[#005390] bg-[#005390] text-white shadow-lg shadow-[#005390]/20'
-                  : 'border-white/80 bg-white/90 text-gray-600 hover:border-[#005390]/20 hover:bg-white hover:text-[#005390]',
-              )}
-            >
-              <Activity className="w-4 h-4" />
-              Clinical Care Tasks
-            </button>
-          </div>
-
-          <div className="pt-2">
-            {activeTab === 'tasks' && <TasksTab isPropertyMode={true} forcedPropertyId={selectedLocationId} />}
-
-            {activeTab === 'packages' && <PackagesTab isPropertyMode={true} forcedPropertyId={selectedLocationId} />}
-
-            {activeTab === 'subscriptions' && (
-              <SubscriptionsTab isPropertyMode={true} forcedPropertyId={selectedLocationId} />
-            )}
-
-            {activeTab === 'assigned' && <AssignedTasksTab forcedPropertyId={selectedLocationId} />}
-          </div>
-        </>
-      )}
-
-      {activeSection === 'appointments' && (
-        <div className="pt-2">
-          <AppointmentsCalendar />
+              <CalendarDays className="size-4 shrink-0" />
+              Appointments
+            </TabsTrigger>
+          </TabsList>
         </div>
-      )}
+
+        <TabsContent value="care" className="pt-2">
+          <ResponsiveTabs
+            value={activeTab}
+            onValueChange={(tab) => handleTabChange(tab as MedicalTab)}
+            tabs={careTabs}
+            className="w-full"
+          />
+        </TabsContent>
+
+        <TabsContent value="appointments" className="pt-2">
+          <AppointmentsCalendar />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

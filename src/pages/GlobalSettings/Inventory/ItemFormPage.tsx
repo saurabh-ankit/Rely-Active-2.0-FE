@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 import { useMutation } from '@tanstack/react-query'
 import { Boxes, Gauge, MapPin, Package, SlidersHorizontal } from 'lucide-react'
-import { NativeSelectOption } from '@/components/ui/native-select'
+import { SelectItem } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   useInventoryDetail,
@@ -242,14 +242,14 @@ export function ItemEditor({
                       name={`values.${f.id}`}
                       label={`${f.fieldLabel}${f.isRequired ? ' *' : ''}`}
                       type={f.fieldType === 'date' ? 'date' : 'text'}
+                      placeholder={f.fieldType === 'boolean' ? 'Select yes or no' : undefined}
                     >
                       {f.fieldType === 'select' ? (
                         <SelectOptions values={f.enumValues} />
                       ) : f.fieldType === 'boolean' ? (
                         <>
-                          <NativeSelectOption value="">Select yes or no</NativeSelectOption>
-                          <NativeSelectOption value="true">Yes</NativeSelectOption>
-                          <NativeSelectOption value="false">No</NativeSelectOption>
+                          <SelectItem value="true">Yes</SelectItem>
+                          <SelectItem value="false">No</SelectItem>
                         </>
                       ) : undefined}
                     </FormInput>

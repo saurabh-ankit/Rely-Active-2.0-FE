@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useForm } from 'react-hook-form'
@@ -16,8 +17,10 @@ import {
   Gift,
   Minus,
   Lock,
+  Loader2,
 } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
+import { notifyError, notifySuccess } from '@/utils/toast'
 import {
   useCarePackagesQuery,
   useCreateCarePackageMutation,
@@ -27,9 +30,13 @@ import {
   usePackageSubscriptionsQuery,
 } from '@/hooks/react-query/medical'
 import type { CarePackage, PackageTaskItem, CareTask } from '@/lib/types/medical'
-import { notifyError, notifySuccess } from '@/utils/toast'
 import { DataTable } from '@/components/ui/data-table'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { z } from 'zod'
 
 export type Task = CareTask
@@ -586,22 +593,28 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
 
           return (
             <div className="flex items-center justify-end gap-1.5">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-xs"
                 onClick={() => handleOpenEdit(row.original)}
                 className="p-1.5 rounded-lg text-gray-500 hover:text-[#005390] hover:bg-[#005390]/10 transition-colors cursor-pointer"
                 title="Edit Package"
+                aria-label="Edit Package"
               >
                 <Edit2 className="w-3.5 h-3.5" />
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-xs"
                 onClick={() => handleOpenDeleteConfirm(row.original)}
                 className="p-1.5 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                 title="Delete Package"
+                aria-label="Delete Package"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              </Button>
             </div>
           )
         },
@@ -613,33 +626,33 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
   return (
     <div className="space-y-6">
       {/* Top Banner & Stats */}
-      <div className="bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <Card className="gap-0 bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+        <CardHeader className="p-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-[#005390]/10 text-[#005390]">
                 <Boxes className="w-5 h-5" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900">Packages</h2>
+              <CardTitle className="text-xl font-bold text-gray-900">Packages</CardTitle>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <CardDescription className="text-xs text-gray-500 mt-1">
               Configure and manage Care Packages with bundled complimentary tasks, cost, and duration.
-            </p>
+            </CardDescription>
           </div>
 
-          <button
+          <Button
             type="button"
             onClick={handleOpenCreate}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004170] transition-colors cursor-pointer shrink-0"
+            className="inline-flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004170] transition-colors cursor-pointer shrink-0"
           >
             <Plus className="w-4 h-4" />
             Create Package
-          </button>
-        </div>
-      </div>
+          </Button>
+        </CardHeader>
+      </Card>
 
       {/* Filter & Search Bar */}
-      <div className="bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center gap-3 justify-between">
+      <Card className="gap-0 bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center gap-3 justify-between">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <Input
@@ -653,62 +666,63 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
             <span className="font-semibold">Per page:</span>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value))
+            <Select
+              value={String(pageSize)}
+              onValueChange={(val) => {
+                setPageSize(Number(val))
                 setCurrentPage(1)
               }}
-              className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 focus:border-[#005390] focus:outline-none cursor-pointer"
             >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
+              <SelectTrigger className="w-[70px] h-8 rounded-xl border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700">
+                <SelectValue placeholder="10" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Data Table */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-2">
-        <DataTable
-          columns={columns}
-          data={packages}
-          isLoading={isLoading}
-          manualPagination={true}
-          pageCount={pagination.totalPages}
-          pageIndex={currentPage - 1}
-          onPageChange={(newPageIndex) => setCurrentPage(newPageIndex + 1)}
-          totalCount={pagination.total}
-          pageSize={pageSize}
-        />
-      </div>
+      <Card className="gap-0 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-2">
+        <CardContent className="p-0">
+          <DataTable
+            columns={columns}
+            data={packages}
+            isLoading={isLoading}
+            manualPagination={true}
+            pageCount={pagination.totalPages}
+            pageIndex={currentPage - 1}
+            onPageChange={(newPageIndex) => setCurrentPage(newPageIndex + 1)}
+            totalCount={pagination.total}
+            pageSize={pageSize}
+          />
+        </CardContent>
+      </Card>
 
       {/* Create / Edit Package Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        {isModalOpen && (
+          <DialogContent className="sm:max-w-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
             {/* Modal Header */}
-            <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50/80 to-white">
+            <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50/80 to-white pr-12">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-[#005390]/10 flex items-center justify-center text-[#005390]">
                   <Boxes className="w-5 h-5" />
                 </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-gray-900">
+                <DialogHeader>
+                  <DialogTitle className="text-base font-extrabold text-gray-900">
                     {editingPackage ? 'Edit Care Package' : 'Create Care Package'}
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-0.5">Configure package specifications</p>
-                </div>
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-gray-500 mt-0.5">
+                    Configure package specifications
+                  </DialogDescription>
+                </DialogHeader>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
 
             {/* Modal Body */}
@@ -723,10 +737,10 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
 
                 {/* 1. Package Name */}
                 <div>
-                  <label htmlFor="packageName" className="block text-xs font-bold text-gray-700 mb-1.5">
+                  <Label htmlFor="packageName" className="block text-xs font-bold text-gray-700 mb-1.5">
                     1. Package Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
+                  </Label>
+                  <Input
                     id="packageName"
                     type="text"
                     {...register('packageName')}
@@ -742,12 +756,12 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* 2. Package Cost */}
                   <div>
-                    <label htmlFor="packageCost" className="block text-xs font-bold text-gray-700 mb-1.5">
+                    <Label htmlFor="packageCost" className="block text-xs font-bold text-gray-700 mb-1.5">
                       2. Package Cost (₹) <span className="text-red-500">*</span>
-                    </label>
+                    </Label>
                     <div className="relative">
                       <ReceiptIndianRupee className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input
+                      <Input
                         id="packageCost"
                         type="number"
                         step="0.01"
@@ -768,24 +782,25 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                       4. Duration <span className="text-red-500">*</span>
                     </span>
                     <div className="p-1 bg-gray-100/70 rounded-xl border border-gray-200/50">
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         onClick={() => setValue('duration', 'Monthly')}
-                        className="w-full py-2 rounded-lg text-xs font-bold transition-all bg-white text-[#005390] shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="w-full py-2 h-auto rounded-lg text-xs font-bold transition-all bg-white text-[#005390] shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <CalendarClock className="w-3.5 h-3.5 text-[#005390]" />
                         Monthly
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
 
                 {/* Description */}
                 <div>
-                  <label htmlFor="packageDescription" className="block text-xs font-bold text-gray-700 mb-1.5">
+                  <Label htmlFor="packageDescription" className="block text-xs font-bold text-gray-700 mb-1.5">
                     Description <span className="text-gray-400 font-normal">(Optional)</span>
-                  </label>
-                  <textarea
+                  </Label>
+                  <Textarea
                     id="packageDescription"
                     rows={2}
                     {...register('description')}
@@ -812,7 +827,7 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                   <div className="rounded-2xl border border-gray-200 p-3 bg-gray-50/50 dark:border-gray-800 dark:bg-slate-900/50">
                     <div className="relative mb-2.5">
                       <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input
+                      <Input
                         type="text"
                         value={taskSearchQuery}
                         onChange={(e) => setTaskSearchQuery(e.target.value)}
@@ -821,23 +836,26 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                       />
                       {isLoadingPickerTasks ? (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                          <div className="w-3.5 h-3.5 border-2 border-[#005390] border-t-transparent rounded-full animate-spin" />
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
                         </div>
                       ) : taskSearchQuery ? (
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="icon-xs"
+                          aria-label="Clear search"
                           onClick={() => setTaskSearchQuery('')}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer p-0 h-auto"
                         >
                           <X className="w-3 h-3" />
-                        </button>
+                        </Button>
                       ) : null}
                     </div>
 
                     <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
                       {isLoadingPickerTasks && filteredAvailableTasks.length === 0 ? (
-                        <div className="text-center py-6 text-xs text-gray-400">
-                          <div className="w-5 h-5 border-2 border-[#005390] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                        <div className="text-center py-6 text-xs text-muted-foreground">
+                          <Loader2 className="w-5 h-5 animate-spin text-primary mx-auto mb-2" />
                           <span>Searching care tasks...</span>
                         </div>
                       ) : filteredAvailableTasks.length === 0 ? (
@@ -866,10 +884,11 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                               }`}
                             >
                               {/* Left: Checkbox + Name + Billing Badge */}
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
                                 onClick={() => handleToggleTask(task)}
-                                className="flex items-center gap-2.5 min-w-0 flex-1 mr-2 text-left cursor-pointer"
+                                className="flex items-center gap-2.5 min-w-0 flex-1 mr-2 text-left cursor-pointer p-0 h-auto justify-start hover:bg-transparent"
                               >
                                 <span
                                   className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 transition-colors ${
@@ -890,7 +909,7 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                                 >
                                   {isSession ? 'Session' : 'Monthly'}
                                 </span>
-                              </button>
+                              </Button>
 
                               {/* Right: Quantity Stepper if Selected, or Price if Unselected */}
                               <div className="flex items-center gap-2 shrink-0">
@@ -908,15 +927,18 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
 
                                       {/* Complimentary - 1 + Counter */}
                                       <div className="flex items-center gap-0.5 bg-white dark:bg-slate-900 rounded-lg p-0.5 border border-gray-200 dark:border-gray-700 shadow-xs">
-                                        <button
+                                        <Button
                                           type="button"
+                                          variant="ghost"
+                                          size="icon-xs"
+                                          aria-label="Decrease complimentary count"
                                           onClick={() => handleUpdateComplimentaryCount(task.id, -1)}
-                                          className="w-5 h-5 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800 cursor-pointer"
+                                          className="w-5 h-5 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800 cursor-pointer p-0"
                                           title="Decrease complimentary count"
                                         >
                                           <Minus className="w-3 h-3" />
-                                        </button>
-                                        <input
+                                        </Button>
+                                        <Input
                                           type="number"
                                           min="1"
                                           max="999"
@@ -928,37 +950,42 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                                           }}
                                           className="w-8 text-center text-xs font-extrabold text-[#005390] dark:text-sky-400 border-0 focus:outline-none p-0 bg-transparent"
                                         />
-                                        <button
+                                        <Button
                                           type="button"
+                                          variant="ghost"
+                                          size="icon-xs"
+                                          aria-label="Increase complimentary count"
                                           onClick={(e) => {
                                             e.stopPropagation()
                                             handleUpdateComplimentaryCount(task.id, 1)
                                           }}
-                                          className="w-5 h-5 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800 cursor-pointer"
+                                          className="w-5 h-5 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800 cursor-pointer p-0"
                                           title="Increase complimentary count"
                                         >
                                           <Plus className="w-3 h-3" />
-                                        </button>
+                                        </Button>
                                       </div>
 
                                       {/* Quick Presets (1, 2, 4) */}
                                       <div className="hidden sm:flex items-center gap-0.5">
                                         {[1, 2, 4].map((cnt) => (
-                                          <button
+                                          <Button
                                             key={cnt}
                                             type="button"
+                                            variant="ghost"
+                                            size="icon-xs"
                                             onClick={(e) => {
                                               e.stopPropagation()
                                               handleUpdateComplimentaryCount(task.id, cnt, true)
                                             }}
-                                            className={`w-5 h-5 text-[9px] font-bold rounded cursor-pointer transition-colors ${
+                                            className={`w-5 h-5 text-[9px] font-bold rounded cursor-pointer transition-colors p-0 ${
                                               selectedItem?.complimentaryCount === cnt
-                                                ? 'bg-[#005390] text-white'
+                                                ? 'bg-[#005390] text-white hover:bg-[#005390]'
                                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-800 dark:text-gray-300'
                                             }`}
                                           >
                                             {cnt}
-                                          </button>
+                                          </Button>
                                         ))}
                                       </div>
                                     </div>
@@ -988,64 +1015,75 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
 
               {/* Modal Footer */}
               <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-end gap-2.5">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                  className="px-4 py-2 h-auto rounded-xl border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004170] transition-colors cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004170] transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting ? 'Saving...' : editingPackage ? 'Update Package' : 'Create Package'}
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
 
       {/* Delete Confirmation Modal */}
-      {isDeleteModalOpen && packageToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-gray-100 p-6 space-y-4">
+      <Dialog
+        open={Boolean(isDeleteModalOpen && packageToDelete)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsDeleteModalOpen(false)
+            setPackageToDelete(null)
+          }
+        }}
+      >
+        {isDeleteModalOpen && packageToDelete && (
+          <DialogContent className="sm:max-w-sm p-6 space-y-4">
             <div className="w-11 h-11 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center">
               <Trash2 className="w-5 h-5" />
             </div>
-            <div>
-              <h4 className="text-base font-extrabold text-gray-900">Delete Care Package?</h4>
-              <p className="text-xs text-gray-500 mt-1">
+            <DialogHeader>
+              <DialogTitle className="text-base font-extrabold text-gray-900">Delete Care Package?</DialogTitle>
+              <DialogDescription className="text-xs text-gray-500 mt-1">
                 Are you sure you want to delete{' '}
                 <span className="font-bold text-gray-800">"{packageToDelete.packageName}"</span>? This will remove the
                 package template.
-              </p>
-            </div>
+              </DialogDescription>
+            </DialogHeader>
             <div className="flex items-center justify-end gap-2.5 pt-2">
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => {
                   setIsDeleteModalOpen(false)
                   setPackageToDelete(null)
                 }}
-                className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="px-4 py-2 h-auto rounded-xl border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="destructive"
                 disabled={isDeleting}
                 onClick={handleConfirmDelete}
-                className="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold shadow-md hover:bg-red-700 transition-colors cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 h-auto rounded-xl bg-red-600 text-white text-xs font-bold shadow-md hover:bg-red-700 transition-colors cursor-pointer disabled:opacity-50"
               >
                 {isDeleting ? 'Deleting...' : 'Yes, Delete'}
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   )
 }

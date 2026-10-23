@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Building2, Edit, Home, MoreVertical, Search, Trash2, UserCheck, UserPlus } from 'lucide-react'
@@ -6,6 +7,8 @@ import { getPropertiesAPI } from '@/lib/services/propertyService'
 import { residentService } from '@/lib/services/residentService'
 import { useLocationContext } from '@/hooks/useLocation'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import {
   Pagination,
@@ -272,63 +275,81 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
     <div className="flex flex-wrap items-center gap-3">
       {/* Property Location Filter (Only in Global Mode) */}
       {isGlobalMode && (
-        <select
-          id="filter-property-select"
-          value={selectedPropertyId}
-          onChange={(e) => {
-            setSelectedPropertyId(e.target.value)
+        <Select
+          value={selectedPropertyId || 'ALL'}
+          onValueChange={(val) => {
+            setSelectedPropertyId(val || 'ALL')
             setCurrentPage(0)
           }}
-          aria-label="Property Location"
-          className="h-9 px-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-2xs cursor-pointer"
         >
-          <option value="ALL">All properties ({properties.length})</option>
-          {properties.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.property_name || (p as { name?: string }).name || 'Property'}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger
+            id="filter-property-select"
+            aria-label="Property Location"
+            className="h-9 px-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-2xs cursor-pointer w-auto"
+          >
+            <SelectValue placeholder={`All properties (${properties.length})`} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All properties ({properties.length})</SelectItem>
+            {properties.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.property_name || (p as { name?: string }).name || 'Property'}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
 
       {/* Resident Type Filter */}
-      <select
-        id="filter-type-select"
-        value={filterType}
-        onChange={(e) => {
-          setFilterType(e.target.value)
+      <Select
+        value={filterType || 'ALL'}
+        onValueChange={(val) => {
+          setFilterType(val || 'ALL')
           setCurrentPage(0)
         }}
-        aria-label="Resident Type"
-        className="h-9 px-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-2xs cursor-pointer"
       >
-        <option value="ALL">Owners & tenants</option>
-        <option value="OWNER">Owners only</option>
-        <option value="TENANT">Tenants only</option>
-      </select>
+        <SelectTrigger
+          id="filter-type-select"
+          aria-label="Resident Type"
+          className="h-9 px-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-2xs cursor-pointer w-auto"
+        >
+          <SelectValue placeholder="Owners & tenants" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="ALL">Owners & tenants</SelectItem>
+          <SelectItem value="OWNER">Owners only</SelectItem>
+          <SelectItem value="TENANT">Tenants only</SelectItem>
+        </SelectContent>
+      </Select>
 
       {/* Residing Status Filter */}
-      <select
-        id="filter-residing-select"
-        value={filterResiding}
-        onChange={(e) => {
-          setFilterResiding(e.target.value)
+      <Select
+        value={filterResiding || 'ALL'}
+        onValueChange={(val) => {
+          setFilterResiding(val || 'ALL')
           setCurrentPage(0)
         }}
-        aria-label="Residing Status"
-        className="h-9 px-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-2xs cursor-pointer"
       >
-        <option value="ALL">Everyone</option>
-        <option value="RESIDING">Residing</option>
-        <option value="OFFSITE">Off-site Resident</option>
-      </select>
+        <SelectTrigger
+          id="filter-residing-select"
+          aria-label="Residing Status"
+          className="h-9 px-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] shadow-2xs cursor-pointer w-auto"
+        >
+          <SelectValue placeholder="Everyone" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="ALL">Everyone</SelectItem>
+          <SelectItem value="RESIDING">Residing</SelectItem>
+          <SelectItem value="OFFSITE">Off-site Resident</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   )
 
   return (
     <div className="space-y-6 pb-12 w-full">
       {/* ── Top Header Card ──────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-2xs">
+      <Card className="gap-0 flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-2xs">
         <div>
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 dark:text-white">
             <UserCheck className="w-5 h-5 text-[#005390]" />
@@ -350,13 +371,13 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
             Onboard Resident / Tenant
           </Button>
         )}
-      </div>
+      </Card>
 
       {/* ── Filter Bar & BE Search ─────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-2xs">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-          <input
+          <Input
             type="text"
             className="pl-9 pr-4 py-2 w-full rounded-xl text-xs bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 shadow-2xs focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] focus:outline-none"
             placeholder="Search by name, username or flat…"
@@ -379,9 +400,9 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
       ) : (
         <div className="space-y-4">
           {paginatedFlats.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center text-sm text-gray-400 dark:border-gray-800 dark:bg-slate-900">
+            <Card className="gap-0 rounded-2xl border-dashed border-gray-200 bg-white p-12 text-center text-sm text-gray-400 dark:border-gray-800 dark:bg-slate-900">
               No residents found.
-            </div>
+            </Card>
           ) : (
             paginatedFlats.map((flat) => {
               const livingCount = flat.allOccupants.reduce(
@@ -392,9 +413,9 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                 0,
               )
               return (
-                <div
+                <Card
                   key={flat.unitId}
-                  className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xs dark:border-gray-800 dark:bg-slate-900"
+                  className="gap-0 overflow-hidden rounded-2xl border-gray-100 bg-white shadow-2xs dark:border-gray-800 dark:bg-slate-900"
                 >
                   {/* Flat header */}
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 bg-gray-50/70 px-4 py-3 dark:border-gray-800 dark:bg-slate-800/50">
@@ -437,10 +458,11 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                       return (
                         <li key={occ.id}>
                           <div className="flex flex-col gap-2 px-4 py-3 transition-colors hover:bg-[#005390]/[0.03] md:flex-row md:items-center">
-                            <button
+                            <Button
+                              variant="ghost"
                               type="button"
                               onClick={() => goToResident(occ.id)}
-                              className="group flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left"
+                              className="group flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left p-0 h-auto font-normal hover:bg-transparent justify-start"
                               title="View profile"
                             >
                               <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#005390]/10 text-xs font-bold text-[#005390]">
@@ -470,7 +492,7 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                                 </p>
                                 {occ.email && <p className="truncate text-xs text-gray-500">{occ.email}</p>}
                               </div>
-                            </button>
+                            </Button>
 
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pl-12 text-xs md:pl-0">
                               <LivingBadge status={occ.isResiding ? 'here' : 'elsewhere'} />
@@ -579,13 +601,13 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                       )
                     })}
                   </ul>
-                </div>
+                </Card>
               )
             })
           )}
           {/* Pagination Footer */}
           {totalGroups > 0 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-3 px-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xs">
+            <Card className="gap-0 flex flex-col sm:flex-row items-center justify-between gap-4 py-3 px-4 bg-white dark:bg-slate-900 border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xs">
               <div className="flex items-center gap-3 text-xs text-gray-500 font-medium">
                 <span>
                   Showing flats{' '}
@@ -661,7 +683,7 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                   </PaginationItem>
                 </PaginationContent>
               </Pagination>
-            </div>
+            </Card>
           )}
         </div>
       )}

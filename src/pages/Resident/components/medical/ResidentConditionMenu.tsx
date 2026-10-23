@@ -1,5 +1,5 @@
 import React from 'react'
-import { Check, ChevronDown, HeartPulse, RefreshCw } from 'lucide-react'
+import { Check, ChevronDown, HeartPulse, Loader2 } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,7 +67,7 @@ export const ResidentConditionMenu: React.FC<ResidentConditionMenuProps> = ({
             : 'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200',
         )}
       >
-        {updateMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <HeartPulse className="h-4 w-4" />}
+        {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <HeartPulse className="h-4 w-4" />}
         {condition ? (
           <>
             Condition:
