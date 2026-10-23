@@ -1,7 +1,10 @@
 /* eslint-disable react-refresh/only-export-components */
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import React, { useState } from 'react'
 import { isAxiosError } from 'axios'
-import { ArrowLeft, Building2, Home, Layers, MapPin, Plus, Sparkles, Trash2, X, Check } from 'lucide-react'
+import { ArrowLeft, Building2, Home, Layers, Loader2, MapPin, Plus, Sparkles, Trash2, X, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AddEntityDialog } from './structure/AddEntityDialog'
 import { EntityUnitsEditor } from './structure/EntityUnitsEditor'
@@ -30,14 +33,20 @@ import {
   normalizeEntity,
   occupiedInBlock,
   occupiedInEntity,
+  formatUnitType,
 } from './structure/entityPresets'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { createPropertyAPI, getPropertyByIdAPI, updatePropertyAPI } from '@/lib/services/propertyService'
 import { getAmenitiesAPI, type Amenity } from '@/lib/services/amenityService'
 import { CommonProgressBar, type ProgressBarStep } from '@/components/common/CommonProgressBar'
 import { notifyError } from '@/utils/toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { usePropertyNameAvailability } from '@/hooks/react-query/property'
+import { useLocationContext } from '@/hooks/useLocation'
 import { z } from 'zod'
 
 const PROPERTY_NAME_EXISTS_MESSAGE = 'This property name already exists'
@@ -62,8 +71,19 @@ export const propertyDetailsSchema = z.object({
 
 export const propertyAddressSchema = z.object({
   street: z.string().optional(),
-  city: z.string().trim().min(1, 'City is required'),
-  state: z.string().trim().min(1, 'State is required'),
+  city: z
+    .string()
+    .trim()
+    .min(1, 'City is required')
+    .regex(/^[a-zA-Z\s]+$/, 'City can only contain letters and spaces'),
+  state: z
+    .string()
+    .trim()
+    .min(1, 'State is required')
+    .refine((val) => !/\d/.test(val), {
+      message: 'State cannot contain digits',
+    })
+    .regex(/^[a-zA-Z\s]+$/, 'State can only contain letters and spaces'),
   pincode: z
     .string()
     .trim()
@@ -183,10 +203,10 @@ function InputField({
 
   return (
     <div className="space-y-1">
-      <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
+      <Label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
         {cleanLabel} {isReq && <span className="text-red-500 font-bold">*</span>}
-      </label>
-      <input
+      </Label>
+      <Input
         {...props}
         className={`w-full rounded-xl border ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white px-3.5 py-2.5 text-xs text-gray-900 placeholder-gray-400 outline-none transition focus:ring-2 disabled:bg-gray-100 disabled:opacity-75`}
       />
@@ -199,23 +219,39 @@ function SelectField({
   label,
   required,
   error,
+  value,
+  onValueChange,
+  placeholder,
   children,
-  ...props
-}: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; required?: boolean; error?: string }) {
+}: {
+  label: string
+  required?: boolean
+  error?: string
+  value?: string
+  onValueChange?: (value: string) => void
+  placeholder?: string
+  children: React.ReactNode
+}) {
   const isReq = required || label.includes('*')
   const cleanLabel = label.replace(/\s*\*/g, '')
 
   return (
     <div className="space-y-1">
-      <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
+      <Label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
         {cleanLabel} {isReq && <span className="text-red-500 font-bold">*</span>}
-      </label>
-      <select
-        {...props}
-        className={`w-full rounded-xl border ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white px-3.5 py-2.5 text-xs text-gray-900 outline-none transition focus:ring-2 disabled:opacity-50`}
-      >
-        {children}
-      </select>
+      </Label>
+      <Select value={value || undefined} onValueChange={(val) => onValueChange?.(val || '')}>
+        <SelectTrigger
+          className={`w-full h-auto rounded-xl border ${
+            error
+              ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+              : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'
+          } bg-white px-3.5 py-2.5 text-xs text-gray-900 outline-none transition focus:ring-2 disabled:opacity-50`}
+        >
+          <SelectValue placeholder={placeholder || 'Select...'} />
+        </SelectTrigger>
+        <SelectContent>{children}</SelectContent>
+      </Select>
       {error && <p className="mt-1 text-xs font-semibold text-red-500">{error}</p>}
     </div>
   )
@@ -232,13 +268,13 @@ function TextareaField({
 
   return (
     <div className="space-y-1">
-      <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
+      <Label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
         {cleanLabel} {isReq && <span className="text-red-500 font-bold">*</span>}
-      </label>
-      <textarea
+      </Label>
+      <Textarea
         {...props}
         rows={3}
-        className={`w-full rounded-xl border ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#005390] focus:ring-[#005390]/20'} bg-white px-3.5 py-2.5 text-xs text-gray-900 placeholder-gray-400 outline-none transition focus:ring-2 resize-none`}
+        className={`w-full rounded-xl border ${error ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20' : 'border-gray-200 focus-visible:border-[#005390] focus-visible:ring-[#005390]/20'} bg-white px-3.5 py-2.5 text-xs text-gray-900 placeholder-gray-400 outline-none transition focus-visible:ring-2 resize-none`}
       />
       {error && <p className="mt-1 text-xs font-semibold text-red-500">{error}</p>}
     </div>
@@ -259,6 +295,7 @@ export default function CreatePropertyScreen({
   onBack,
   onSuccess,
 }: CreatePropertyScreenProps) {
+  const { refreshLocations } = useLocationContext()
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -972,8 +1009,10 @@ export default function CreatePropertyScreen({
 
       if (editPropertyId) {
         await updatePropertyAPI(editPropertyId, payload)
+        await refreshLocations(editPropertyId)
       } else {
-        await createPropertyAPI(payload)
+        const created = await createPropertyAPI(payload)
+        await refreshLocations(created?.id)
       }
       onSuccess()
       onBack()
@@ -1023,7 +1062,7 @@ export default function CreatePropertyScreen({
       </div>
 
       {/* Main Screen Container */}
-      <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xs">
+      <Card className="gap-0 rounded-3xl border border-gray-200 bg-white p-6 shadow-xs">
         <CommonProgressBar steps={STEPS} currentStep={step} onStepClick={(sId) => setStep(sId)} className="mb-6" />
 
         {error && (
@@ -1034,7 +1073,7 @@ export default function CreatePropertyScreen({
 
         {/* Step 1: Property Details */}
         {step === 1 && (
-          <div className="space-y-5 max-w-3xl mx-auto py-2">
+          <div className="space-y-5 w-full py-2">
             <InputField
               label="Property / Project Name"
               required
@@ -1061,22 +1100,24 @@ export default function CreatePropertyScreen({
                   const isSelected = propertyTypes.includes(t)
                   const Icon = ENTITY_PRESETS[t].icon
                   return (
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
                       key={t}
                       aria-pressed={isSelected}
                       onClick={() =>
                         setPropertyTypes((prev) => (isSelected ? prev.filter((x) => x !== t) : [...prev, t]))
                       }
-                      className={`inline-flex items-center gap-1.5 rounded-xl text-xs font-semibold px-4 py-2 border transition-all ${
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-xl text-xs font-semibold px-4 py-2 border transition-all h-auto',
                         isSelected
-                          ? 'bg-[#005390] border-[#005390] text-white shadow-sm'
-                          : 'bg-white border-gray-200 text-gray-700 hover:border-[#005390]/40 hover:bg-[#005390]/10'
-                      }`}
+                          ? 'bg-[#005390] border-[#005390] text-white shadow-sm hover:bg-[#005390] hover:text-white'
+                          : 'bg-white border-gray-200 text-gray-700 hover:border-[#005390]/40 hover:bg-[#005390]/10',
+                      )}
                     >
                       {isSelected ? <Check className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5 text-gray-400" />}
                       {ENTITY_PRESETS[t].label}
-                    </button>
+                    </Button>
                   )
                 })}
               </div>
@@ -1090,11 +1131,11 @@ export default function CreatePropertyScreen({
                 value={totalArea}
                 onChange={(e) => setTotalArea(e.target.value)}
               />
-              <SelectField label="Area Unit" value={areaUnit} onChange={(e) => setAreaUnit(e.target.value as AreaUnit)}>
+              <SelectField label="Area Unit" value={areaUnit} onValueChange={(val) => setAreaUnit(val as AreaUnit)}>
                 {AREA_UNITS.map((u) => (
-                  <option key={u} value={u}>
+                  <SelectItem key={u} value={u}>
                     {u}
-                  </option>
+                  </SelectItem>
                 ))}
               </SelectField>
             </div>
@@ -1124,36 +1165,42 @@ export default function CreatePropertyScreen({
                             {amenity.amenityId ? null : <span className="text-[10px] text-white/75">Legacy</span>}
                           </span>
                           <div className="flex items-center gap-2">
-                            <button
+                            <Button
                               type="button"
+                              variant="outline"
+                              size="sm"
                               onClick={() => toggleAmenitySlotBookable(amenity)}
-                              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold border transition-colors ${
+                              className={cn(
+                                'rounded-full px-2.5 py-1 text-[11px] font-semibold border transition-colors h-auto',
                                 amenity.slotBookable
                                   ? 'border-[#005390]/30 bg-[#005390]/10 text-[#005390]'
-                                  : 'border-gray-300 bg-white text-gray-600'
-                              }`}
+                                  : 'border-gray-300 bg-white text-gray-600',
+                              )}
                             >
                               {amenity.slotBookable ? 'Slot-bookable' : 'Non-slot'}
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               type="button"
+                              variant="ghost"
+                              size="icon-xs"
+                              aria-label={`Remove ${amenity.name}`}
                               onClick={() => removeAmenity(amenity)}
-                              className="hover:bg-[#004274] text-white rounded-full p-1"
+                              className="hover:bg-[#004274] bg-[#005390] text-white rounded-full p-1 h-6 w-6"
                             >
                               <X className="h-3 w-3" />
-                            </button>
+                            </Button>
                           </div>
                         </div>
 
                         <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                           <div>
-                            <label
+                            <Label
                               htmlFor={availableFromId}
                               className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-gray-600"
                             >
                               Available From (Optional)
-                            </label>
-                            <input
+                            </Label>
+                            <Input
                               id={availableFromId}
                               type="time"
                               value={amenity.availableFrom || ''}
@@ -1164,13 +1211,13 @@ export default function CreatePropertyScreen({
                             />
                           </div>
                           <div>
-                            <label
+                            <Label
                               htmlFor={availableToId}
                               className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-gray-600"
                             >
                               Available To (Optional)
-                            </label>
-                            <input
+                            </Label>
+                            <Input
                               id={availableToId}
                               type="time"
                               value={amenity.availableTo || ''}
@@ -1187,7 +1234,7 @@ export default function CreatePropertyScreen({
                 </div>
               )}
 
-              <input
+              <Input
                 type="text"
                 placeholder="Search amenities by name or description"
                 value={amenitySearch}
@@ -1204,15 +1251,17 @@ export default function CreatePropertyScreen({
                   filteredAmenityCatalog.map((item) => {
                     const isSelected = selectedAmenityIds.has(item.id)
                     return (
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         key={item.id}
                         onClick={() => toggleAmenity(item)}
-                        className={`inline-flex items-center gap-1.5 rounded-xl text-xs font-medium px-3.5 py-2 border transition-all ${
+                        className={cn(
+                          'inline-flex items-center gap-1.5 rounded-xl text-xs font-medium px-3.5 py-2 border transition-all h-auto',
                           isSelected
-                            ? 'bg-[#005390]/10 border-[#005390]/30 text-[#005390] font-semibold shadow-xs'
-                            : 'bg-white border-gray-200 text-gray-600 hover:border-[#005390]/30 hover:bg-[#005390]/10'
-                        }`}
+                            ? 'bg-[#005390]/10 border-[#005390]/30 text-[#005390] font-semibold shadow-xs hover:bg-[#005390]/15 hover:text-[#005390]'
+                            : 'bg-white border-gray-200 text-gray-600 hover:border-[#005390]/30 hover:bg-[#005390]/10',
+                        )}
                       >
                         {isSelected ? (
                           <Check className="h-3.5 w-3.5 text-[#005390]" />
@@ -1220,7 +1269,7 @@ export default function CreatePropertyScreen({
                           <Plus className="h-3.5 w-3.5 text-gray-400" />
                         )}
                         {item.name}
-                      </button>
+                      </Button>
                     )
                   })
                 )}
@@ -1238,14 +1287,14 @@ export default function CreatePropertyScreen({
 
         {/* Step 2: Address */}
         {step === 2 && (
-          <div className="space-y-4 max-w-3xl mx-auto py-2">
+          <div className="space-y-4 w-full py-2">
             <InputField
               label="Street Address"
               placeholder="e.g. 12, MG Road, Near Central Park"
               value={street}
               onChange={(e) => setStreet(e.target.value)}
             />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <InputField
                 label="City"
                 required
@@ -1301,13 +1350,14 @@ export default function CreatePropertyScreen({
                   return (
                     <div key={entity.id ?? `new-${eIdx}`} className="space-y-1">
                       <div className="group/entity flex items-center gap-1">
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
                           onClick={() => selectEntity(eIdx)}
                           className={cn(
-                            'min-w-0 flex-1 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all cursor-pointer',
+                            'min-w-0 flex-1 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all cursor-pointer h-auto',
                             isActive
-                              ? 'bg-blue-50 border border-blue-200 text-blue-700 shadow-xs'
+                              ? 'bg-blue-50 border border-blue-200 text-blue-700 shadow-xs hover:bg-blue-50 hover:text-blue-700'
                               : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100',
                           )}
                         >
@@ -1319,10 +1369,12 @@ export default function CreatePropertyScreen({
                             {countUnits(entity)} {levelLabel(entity, 'unit').toLowerCase()}
                             {countUnits(entity) === 1 ? '' : 's'}
                           </span>
-                        </button>
+                        </Button>
                         {entities.length > 1 && (
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="icon-xs"
                             aria-label={`Delete ${entity.name}`}
                             title={
                               occupiedInEntity(entity).length
@@ -1331,10 +1383,10 @@ export default function CreatePropertyScreen({
                             }
                             disabled={occupiedInEntity(entity).length > 0}
                             onClick={() => removeEntity(eIdx)}
-                            className="shrink-0 cursor-pointer rounded-lg p-1.5 text-gray-300 opacity-0 transition hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover/entity:opacity-100 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300"
+                            className="shrink-0 cursor-pointer rounded-lg p-1.5 text-gray-300 opacity-0 transition hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover/entity:opacity-100 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300 h-auto"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          </Button>
                         )}
                       </div>
 
@@ -1343,11 +1395,12 @@ export default function CreatePropertyScreen({
                           <ul className="max-h-72 space-y-0.5 overflow-y-auto">
                             {(entity.units ?? []).map((unit, uIdx) => (
                               <li key={unit.id ?? `h-${uIdx}`} className="group/block flex items-center gap-0.5">
-                                <button
+                                <Button
                                   type="button"
+                                  variant="ghost"
                                   onClick={() => setActiveBlockIndex(uIdx)}
                                   className={cn(
-                                    'flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1 text-left text-[11px] hover:bg-white',
+                                    'flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1 text-left text-[11px] hover:bg-white h-auto font-normal',
                                     uIdx === activeBlockIndex
                                       ? 'bg-white font-semibold text-blue-700 shadow-xs'
                                       : 'text-gray-600',
@@ -1358,12 +1411,14 @@ export default function CreatePropertyScreen({
                                     <span className="truncate">{unit.unit_number || 'New'}</span>
                                   </span>
                                   <span className="shrink-0 text-[10px] font-semibold text-gray-400">
-                                    {unit.unit_type}
+                                    {formatUnitType(unit.unit_type)}
                                   </span>
-                                </button>
+                                </Button>
                                 {(entity.units?.length ?? 0) > 1 && (
-                                  <button
+                                  <Button
                                     type="button"
+                                    variant="ghost"
+                                    size="icon-xs"
                                     aria-label={`Delete ${unit.unit_number}`}
                                     title={
                                       isUnitOccupied(unit)
@@ -1372,10 +1427,10 @@ export default function CreatePropertyScreen({
                                     }
                                     disabled={isUnitOccupied(unit)}
                                     onClick={() => removeHome(uIdx)}
-                                    className="shrink-0 cursor-pointer rounded-md p-1 text-gray-300 opacity-0 transition hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover/block:opacity-100 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300"
+                                    className="shrink-0 cursor-pointer rounded-md p-1 text-gray-300 opacity-0 transition hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover/block:opacity-100 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300 h-auto"
                                   >
                                     <Trash2 className="h-3 w-3" />
-                                  </button>
+                                  </Button>
                                 )}
                               </li>
                             ))}
@@ -1397,22 +1452,27 @@ export default function CreatePropertyScreen({
                               : (child.units?.length ?? 0)
                             return (
                               <div key={cIdx} className="group/block flex items-center gap-0.5">
-                                <button
+                                <Button
                                   type="button"
+                                  variant="ghost"
                                   disabled={!selectable}
                                   onClick={() => setActiveBlockIndex(cIdx)}
                                   className={cn(
-                                    'flex min-w-0 flex-1 items-center justify-between rounded-lg px-2 py-1 text-left text-[11px]',
+                                    'flex min-w-0 flex-1 items-center justify-between rounded-lg px-2 py-1 text-left text-[11px] h-auto font-normal',
                                     selected ? 'bg-white font-semibold text-blue-700 shadow-xs' : 'text-gray-600',
-                                    selectable ? 'cursor-pointer hover:bg-white' : 'cursor-default',
+                                    selectable
+                                      ? 'cursor-pointer hover:bg-white'
+                                      : 'cursor-default hover:bg-transparent',
                                   )}
                                 >
                                   <span className="truncate">{name}</span>
                                   <span className="text-[10px] text-gray-400 font-semibold">{count}</span>
-                                </button>
+                                </Button>
                                 {selectable && children.length > 1 && (
-                                  <button
+                                  <Button
                                     type="button"
+                                    variant="ghost"
+                                    size="icon-xs"
                                     aria-label={`Delete ${name}`}
                                     title={
                                       'block_name' in child && occupiedInBlock(child as BlockInput).length
@@ -1421,10 +1481,10 @@ export default function CreatePropertyScreen({
                                     }
                                     disabled={'block_name' in child && occupiedInBlock(child as BlockInput).length > 0}
                                     onClick={() => removeBlock(cIdx)}
-                                    className="shrink-0 cursor-pointer rounded-md p-1 text-gray-300 opacity-0 transition hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover/block:opacity-100 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300"
+                                    className="shrink-0 cursor-pointer rounded-md p-1 text-gray-300 opacity-0 transition hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover/block:opacity-100 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300 h-auto"
                                   >
                                     <Trash2 className="h-3 w-3" />
-                                  </button>
+                                  </Button>
                                 )}
                               </div>
                             )
@@ -1439,7 +1499,7 @@ export default function CreatePropertyScreen({
             </div>
 
             {/* Main Configuration Panel */}
-            <div className="md:col-span-9 rounded-2xl border border-gray-200 bg-white p-6 space-y-6">
+            <Card className="gap-0 md:col-span-9 rounded-2xl border-gray-200 bg-white p-6 space-y-6 shadow-xs">
               {/* Entity header: name, kind and how it's organised */}
               {/* Entity name is fixed once the entity is added (it's set in the Add Entity dialog). */}
               <div className="flex flex-col gap-3 rounded-xl bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -1597,48 +1657,52 @@ export default function CreatePropertyScreen({
                           (activeBlock.bhk_templates || []).length >= (activeBlock.units_per_floor || 3)
 
                         return (
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
                             key={bhkType}
                             disabled={isLimitReached}
                             onClick={() => addBHKTemplateVariant(bhkType)}
-                            className={`rounded-xl px-4 py-2 text-xs font-semibold border transition-all ${
+                            className={cn(
+                              'rounded-xl px-4 py-2 text-xs font-semibold border transition-all h-auto',
                               variantsCount > 0
-                                ? 'bg-[#005390] border-[#005390] text-white shadow-xs'
+                                ? 'bg-[#005390] border-[#005390] text-white shadow-xs hover:bg-[#005390] hover:text-white'
                                 : isLimitReached
                                   ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60'
-                                  : 'bg-white border-gray-200 text-gray-700 hover:border-[#005390]/40 hover:bg-blue-50/30'
-                            }`}
+                                  : 'bg-white border-gray-200 text-gray-700 hover:border-[#005390]/40 hover:bg-blue-50/30',
+                            )}
                           >
-                            {bhkType} {variantsCount > 0 && `(${variantsCount})`}
-                          </button>
+                            {formatUnitType(bhkType)} {variantsCount > 0 && `(${variantsCount})`}
+                          </Button>
                         )
                       })}
                     </div>
 
                     {activeBlock.bhk_templates && activeBlock.bhk_templates.length > 0 && (
                       <div className="rounded-2xl border border-gray-200 overflow-hidden">
-                        <table className="w-full text-left text-xs border-collapse">
-                          <thead className="bg-gray-50 border-b border-gray-200 text-gray-700 font-bold">
-                            <tr>
-                              <th className="p-3">Type</th>
-                              <th className="p-3">Carpet</th>
-                              <th className="p-3">SBA</th>
-                              <th className="p-3">Price</th>
-                              <th className="p-3">Layout</th>
-                              <th className="p-3 text-right">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100">
+                        <Table className="w-full text-left text-xs border-collapse">
+                          <TableHeader className="bg-gray-50 border-b border-gray-200 text-gray-700 font-bold">
+                            <TableRow>
+                              <TableHead className="p-3">Type</TableHead>
+                              <TableHead className="p-3">Carpet</TableHead>
+                              <TableHead className="p-3">SBA</TableHead>
+                              <TableHead className="p-3">Price</TableHead>
+                              <TableHead className="p-3">Layout</TableHead>
+                              <TableHead className="p-3 text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody className="divide-y divide-gray-100">
                             {activeBlock.bhk_templates.map((variant, vIdx) => {
                               const isAssignExpanded = expandedAssignVariantIndex === vIdx
 
                               return (
                                 <React.Fragment key={vIdx}>
-                                  <tr>
-                                    <td className="p-3 font-bold text-gray-900">{variant.type}</td>
-                                    <td className="p-3">
-                                      <input
+                                  <TableRow>
+                                    <TableCell className="p-3 font-bold text-gray-900">
+                                      {formatUnitType(variant.type)}
+                                    </TableCell>
+                                    <TableCell className="p-3">
+                                      <Input
                                         type="number"
                                         min={0}
                                         aria-label={`${variant.type} carpet area`}
@@ -1655,9 +1719,9 @@ export default function CreatePropertyScreen({
                                             : 'border-red-400 bg-red-50',
                                         )}
                                       />
-                                    </td>
-                                    <td className="p-3">
-                                      <input
+                                    </TableCell>
+                                    <TableCell className="p-3">
+                                      <Input
                                         type="number"
                                         min={0}
                                         aria-label={`${variant.type} super built-up area`}
@@ -1674,11 +1738,11 @@ export default function CreatePropertyScreen({
                                             : 'border-red-400 bg-red-50',
                                         )}
                                       />
-                                    </td>
-                                    <td className="p-3 whitespace-nowrap font-semibold text-gray-900">
+                                    </TableCell>
+                                    <TableCell className="p-3 whitespace-nowrap font-semibold text-gray-900">
                                       {formatLakh(unitPrice(variant.super_built_up_area, activeBlock.price_per_sqft))}
-                                    </td>
-                                    <td className="p-3">
+                                    </TableCell>
+                                    <TableCell className="p-3">
                                       <Button
                                         type="button"
                                         variant="outline"
@@ -1687,21 +1751,24 @@ export default function CreatePropertyScreen({
                                       >
                                         Assign ({variant.positions.length})
                                       </Button>
-                                    </td>
-                                    <td className="p-3 text-right">
-                                      <button
+                                    </TableCell>
+                                    <TableCell className="p-3 text-right">
+                                      <Button
                                         type="button"
+                                        variant="ghost"
+                                        size="icon-xs"
+                                        aria-label={`Remove ${formatUnitType(variant.type)} variant`}
                                         onClick={() => removeBHKTemplateVariant(vIdx)}
-                                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors h-auto"
                                       >
                                         <Trash2 className="h-4 w-4" />
-                                      </button>
-                                    </td>
-                                  </tr>
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
 
                                   {isAssignExpanded && (
-                                    <tr>
-                                      <td colSpan={6} className="bg-gray-50/70 p-4 border-b border-gray-200">
+                                    <TableRow>
+                                      <TableCell colSpan={6} className="bg-gray-50/70 p-4 border-b border-gray-200">
                                         <div className="space-y-3">
                                           <div className="grid grid-cols-3 gap-3">
                                             {(() => {
@@ -1722,9 +1789,9 @@ export default function CreatePropertyScreen({
                                               return (
                                                 <SelectField
                                                   label="Position"
-                                                  value={currentPos}
-                                                  onChange={(e) => {
-                                                    const pos = Number(e.target.value)
+                                                  value={String(currentPos)}
+                                                  onValueChange={(val) => {
+                                                    const pos = Number(val)
                                                     const updatedPos = [{ ...variant.positions[0], position: pos }]
                                                     updateBHKTemplateVariant(vIdx, {
                                                       positions: updatedPos,
@@ -1732,9 +1799,9 @@ export default function CreatePropertyScreen({
                                                   }}
                                                 >
                                                   {availablePositions.map((posNum) => (
-                                                    <option key={posNum} value={posNum}>
+                                                    <SelectItem key={posNum} value={String(posNum)}>
                                                       Position {posNum}
-                                                    </option>
+                                                    </SelectItem>
                                                   ))}
                                                 </SelectField>
                                               )
@@ -1743,8 +1810,8 @@ export default function CreatePropertyScreen({
                                             <SelectField
                                               label="Direction"
                                               value={variant.positions[0]?.direction || 'North-East'}
-                                              onChange={(e) => {
-                                                const dir = e.target.value
+                                              onValueChange={(val) => {
+                                                const dir = val
                                                 const updatedPos = [{ ...variant.positions[0], direction: dir }]
                                                 updateBHKTemplateVariant(vIdx, {
                                                   positions: updatedPos,
@@ -1752,17 +1819,17 @@ export default function CreatePropertyScreen({
                                               }}
                                             >
                                               {DIRECTION_OPTIONS.map((d) => (
-                                                <option key={d} value={d}>
+                                                <SelectItem key={d} value={d}>
                                                   {d}
-                                                </option>
+                                                </SelectItem>
                                               ))}
                                             </SelectField>
 
                                             <SelectField
                                               label="View facing"
                                               value={variant.positions[0]?.view_facing || 'Garden View'}
-                                              onChange={(e) => {
-                                                const view = e.target.value
+                                              onValueChange={(val) => {
+                                                const view = val
                                                 const updatedPos = [{ ...variant.positions[0], view_facing: view }]
                                                 updateBHKTemplateVariant(vIdx, {
                                                   positions: updatedPos,
@@ -1770,21 +1837,21 @@ export default function CreatePropertyScreen({
                                               }}
                                             >
                                               {VIEW_FACING_OPTIONS.map((vf) => (
-                                                <option key={vf} value={vf}>
+                                                <SelectItem key={vf} value={vf}>
                                                   {vf}
-                                                </option>
+                                                </SelectItem>
                                               ))}
                                             </SelectField>
                                           </div>
                                         </div>
-                                      </td>
-                                    </tr>
+                                      </TableCell>
+                                    </TableRow>
                                   )}
                                 </React.Fragment>
                               )
                             })}
-                          </tbody>
-                        </table>
+                          </TableBody>
+                        </Table>
                       </div>
                     )}
 
@@ -1816,7 +1883,7 @@ export default function CreatePropertyScreen({
                               <p className="font-bold text-gray-800">Position {posNum}</p>
                               {assignedBHK ? (
                                 <>
-                                  <p className="font-bold text-blue-600">{assignedBHK.type}</p>
+                                  <p className="font-bold text-blue-600">{formatUnitType(assignedBHK.type)}</p>
                                   <p className="text-gray-500 text-[10px]">{posObj?.direction || 'North-East'}</p>
                                   <p className="text-gray-400 text-[10px]">{posObj?.view_facing || 'Garden View'}</p>
                                 </>
@@ -1835,15 +1902,15 @@ export default function CreatePropertyScreen({
                       <h4 className="text-xs font-bold text-gray-900">Floor preview</h4>
                     </div>
                     <div className="rounded-2xl border border-gray-200 overflow-hidden">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead className="bg-gray-50 border-b border-gray-200 font-bold text-gray-700">
-                          <tr>
-                            <th className="p-3">Floor #</th>
-                            <th className="p-3">Floor type</th>
-                            <th className="p-3">Sellable</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
+                      <Table className="w-full text-left text-xs border-collapse">
+                        <TableHeader className="bg-gray-50 border-b border-gray-200 font-bold text-gray-700">
+                          <TableRow>
+                            <TableHead className="p-3">Floor #</TableHead>
+                            <TableHead className="p-3">Floor type</TableHead>
+                            <TableHead className="p-3">Sellable</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody className="divide-y divide-gray-100">
                           {Array.from({ length: activeBlock.total_floors || 3 }).map((_, fI) => {
                             const floorNum = fI + 1
                             const isGround = floorNum === 1
@@ -1882,40 +1949,44 @@ export default function CreatePropertyScreen({
                             }
 
                             return (
-                              <tr key={floorNum}>
-                                <td className="p-3 font-bold text-gray-900">{floorNum}</td>
-                                <td className="p-3">
-                                  <select
-                                    value={currentFloorType}
-                                    onChange={(e) => updateFloorConfig({ floor_type: e.target.value })}
-                                    className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs outline-none"
+                              <TableRow key={floorNum}>
+                                <TableCell className="p-3 font-bold text-gray-900">{floorNum}</TableCell>
+                                <TableCell className="p-3">
+                                  <Select
+                                    value={currentFloorType || undefined}
+                                    onValueChange={(val) => updateFloorConfig({ floor_type: val || '' })}
                                   >
-                                    {FLOOR_TYPE_OPTIONS.map((ft) => (
-                                      <option key={ft} value={ft}>
-                                        {ft}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </td>
-                                <td className="p-3">
-                                  <label className="relative inline-flex items-center cursor-pointer">
-                                    <input
-                                      type="checkbox"
+                                    <SelectTrigger className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs h-auto outline-none">
+                                      <SelectValue placeholder="Floor Type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {FLOOR_TYPE_OPTIONS.map((ft) => (
+                                        <SelectItem key={ft} value={ft}>
+                                          {ft}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </TableCell>
+                                <TableCell className="p-3">
+                                  <Label className="flex items-center gap-2 cursor-pointer">
+                                    <Checkbox
                                       checked={isSellable}
-                                      onChange={(e) => updateFloorConfig({ is_sellable: e.target.checked })}
-                                      className="sr-only peer"
+                                      onCheckedChange={(checked) =>
+                                        updateFloorConfig({ is_sellable: checked === true })
+                                      }
+                                      className="data-checked:border-[#005390] data-checked:bg-[#005390] data-checked:text-white"
                                     />
-                                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600" />
-                                    <span className="ml-2 text-xs font-medium text-gray-700">
+                                    <span className="text-xs font-medium text-gray-700">
                                       {isSellable ? 'Yes' : 'No'}
                                     </span>
-                                  </label>
-                                </td>
-                              </tr>
+                                  </Label>
+                                </TableCell>
+                              </TableRow>
                             )
                           })}
-                        </tbody>
-                      </table>
+                        </TableBody>
+                      </Table>
                     </div>
                     <p className="text-[10px] text-gray-400">Units are generated only for floors marked as sellable.</p>
                   </div>
@@ -1939,36 +2010,40 @@ export default function CreatePropertyScreen({
 
                     {previewGenerated && activeBlock.floors && activeBlock.floors.length > 0 && (
                       <div className="rounded-2xl border border-gray-200 overflow-hidden max-h-64 overflow-y-auto">
-                        <table className="w-full text-left text-xs border-collapse">
-                          <thead className="bg-gray-50 border-b border-gray-200 font-bold text-gray-700 sticky top-0">
-                            <tr>
-                              <th className="p-2.5">Unit</th>
-                              <th className="p-2.5">Floor</th>
-                              <th className="p-2.5">Type</th>
-                              <th className="p-2.5">Area</th>
-                              <th className="p-2.5">Price</th>
-                              <th className="p-2.5">Dir/View</th>
-                              <th className="p-2.5">Sellable</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100">
+                        <Table className="w-full text-left text-xs border-collapse">
+                          <TableHeader className="bg-gray-50 border-b border-gray-200 font-bold text-gray-700 sticky top-0">
+                            <TableRow>
+                              <TableHead className="p-2.5">Unit</TableHead>
+                              <TableHead className="p-2.5">Floor</TableHead>
+                              <TableHead className="p-2.5">Type</TableHead>
+                              <TableHead className="p-2.5">Area</TableHead>
+                              <TableHead className="p-2.5">Price</TableHead>
+                              <TableHead className="p-2.5">Dir/View</TableHead>
+                              <TableHead className="p-2.5">Sellable</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody className="divide-y divide-gray-100">
                             {activeBlock.floors.flatMap((f) =>
                               (f.units || []).map((u, uI) => (
-                                <tr key={`${f.floor_number}-${uI}`}>
-                                  <td className="p-2.5 font-bold text-gray-900">{u.unit_number}</td>
-                                  <td className="p-2.5">{f.floor_number}</td>
-                                  <td className="p-2.5 font-semibold text-blue-600">{u.unit_type}</td>
-                                  <td className="p-2.5">{u.built_up_area} sqft</td>
-                                  <td className="p-2.5 whitespace-nowrap">{u.price ? formatLakh(u.price) : '—'}</td>
-                                  <td className="p-2.5 text-gray-500">
+                                <TableRow key={`${f.floor_number}-${uI}`}>
+                                  <TableCell className="p-2.5 font-bold text-gray-900">{u.unit_number}</TableCell>
+                                  <TableCell className="p-2.5">{f.floor_number}</TableCell>
+                                  <TableCell className="p-2.5 font-semibold text-blue-600">
+                                    {formatUnitType(u.unit_type)}
+                                  </TableCell>
+                                  <TableCell className="p-2.5">{u.built_up_area} sqft</TableCell>
+                                  <TableCell className="p-2.5 whitespace-nowrap">
+                                    {u.price ? formatLakh(u.price) : '—'}
+                                  </TableCell>
+                                  <TableCell className="p-2.5 text-gray-500">
                                     {u.direction || 'North-East'} / {u.view_facing || 'Garden View'}
-                                  </td>
-                                  <td className="p-2.5 text-emerald-600 font-bold">Yes</td>
-                                </tr>
+                                  </TableCell>
+                                  <TableCell className="p-2.5 text-emerald-600 font-bold">Yes</TableCell>
+                                </TableRow>
                               )),
                             )}
-                          </tbody>
-                        </table>
+                          </TableBody>
+                        </Table>
                       </div>
                     )}
                   </div>
@@ -1986,7 +2061,7 @@ export default function CreatePropertyScreen({
                   </div>
                 </>
               )}
-            </div>
+            </Card>
           </div>
         )}
 
@@ -2020,7 +2095,7 @@ export default function CreatePropertyScreen({
             >
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
-                  <span className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   Saving...
                 </span>
               ) : editPropertyId ? (
@@ -2031,7 +2106,7 @@ export default function CreatePropertyScreen({
             </Button>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ArrowLeft, CalendarCheck, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
@@ -279,7 +280,7 @@ const EmployeeDetail = () => {
 
   return (
     <div className="space-y-6 pb-10">
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(42,81,124,0.05)]">
+      <Card className="gap-0 relative overflow-hidden rounded-2xl border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(42,81,124,0.05)]">
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#1e3a5a] via-[#2a517c] to-[#5b8bb8]" />
         <div className="flex flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div className="flex items-start gap-3">
@@ -332,12 +333,13 @@ const EmployeeDetail = () => {
                 ['day_off', 'Days off', 'text-violet-700'],
               ] as const
             ).map(([value, label, tone]) => (
-              <button
+              <Button
                 key={value}
                 type="button"
+                variant="ghost"
                 onClick={() => handleStatusFilterChange(value)}
                 className={cn(
-                  'cursor-pointer rounded-xl border px-3 py-2 text-center transition-colors',
+                  'h-auto cursor-pointer rounded-xl border px-3 py-2 text-center transition-colors flex flex-col items-center justify-center hover:bg-transparent whitespace-normal font-normal',
                   statusFilter === value
                     ? 'border-[#005390] bg-[#005390]/5'
                     : 'border-slate-200 bg-slate-50 hover:border-slate-300',
@@ -345,23 +347,23 @@ const EmployeeDetail = () => {
               >
                 <p className={cn('text-xl font-semibold tabular-nums', tone)}>{filterCounts[value] ?? 0}</p>
                 <p className="text-[11px] font-medium text-slate-500">{label}</p>
-              </button>
+              </Button>
             ))}
           </div>
         </div>
-      </div>
+      </Card>
 
       <div className="pb-4">
-        <div className="mb-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-          <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <Card className="gap-0 mb-4 rounded-2xl border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+          <CardHeader className="p-0 mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h3 className="text-base font-semibold text-slate-900">Assigned rosters</h3>
-              <p className="text-xs text-slate-500">
+              <CardTitle className="text-base font-semibold text-slate-900">Assigned rosters</CardTitle>
+              <CardDescription className="text-xs text-slate-500">
                 {rosterEvents.length} shift{rosterEvents.length === 1 ? '' : 's'} in total · click a card for details,
                 swap, cover or day off
-              </p>
+              </CardDescription>
             </div>
-          </div>
+          </CardHeader>
           {/* Status filters: Today first and highlighted */}
           <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Filter rosters">
             {ROSTER_STATUS_FILTERS.map((opt) => {
@@ -369,17 +371,18 @@ const EmployeeDetail = () => {
               const count = filterCounts[opt.value] ?? 0
               if (opt.value === 'today') {
                 return (
-                  <button
+                  <Button
                     key={opt.value}
                     type="button"
+                    variant="ghost"
                     role="tab"
                     aria-selected={active}
                     onClick={() => handleStatusFilterChange(opt.value)}
                     className={cn(
-                      'flex shrink-0 items-center gap-2.5 rounded-xl border-2 px-4 py-2 text-left transition-all cursor-pointer',
+                      'h-auto flex shrink-0 items-center gap-2.5 rounded-xl border-2 px-4 py-2 text-left transition-all cursor-pointer whitespace-normal font-normal',
                       active
-                        ? 'border-[#005390] bg-[#005390] text-white shadow-md shadow-[#005390]/25'
-                        : 'border-[#005390]/30 bg-[#005390]/5 text-[#005390] hover:border-[#005390]/60',
+                        ? 'border-[#005390] bg-[#005390] text-white shadow-md shadow-[#005390]/25 hover:bg-[#005390] hover:text-white'
+                        : 'border-[#005390]/30 bg-[#005390]/5 text-[#005390] hover:border-[#005390]/60 hover:bg-[#005390]/10 hover:text-[#005390]',
                     )}
                   >
                     <CalendarCheck className="h-5 w-5 shrink-0" />
@@ -399,30 +402,31 @@ const EmployeeDetail = () => {
                     >
                       {count}
                     </span>
-                  </button>
+                  </Button>
                 )
               }
               return (
-                <button
+                <Button
                   key={opt.value}
                   type="button"
+                  variant="ghost"
                   role="tab"
                   aria-selected={active}
                   onClick={() => handleStatusFilterChange(opt.value)}
                   className={cn(
-                    'flex shrink-0 items-center gap-1.5 self-center rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer',
+                    'h-auto flex shrink-0 items-center gap-1.5 self-center rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer',
                     active
-                      ? 'border-[#005390] bg-[#005390]/10 text-[#005390]'
-                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-900',
+                      ? 'border-[#005390] bg-[#005390]/10 text-[#005390] hover:bg-[#005390]/15 hover:text-[#005390]'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-900 hover:bg-slate-50',
                   )}
                 >
                   {opt.label}
                   <span className={cn('text-[11px]', active ? 'text-[#005390]/80' : 'text-gray-400')}>{count}</span>
-                </button>
+                </Button>
               )
             })}
           </div>
-        </div>
+        </Card>
 
         <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -498,7 +502,7 @@ const EmployeeDetail = () => {
                   )}
                 >
                   {event.date === today && (
-                    <span className="absolute -top-2.5 left-3 z-10 rounded-full bg-[#005390] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                    <span className="absolute -top-2.5 left-10 z-10 rounded-full bg-[#005390] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
                       Today
                     </span>
                   )}

@@ -5,6 +5,7 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
+  Loader2,
   Package,
   Plus,
   Printer,
@@ -14,6 +15,7 @@ import {
   User,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -24,6 +26,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from 'sonner'
 import { residentService, type ResidentBillingData } from '@/lib/services/residentService'
 import type { ResidentItem } from '@/lib/types/resident'
@@ -292,15 +296,16 @@ export const ResidentBillingPage: React.FC = () => {
       {/* ── Top Navigation Bar ────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden">
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            variant="ghost"
             type="button"
             onClick={() =>
               residentId ? navigate(`/admin/residents/details/${residentId}`) : navigate('/admin/residents')
             }
-            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer bg-white px-3 py-2 rounded-xl border border-gray-200 shadow-xs"
+            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer bg-white px-3 py-2 h-auto rounded-xl border border-gray-200 shadow-xs hover:bg-gray-50"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Resident Profile
-          </button>
+          </Button>
         </div>
 
         {/* Action Buttons: Print & Generate */}
@@ -326,83 +331,95 @@ export const ResidentBillingPage: React.FC = () => {
       </div>
 
       {/* ── Resident Selection & Switcher Bar ──────────────────────────── */}
-      <div className="rounded-3xl border border-white/80 bg-white/90 p-5 shadow-lg backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
+      <Card className="gap-0 rounded-3xl border border-white/80 bg-white/90 p-5 shadow-lg backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="p-3 rounded-2xl bg-[#005390]/10 text-[#005390] shrink-0">
             <User className="w-6 h-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <label
+            <Label
               htmlFor="billing-resident-select"
               className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1"
             >
               Select Resident for Billing
-            </label>
-            <select
-              id="billing-resident-select"
-              value={residentId}
-              onChange={(e) => setSearchParams({ residentId: e.target.value })}
-              className="w-full max-w-md px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#005390]"
+            </Label>
+            <Select
+              value={residentId || undefined}
+              onValueChange={(val) => setSearchParams({ residentId: val || '' })}
               disabled={isLoadingResidents}
             >
-              {allResidents.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.firstName} {r.lastName || ''} ({r.unit?.unit_number ? `Unit ${r.unit.unit_number}` : 'No unit'})
-                </option>
-              ))}
-            </select>
+              <SelectTrigger
+                id="billing-resident-select"
+                className="w-full max-w-md px-3 py-2 h-auto bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#005390]"
+              >
+                <SelectValue placeholder="Select Resident..." />
+              </SelectTrigger>
+              <SelectContent>
+                {allResidents.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.firstName} {r.lastName || ''} ({r.unit?.unit_number ? `Unit ${r.unit.unit_number}` : 'No unit'})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
         {/* Month & Year Selectors */}
         <div className="flex items-center gap-3 shrink-0">
           <div>
-            <label
+            <Label
               htmlFor="billing-month-select"
               className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1"
             >
               Billing Month
-            </label>
-            <select
-              id="billing-month-select"
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#005390]"
-            >
-              {MONTH_NAMES.map((name, index) => (
-                <option key={name} value={index + 1}>
-                  {name}
-                </option>
-              ))}
-            </select>
+            </Label>
+            <Select value={String(selectedMonth)} onValueChange={(val) => setSelectedMonth(Number(val))}>
+              <SelectTrigger
+                id="billing-month-select"
+                className="px-3 py-2 h-auto bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#005390]"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MONTH_NAMES.map((name, index) => (
+                  <SelectItem key={name} value={String(index + 1)}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
-            <label
+            <Label
               htmlFor="billing-year-select"
               className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1"
             >
               Year
-            </label>
-            <select
-              id="billing-year-select"
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#005390]"
-            >
-              {[2025, 2026, 2027].map((yr) => (
-                <option key={yr} value={yr}>
-                  {yr}
-                </option>
-              ))}
-            </select>
+            </Label>
+            <Select value={String(selectedYear)} onValueChange={(val) => setSelectedYear(Number(val))}>
+              <SelectTrigger
+                id="billing-year-select"
+                className="px-3 py-2 h-auto bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#005390]"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[2025, 2026, 2027].map((yr) => (
+                  <SelectItem key={yr} value={String(yr)}>
+                    {yr}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* ── Resident Overview & Billing Context Card ──────────────────── */}
       {resident && (
-        <div className="rounded-3xl border border-white/80 bg-white/90 p-6 md:p-8 shadow-xl backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-6 print:border-none print:shadow-none print:p-0">
+        <Card className="gap-0 rounded-3xl border-white/80 bg-white/90 p-6 md:p-8 shadow-xl backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-6 print:border-none print:shadow-none print:p-0">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#005390] to-sky-600 text-white flex items-center justify-center font-bold text-2xl shadow-md shrink-0 border-2 border-white">
               {resident.firstName?.[0]?.toUpperCase() || 'R'}
@@ -465,35 +482,35 @@ export const ResidentBillingPage: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* ── Loading & Error States ────────────────────────────────────── */}
       {isLoading && (
-        <div className="rounded-3xl border border-gray-100 bg-white/80 p-12 text-center shadow-lg">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#005390]" />
+        <Card className="gap-0 rounded-3xl border border-gray-100 bg-white/80 p-12 text-center shadow-lg">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
           <p className="mt-3 text-sm font-semibold text-gray-600">
             Calculating resident charges & invoice breakdown...
           </p>
-        </div>
+        </Card>
       )}
 
       {error && !isLoading && (
-        <div className="rounded-3xl border border-rose-200 bg-rose-50/80 p-6 text-center text-rose-700 font-semibold shadow-sm">
+        <Card className="gap-0 rounded-3xl border border-rose-200 bg-rose-50/80 p-6 text-center text-rose-700 font-semibold shadow-sm">
           {error}
-        </div>
+        </Card>
       )}
 
       {/* ── Main Invoice Breakdown Table ──────────────────────────────── */}
       {!isLoading && !error && invoice && (
         <div className="space-y-6">
-          <div className="rounded-3xl border border-white/80 bg-white/90 shadow-xl backdrop-blur-xl overflow-hidden print:border print:shadow-none">
-            <div className="p-5 md:p-6 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <Card className="gap-0 rounded-3xl border border-white/80 bg-white/90 shadow-xl backdrop-blur-xl overflow-hidden print:border print:shadow-none">
+            <CardHeader className="p-5 md:p-6 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Services & Charges Breakdown</h2>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <CardTitle className="text-lg font-bold text-gray-900">Services & Charges Breakdown</CardTitle>
+                <CardDescription className="text-xs text-gray-500 mt-0.5">
                   Itemization of Care Package and Add-on Tasks for {MONTH_NAMES[selectedMonth - 1]} {selectedYear}
-                </p>
+                </CardDescription>
               </div>
 
               <Button
@@ -504,332 +521,354 @@ export const ResidentBillingPage: React.FC = () => {
               >
                 Add Miscellaneous Service
               </Button>
-            </div>
+            </CardHeader>
 
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50/70 text-xs font-bold text-gray-600 uppercase tracking-wider">
-                    <th className="py-3.5 px-6">Service</th>
-                    <th className="py-3.5 px-6">Description</th>
-                    <th className="py-3.5 px-6 text-right">Quantity</th>
-                    <th className="py-3.5 px-6 text-right">Price</th>
-                    <th className="py-3.5 px-6 text-right">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 text-sm">
-                  {/* ── Section 1: Current Month Charges (Advance) ── */}
-                  {currentMonthCharges.length > 0 && (
-                    <>
-                      <tr className="bg-emerald-50/60">
-                        <td
-                          colSpan={5}
-                          className="py-2.5 px-6 text-xs font-black text-emerald-700 uppercase tracking-wider"
-                        >
-                          Current Month Charges (Advance)
-                        </td>
-                      </tr>
-                      {currentMonthCharges.map((svc) => (
-                        <tr key={svc.id} className="hover:bg-gray-50/70 transition-colors">
-                          <td className="py-3.5 px-6 font-bold text-gray-900">
-                            <div className="flex items-center gap-2">
-                              <span>{svc.name}</span>
-                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full uppercase">
-                                Advance
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-3.5 px-6 text-gray-600 text-xs">{svc.description}</td>
-                          <td className="py-3.5 px-6 text-right text-gray-900 font-semibold">{svc.quantity}</td>
-                          <td className="py-3.5 px-6 text-right font-semibold text-gray-900">
-                            ₹{Number(svc.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="py-3.5 px-6 text-right font-bold text-gray-900">
-                            ₹{Number(svc.total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </td>
-                        </tr>
-                      ))}
-                    </>
-                  )}
-
-                  {/* ── Section 2: Refunds & Adjustments (Credit) ── */}
-                  {refundCharges.length > 0 && (
-                    <>
-                      <tr className="bg-teal-50/70">
-                        <td
-                          colSpan={5}
-                          className="py-2.5 px-6 text-xs font-black text-teal-800 uppercase tracking-wider"
-                        >
-                          Refunds & Adjustments (Credit)
-                        </td>
-                      </tr>
-                      {refundCharges.map((svc) => (
-                        <tr key={svc.id} className="bg-teal-50/20 hover:bg-teal-50/50 transition-colors">
-                          <td className="py-3.5 px-6 font-bold text-gray-900">
-                            <div className="flex flex-col gap-0.5">
+            <CardContent className="p-0">
+              <div className="overflow-hidden">
+                <Table className="w-full border-collapse text-left">
+                  <TableHeader>
+                    <TableRow className="border-b border-gray-200 bg-gray-50/70 text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      <TableHead className="py-3.5 px-6">Service</TableHead>
+                      <TableHead className="py-3.5 px-6">Description</TableHead>
+                      <TableHead className="py-3.5 px-6 text-right">Quantity</TableHead>
+                      <TableHead className="py-3.5 px-6 text-right">Price</TableHead>
+                      <TableHead className="py-3.5 px-6 text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody className="divide-y divide-gray-100 text-sm">
+                    {/* ── Section 1: Current Month Charges (Advance) ── */}
+                    {currentMonthCharges.length > 0 && (
+                      <>
+                        <TableRow className="bg-emerald-50/60">
+                          <TableCell
+                            colSpan={5}
+                            className="py-2.5 px-6 text-xs font-black text-emerald-700 uppercase tracking-wider"
+                          >
+                            Current Month Charges (Advance)
+                          </TableCell>
+                        </TableRow>
+                        {currentMonthCharges.map((svc) => (
+                          <TableRow key={svc.id} className="hover:bg-gray-50/70 transition-colors">
+                            <TableCell className="py-3.5 px-6 font-bold text-gray-900">
                               <div className="flex items-center gap-2">
                                 <span>{svc.name}</span>
-                                <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full uppercase tracking-wider border border-emerald-200">
-                                  Refund
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full uppercase">
+                                  Advance
                                 </span>
                               </div>
-                              <span className="text-[11px] text-emerald-600 font-medium italic">
-                                Credit — unused period refund
+                            </TableCell>
+                            <TableCell className="py-3.5 px-6 text-gray-600 text-xs">{svc.description}</TableCell>
+                            <TableCell className="py-3.5 px-6 text-right text-gray-900 font-semibold">
+                              {svc.quantity}
+                            </TableCell>
+                            <TableCell className="py-3.5 px-6 text-right font-semibold text-gray-900">
+                              ₹{Number(svc.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell className="py-3.5 px-6 text-right font-bold text-gray-900">
+                              ₹{Number(svc.total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </>
+                    )}
+
+                    {/* ── Section 2: Refunds & Adjustments (Credit) ── */}
+                    {refundCharges.length > 0 && (
+                      <>
+                        <TableRow className="bg-teal-50/70">
+                          <TableCell
+                            colSpan={5}
+                            className="py-2.5 px-6 text-xs font-black text-teal-800 uppercase tracking-wider"
+                          >
+                            Refunds & Adjustments (Credit)
+                          </TableCell>
+                        </TableRow>
+                        {refundCharges.map((svc) => (
+                          <TableRow key={svc.id} className="bg-teal-50/20 hover:bg-teal-50/50 transition-colors">
+                            <TableCell className="py-3.5 px-6 font-bold text-gray-900">
+                              <div className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-2">
+                                  <span>{svc.name}</span>
+                                  <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full uppercase tracking-wider border border-emerald-200">
+                                    Refund
+                                  </span>
+                                </div>
+                                <span className="text-[11px] text-emerald-600 font-medium italic">
+                                  Credit — unused period refund
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3.5 px-6 text-gray-600 text-xs italic">
+                              {svc.description}
+                            </TableCell>
+                            <TableCell className="py-3.5 px-6 text-right text-gray-900 font-semibold">
+                              {svc.quantity}
+                            </TableCell>
+                            <TableCell className="py-3.5 px-6 text-right font-semibold text-emerald-700">
+                              ₹{Number(svc.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell className="py-3.5 px-6 text-right font-bold">
+                              <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200">
+                                - ₹{Math.abs(Number(svc.total)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </span>
-                            </div>
-                          </td>
-                          <td className="py-3.5 px-6 text-gray-600 text-xs italic">{svc.description}</td>
-                          <td className="py-3.5 px-6 text-right text-gray-900 font-semibold">{svc.quantity}</td>
-                          <td className="py-3.5 px-6 text-right font-semibold text-emerald-700">
-                            ₹{Number(svc.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="py-3.5 px-6 text-right font-bold">
-                            <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200">
-                              - ₹{Math.abs(Number(svc.total)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </>
-                  )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </>
+                    )}
 
-                  {/* ── Section 3: Additional Tasks Done (exclusive of subscribed package) / Add-ons ── */}
-                  <tr className="bg-orange-50/60">
-                    <td colSpan={5} className="py-2.5 px-6 text-xs font-black text-orange-700 uppercase tracking-wider">
-                      Additional Tasks Done (exclusive of subscribed package) — Add-ons
-                    </td>
-                  </tr>
+                    {/* ── Section 3: Additional Tasks Done (exclusive of subscribed package) / Add-ons ── */}
+                    <TableRow className="bg-orange-50/60">
+                      <TableCell
+                        colSpan={5}
+                        className="py-2.5 px-6 text-xs font-black text-orange-700 uppercase tracking-wider"
+                      >
+                        Additional Tasks Done (exclusive of subscribed package) — Add-ons
+                      </TableCell>
+                    </TableRow>
 
-                  {addonTasks.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-4 px-6 text-xs text-gray-500 italic bg-gray-50/30">
-                        No additional tasks (exclusive of package) recorded for this billing cycle.
-                      </td>
-                    </tr>
-                  ) : (
-                    addonTasks.map((svc) => (
-                      <tr key={svc.id} className="hover:bg-orange-50/30 transition-colors">
-                        <td className="py-3.5 px-6 font-bold text-gray-900">
-                          <div className="flex items-center gap-2">
-                            <span>{svc.name}</span>
-                            <span className="text-[10px] font-black text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full uppercase">
-                              Add-on
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-6 text-gray-600 text-xs">
-                          <div className="font-medium text-gray-800">{svc.description}</div>
-                          {(svc.formattedDate || svc.date) && (
-                            <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5">
-                              <Clock className="w-3 h-3 shrink-0 text-gray-400" />
-                              <span>{svc.formattedDate || svc.date}</span>
-                              {svc.nurseName && <span className="ml-1">• By: {svc.nurseName}</span>}
-                            </div>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-6 text-right text-gray-900 font-semibold">{svc.quantity}</td>
-                        <td className="py-3.5 px-6 text-right font-semibold text-gray-900">
-                          ₹{Number(svc.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="py-3.5 px-6 text-right font-bold text-gray-900">
-                          ₹{Number(svc.total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-
-                  {/* ── Section 4: Inventory & Consumables Issued (Assigned Items) ── */}
-                  {inventoryCharges.length > 0 && (
-                    <>
-                      <tr className="bg-indigo-50/60">
-                        <td
-                          colSpan={5}
-                          className="py-2.5 px-6 text-xs font-black text-indigo-700 uppercase tracking-wider"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Package className="w-3.5 h-3.5 text-indigo-600" />
-                            <span>Inventory & Consumables Issued (Assigned Items)</span>
-                          </div>
-                        </td>
-                      </tr>
-                      {inventoryCharges.map((svc) => (
-                        <tr key={svc.id} className="hover:bg-indigo-50/30 transition-colors">
-                          <td className="py-3.5 px-6 font-bold text-gray-900">
+                    {addonTasks.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="py-4 px-6 text-xs text-gray-500 italic bg-gray-50/30">
+                          No additional tasks (exclusive of package) recorded for this billing cycle.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      addonTasks.map((svc) => (
+                        <TableRow key={svc.id} className="hover:bg-orange-50/30 transition-colors">
+                          <TableCell className="py-3.5 px-6 font-bold text-gray-900">
                             <div className="flex items-center gap-2">
                               <span>{svc.name}</span>
-                              <span className="text-[10px] font-black text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full uppercase">
-                                Inventory
+                              <span className="text-[10px] font-black text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full uppercase">
+                                Add-on
                               </span>
                             </div>
-                          </td>
-                          <td className="py-3.5 px-6 text-gray-600 text-xs">
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-gray-600 text-xs">
                             <div className="font-medium text-gray-800">{svc.description}</div>
                             {(svc.formattedDate || svc.date) && (
                               <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5">
-                                <Calendar className="w-3 h-3 shrink-0 text-gray-400" />
+                                <Clock className="w-3 h-3 shrink-0 text-gray-400" />
                                 <span>{svc.formattedDate || svc.date}</span>
+                                {svc.nurseName && <span className="ml-1">• By: {svc.nurseName}</span>}
                               </div>
                             )}
-                          </td>
-                          <td className="py-3.5 px-6 text-right text-gray-900 font-semibold">{svc.quantity}</td>
-                          <td className="py-3.5 px-6 text-right font-semibold text-gray-900">
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-right text-gray-900 font-semibold">
+                            {svc.quantity}
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-right font-semibold text-gray-900">
                             ₹{Number(svc.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="py-3.5 px-6 text-right font-bold text-gray-900">
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-right font-bold text-gray-900">
                             ₹{Number(svc.total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </td>
-                        </tr>
-                      ))}
-                    </>
-                  )}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
 
-                  {/* ── Section 5: Miscellaneous Services ── */}
-                  {miscServices.length > 0 && (
-                    <>
-                      <tr className="bg-purple-50/60">
-                        <td
-                          colSpan={5}
-                          className="py-2.5 px-6 text-xs font-black text-purple-700 uppercase tracking-wider"
-                        >
-                          Miscellaneous Services & Fees
-                        </td>
-                      </tr>
-                      {miscServices.map((misc) => (
-                        <tr key={misc.id} className="hover:bg-gray-50/70 transition-colors">
-                          <td className="py-3.5 px-6 font-bold text-gray-900">
+                    {/* ── Section 4: Inventory & Consumables Issued (Assigned Items) ── */}
+                    {inventoryCharges.length > 0 && (
+                      <>
+                        <TableRow className="bg-indigo-50/60">
+                          <TableCell
+                            colSpan={5}
+                            className="py-2.5 px-6 text-xs font-black text-indigo-700 uppercase tracking-wider"
+                          >
                             <div className="flex items-center gap-2">
-                              <span>{misc.name}</span>
-                              <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full uppercase">
-                                Custom
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveMiscItem(misc.id)}
-                                className="text-gray-400 hover:text-rose-600 p-1 rounded-md cursor-pointer transition-colors print:hidden"
-                                title="Delete service item"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              <Package className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>Inventory & Consumables Issued (Assigned Items)</span>
                             </div>
-                          </td>
-                          <td className="py-3.5 px-6 text-gray-600 text-xs">{misc.description}</td>
-                          <td className="py-3.5 px-6 text-right text-gray-900 font-semibold">{misc.quantity}</td>
-                          <td className="py-3.5 px-6 text-right font-semibold text-gray-900">
-                            ₹{Number(misc.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="py-3.5 px-6 text-right font-bold text-gray-900">
-                            ₹{Number(misc.total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </td>
-                        </tr>
-                      ))}
-                    </>
+                          </TableCell>
+                        </TableRow>
+                        {inventoryCharges.map((svc) => (
+                          <TableRow key={svc.id} className="hover:bg-indigo-50/30 transition-colors">
+                            <TableCell className="py-3.5 px-6 font-bold text-gray-900">
+                              <div className="flex items-center gap-2">
+                                <span>{svc.name}</span>
+                                <span className="text-[10px] font-black text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full uppercase">
+                                  Inventory
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3.5 px-6 text-gray-600 text-xs">
+                              <div className="font-medium text-gray-800">{svc.description}</div>
+                              {(svc.formattedDate || svc.date) && (
+                                <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5">
+                                  <Calendar className="w-3 h-3 shrink-0 text-gray-400" />
+                                  <span>{svc.formattedDate || svc.date}</span>
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell className="py-3.5 px-6 text-right text-gray-900 font-semibold">
+                              {svc.quantity}
+                            </TableCell>
+                            <TableCell className="py-3.5 px-6 text-right font-semibold text-gray-900">
+                              ₹{Number(svc.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell className="py-3.5 px-6 text-right font-bold text-gray-900">
+                              ₹{Number(svc.total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </>
+                    )}
+
+                    {/* ── Section 5: Miscellaneous Services ── */}
+                    {miscServices.length > 0 && (
+                      <>
+                        <TableRow className="bg-purple-50/60">
+                          <TableCell
+                            colSpan={5}
+                            className="py-2.5 px-6 text-xs font-black text-purple-700 uppercase tracking-wider"
+                          >
+                            Miscellaneous Services & Fees
+                          </TableCell>
+                        </TableRow>
+                        {miscServices.map((misc) => (
+                          <TableRow key={misc.id} className="hover:bg-gray-50/70 transition-colors">
+                            <TableCell className="py-3.5 px-6 font-bold text-gray-900">
+                              <div className="flex items-center gap-2">
+                                <span>{misc.name}</span>
+                                <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full uppercase">
+                                  Custom
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-xs"
+                                  type="button"
+                                  onClick={() => handleRemoveMiscItem(misc.id)}
+                                  className="text-gray-400 hover:text-rose-600 p-1 h-auto rounded-md cursor-pointer transition-colors print:hidden hover:bg-transparent"
+                                  aria-label="Delete service item"
+                                  title="Delete service item"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3.5 px-6 text-gray-600 text-xs">{misc.description}</TableCell>
+                            <TableCell className="py-3.5 px-6 text-right text-gray-900 font-semibold">
+                              {misc.quantity}
+                            </TableCell>
+                            <TableCell className="py-3.5 px-6 text-right font-semibold text-gray-900">
+                              ₹{Number(misc.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell className="py-3.5 px-6 text-right font-bold text-gray-900">
+                              ₹{Number(misc.total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* ── Summary & Discounts Footer ── */}
+              <div className="p-6 bg-gradient-to-br from-gray-50/70 to-white border-t border-gray-200 flex flex-col md:flex-row items-end justify-between gap-6">
+                {/* Left Column: Discount / Adjustments Input Controls */}
+                <div className="w-full md:w-80 space-y-3 print:hidden">
+                  <span className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Apply Discount</span>
+                  <div className="flex items-center gap-2">
+                    <div className="inline-flex rounded-xl bg-gray-100 p-1 border border-gray-200">
+                      <Button
+                        variant="ghost"
+                        type="button"
+                        onClick={() => setDiscountType('flat')}
+                        className={`px-3 py-1 h-auto text-xs font-bold rounded-lg transition-all ${
+                          discountType === 'flat'
+                            ? 'bg-white text-gray-900 shadow-xs hover:bg-white hover:text-gray-900'
+                            : 'text-gray-500 hover:text-gray-900'
+                        }`}
+                      >
+                        Flat (₹)
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        type="button"
+                        onClick={() => setDiscountType('percentage')}
+                        className={`px-3 py-1 h-auto text-xs font-bold rounded-lg transition-all ${
+                          discountType === 'percentage'
+                            ? 'bg-white text-gray-900 shadow-xs hover:bg-white hover:text-gray-900'
+                            : 'text-gray-500 hover:text-gray-900'
+                        }`}
+                      >
+                        Percent (%)
+                      </Button>
+                    </div>
+
+                    <div className="relative flex-1">
+                      <Input
+                        type="number"
+                        min="0"
+                        step={discountType === 'percentage' ? '1' : '100'}
+                        value={discountValue === 0 ? '' : discountValue}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value)
+                          setDiscountValue(isNaN(val) ? 0 : val)
+                        }}
+                        placeholder="0"
+                        className="text-right font-bold text-sm bg-white rounded-xl h-9"
+                      />
+                      <span className="absolute left-3 top-2.5 text-xs text-gray-400 font-bold">
+                        {discountType === 'percentage' ? '%' : '₹'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Totals Computation Table */}
+                <div className="w-full md:w-80 space-y-2.5">
+                  <div className="flex justify-between items-center text-sm text-gray-600">
+                    <span className="font-medium">Gross Charges</span>
+                    <span className="font-bold text-gray-900">
+                      ₹{grossTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+
+                  {refundTotal > 0 && (
+                    <div className="flex justify-between items-center text-sm text-emerald-700">
+                      <span className="font-medium">Refund / Credit Deduction</span>
+                      <span className="font-bold">
+                        - ₹{refundTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
                   )}
-                </tbody>
-              </table>
-            </div>
 
-            {/* ── Summary & Discounts Footer ── */}
-            <div className="p-6 bg-gradient-to-br from-gray-50/70 to-white border-t border-gray-200 flex flex-col md:flex-row items-end justify-between gap-6">
-              {/* Left Column: Discount / Adjustments Input Controls */}
-              <div className="w-full md:w-80 space-y-3 print:hidden">
-                <span className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Apply Discount</span>
-                <div className="flex items-center gap-2">
-                  <div className="inline-flex rounded-xl bg-gray-100 p-1 border border-gray-200">
-                    <button
-                      type="button"
-                      onClick={() => setDiscountType('flat')}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-                        discountType === 'flat'
-                          ? 'bg-white text-gray-900 shadow-xs'
-                          : 'text-gray-500 hover:text-gray-900'
-                      }`}
-                    >
-                      Flat (₹)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDiscountType('percentage')}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-                        discountType === 'percentage'
-                          ? 'bg-white text-gray-900 shadow-xs'
-                          : 'text-gray-500 hover:text-gray-900'
-                      }`}
-                    >
-                      Percent (%)
-                    </button>
+                  <div className="flex justify-between items-center text-sm text-gray-600">
+                    <span className="font-medium">Subtotal</span>
+                    <span className="font-bold text-gray-900">
+                      ₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </span>
                   </div>
 
-                  <div className="relative flex-1">
-                    <Input
-                      type="number"
-                      min="0"
-                      step={discountType === 'percentage' ? '1' : '100'}
-                      value={discountValue === 0 ? '' : discountValue}
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value)
-                        setDiscountValue(isNaN(val) ? 0 : val)
-                      }}
-                      placeholder="0"
-                      className="text-right font-bold text-sm bg-white rounded-xl h-9"
-                    />
-                    <span className="absolute left-3 top-2.5 text-xs text-gray-400 font-bold">
-                      {discountType === 'percentage' ? '%' : '₹'}
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between items-center text-sm text-emerald-700">
+                      <span className="font-medium">
+                        Discount ({discountType === 'percentage' ? `${discountValue}%` : 'Flat'})
+                      </span>
+                      <span className="font-bold">
+                        - ₹{discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="pt-3 border-t border-gray-200 flex justify-between items-baseline">
+                    <span className="text-base font-black text-gray-900 uppercase tracking-tight">Total Payable</span>
+                    <span className="text-2xl font-black text-[#005390]">
+                      ₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 uppercase">
+                      Currency: INR (₹)
                     </span>
                   </div>
                 </div>
               </div>
-
-              {/* Right Column: Totals Computation Table */}
-              <div className="w-full md:w-80 space-y-2.5">
-                <div className="flex justify-between items-center text-sm text-gray-600">
-                  <span className="font-medium">Gross Charges</span>
-                  <span className="font-bold text-gray-900">
-                    ₹{grossTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-
-                {refundTotal > 0 && (
-                  <div className="flex justify-between items-center text-sm text-emerald-700">
-                    <span className="font-medium">Refund / Credit Deduction</span>
-                    <span className="font-bold">
-                      - ₹{refundTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                )}
-
-                <div className="flex justify-between items-center text-sm text-gray-600">
-                  <span className="font-medium">Subtotal</span>
-                  <span className="font-bold text-gray-900">
-                    ₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-
-                {discountAmount > 0 && (
-                  <div className="flex justify-between items-center text-sm text-emerald-700">
-                    <span className="font-medium">
-                      Discount ({discountType === 'percentage' ? `${discountValue}%` : 'Flat'})
-                    </span>
-                    <span className="font-bold">
-                      - ₹{discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                )}
-
-                <div className="pt-3 border-t border-gray-200 flex justify-between items-baseline">
-                  <span className="text-base font-black text-gray-900 uppercase tracking-tight">Total Payable</span>
-                  <span className="text-2xl font-black text-[#005390]">
-                    ₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-
-                <div className="text-right">
-                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 uppercase">
-                    Currency: INR (₹)
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 

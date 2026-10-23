@@ -2,7 +2,7 @@ import { useCallback, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { getUserLocationPermissionsAPI } from '@/lib/services/rbacService'
 import { getUserAccessiblePropertiesAPI } from '@/lib/services/userService'
-import { ACTIVE_PROP_ID_KEY, type PropertyLocationItem, useLocationStore } from '@/lib/stores/locationStore'
+import { type PropertyLocationItem, useLocationStore } from '@/lib/stores/locationStore'
 import { notifySuccess } from '@/utils/toast'
 import { getDepartmentManagerType } from '@/utils/departmentManager'
 import { SUB_MODULES } from '@/lib/permissions/resourceKeys'
@@ -19,6 +19,33 @@ export const clearLocationFetchCache = () => {
   fetchedLocationsUserId = null
   inFlightPermissionsKey = null
   fetchedPermissionsKey = null
+}
+
+export const refreshAccessibleLocations = async (selectPropertyId?: string): Promise<PropertyLocationItem[]> => {
+  try {
+    useLocationStore.getState().setIsLoadingLocations(true)
+    const locations = await getUserAccessiblePropertiesAPI()
+    useLocationStore.getState().setAccessibleLocations(locations)
+
+    const currentSelectedId = useLocationStore.getState().selectedLocationId
+    const targetId = selectPropertyId || currentSelectedId
+    const targetLoc = locations.find((l) => l.id === targetId)
+
+    if (targetLoc) {
+      useLocationStore.getState().setSelectedLocation(targetLoc.id, targetLoc.property_name)
+    } else if (locations.length > 0) {
+      useLocationStore.getState().setSelectedLocation(locations[0].id, locations[0].property_name)
+    } else {
+      useLocationStore.getState().setSelectedLocation(null, null)
+    }
+    return locations
+  } catch (err: unknown) {
+    console.warn('Error refreshing accessible properties:', err)
+    return []
+  } finally {
+    inFlightLocationsUserId = null
+    useLocationStore.getState().setIsLoadingLocations(false)
+  }
 }
 
 export const useLocation = () => {
@@ -55,31 +82,10 @@ export const useLocation = () => {
       return
     }
 
-    const loadLocations = async () => {
-      inFlightLocationsUserId = user.id
-      try {
-        setIsLoadingLocations(true)
-        const locations = await getUserAccessiblePropertiesAPI()
-        setAccessibleLocations(locations)
-        fetchedLocationsUserId = user.id
+    inFlightLocationsUserId = user.id
+    fetchedLocationsUserId = user.id
 
-        const savedLocId = localStorage.getItem(ACTIVE_PROP_ID_KEY)
-        const savedLoc = locations.find((l) => l.id === savedLocId)
-
-        if (savedLoc) {
-          setSelectedLocation(savedLoc.id, savedLoc.property_name)
-        } else if (locations.length > 0) {
-          setSelectedLocation(locations[0].id, locations[0].property_name)
-        }
-      } catch (err: unknown) {
-        console.warn('Error loading accessible properties:', err)
-      } finally {
-        inFlightLocationsUserId = null
-        setIsLoadingLocations(false)
-      }
-    }
-
-    loadLocations()
+    refreshAccessibleLocations()
   }, [
     isAuthenticated,
     user,
@@ -87,7 +93,6 @@ export const useLocation = () => {
     setLocationPermissions,
     setIsLoadingLocations,
     setIsLoadingPermissions,
-    setSelectedLocation,
   ])
 
   // 2. Fetch location permissions whenever selectedLocationId changes
@@ -172,6 +177,10 @@ export const useLocation = () => {
     storeResetLocationState()
   }, [storeResetLocationState])
 
+  const refreshLocations = useCallback((selectPropertyId?: string) => {
+    return refreshAccessibleLocations(selectPropertyId)
+  }, [])
+
   return {
     selectedLocationId,
     selectedLocationName,
@@ -184,6 +193,7 @@ export const useLocation = () => {
     isLoadingPermissions,
     hasResourcePermission,
     resetLocationState,
+    refreshLocations,
   }
 }
 

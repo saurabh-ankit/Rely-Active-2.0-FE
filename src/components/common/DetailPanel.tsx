@@ -1,5 +1,6 @@
 import type React from 'react'
 import type { LucideIcon } from 'lucide-react'
+import { Card, CardContent, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
 /** Building blocks for profile/detail pages: titled panels and label/value lists. */
@@ -20,21 +21,21 @@ export const Panel = ({
   children: React.ReactNode
   className?: string
 }) => (
-  <section
+  <Card
     className={cn(
-      'rounded-2xl border border-gray-100 bg-white p-5 shadow-2xs dark:border-gray-800 dark:bg-slate-900',
+      'gap-0 rounded-2xl border-gray-100 bg-white p-5 shadow-2xs dark:border-gray-800 dark:bg-slate-900',
       className,
     )}
   >
     <div className="mb-3 flex items-center justify-between gap-3">
-      <h2 className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
+      <CardTitle className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
         <Icon className="h-4 w-4 text-[#005390]" />
         {title}
-      </h2>
+      </CardTitle>
       {action}
     </div>
-    {children}
-  </section>
+    <CardContent className="p-0">{children}</CardContent>
+  </Card>
 )
 
 /** Label on the left, value on the right; rows are separated by thin lines. */

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Activity, Plus } from 'lucide-react'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import { Button } from '@/components/ui/button'
+import { TableCell, TableRow } from '@/components/ui/table'
 import { useDeleteResidentVitalMutation } from '@/hooks/react-query/resident'
 import type { ResidentVitalItem } from '@/lib/types/resident'
 import { formatDisplayDateTime } from '@/lib/utils'
@@ -60,25 +61,25 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({ residentId, canUpdateResid
           }}
         >
           {vitals.map((vital) => (
-            <tr key={vital.id} className="align-top hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
-              <td className="px-4 py-3.5 font-semibold text-gray-900 dark:text-white">{vital.name}</td>
-              <td className="px-4 py-3.5 whitespace-nowrap">
+            <TableRow key={vital.id} className="align-top hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+              <TableCell className="px-4 py-3.5 font-semibold text-gray-900 dark:text-white">{vital.name}</TableCell>
+              <TableCell className="px-4 py-3.5 whitespace-nowrap">
                 <span className="text-sm font-bold text-gray-900 dark:text-white">{vital.value || '-'}</span>
                 {vital.value && vital.unit && <span className="ml-1 text-[11px] text-gray-400">{vital.unit}</span>}
-              </td>
-              <td className="px-4 py-3.5 whitespace-nowrap">{formatDisplayDateTime(vital.recordedAt)}</td>
-              <td className="px-4 py-3.5 max-w-xs whitespace-pre-wrap">{vital.note || '-'}</td>
+              </TableCell>
+              <TableCell className="px-4 py-3.5 whitespace-nowrap">{formatDisplayDateTime(vital.recordedAt)}</TableCell>
+              <TableCell className="px-4 py-3.5 max-w-xs whitespace-pre-wrap">{vital.note || '-'}</TableCell>
               <ClinicalAddedByCell name={vital.createdByName} createdAt={vital.createdAt} />
               {canUpdateResident && (
-                <td className="px-4 py-2.5">
+                <TableCell className="px-4 py-2.5">
                   <ClinicalRowActions
                     label="vital"
                     onEdit={() => setFormTarget({ item: vital })}
                     onDelete={() => setDeleting(vital)}
                   />
-                </td>
+                </TableCell>
               )}
-            </tr>
+            </TableRow>
           ))}
         </ClinicalTable>
       </ClinicalCard>

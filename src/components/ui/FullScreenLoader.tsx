@@ -1,56 +1,97 @@
 import * as React from 'react'
+import { createPortal } from 'react-dom'
+import { Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { useScrollLock } from '@/hooks/useScrollLock'
 
-export interface FullScreenLoaderProps {
-  /** Whether the loader is visible */
+export interface FullScreenLoaderProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Whether the loader is visible. Defaults to true. */
   isVisible?: boolean
-  message?: string
+  /** Loading status message displayed to assistive tech and users */
+  message?: React.ReactNode
+  /** Whether the loader covers the full viewport or is constrained to its parent container. Defaults to true. */
+  fullScreen?: boolean
+  /** Whether to render into document.body using a React portal. Defaults to true when fullScreen is true. */
+  usePortal?: boolean
+  /** Custom portal container element. Defaults to document.body when usePortal is true. */
+  container?: HTMLElement | null
+  /** Whether to lock document scrolling while the overlay is visible. Defaults to true when fullScreen is true. */
+  lockScroll?: boolean
+  /** Optional custom icon replacement for the default spinner */
+  icon?: React.ReactNode
+  /** Additional CSS class names for the spinner icon */
+  spinnerClassName?: string
 }
 
 const FullScreenLoader = React.forwardRef<HTMLDivElement, FullScreenLoaderProps>(
-  ({ isVisible = true, message = 'Loading...' }, ref) => {
+  (
+    {
+      isVisible = true,
+      message = 'Loading...',
+      fullScreen = true,
+      className,
+      spinnerClassName,
+      usePortal,
+      container,
+      lockScroll,
+      icon,
+      ...props
+    },
+    ref,
+  ) => {
+    // When fullScreen is true, default to locking scroll and using portal to body.
+    // When fullScreen is false, default to in-place rendering and no scroll lock.
+    const shouldPortal = usePortal ?? fullScreen
+    const shouldLockScroll = lockScroll ?? fullScreen
+
+    // Keep hook call unconditional across renders
+    useScrollLock(isVisible && shouldLockScroll)
+
     if (!isVisible) return null
 
-    return (
-      <div ref={ref} className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/90 backdrop-blur-sm">
-        <div className="flex flex-col items-center justify-center space-y-6">
-          {/* Rely Active Logo/Brand */}
-          <div className="relative">
-            {/* Main spinning ring */}
-            <div className="w-20 h-20 rounded-full border-4 border-gray-200 border-t-[#005390] animate-spin" />
+    const overlay = (
+      <div
+        ref={ref}
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+        aria-atomic="true"
+        data-slot="fullscreen-loader"
+        className={cn(
+          fullScreen ? 'fixed inset-0 z-50' : 'absolute inset-0 z-20 rounded-2xl',
+          'flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm select-none supports-backdrop-filter:backdrop-blur-sm transition-opacity duration-150',
+          className,
+        )}
+        {...props}
+      >
+        <div className="flex flex-col items-center justify-center gap-3 px-4 text-center">
+          {icon ? (
+            icon
+          ) : (
+            <Loader2
+              className={cn('size-8 animate-spin text-primary motion-reduce:animate-none', spinnerClassName)}
+              aria-hidden="true"
+            />
+          )}
 
-            {/* Inner pulsing circle */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-6 h-6 rounded-full bg-[#005390] animate-pulse" />
-            </div>
-          </div>
-
-          {/* Rely Active Text */}
-          <div className="text-center space-y-2">
-            <h2 className="text-2xl font-bold text-[#005390] animate-pulse tracking-widest">
-              R E L Y &nbsp; A C T I V E
-            </h2>
-            <p className="text-sm text-gray-600 font-medium">{message}</p>
-          </div>
-
-          {/* Animated dots */}
-          <div className="flex space-x-2">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="w-2 h-2 rounded-full bg-[#005390] animate-bounce"
-                style={{
-                  animationDelay: `${i * 0.2}s`,
-                  animationDuration: '1s',
-                }}
-              />
-            ))}
-          </div>
+          {message ? (
+            <p className="text-sm font-medium text-muted-foreground motion-reduce:animate-none">{message}</p>
+          ) : (
+            <span className="sr-only">Loading</span>
+          )}
         </div>
       </div>
     )
+
+    if (shouldPortal && typeof document !== 'undefined') {
+      return createPortal(overlay, container ?? document.body)
+    }
+
+    return overlay
   },
 )
 
 FullScreenLoader.displayName = 'FullScreenLoader'
 
 export { FullScreenLoader }
+export default FullScreenLoader

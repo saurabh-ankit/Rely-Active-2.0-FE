@@ -44,6 +44,7 @@ export const API_ENDPOINTS = {
     getByUnit: (unitId: string) => `${BASE_URL}/residents/unit/${unitId}`,
     create: `${BASE_URL}/residents`,
     update: (id: string) => `${BASE_URL}/residents/${id}`,
+    unitChangeImpact: (id: string) => `${BASE_URL}/residents/${id}/unit-change-impact`,
     delete: (id: string) => `${BASE_URL}/residents/${id}`,
     login: `${BASE_URL}/residents/auth/login`,
     billing: (id: string) => `${BASE_URL}/residents/billing/${id}`,

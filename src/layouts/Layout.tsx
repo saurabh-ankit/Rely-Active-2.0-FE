@@ -5,6 +5,7 @@ import SetupStatusGuard from '@/components/common/SetupStatusGuard'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocationContext } from '@/hooks/useLocation'
 import { getDepartmentManagerType } from '@/utils/departmentManager'
+import { Button } from '@/components/ui/button'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
 
@@ -51,20 +52,21 @@ export default function Layout() {
           There is NO module assigned to you. Please contact Super Admin.
         </p>
         <div className="flex items-center gap-3">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => setShowLocationModal(true)}
-            className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 text-xs font-bold hover:bg-gray-50 shadow-xs cursor-pointer"
+            className="rounded-xl border-gray-200 bg-white text-gray-700 text-xs font-bold hover:bg-gray-50 shadow-xs cursor-pointer"
           >
             Switch Location
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={logout}
-            className="px-4 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-200 cursor-pointer"
+            className="rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-200 cursor-pointer"
           >
             Sign Out
-          </button>
+          </Button>
         </div>
       </div>
     )

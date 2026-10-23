@@ -1,7 +1,11 @@
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Loader2, Search, UserRound, X } from 'lucide-react'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getResidentsAPI } from '@/lib/services/residentService'
 import {
   blockAmenitySlotAPI,
@@ -464,10 +468,10 @@ export function SlotManagerDrawer({
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Bookable hours</p>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <div>
-              <label htmlFor="slot-open-time" className="mb-1 block text-xs text-gray-500">
+              <Label htmlFor="slot-open-time" className="mb-1 block text-xs text-gray-500">
                 From
-              </label>
-              <input
+              </Label>
+              <Input
                 id="slot-open-time"
                 type="time"
                 className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
@@ -480,10 +484,10 @@ export function SlotManagerDrawer({
               />
             </div>
             <div>
-              <label htmlFor="slot-close-time" className="mb-1 block text-xs text-gray-500">
+              <Label htmlFor="slot-close-time" className="mb-1 block text-xs text-gray-500">
                 To
-              </label>
-              <input
+              </Label>
+              <Input
                 id="slot-close-time"
                 type="time"
                 className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
@@ -502,18 +506,19 @@ export function SlotManagerDrawer({
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Slot length</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {[30, 45, 60, 90, 120].map((duration) => (
-              <button
+              <Button
+                variant="ghost"
                 key={duration}
                 type="button"
                 onClick={() => setDraft((prev) => ({ ...prev, durationMin: duration }))}
-                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                className={`rounded-full border px-3 py-1.5 h-auto text-xs font-semibold transition-colors ${
                   draft.durationMin === duration
-                    ? 'border-[#005390] bg-[#005390] text-white'
-                    : 'border-gray-200 bg-white text-gray-700 hover:border-[#005390]/40'
+                    ? 'border-[#005390] bg-[#005390] text-white hover:bg-[#005390] hover:text-white'
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-[#005390]/40 hover:bg-white'
                 }`}
               >
                 {duration} min
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -521,21 +526,27 @@ export function SlotManagerDrawer({
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Bookings per slot</p>
           <div className="mt-2 flex items-center gap-3">
-            <button
+            <Button
+              variant="outline"
+              size="icon"
               type="button"
               className="h-9 w-9 rounded-full border border-gray-200 text-lg"
               onClick={() => setDraft((prev) => ({ ...prev, capacity: Math.max(1, prev.capacity - 1) }))}
+              aria-label="Decrease capacity"
             >
               -
-            </button>
+            </Button>
             <p className="min-w-8 text-center text-lg font-bold text-gray-900">{draft.capacity}</p>
-            <button
+            <Button
+              variant="outline"
+              size="icon"
               type="button"
               className="h-9 w-9 rounded-full border border-gray-200 text-lg"
               onClick={() => setDraft((prev) => ({ ...prev, capacity: Math.min(20, prev.capacity + 1) }))}
+              aria-label="Increase capacity"
             >
               +
-            </button>
+            </Button>
           </div>
           <p className="mt-1 text-xs text-gray-500">Use 1 for a court, more for shared spaces like a gym.</p>
         </div>
@@ -546,7 +557,8 @@ export function SlotManagerDrawer({
             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((dayLabel, index) => {
               const on = draft.daysOfWeek.includes(index)
               return (
-                <button
+                <Button
+                  variant="ghost"
                   key={dayLabel}
                   type="button"
                   onClick={() =>
@@ -557,12 +569,14 @@ export function SlotManagerDrawer({
                         : normalizeDays([...prev.daysOfWeek, index]),
                     }))
                   }
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    on ? 'border-[#005390] bg-[#005390] text-white' : 'border-gray-200 bg-white text-gray-700'
+                  className={`rounded-full border px-3 py-1.5 h-auto text-xs font-semibold transition-colors ${
+                    on
+                      ? 'border-[#005390] bg-[#005390] text-white hover:bg-[#005390] hover:text-white'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-[#005390]/40 hover:bg-white'
                   }`}
                 >
                   {dayLabel}
-                </button>
+                </Button>
               )
             })}
           </div>
@@ -576,14 +590,14 @@ export function SlotManagerDrawer({
       </div>
 
       <div className="absolute inset-x-0 bottom-0 border-t border-gray-200 bg-white p-4">
-        <button
+        <Button
           type="button"
-          className="w-full rounded-xl bg-[#005390] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+          className="w-full rounded-xl bg-[#005390] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#005390]/90 disabled:opacity-50"
           onClick={saveSetup}
           disabled={savingConfig || invalidHours || draft.daysOfWeek.length === 0}
         >
           {savingConfig ? 'Saving...' : 'Save slot setup'}
-        </button>
+        </Button>
       </div>
     </div>
   )
@@ -591,7 +605,9 @@ export function SlotManagerDrawer({
   const bookingsView = (
     <div className="relative flex h-full flex-col p-4 pb-40">
       <div className="mb-3 flex items-center gap-2">
-        <button
+        <Button
+          variant="outline"
+          size="icon"
           type="button"
           onClick={() => setWeekOffset((prev) => Math.max(0, prev - 1))}
           disabled={weekOffset <= 0}
@@ -599,7 +615,7 @@ export function SlotManagerDrawer({
           aria-label="Previous week"
         >
           <ChevronLeft className="mx-auto h-4 w-4" />
-        </button>
+        </Button>
         <div className="grid flex-1 grid-cols-7 gap-1">
           {weekDays.map((date) => {
             const dateYmd = toYmd(date)
@@ -608,7 +624,8 @@ export function SlotManagerDrawer({
             const disabled = isPastDate || disabledByOpenDays
             const selected = dateYmd === selectedDateYmd
             return (
-              <button
+              <Button
+                variant="ghost"
                 key={dateYmd}
                 type="button"
                 disabled={disabled}
@@ -617,26 +634,28 @@ export function SlotManagerDrawer({
                   setActiveSlot(null)
                   if (amenity) void loadSlots(amenity.id, dateYmd)
                 }}
-                className={`rounded-lg border px-1 py-1 text-center text-[11px] ${
+                className={`rounded-lg border px-1 py-1 h-auto text-center text-[11px] flex-col items-center justify-center font-normal whitespace-normal ${
                   selected
-                    ? 'border-[#005390] bg-[#005390] text-white'
-                    : 'border-gray-200 bg-white text-gray-700 hover:border-[#005390]/30'
+                    ? 'border-[#005390] bg-[#005390] text-white hover:bg-[#005390] hover:text-white'
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-[#005390]/30 hover:bg-white'
                 } disabled:opacity-35`}
               >
                 <span className="block text-[10px]">{date.toLocaleDateString('en-US', { weekday: 'short' })}</span>
                 <span className="block text-sm font-semibold">{date.getDate()}</span>
-              </button>
+              </Button>
             )
           })}
         </div>
-        <button
+        <Button
+          variant="outline"
+          size="icon"
           type="button"
           onClick={() => setWeekOffset((prev) => prev + 1)}
           className="h-9 w-9 rounded-lg border border-gray-200 text-gray-700"
           aria-label="Next week"
         >
           <ChevronRight className="mx-auto h-4 w-4" />
-        </button>
+        </Button>
       </div>
 
       <p className="mb-2 text-sm font-semibold text-gray-900">
@@ -683,16 +702,17 @@ export function SlotManagerDrawer({
                     const selected =
                       activeSlot?.startMinutes === slot.startMinutes && activeSlot?.status === slot.status
                     return (
-                      <button
+                      <Button
+                        variant="ghost"
                         key={`${slot.startMinutes}-${slot.status}`}
                         type="button"
                         onClick={() => openSlotPanel(slot)}
                         disabled={slot.status === 'PAST'}
-                        className={`rounded-xl border p-2 text-left transition ${slotStatusClasses[slot.status]} ${selected ? 'ring-2 ring-[#005390]' : ''}`}
+                        className={`rounded-xl border p-2 h-auto text-left flex-col items-start justify-start font-normal whitespace-normal transition ${slotStatusClasses[slot.status]} ${selected ? 'ring-2 ring-[#005390]' : ''}`}
                       >
                         <p className="text-sm font-semibold">{slot.startLabel}</p>
                         <p className="mt-1 text-[11px] font-medium opacity-85">{statusText(slot)}</p>
-                      </button>
+                      </Button>
                     )
                   })}
                 </div>
@@ -716,20 +736,21 @@ export function SlotManagerDrawer({
               <p className="text-sm text-gray-500">Blocked, so residents cannot book this slot.</p>
             </div>
             <div className="flex gap-2">
-              <button
+              <Button
                 type="button"
                 onClick={handleUnblock}
-                className="flex-1 rounded-lg bg-[#005390] px-3 py-2 text-sm font-semibold text-white"
+                className="flex-1 rounded-lg bg-[#005390] px-3 py-2 text-sm font-semibold text-white hover:bg-[#005390]/90"
               >
                 Unblock slot
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
                 type="button"
                 onClick={() => setActiveSlot(null)}
                 className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700"
               >
                 Close
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
@@ -743,14 +764,16 @@ export function SlotManagerDrawer({
                   {activeSlot.bookedCount} of {activeSlot.capacity} booked
                 </p>
               </div>
-              <button
+              <Button
+                variant="ghost"
+                size="icon-xs"
                 type="button"
                 onClick={() => setActiveSlot(null)}
                 className="rounded-full p-1.5 text-gray-500 hover:bg-gray-100"
                 aria-label="Close slot panel"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
 
             {activeSlot.bookings.length > 0 && (
@@ -766,13 +789,14 @@ export function SlotManagerDrawer({
                         from {residentLocationLabel(booking.floorNumber, booking.unitNumber)}
                       </p>
                     </div>
-                    <button
+                    <Button
+                      variant="ghost"
                       type="button"
                       onClick={() => void handleCancelBooking(booking.id, booking.residentName)}
-                      className="rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700"
+                      className="h-auto rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 hover:text-rose-800"
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -785,7 +809,7 @@ export function SlotManagerDrawer({
                 <>
                   <div className="relative">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input
+                    <Input
                       type="text"
                       value={residentQuery}
                       onChange={(event) => setResidentQuery(event.target.value)}
@@ -808,12 +832,15 @@ export function SlotManagerDrawer({
                         const unitNumber = resident.unit?.unit_number || null
                         const selected = selectedResidentId === resident.id
                         return (
-                          <button
+                          <Button
+                            variant="ghost"
                             key={resident.id}
                             type="button"
                             onClick={() => setSelectedResidentId(resident.id)}
-                            className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm ${
-                              selected ? 'bg-[#005390]/10 text-[#005390]' : 'hover:bg-gray-50'
+                            className={`flex w-full h-auto items-center justify-between rounded-md px-2 py-1.5 text-left text-sm font-normal whitespace-normal ${
+                              selected
+                                ? 'bg-[#005390]/10 text-[#005390] hover:bg-[#005390]/10 hover:text-[#005390]'
+                                : 'hover:bg-gray-50'
                             }`}
                           >
                             <span className="inline-flex min-w-0 items-center gap-2">
@@ -825,7 +852,7 @@ export function SlotManagerDrawer({
                             <span className="text-[11px] text-gray-500">
                               {residentLocationLabel(floorNumber, unitNumber)}
                             </span>
-                          </button>
+                          </Button>
                         )
                       })
                     )}
@@ -838,33 +865,35 @@ export function SlotManagerDrawer({
               !activeSlot.isBlocked &&
               activeSlot.remainingCount > 0 &&
               activeSlot.status !== 'LEGACY_BOOKED' ? (
-                <button
+                <Button
                   type="button"
                   onClick={handleBook}
                   disabled={!selectedResidentId || bookingPending}
-                  className="flex-1 rounded-lg bg-[#005390] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                  className="flex-1 rounded-lg bg-[#005390] px-3 py-2 text-sm font-semibold text-white hover:bg-[#005390]/90 disabled:opacity-50"
                 >
                   {bookingPending ? 'Booking...' : 'Confirm booking'}
-                </button>
+                </Button>
               ) : null}
 
               {!activeSlot.isPast && activeSlot.bookings.length === 0 && !activeSlot.isBlocked ? (
-                <button
+                <Button
+                  variant="ghost"
                   type="button"
                   onClick={handleBlock}
-                  className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800"
+                  className="h-auto rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100 hover:text-amber-900"
                 >
                   Block
-                </button>
+                </Button>
               ) : null}
 
-              <button
+              <Button
+                variant="outline"
                 type="button"
                 onClick={() => setActiveSlot(null)}
                 className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -878,29 +907,32 @@ export function SlotManagerDrawer({
         <SheetHeader className="border-b border-gray-200 pb-3">
           <SheetTitle>{amenity?.name || 'Amenity'}</SheetTitle>
           <SheetDescription>Manage slots and bookings for this amenity.</SheetDescription>
-          <div className="mt-2 flex gap-2">
-            <button
-              type="button"
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                activeTab === 'bookings' ? 'bg-[#005390] text-white' : 'bg-gray-100 text-gray-600'
-              }`}
-              onClick={() => {
-                setActiveTab('bookings')
-                if (amenity) void loadSlots(amenity.id, selectedDateYmd)
-              }}
-            >
-              Bookings
-            </button>
-            <button
-              type="button"
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                activeTab === 'setup' ? 'bg-[#005390] text-white' : 'bg-gray-100 text-gray-600'
-              }`}
-              onClick={() => setActiveTab('setup')}
-            >
-              Slot setup
-            </button>
-          </div>
+          <Tabs
+            value={activeTab}
+            onValueChange={(val) => {
+              const nextTab = val as SlotTab
+              setActiveTab(nextTab)
+              if (nextTab === 'bookings' && amenity) void loadSlots(amenity.id, selectedDateYmd)
+            }}
+            className="mt-2"
+          >
+            <div className="rounded-2xl bg-card text-card-foreground/70 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100 inline-flex">
+              <TabsList className="inline-flex items-center gap-1.5 bg-transparent p-0 h-auto">
+                <TabsTrigger
+                  value="bookings"
+                  className="flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-4 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                >
+                  Bookings
+                </TabsTrigger>
+                <TabsTrigger
+                  value="setup"
+                  className="flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-4 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                >
+                  Slot setup
+                </TabsTrigger>
+              </TabsList>
+            </div>
+          </Tabs>
         </SheetHeader>
 
         <div className="relative min-h-0 flex-1 overflow-hidden">

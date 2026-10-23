@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { MonthCalendar, type MonthState } from './MonthCalendar'
-import { ConsumerTag } from './billingUi'
+import { ConsumerTag, OldFlatTag } from './billingUi'
 import { AlertTriangle, FileText, Info, Loader2, Plus, Trash2, Undo2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -94,8 +95,9 @@ export function GenerateInvoice({ unitId, editingInvoice, onCancelEdit, onSaved 
   const lineTotal = (s: PreviewService) => s.total
   // Every charge goes on the bill.
   const selectedServices = services
-  // Earlier invoices still Pending (nothing paid) are carried in automatically; ones already carried
-  // into an edited invoice stay on it. Partly paid / overdue invoices stay payable on their own.
+  // Earlier invoices still Pending (nothing paid), and every unpaid invoice of a flat the residents
+  // moved here from, are carried in automatically; ones already carried into an edited invoice stay
+  // on it. This flat's partly paid / overdue invoices stay payable on their own.
   const keptCarried = (edit?.services ?? [])
     .filter((s) => s.serviceType === 'CARRY_FORWARD' && s.sourceId)
     .map((s) => ({
@@ -104,18 +106,32 @@ export function GenerateInvoice({ unitId, editingInvoice, onCancelEdit, onSaved 
       startDate: s.serviceStartDate ?? '',
       endDate: s.serviceEndDate ?? '',
       balance: s.total,
+      fromUnitNumber: s.fromUnitNumber,
     }))
   const carriedInvoices = [...keptCarried, ...(preview?.pendingInvoices ?? []).filter((p) => p.carryForward)]
 
   // Assist layout: rent & packages billed in advance for this month, then what was used before it.
   const sections = useMemo(() => {
-    const current = services.filter((s) => RECURRING_TYPES.includes(s.serviceType) && !s.isAdjustment)
-    const previous = services.filter((s) => !current.includes(s))
+    // Charges from a flat the resident lived in before (moved here) come first, one group per flat.
+    const oldFlats = (preview?.previousFlats ?? []).map((flat) => {
+      const rows = services.filter((s) => s.fromUnitId === flat.unitId)
+      const sum = round(rows.reduce((acc, s) => acc + s.total, 0))
+      return {
+        key: `old-${flat.unitId}`,
+        label: `From old flat ${flat.unitNumber} (until ${formatDay(flat.lastDay)}) · ${formatInr(sum)}`,
+        tone: 'old' as const,
+        rows,
+      }
+    })
+    const own = services.filter((s) => !s.fromUnitId)
+    const current = own.filter((s) => RECURRING_TYPES.includes(s.serviceType) && !s.isAdjustment)
+    const previous = own.filter((s) => !current.includes(s))
     return [
+      ...oldFlats,
       { key: 'current', label: 'Current month charges', tone: 'current' as const, rows: current },
       { key: 'previous', label: 'Previous month charges', tone: 'previous' as const, rows: previous },
     ].filter((sec) => sec.rows.length > 0)
-  }, [services])
+  }, [services, preview?.previousFlats])
 
   const miscTotal = misc.reduce((sum, m) => sum + (Number(m.quantity) || 0) * (Number(m.price) || 0), 0)
   // Carried balances already include their own discount and GST, so they are added after both.
@@ -319,9 +335,10 @@ export function GenerateInvoice({ unitId, editingInvoice, onCancelEdit, onSaved 
                 this invoice
               </p>
               <p className="mt-0.5 text-xs text-purple-700">
-                {carriedInvoices.length > 1 ? 'They were' : 'It was'} not paid, so{' '}
-                {carriedInvoices.length > 1 ? 'they become' : 'it becomes'} obsolete and the balance is paid on this
-                invoice.
+                The unpaid balance is paid on this invoice, and{' '}
+                {carriedInvoices.length > 1 ? 'those invoices become' : 'that invoice becomes'} obsolete.
+                {carriedInvoices.some((p) => p.fromUnitNumber) &&
+                  ' Bills from an old flat come along because the residents moved here.'}
               </p>
             </div>
           )}
@@ -362,7 +379,7 @@ export function GenerateInvoice({ unitId, editingInvoice, onCancelEdit, onSaved 
           <CardContent>
             {isFetching && !preview ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Loader2 className="mb-3 h-8 w-8 animate-spin text-[#2b4f7e]" />
+                <Loader2 className="mb-3 h-8 w-8 animate-spin text-primary" />
                 <p className="font-medium text-gray-600">Loading charges...</p>
               </div>
             ) : error ? (
@@ -376,8 +393,8 @@ export function GenerateInvoice({ unitId, editingInvoice, onCancelEdit, onSaved 
                 <p className="mt-2 text-sm text-gray-500">You can still add miscellaneous items below.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px] table-fixed border-collapse">
+              <div className="overflow-hidden">
+                <Table className="w-full min-w-[760px] table-fixed">
                   <colgroup>
                     <col className="w-[26%]" />
                     <col />
@@ -385,43 +402,51 @@ export function GenerateInvoice({ unitId, editingInvoice, onCancelEdit, onSaved 
                     <col className="w-32" />
                     <col className="w-32" />
                   </colgroup>
-                  <thead>
-                    <tr className="border-b border-gray-200 text-sm text-gray-700">
-                      <th className="py-3 px-3 text-left font-semibold">Service</th>
-                      <th className="py-3 px-3 text-left font-semibold">Description</th>
-                      <th className="py-3 px-3 text-center font-semibold">Qty</th>
-                      <th className="py-3 px-3 text-right font-semibold">Price</th>
-                      <th className="py-3 px-3 text-right font-semibold">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                  <TableHeader>
+                    <TableRow className="border-b border-gray-200 text-sm text-gray-700">
+                      <TableHead className="py-3 px-3 text-left font-semibold">Service</TableHead>
+                      <TableHead className="py-3 px-3 text-left font-semibold">Description</TableHead>
+                      <TableHead className="py-3 px-3 text-center font-semibold">Qty</TableHead>
+                      <TableHead className="py-3 px-3 text-right font-semibold">Price</TableHead>
+                      <TableHead className="py-3 px-3 text-right font-semibold">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {sections.map((sec) => (
                       <GroupRows key={sec.key} label={sec.label} tone={sec.tone} rows={sec.rows} />
                     ))}
                     {carriedInvoices.length > 0 && (
-                      <tr className="bg-gray-50">
-                        <td colSpan={5} className="py-2 px-3 text-xs font-bold uppercase tracking-wide text-purple-700">
+                      <TableRow className="bg-gray-50">
+                        <TableCell
+                          colSpan={5}
+                          className="py-2 px-3 text-xs font-bold uppercase tracking-wide text-purple-700"
+                        >
                           Previous pending invoices
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     )}
                     {carriedInvoices.map((p) => (
-                      <tr key={p.id} className="border-b border-purple-100 bg-purple-50/40 text-sm">
-                        <td className="py-2 px-3 font-medium text-gray-900">
+                      <TableRow key={p.id} className="border-b border-purple-100 bg-purple-50/40 text-sm">
+                        <TableCell className="py-2 px-3 font-medium text-gray-900">
                           Previous balance carried forward ({p.invoiceNumber})
-                        </td>
-                        <td className="py-2 px-3 text-gray-500">
+                          {p.fromUnitNumber && (
+                            <div className="mt-1">
+                              <OldFlatTag unitNumber={p.fromUnitNumber} />
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-2 px-3 text-gray-500">
                           {formatDay(p.startDate)} – {formatDay(p.endDate)}
-                        </td>
-                        <td className="py-2 px-3 text-center">1</td>
-                        <td className="py-2 px-3 text-right tabular-nums">{formatInr(p.balance)}</td>
-                        <td className="py-2 px-3 text-right font-semibold tabular-nums text-rose-600">
+                        </TableCell>
+                        <TableCell className="py-2 px-3 text-center">1</TableCell>
+                        <TableCell className="py-2 px-3 text-right tabular-nums">{formatInr(p.balance)}</TableCell>
+                        <TableCell className="py-2 px-3 text-right font-semibold tabular-nums text-rose-600">
                           {formatInr(p.balance)}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             )}
 
@@ -658,31 +683,39 @@ export function GenerateInvoice({ unitId, editingInvoice, onCancelEdit, onSaved 
   )
 }
 
-function GroupRows({ label, tone, rows }: { label: string; tone: 'current' | 'previous'; rows: PreviewService[] }) {
+function GroupRows({
+  label,
+  tone,
+  rows,
+}: {
+  label: string
+  tone: 'current' | 'previous' | 'old'
+  rows: PreviewService[]
+}) {
   return (
     <>
-      <tr className="bg-gray-50">
-        <td
+      <TableRow className="bg-gray-50">
+        <TableCell
           colSpan={5}
           className={cn(
             'py-2 px-3 text-xs font-bold uppercase tracking-wide',
-            tone === 'current' ? 'text-emerald-600' : 'text-[#2b6cb0]',
+            tone === 'current' ? 'text-emerald-600' : tone === 'old' ? 'text-amber-700' : 'text-[#2b6cb0]',
           )}
         >
           {label}
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
       {rows.map((s) => {
         const total = s.total
         return (
-          <tr
+          <TableRow
             key={s.id}
             className={cn(
               'border-b border-gray-100 align-top text-sm',
               s.isAdjustment && (total < 0 ? 'bg-emerald-50/40' : 'bg-amber-50/40'),
             )}
           >
-            <td className="py-2.5 px-3 text-gray-900">
+            <TableCell className="py-2.5 px-3 text-gray-900">
               <p className="font-medium">{s.name}</p>
               {s.consumerName && (
                 <div className="mt-1">
@@ -701,19 +734,21 @@ function GroupRows({ label, tone, rows }: { label: string; tone: 'current' | 'pr
                   {total < 0 ? 'Refund' : s.description.includes('[Previous month]') ? 'Previous month' : 'Adjustment'}
                 </span>
               )}
-            </td>
-            <td className="py-2.5 px-3 break-words text-gray-500">{s.description}</td>
-            <td className="py-2.5 px-3 text-center tabular-nums">{s.quantity === 0 ? 'N/A' : s.quantity}</td>
-            <td className="py-2.5 px-3 text-right tabular-nums">{formatInr(s.price)}</td>
-            <td
+            </TableCell>
+            <TableCell className="py-2.5 px-3 break-words text-gray-500">{s.description}</TableCell>
+            <TableCell className="py-2.5 px-3 text-center tabular-nums">
+              {s.quantity === 0 ? 'N/A' : s.quantity}
+            </TableCell>
+            <TableCell className="py-2.5 px-3 text-right tabular-nums">{formatInr(s.price)}</TableCell>
+            <TableCell
               className={cn(
                 'py-2.5 px-3 text-right font-semibold tabular-nums',
                 total < 0 ? 'text-emerald-700' : 'text-rose-600',
               )}
             >
               {formatInr(total)}
-            </td>
-          </tr>
+            </TableCell>
+          </TableRow>
         )
       })}
     </>

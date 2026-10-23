@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import React, { useState, useMemo, useRef, useEffect } from 'react'
 import {
   Dialog,
@@ -12,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import { useCarePackagesQuery, useChangePackageMutation } from '@/hooks/react-query/medical'
 import type { CarePackage } from '@/lib/types/medical'
 import { notifyError, notifySuccess } from '@/utils/toast'
-import { Boxes, RefreshCw, Search, Check, ChevronDown, X } from 'lucide-react'
+import { Boxes, Loader2, Search, Check, ChevronDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ChangePackageDialogProps {
@@ -233,19 +234,20 @@ export const ChangePackageDialog: React.FC<ChangePackageDialogProps> = ({
               New Care Package *
             </Label>
             {isLoading ? (
-              <div className="py-4 text-center text-xs text-gray-400 flex items-center justify-center gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin text-[#005390]" />
+              <div className="py-4 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
                 Loading packages...
               </div>
             ) : (
               <div className="relative">
                 {/* Searchable Trigger Button */}
-                <button
+                <Button
+                  variant="outline"
                   type="button"
                   id="new-package-select"
                   onClick={() => setIsDropdownOpen((prev) => !prev)}
                   className={cn(
-                    'w-full h-11 px-3.5 py-2 text-xs rounded-xl border bg-white dark:bg-slate-800 text-left flex items-center justify-between transition-all cursor-pointer shadow-2xs',
+                    'w-full h-11 px-3.5 py-2 text-xs rounded-xl border bg-white dark:bg-slate-800 text-left flex items-center justify-between transition-all cursor-pointer shadow-2xs font-normal',
                     isDropdownOpen
                       ? 'border-[#005390] ring-2 ring-[#005390]/20'
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600',
@@ -296,7 +298,7 @@ export const ChangePackageDialog: React.FC<ChangePackageDialogProps> = ({
                       )}
                     />
                   </div>
-                </button>
+                </Button>
 
                 {/* Dropdown Menu with Search Input */}
                 {isDropdownOpen && (
@@ -305,7 +307,7 @@ export const ChangePackageDialog: React.FC<ChangePackageDialogProps> = ({
                     <div className="p-2 border-b border-gray-100 dark:border-gray-800 bg-slate-50/50 dark:bg-slate-800/30">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
-                        <input
+                        <Input
                           ref={searchInputRef}
                           type="text"
                           value={searchQuery}
@@ -314,13 +316,16 @@ export const ChangePackageDialog: React.FC<ChangePackageDialogProps> = ({
                           className="w-full rounded-xl border border-gray-200 bg-white py-2 pr-8 pl-9 text-xs text-gray-900 placeholder:text-gray-400 focus:border-[#005390] focus:outline-none focus:ring-1 focus:ring-[#005390] dark:border-gray-700 dark:bg-slate-800 dark:text-white"
                         />
                         {searchQuery && (
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
                             type="button"
+                            aria-label="Clear search"
                             onClick={() => setSearchQuery('')}
                             className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
                           >
                             <X className="size-3.5" />
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -340,14 +345,15 @@ export const ChangePackageDialog: React.FC<ChangePackageDialogProps> = ({
                         filteredPackages.map((pkg) => {
                           const isSelected = pkg.id === selectedPackageId
                           return (
-                            <button
+                            <Button
+                              variant="ghost"
                               key={pkg.id}
                               type="button"
                               onClick={() => handleSelectPackage(pkg)}
                               className={cn(
-                                'w-full px-3 py-2.5 rounded-xl text-left flex items-center justify-between gap-3 transition-colors cursor-pointer',
+                                'w-full px-3 py-2.5 h-auto rounded-xl text-left flex items-center justify-between gap-3 transition-colors cursor-pointer font-normal whitespace-normal',
                                 isSelected
-                                  ? 'bg-blue-50/80 text-[#005390] dark:bg-blue-950/50 dark:text-blue-300 font-semibold'
+                                  ? 'bg-blue-50/80 text-[#005390] dark:bg-blue-950/50 dark:text-blue-300 font-semibold hover:bg-blue-50/80 hover:text-[#005390]'
                                   : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-gray-700 dark:text-gray-300',
                               )}
                             >
@@ -366,7 +372,7 @@ export const ChangePackageDialog: React.FC<ChangePackageDialogProps> = ({
                                 </span>
                                 {isSelected && <Check className="size-4 text-[#005390] dark:text-blue-400" />}
                               </div>
-                            </button>
+                            </Button>
                           )
                         })
                       )}
@@ -428,7 +434,7 @@ export const ChangePackageDialog: React.FC<ChangePackageDialogProps> = ({
             >
               {changePackageMutation.isPending ? (
                 <span className="inline-flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   Changing...
                 </span>
               ) : (

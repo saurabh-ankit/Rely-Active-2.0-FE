@@ -2,6 +2,7 @@ import React from 'react'
 import { CalendarDays, FileText, Mic, Paperclip, Stethoscope } from 'lucide-react'
 import type { DoctorNoteFile, ResidentDoctorNote } from '@/lib/types/resident'
 import { cn, formatDisplayDate, formatDisplayDateTime, getFileUrl } from '@/lib/utils'
+import { Card } from '@/components/ui/card'
 import { ClinicalCard, ClinicalEmptyState, ClinicalLoadingState } from './ClinicalShared'
 import { CONDITION_STYLES } from './clinicalConstants'
 
@@ -34,7 +35,7 @@ const AttachmentTile: React.FC<{ file: DoctorNoteFile }> = ({ file }) => {
 }
 
 const DoctorNoteCard: React.FC<{ note: ResidentDoctorNote }> = ({ note }) => (
-  <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs space-y-4 dark:border-gray-800 dark:bg-slate-900">
+  <Card className="gap-0 rounded-2xl border-gray-200 bg-white p-5 shadow-xs space-y-4 dark:border-gray-800 dark:bg-slate-900">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-[#005390] dark:bg-sky-950/40">
@@ -93,7 +94,7 @@ const DoctorNoteCard: React.FC<{ note: ResidentDoctorNote }> = ({ note }) => (
         </div>
       </div>
     )}
-  </div>
+  </Card>
 )
 
 interface DoctorSuggestionsTabProps {

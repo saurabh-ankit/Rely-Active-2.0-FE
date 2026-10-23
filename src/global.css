@@ -8,6 +8,7 @@
 html {
   font-family: 'Manrope', ui-sans-serif, sans-serif;
 }
+
 body {
   margin: 0;
   min-width: 320px;
@@ -130,9 +131,11 @@ body {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+
   html {
     @apply font-sans;
   }
@@ -219,5 +222,123 @@ body {
 
   #print-invoice-root tfoot {
     display: table-footer-group;
+  }
+}
+
+@utility no-scrollbar {
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+@utility scrollbar-transparent-track {
+  scrollbar-color: rgba(15, 23, 42, 0.32) transparent;
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(15, 23, 42, 0.32);
+    border-radius: 9999px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(15, 23, 42, 0.55);
+  }
+
+  .dark & {
+    scrollbar-color: rgba(255, 255, 255, 0.32) transparent;
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.32);
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.55);
+    }
+  }
+}
+
+@layer utilities {
+  html {
+    overscroll-behavior: none;
+  }
+
+  /* Responsive gap utility */
+  .gap-responsive {
+    @apply gap-2 md:gap-3 lg:gap-4;
+  }
+}
+
+/* Scrollbar styles */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(15, 23, 42, 0.32) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 9999px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: rgba(15, 23, 42, 0.32);
+    border-radius: 9999px;
+    border: none;
+    transition: background-color 0.2s ease;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgba(15, 23, 42, 0.55);
+  }
+
+  .dark,
+  .dark *,
+  html.dark,
+  html.dark * {
+    scrollbar-color: rgba(255, 255, 255, 0.32) transparent;
+  }
+
+  .dark *::-webkit-scrollbar-thumb,
+  html.dark *::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.32);
+  }
+
+  .dark *::-webkit-scrollbar-thumb:hover,
+  html.dark *::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.55);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not(.light),
+    :root:not(.light) * {
+      scrollbar-color: rgba(255, 255, 255, 0.32) transparent;
+    }
+
+    :root:not(.light) *::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.32);
+    }
+
+    :root:not(.light) *::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.55);
+    }
   }
 }

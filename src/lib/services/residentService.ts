@@ -22,6 +22,7 @@ import type {
   ResidentItem,
   UpdateIncidentSopStepPayload,
   ResidentLabReportItem,
+  UnitChangeImpact,
   ResidentMedicationItem,
   ResidentMedicationPayload,
   ResidentMedicinesParams,
@@ -100,6 +101,12 @@ export const getResidentByIdAPI = async (id: string): Promise<ResidentItem> => {
 
 export const updateResidentAPI = async (id: string, payload: Partial<CreateResidentPayload>): Promise<ResidentItem> => {
   const response = await api.put(API_ENDPOINTS.resident.update(id), payload)
+  return response.data?.data || response.data
+}
+
+/** What moving the resident to another flat affects (unbilled charges, orders, tickets, assets…). */
+export const getUnitChangeImpactAPI = async (id: string, toUnitId: string): Promise<UnitChangeImpact> => {
+  const response = await api.get(API_ENDPOINTS.resident.unitChangeImpact(id), { params: { toUnitId } })
   return response.data?.data || response.data
 }
 
@@ -524,6 +531,7 @@ export const residentService = {
   getResidentById: getResidentByIdAPI,
   getResidentsByUnit: getResidentsByUnitAPI,
   updateResident: updateResidentAPI,
+  getUnitChangeImpact: getUnitChangeImpactAPI,
   deleteResident: deleteResidentAPI,
   getResidentBilling: getResidentBillingAPI,
   getCareTeam: getCareTeamAPI,

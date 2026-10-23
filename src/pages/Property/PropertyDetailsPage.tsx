@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Building2, CalendarDays, Edit, Home, Layers, MapPin, Phone, RefreshCw } from 'lucide-react'
+import { Building2, CalendarDays, Edit, Home, Layers, Loader2, MapPin, Phone } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { getPropertyByIdAPI } from '@/lib/services/propertyService'
 import { cn, getFileUrl } from '@/lib/utils'
-import { ENTITY_PRESETS, floorNameFor, levelLabel } from './components/structure/entityPresets'
+import { ENTITY_PRESETS, floorNameFor, formatUnitType, levelLabel } from './components/structure/entityPresets'
 import { formatPropertyTypes, type EntityInput, type Property } from './types'
 
 // ─── Unit status ──────────────────────────────────────────────────────────────
@@ -97,10 +98,11 @@ function UnitHover({ unit, className, children }: { unit: ViewUnit; className: s
     <HoverCard>
       <HoverCardTrigger
         render={
-          <button
+          <Button
             type="button"
+            variant="ghost"
             aria-label={`${unit.unit_number} details`}
-            className={cn(className, 'cursor-pointer')}
+            className={cn(className, 'cursor-pointer h-auto p-0 font-normal hover:bg-transparent')}
           />
         }
       >
@@ -111,7 +113,7 @@ function UnitHover({ unit, className, children }: { unit: ViewUnit; className: s
           <div>
             <p className="text-sm font-bold text-gray-900">{unit.unit_number}</p>
             <p className="text-[11px] text-gray-500">
-              {[unit.unit_type, area ? `${area.toLocaleString('en-IN')} sqft` : null, price]
+              {[formatUnitType(unit.unit_type), area ? `${area.toLocaleString('en-IN')} sqft` : null, price]
                 .filter(Boolean)
                 .join(' · ')}
             </p>
@@ -289,7 +291,7 @@ function SitePlan({ units, isVilla }: { units: ViewUnit[]; isVilla: boolean }) {
           >
             <div className="flex items-center justify-between">
               <Home className="h-4 w-4 opacity-70" />
-              <span className="text-[10px] font-semibold opacity-70">{unit.unit_type}</span>
+              <span className="text-[10px] font-semibold opacity-70">{formatUnitType(unit.unit_type)}</span>
             </div>
             <p className="mt-2 text-sm font-bold">{unit.unit_number}</p>
             <p className="text-[10px] opacity-70">{area ? `${area.toLocaleString('en-IN')} sqft` : '—'}</p>
@@ -374,8 +376,8 @@ export default function PropertyDetailsPage() {
   }
   if (!property) {
     return (
-      <div className="flex items-center justify-center gap-2 p-16 text-sm text-gray-400">
-        <RefreshCw className="h-4 w-4 animate-spin" /> Loading property…
+      <div className="flex items-center justify-center gap-2 p-16 text-sm text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" /> Loading property…
       </div>
     )
   }
@@ -411,10 +413,14 @@ export default function PropertyDetailsPage() {
           { label: 'Available', value: stats.available, tone: 'text-emerald-700' },
           { label: 'Sold / off-site', value: stats.sold + stats.offsite, tone: 'text-amber-700' },
         ].map((s) => (
-          <div key={s.label} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-2xs">
-            <p className="text-xs text-gray-500">{s.label}</p>
-            <p className={cn('text-2xl font-bold', s.tone)}>{s.value}</p>
-          </div>
+          <Card key={s.label} className="gap-0 rounded-2xl border-gray-100 bg-white p-4 shadow-2xs">
+            <CardHeader className="p-0">
+              <CardDescription className="text-xs text-gray-500">{s.label}</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <CardTitle className={cn('text-2xl font-bold', s.tone)}>{s.value}</CardTitle>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
@@ -431,9 +437,9 @@ export default function PropertyDetailsPage() {
 
       {/* One section per entity */}
       {entities.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center text-sm text-gray-400">
+        <Card className="gap-0 rounded-2xl border-dashed border-gray-200 bg-white p-12 text-center text-sm text-gray-400">
           No structure added yet.
-        </div>
+        </Card>
       ) : (
         entities.map((entity) => {
           const preset = ENTITY_PRESETS[entity.entity_type] ?? ENTITY_PRESETS.apartment
@@ -441,78 +447,97 @@ export default function PropertyDetailsPage() {
           const units = entityUnits(entity)
           const unitWord = levelLabel(entity, 'unit').toLowerCase()
           return (
-            <section
+            <Card
               key={entity.id ?? entity.name}
-              className="rounded-2xl border border-gray-100 bg-white p-5 shadow-2xs md:p-6"
+              className="gap-0 rounded-2xl border-gray-100 bg-white p-5 shadow-2xs md:p-6"
             >
-              <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="flex items-center gap-2 text-base font-bold text-gray-900">
+              <CardHeader className="p-0 mb-5 flex flex-wrap items-center justify-between gap-2">
+                <CardTitle className="flex items-center gap-2 text-base font-bold text-gray-900">
                   <Icon className="h-5 w-5 text-[#005390]" />
                   {entity.name}
                   <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-semibold text-gray-600">
                     {preset.label}
                   </span>
-                </h2>
-                <p className="text-xs text-gray-500">
+                </CardTitle>
+                <CardDescription className="text-xs text-gray-500">
                   {entity.levels.length > 1 && `${entity.levels.map((l) => levelLabel(entity, l)).join(' → ')} · `}
                   {units.length} {unitWord}
                   {units.length === 1 ? '' : 's'}
-                </p>
-              </div>
-              <EntityDrawing entity={entity} />
-            </section>
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <EntityDrawing entity={entity} />
+              </CardContent>
+            </Card>
           )
         })
       )}
 
       {/* Address, amenities, description */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-2xs">
-          <h3 className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-700">
-            <MapPin className="h-4 w-4 text-[#005390]" /> Address
-          </h3>
-          <p className="text-sm text-gray-700">{address || '—'}</p>
-        </div>
-        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-2xs">
-          <h3 className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-700">
-            <Layers className="h-4 w-4 text-[#005390]" /> Amenities
-          </h3>
-          {property.propertyAmenities?.length ? (
-            <div className="flex flex-wrap gap-1.5">
-              {property.propertyAmenities.map((item) => {
-                const timeWindow = amenityTimeWindow(item.settings)
-                return (
-                  <span
-                    key={item.amenityId}
-                    className="inline-flex items-center gap-1 rounded-full bg-[#005390]/10 px-2.5 py-0.5 text-xs font-medium text-[#005390]"
-                  >
-                    {item.name}
-                    <span className="text-[10px] font-semibold text-[#005390]/70">
-                      {item.slotBookable ? 'Slot' : 'Non-slot'}
+        <Card className="gap-0 rounded-2xl border-gray-100 bg-white p-5 shadow-2xs">
+          <CardHeader className="p-0 mb-2">
+            <CardTitle className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-700">
+              <MapPin className="h-4 w-4 text-[#005390]" /> Address
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <p className="text-sm text-gray-700">{address || '—'}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="gap-0 rounded-2xl border-gray-100 bg-white p-5 shadow-2xs">
+          <CardHeader className="p-0 mb-2">
+            <CardTitle className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-700">
+              <Layers className="h-4 w-4 text-[#005390]" /> Amenities
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {property.propertyAmenities?.length ? (
+              <div className="flex flex-wrap gap-1.5">
+                {property.propertyAmenities.map((item) => {
+                  const timeWindow = amenityTimeWindow(item.settings)
+                  return (
+                    <span
+                      key={item.amenityId}
+                      className="inline-flex items-center gap-1 rounded-full bg-[#005390]/10 px-2.5 py-0.5 text-xs font-medium text-[#005390]"
+                    >
+                      {item.name}
+                      <span className="text-[10px] font-semibold text-[#005390]/70">
+                        {item.slotBookable ? 'Slot' : 'Non-slot'}
+                      </span>
+                      {timeWindow ? (
+                        <span className="text-[10px] font-semibold text-[#005390]/70">{timeWindow}</span>
+                      ) : null}
                     </span>
-                    {timeWindow ? (
-                      <span className="text-[10px] font-semibold text-[#005390]/70">{timeWindow}</span>
-                    ) : null}
+                  )
+                })}
+              </div>
+            ) : property.amenities?.length ? (
+              <div className="flex flex-wrap gap-1.5">
+                {property.amenities.map((a) => (
+                  <span
+                    key={a}
+                    className="rounded-full bg-[#005390]/10 px-2.5 py-0.5 text-xs font-medium text-[#005390]"
+                  >
+                    {a}
                   </span>
-                )
-              })}
-            </div>
-          ) : property.amenities?.length ? (
-            <div className="flex flex-wrap gap-1.5">
-              {property.amenities.map((a) => (
-                <span key={a} className="rounded-full bg-[#005390]/10 px-2.5 py-0.5 text-xs font-medium text-[#005390]">
-                  {a}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-400">None added</p>
-          )}
-        </div>
-        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-2xs">
-          <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-700">About</h3>
-          <p className="text-sm text-gray-600">{property.description || 'No description.'}</p>
-        </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">None added</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="gap-0 rounded-2xl border-gray-100 bg-white p-5 shadow-2xs">
+          <CardHeader className="p-0 mb-2">
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-gray-700">About</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <p className="text-sm text-gray-600">{property.description || 'No description.'}</p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import type { InvoiceStatus, MonthBillingStatus } from '@/lib/types/billing'
@@ -56,6 +57,14 @@ export const ConsumerTag = ({ type, name }: { type: 'RESIDENT' | 'FAMILY_MEMBER'
   )
 }
 
+/** "From old flat B-21" on a charge carried over after the resident moved. */
+export const OldFlatTag = ({ unitNumber }: { unitNumber: string | null }) =>
+  unitNumber ? (
+    <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+      From old flat {unitNumber}
+    </span>
+  ) : null
+
 const PILL: Partial<Record<InvoiceStatus, string>> = {
   PENDING: 'border-amber-300 bg-amber-50 text-amber-700',
   PARTIALLY_PAID: 'border-blue-300 bg-blue-50 text-blue-700',
@@ -97,43 +106,56 @@ export const TablePager = ({
   totalPages: number
   onPage: (page: number) => void
 }) => {
-  const btn = 'rounded-md p-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30'
   return (
     <div className="flex items-center justify-between px-1 pt-4 text-sm text-gray-700">
       <span>
         Page <b>{page}</b> of <b>{Math.max(1, totalPages)}</b>
       </span>
       <div className="flex items-center gap-1">
-        <button type="button" aria-label="First page" className={btn} disabled={page <= 1} onClick={() => onPage(1)}>
-          <ChevronsLeft className="h-4 w-4" />
-        </button>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-xs"
+          aria-label="First page"
+          className="h-7 w-7 rounded-md p-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30"
+          disabled={page <= 1}
+          onClick={() => onPage(1)}
+        >
+          <ChevronsLeft className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
           aria-label="Previous page"
-          className={btn}
+          className="h-7 w-7 rounded-md p-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30"
           disabled={page <= 1}
           onClick={() => onPage(page - 1)}
         >
           <ChevronLeft className="h-4 w-4" />
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-xs"
           aria-label="Next page"
-          className={btn}
+          className="h-7 w-7 rounded-md p-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30"
           disabled={page >= totalPages}
           onClick={() => onPage(page + 1)}
         >
           <ChevronRight className="h-4 w-4" />
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-xs"
           aria-label="Last page"
-          className={btn}
+          className="h-7 w-7 rounded-md p-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30"
           disabled={page >= totalPages}
           onClick={() => onPage(totalPages)}
         >
           <ChevronsRight className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
     </div>
   )

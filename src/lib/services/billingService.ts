@@ -79,10 +79,9 @@ export const updateInvoiceAPI = async (locationId: string | null, invoiceId: str
 }
 
 export const getUnitInvoicesAPI = async (locationId: string | null, unitId: string, page = 1, limit = 20) => {
-  const res = await api.get<Envelope<{ invoices: Invoice[]; pagination: BillingPagination }>>(
-    API_ENDPOINTS.billing.invoices(unitId),
-    withLocation(locationId, { page, limit }),
-  )
+  const res = await api.get<
+    Envelope<{ invoices: Invoice[]; fromPreviousFlats?: Invoice[]; pagination: BillingPagination }>
+  >(API_ENDPOINTS.billing.invoices(unitId), withLocation(locationId, { page, limit }))
   return res.data.data
 }
 

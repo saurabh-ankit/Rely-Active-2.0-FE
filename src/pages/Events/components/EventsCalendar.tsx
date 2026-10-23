@@ -64,7 +64,8 @@ const EventChip = ({
   // Multi-day events only show the start time on their first day
   const startsToday = isSameDay(new Date(event.startDate), day)
   return (
-    <button
+    <Button
+      variant="ghost"
       type="button"
       title={event.title}
       onClick={(e) => {
@@ -72,14 +73,14 @@ const EventChip = ({
         onOpen()
       }}
       className={cn(
-        'flex w-full items-center gap-1.5 truncate rounded-md border-l-[3px] px-1.5 py-1 text-left text-[11px] font-semibold leading-tight transition-colors',
+        'flex w-full h-auto items-center gap-1.5 truncate rounded-md border-l-[3px] px-1.5 py-1 text-left text-[11px] font-semibold leading-tight transition-colors justify-start font-normal',
         kind.chip,
         clickable ? 'cursor-pointer' : 'cursor-default',
       )}
     >
       {startsToday && <span className="shrink-0 font-medium opacity-70">{formatTime(event.startDate)}</span>}
       <span className="truncate">{event.title}</span>
-    </button>
+    </Button>
   )
 }
 
@@ -463,10 +464,12 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-3 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
+      <Card className="gap-0 flex flex-col gap-3 rounded-2xl border-gray-100 bg-white p-3 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex items-center rounded-xl border border-gray-200 bg-gray-50 p-0.5">
-            <button
+            <Button
+              variant="ghost"
+              size="icon-xs"
               type="button"
               aria-label="Previous"
               title="Previous"
@@ -474,15 +477,18 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
               className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-white hover:text-[#005390] hover:shadow-xs"
             >
               <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
               type="button"
               onClick={() => navigateMonth('current')}
               className="h-8 cursor-pointer rounded-lg px-3 text-xs font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#005390] hover:shadow-xs"
             >
               Today
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
               type="button"
               aria-label="Next"
               title="Next"
@@ -490,7 +496,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
               className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-white hover:text-[#005390] hover:shadow-xs"
             >
               <ChevronRight className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
           <h2 className="text-lg font-bold text-gray-900 whitespace-nowrap">{calendarTitle}</h2>
         </div>
@@ -512,7 +518,8 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
           </div>
           <div className="flex rounded-xl border border-gray-200 bg-gray-50 p-0.5">
             {VIEW_MODES.map((mode) => (
-              <button
+              <Button
+                variant="ghost"
                 type="button"
                 key={mode}
                 aria-pressed={viewMode === mode}
@@ -525,20 +532,20 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                 className={cn(
                   'h-8 cursor-pointer rounded-lg px-3 text-xs font-semibold capitalize transition-colors',
                   viewMode === mode
-                    ? 'bg-[#005390] text-white shadow-xs'
+                    ? 'bg-[#005390] text-white shadow-xs hover:bg-[#005390] hover:text-white'
                     : 'text-gray-600 hover:bg-white hover:text-gray-900',
                 )}
               >
                 {mode}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Week View */}
       {viewMode === 'week' && (
-        <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-2xs">
+        <Card className="gap-0 overflow-x-auto rounded-2xl border-gray-200 bg-white shadow-2xs">
           <div className="grid min-w-[700px] grid-cols-7 gap-px bg-gray-200">
             {(() => {
               // Week starts on the Sunday of currentDate's week
@@ -587,13 +594,14 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                         />
                       ))}
                       {safeDayEvents.length > 4 && (
-                        <button
+                        <Button
+                          variant="ghost"
                           type="button"
-                          className="cursor-pointer rounded-md px-1.5 text-[11px] font-semibold text-gray-500 hover:bg-gray-100 hover:text-[#005390]"
+                          className="h-auto p-0 cursor-pointer rounded-md px-1.5 text-[11px] font-semibold text-gray-500 hover:bg-gray-100 hover:text-[#005390]"
                           onClick={() => setEventsPopupDate(day)}
                         >
                           +{safeDayEvents.length - 4} more
-                        </button>
+                        </Button>
                       )}
                       {safeDayEvents.length === 0 && (
                         <p className="pt-6 text-center text-[11px] text-gray-300">No events</p>
@@ -604,7 +612,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
               })
             })()}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Day View */}
@@ -637,9 +645,9 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                           : null
 
                       return (
-                        <div
+                        <Card
                           key={event.id}
-                          className="group rounded-2xl border border-gray-200/80 bg-white p-4 shadow-xs transition-all hover:border-[#005390]/40 hover:shadow-md"
+                          className="gap-0 group rounded-2xl border-gray-200/80 bg-white p-4 shadow-xs transition-all hover:border-[#005390]/40 hover:shadow-md"
                         >
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div className="flex items-start sm:items-center gap-4 flex-1 min-w-0">
@@ -737,7 +745,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                               )}
                             </div>
                           </div>
-                        </div>
+                        </Card>
                       )
                     })}
                   </div>
@@ -768,9 +776,9 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                         : null
 
                     return (
-                      <div
+                      <Card
                         key={event.id}
-                        className="group rounded-2xl border border-gray-200/80 bg-white p-4 shadow-xs transition-all hover:border-[#005390]/40 hover:shadow-md"
+                        className="gap-0 group rounded-2xl border-gray-200/80 bg-white p-4 shadow-xs transition-all hover:border-[#005390]/40 hover:shadow-md"
                       >
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                           <div className="flex items-start sm:items-center gap-4 flex-1 min-w-0">
@@ -868,7 +876,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                             )}
                           </div>
                         </div>
-                      </div>
+                      </Card>
                     )
                   })
               ) : (
@@ -881,7 +889,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
 
       {/* Calendar Grid - Month View */}
       {viewMode === 'month' && (
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xs">
+        <Card className="gap-0 overflow-hidden rounded-2xl border-gray-200 bg-white shadow-2xs">
           <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/80">
             {WEEKDAYS.map((day, i) => (
               <div
@@ -960,16 +968,17 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                       />
                     ))}
                     {dateEvents.length > 2 && (
-                      <button
+                      <Button
+                        variant="ghost"
                         type="button"
-                        className="cursor-pointer rounded-md px-1.5 text-[11px] font-semibold text-gray-500 hover:bg-gray-100 hover:text-[#005390]"
+                        className="h-auto p-0 cursor-pointer rounded-md px-1.5 text-[11px] font-semibold text-gray-500 hover:bg-gray-100 hover:text-[#005390]"
                         onClick={(e) => {
                           e.stopPropagation()
                           setEventsPopupDate(date)
                         }}
                       >
                         +{dateEvents.length - 2} more
-                      </button>
+                      </Button>
                     )}
                   </div>
                   {/* Phones: dots instead of chips */}
@@ -987,7 +996,7 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
               )
             })}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Events Popup Dialog */}

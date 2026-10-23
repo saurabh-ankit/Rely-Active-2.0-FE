@@ -12,7 +12,9 @@ import {
   ReceiptIndianRupee,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiErrorMessage, useUnitInvoices } from '@/hooks/react-query/billing'
 import { useResourceAccess } from '@/hooks/useResourceAccess'
 import { useLocationContext } from '@/hooks/useLocation'
@@ -21,7 +23,7 @@ import { getBillingDocumentAPI } from '@/lib/services/billingService'
 import type { Invoice } from '@/lib/types/billing'
 import { cn } from '@/lib/utils'
 import { RecordPaymentModal } from './RecordPaymentModal'
-import { ConsumerTag, PaidBar, StatusPill, TablePager } from './billingUi'
+import { ConsumerTag, OldFlatTag, PaidBar, StatusPill, TablePager } from './billingUi'
 import { formatDmy, formatInr, isPayable, monthLabel, openPdf, PAYMENT_METHOD_LABEL } from './billingFormat'
 
 /** Unpaid invoices that nothing was carried out of can still be edited. */
@@ -55,7 +57,177 @@ export function InvoicesList({ unitId, onEditInvoice }: InvoicesListProps) {
   }
 
   const invoices = data?.invoices ?? []
+  // Unpaid invoices of a flat the residents moved here from: owed (and payable) here.
+  const oldFlatInvoices = data?.fromPreviousFlats ?? []
   const total = data?.pagination.total ?? 0
+
+  const renderRow = (inv: Invoice, fromOldFlat: boolean) => {
+    const isOpen = expanded === inv.id
+    const payable = isPayable(inv.status)
+    const balance = payable ? inv.remainingBalance : 0
+    const toggle = () => setExpanded(isOpen ? null : inv.id)
+    return (
+      <Fragment key={inv.id}>
+        <TableRow
+          onClick={toggle}
+          className={cn(
+            'cursor-pointer border-b border-gray-100 transition-colors hover:bg-gray-50/70',
+            isOpen && 'bg-[#2b4f7e]/[0.03] hover:bg-[#2b4f7e]/[0.03]',
+          )}
+        >
+          <TableCell className="px-3 py-3.5">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              aria-label={isOpen ? 'Collapse' : 'Expand'}
+              aria-expanded={isOpen}
+              onClick={(e) => {
+                e.stopPropagation()
+                toggle()
+              }}
+              className="h-7 w-7 rounded-md p-1 text-gray-500 hover:bg-gray-200/70"
+            >
+              {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </Button>
+          </TableCell>
+          <TableCell className="px-3 py-3.5">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#2b4f7e]/10 text-[#2b4f7e]">
+                <FileText className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="font-semibold whitespace-nowrap text-gray-900">{inv.invoiceNumber}</p>
+                <p className="text-xs text-gray-500">Created {formatDmy(inv.createdAt)}</p>
+                {fromOldFlat && (
+                  <div className="mt-1">
+                    <OldFlatTag unitNumber={inv.unitNumber} />
+                  </div>
+                )}
+              </div>
+            </div>
+          </TableCell>
+          <TableCell className="px-3 py-3.5">
+            <p className="font-medium whitespace-nowrap text-gray-800">
+              {monthLabel(String(inv.startDate).slice(0, 7))}
+            </p>
+            <p className="flex items-center gap-1 text-xs whitespace-nowrap text-gray-500">
+              <CalendarDays className="h-3 w-3" />
+              {formatDmy(inv.startDate)} – {formatDmy(inv.endDate)}
+            </p>
+          </TableCell>
+          <TableCell className="px-3 py-3.5">
+            <StatusPill status={inv.status} />
+            {inv.dueDate && payable && <p className="mt-1 text-[11px] text-gray-500">Due {formatDmy(inv.dueDate)}</p>}
+          </TableCell>
+          <TableCell className="px-3 py-3.5 text-right">
+            <p className="font-bold text-gray-900 tabular-nums">{formatInr(inv.discountedAmount)}</p>
+            <p className="text-[11px] whitespace-nowrap text-gray-500">
+              {formatInr(inv.subtotal)}
+              {inv.discount ? ` − ${formatInr(inv.discount)}` : ''}
+              {inv.tax ? ` + GST ${formatInr(inv.tax)}` : ''}
+            </p>
+          </TableCell>
+          <TableCell className="px-3 py-3.5 text-right">
+            {inv.carriedForwardTo ? (
+              <>
+                <p className="font-semibold text-emerald-600 tabular-nums">
+                  {formatInr(inv.carriedForwardTo.paidAmount)}
+                </p>
+                <p className="text-[11px] whitespace-nowrap text-gray-500">via {inv.carriedForwardTo.invoiceNumber}</p>
+                <PaidBar
+                  paid={inv.carriedForwardTo.paidAmount}
+                  total={inv.carriedForwardTo.amount}
+                  className="mt-1 ml-auto w-24"
+                />
+              </>
+            ) : (
+              <>
+                <p className="font-semibold text-emerald-600 tabular-nums">{formatInr(inv.paidAmount)}</p>
+                <PaidBar paid={inv.paidAmount} total={inv.discountedAmount} className="mt-1.5 ml-auto w-24" />
+              </>
+            )}
+          </TableCell>
+          <TableCell className="px-3 py-3.5 text-right">
+            {inv.carriedForwardTo ? (
+              inv.status === 'PAID' ? (
+                <span className="text-xs font-semibold whitespace-nowrap text-emerald-600">
+                  Paid via {inv.carriedForwardTo.invoiceNumber}
+                </span>
+              ) : (
+                <span className="inline-flex flex-col items-end text-xs font-medium whitespace-nowrap text-purple-700">
+                  <span className="inline-flex items-center gap-1">
+                    <ArrowRightLeft className="h-3.5 w-3.5" />
+                    Moved to {inv.carriedForwardTo.invoiceNumber}
+                  </span>
+                  <span className="text-[11px] font-normal text-gray-500">
+                    {formatInr(inv.carriedForwardTo.amount - inv.carriedForwardTo.paidAmount)} due there
+                  </span>
+                </span>
+              )
+            ) : balance > 0 ? (
+              <p className="font-bold text-rose-600 tabular-nums">{formatInr(balance)}</p>
+            ) : (
+              <span className="text-xs font-semibold text-emerald-600">Settled</span>
+            )}
+          </TableCell>
+          <TableCell className="px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-end gap-1">
+              {balance > 0 && receiptsAccess.canCreate && (
+                <Button
+                  size="sm"
+                  className="h-8 bg-emerald-600 text-white hover:bg-emerald-700"
+                  onClick={() => setPaying(inv)}
+                >
+                  <CreditCard className="mr-1 h-3.5 w-3.5" />
+                  Pay
+                </Button>
+              )}
+              {!fromOldFlat && isEditable(inv) && invoicesAccess.canUpdate && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="Edit invoice"
+                  aria-label="Edit invoice"
+                  className="h-8 w-8 text-[#2b6cb0]"
+                  onClick={() => onEditInvoice(inv)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                title="Invoice PDF"
+                aria-label="Invoice PDF"
+                className="h-8 w-8"
+                disabled={opening === inv.id}
+                onClick={() =>
+                  showPdf(inv.id, async () => inv.pdfUrl || getBillingDocumentAPI(selectedLocationId, inv.id))
+                }
+              >
+                {opening === inv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              </Button>
+            </div>
+          </TableCell>
+        </TableRow>
+
+        {isOpen && (
+          <TableRow className="border-b border-gray-200 bg-[#2b4f7e]/[0.03]">
+            <TableCell colSpan={COLUMNS.length} className="px-5 pt-1 pb-5">
+              <InvoiceDetail
+                invoice={inv}
+                opening={opening}
+                onReceiptPdf={(receiptId) =>
+                  showPdf(receiptId, async () => getBillingDocumentAPI(selectedLocationId, inv.id, receiptId))
+                }
+              />
+            </TableCell>
+          </TableRow>
+        )}
+      </Fragment>
+    )
+  }
 
   return (
     <div className="space-y-3">
@@ -66,12 +238,12 @@ export function InvoicesList({ unitId, onEditInvoice }: InvoicesListProps) {
         </p>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-2xs">
-        <table className="w-full min-w-[960px] text-sm">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50/80">
+      <Card className="gap-0 overflow-hidden rounded-xl border-gray-200 bg-white shadow-2xs">
+        <Table className="w-full min-w-[960px] text-sm">
+          <TableHeader>
+            <TableRow className="border-b border-gray-200 bg-gray-50/80">
               {COLUMNS.map((c, i) => (
-                <th
+                <TableHead
                   key={c || 'expand'}
                   className={cn(
                     'px-3 py-3 text-left text-[11px] font-semibold tracking-wide whitespace-nowrap text-gray-600 uppercase',
@@ -81,206 +253,56 @@ export function InvoicesList({ unitId, onEditInvoice }: InvoicesListProps) {
                   )}
                 >
                   {c}
-                </th>
+                </TableHead>
               ))}
-            </tr>
-          </thead>
-          <tbody>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {isLoading ? (
-              <tr>
-                <td colSpan={COLUMNS.length} className="py-12 text-center">
-                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-[#2b4f7e]" />
-                </td>
-              </tr>
-            ) : invoices.length === 0 ? (
-              <tr>
-                <td colSpan={COLUMNS.length} className="py-14 text-center text-gray-500">
+              <TableRow>
+                <TableCell colSpan={COLUMNS.length} className="py-12 text-center">
+                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
+                </TableCell>
+              </TableRow>
+            ) : invoices.length === 0 && oldFlatInvoices.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={COLUMNS.length} className="py-14 text-center text-gray-500">
                   <FileText className="mx-auto mb-2 h-10 w-10 text-gray-300" />
                   No invoices yet for this flat
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
-              invoices.map((inv) => {
-                const isOpen = expanded === inv.id
-                const payable = isPayable(inv.status)
-                const balance = payable ? inv.remainingBalance : 0
-                const toggle = () => setExpanded(isOpen ? null : inv.id)
-                return (
-                  <Fragment key={inv.id}>
-                    <tr
-                      onClick={toggle}
-                      className={cn(
-                        'cursor-pointer border-b border-gray-100 transition-colors hover:bg-gray-50/70',
-                        isOpen && 'bg-[#2b4f7e]/[0.03] hover:bg-[#2b4f7e]/[0.03]',
-                      )}
-                    >
-                      <td className="px-3 py-3.5">
-                        <button
-                          type="button"
-                          aria-label={isOpen ? 'Collapse' : 'Expand'}
-                          aria-expanded={isOpen}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            toggle()
-                          }}
-                          className="rounded-md p-1 text-gray-500 hover:bg-gray-200/70"
+              <>
+                {oldFlatInvoices.length > 0 && (
+                  <>
+                    <TableRow className="border-b border-amber-100 bg-amber-50/70">
+                      <TableCell
+                        colSpan={COLUMNS.length}
+                        className="px-4 py-2 text-xs font-bold tracking-wide text-amber-800 uppercase"
+                      >
+                        From old flat · bills from before the residents moved here (unpaid ones are carried into this
+                        flat’s next invoice)
+                      </TableCell>
+                    </TableRow>
+                    {oldFlatInvoices.map((inv) => renderRow(inv, true))}
+                    {invoices.length > 0 && (
+                      <TableRow className="border-b border-gray-100 bg-gray-50/70">
+                        <TableCell
+                          colSpan={COLUMNS.length}
+                          className="px-4 py-2 text-xs font-bold tracking-wide text-gray-600 uppercase"
                         >
-                          {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                        </button>
-                      </td>
-                      <td className="px-3 py-3.5">
-                        <div className="flex items-center gap-2.5">
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#2b4f7e]/10 text-[#2b4f7e]">
-                            <FileText className="h-4 w-4" />
-                          </span>
-                          <div>
-                            <p className="font-semibold whitespace-nowrap text-gray-900">{inv.invoiceNumber}</p>
-                            <p className="text-xs text-gray-500">Created {formatDmy(inv.createdAt)}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3 py-3.5">
-                        <p className="font-medium whitespace-nowrap text-gray-800">
-                          {monthLabel(String(inv.startDate).slice(0, 7))}
-                        </p>
-                        <p className="flex items-center gap-1 text-xs whitespace-nowrap text-gray-500">
-                          <CalendarDays className="h-3 w-3" />
-                          {formatDmy(inv.startDate)} – {formatDmy(inv.endDate)}
-                        </p>
-                      </td>
-                      <td className="px-3 py-3.5">
-                        <StatusPill status={inv.status} />
-                        {inv.dueDate && payable && (
-                          <p className="mt-1 text-[11px] text-gray-500">Due {formatDmy(inv.dueDate)}</p>
-                        )}
-                      </td>
-                      <td className="px-3 py-3.5 text-right">
-                        <p className="font-bold text-gray-900 tabular-nums">{formatInr(inv.discountedAmount)}</p>
-                        <p className="text-[11px] whitespace-nowrap text-gray-500">
-                          {formatInr(inv.subtotal)}
-                          {inv.discount ? ` − ${formatInr(inv.discount)}` : ''}
-                          {inv.tax ? ` + GST ${formatInr(inv.tax)}` : ''}
-                        </p>
-                      </td>
-                      <td className="px-3 py-3.5 text-right">
-                        {inv.carriedForwardTo ? (
-                          <>
-                            <p className="font-semibold text-emerald-600 tabular-nums">
-                              {formatInr(inv.carriedForwardTo.paidAmount)}
-                            </p>
-                            <p className="text-[11px] whitespace-nowrap text-gray-500">
-                              via {inv.carriedForwardTo.invoiceNumber}
-                            </p>
-                            <PaidBar
-                              paid={inv.carriedForwardTo.paidAmount}
-                              total={inv.carriedForwardTo.amount}
-                              className="mt-1 ml-auto w-24"
-                            />
-                          </>
-                        ) : (
-                          <>
-                            <p className="font-semibold text-emerald-600 tabular-nums">{formatInr(inv.paidAmount)}</p>
-                            <PaidBar
-                              paid={inv.paidAmount}
-                              total={inv.discountedAmount}
-                              className="mt-1.5 ml-auto w-24"
-                            />
-                          </>
-                        )}
-                      </td>
-                      <td className="px-3 py-3.5 text-right">
-                        {inv.carriedForwardTo ? (
-                          inv.status === 'PAID' ? (
-                            <span className="text-xs font-semibold whitespace-nowrap text-emerald-600">
-                              Paid via {inv.carriedForwardTo.invoiceNumber}
-                            </span>
-                          ) : (
-                            <span className="inline-flex flex-col items-end text-xs font-medium whitespace-nowrap text-purple-700">
-                              <span className="inline-flex items-center gap-1">
-                                <ArrowRightLeft className="h-3.5 w-3.5" />
-                                Moved to {inv.carriedForwardTo.invoiceNumber}
-                              </span>
-                              <span className="text-[11px] font-normal text-gray-500">
-                                {formatInr(inv.carriedForwardTo.amount - inv.carriedForwardTo.paidAmount)} due there
-                              </span>
-                            </span>
-                          )
-                        ) : balance > 0 ? (
-                          <p className="font-bold text-rose-600 tabular-nums">{formatInr(balance)}</p>
-                        ) : (
-                          <span className="text-xs font-semibold text-emerald-600">Settled</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1">
-                          {balance > 0 && receiptsAccess.canCreate && (
-                            <Button
-                              size="sm"
-                              className="h-8 bg-emerald-600 text-white hover:bg-emerald-700"
-                              onClick={() => setPaying(inv)}
-                            >
-                              <CreditCard className="mr-1 h-3.5 w-3.5" />
-                              Pay
-                            </Button>
-                          )}
-                          {isEditable(inv) && invoicesAccess.canUpdate && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="Edit invoice"
-                              aria-label="Edit invoice"
-                              className="h-8 w-8 text-[#2b6cb0]"
-                              onClick={() => onEditInvoice(inv)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            title="Invoice PDF"
-                            aria-label="Invoice PDF"
-                            className="h-8 w-8"
-                            disabled={opening === inv.id}
-                            onClick={() =>
-                              showPdf(
-                                inv.id,
-                                async () => inv.pdfUrl || getBillingDocumentAPI(selectedLocationId, inv.id),
-                              )
-                            }
-                          >
-                            {opening === inv.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Download className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    {isOpen && (
-                      <tr className="border-b border-gray-200 bg-[#2b4f7e]/[0.03]">
-                        <td colSpan={COLUMNS.length} className="px-5 pt-1 pb-5">
-                          <InvoiceDetail
-                            invoice={inv}
-                            opening={opening}
-                            onReceiptPdf={(receiptId) =>
-                              showPdf(receiptId, async () =>
-                                getBillingDocumentAPI(selectedLocationId, inv.id, receiptId),
-                              )
-                            }
-                          />
-                        </td>
-                      </tr>
+                          This flat’s invoices
+                        </TableCell>
+                      </TableRow>
                     )}
-                  </Fragment>
-                )
-              })
+                  </>
+                )}
+                {invoices.map((inv) => renderRow(inv, false))}
+              </>
             )}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </Card>
 
       <TablePager page={page} totalPages={data?.pagination.totalPages ?? 1} onPage={setPage} />
 
@@ -303,52 +325,53 @@ function InvoiceDetail({
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_320px]">
       <div className="space-y-4">
         {/* Charges */}
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <Card className="gap-0 overflow-hidden rounded-lg border-gray-200 bg-white">
           <p className="border-b border-gray-100 px-4 py-2.5 text-xs font-semibold tracking-wide text-gray-600 uppercase">
             Charges ({inv.services.length})
           </p>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50/70 text-xs text-gray-500">
-                <th className="px-4 py-2 text-left font-medium">Service</th>
-                <th className="px-4 py-2 text-left font-medium">Description</th>
-                <th className="px-4 py-2 text-center font-medium">Qty</th>
-                <th className="px-4 py-2 text-right font-medium">Price</th>
-                <th className="px-4 py-2 text-right font-medium">Total</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="w-full text-sm">
+            <TableHeader>
+              <TableRow className="bg-gray-50/70 text-xs text-gray-500">
+                <TableHead className="px-4 py-2 text-left font-medium">Service</TableHead>
+                <TableHead className="px-4 py-2 text-left font-medium">Description</TableHead>
+                <TableHead className="px-4 py-2 text-center font-medium">Qty</TableHead>
+                <TableHead className="px-4 py-2 text-right font-medium">Price</TableHead>
+                <TableHead className="px-4 py-2 text-right font-medium">Total</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {inv.services.map((s) => (
-                <tr key={s.id} className="border-t border-gray-100 align-top">
-                  <td className="px-4 py-2.5">
+                <TableRow key={s.id} className="border-t border-gray-100 align-top">
+                  <TableCell className="px-4 py-2.5">
                     <p className="font-medium text-gray-900">{s.name}</p>
-                    {s.consumerName && (
-                      <div className="mt-1">
+                    {(s.consumerName || s.fromUnitNumber) && (
+                      <div className="mt-1 flex flex-wrap gap-1">
                         <ConsumerTag type={s.consumerType} name={s.consumerName} />
+                        <OldFlatTag unitNumber={s.fromUnitNumber} />
                       </div>
                     )}
-                  </td>
-                  <td className="px-4 py-2.5 text-gray-500">{s.description}</td>
-                  <td className="px-4 py-2.5 text-center tabular-nums">
+                  </TableCell>
+                  <TableCell className="px-4 py-2.5 text-gray-500">{s.description}</TableCell>
+                  <TableCell className="px-4 py-2.5 text-center tabular-nums">
                     {Number(s.quantity) === 0 ? 'N/A' : Number(s.quantity)}
-                  </td>
-                  <td className="px-4 py-2.5 text-right tabular-nums">{formatInr(s.price)}</td>
-                  <td
+                  </TableCell>
+                  <TableCell className="px-4 py-2.5 text-right tabular-nums">{formatInr(s.price)}</TableCell>
+                  <TableCell
                     className={cn(
                       'px-4 py-2.5 text-right font-medium tabular-nums',
                       s.total < 0 ? 'text-emerald-700' : 'text-gray-900',
                     )}
                   >
                     {formatInr(s.total)}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </Card>
 
         {/* Payments */}
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <Card className="gap-0 overflow-hidden rounded-lg border-gray-200 bg-white">
           <p className="border-b border-gray-100 px-4 py-2.5 text-xs font-semibold tracking-wide text-gray-600 uppercase">
             Payments ({inv.receipts.length})
           </p>
@@ -405,12 +428,12 @@ function InvoiceDetail({
               ))}
             </ul>
           )}
-        </div>
+        </Card>
         {inv.notes && <p className="text-xs text-gray-500">Notes: {inv.notes}</p>}
       </div>
 
       {/* Totals */}
-      <div className="h-fit space-y-1.5 rounded-lg border border-gray-200 bg-white p-4 text-sm">
+      <Card className="gap-0 h-fit space-y-1.5 rounded-lg border-gray-200 bg-white p-4 text-sm">
         <p className="mb-2 text-xs font-semibold tracking-wide text-gray-600 uppercase">Summary</p>
         <Row label="Subtotal" value={formatInr(inv.subtotal)} />
         {inv.discount !== 0 && (
@@ -472,7 +495,7 @@ function InvoiceDetail({
             className={cn('font-bold', inv.remainingBalance > 0 ? 'text-rose-600' : 'text-emerald-600')}
           />
         )}
-      </div>
+      </Card>
     </div>
   )
 }

@@ -30,6 +30,24 @@ export interface ResidentFamilyMember {
   carePackageStartDate?: string | null
 }
 
+/** One flat a resident lived in, and when (YYYY-MM-DD; `to` null for the current flat). */
+export interface ResidentFlatStay {
+  unit: {
+    id: string
+    unit_number: string
+    unit_type?: string | null
+    floor?: {
+      floor_number?: number | null
+      floor_name?: string | null
+      is_virtual?: boolean
+      block?: { block_name?: string | null } | null
+    } | null
+  } | null
+  from: string | null
+  to: string | null
+  current: boolean
+}
+
 export interface ResidentItem {
   id: string
   unitId: string
@@ -50,6 +68,10 @@ export interface ResidentItem {
   photoUrl?: string | null
   moveInDate?: string | null
   moveOutDate?: string | null
+  /** Day they moved into their current flat (the original move-in if they never changed flats). */
+  currentFlatMovedIn?: string | null
+  /** Flats lived in, oldest first; the last is the current flat. */
+  flatHistory?: ResidentFlatStay[]
   rentAmount?: number | null
   payRentToCompany?: boolean
   status: ResidentStatus
@@ -588,4 +610,92 @@ export interface CreateResidentPayload {
     frequency?: number
     times?: string[]
   }>
+  /** Edit only, when the flat changes: what to do with the old flat's assets and gate passes. */
+  unitChange?: UnitChangeChoices
+}
+
+/** Choices in the "Moving from … to …" panel. Left out = default (passes move, assets stay). */
+export interface UnitChangeChoices {
+  assetAssignmentIds?: string[]
+  preapprovalIds?: string[]
+}
+
+/** An unbilled charge the resident takes to the new flat. */
+export interface UnitChangeChargeLine {
+  id: string
+  serviceType: string
+  name: string
+  description: string
+  total: number
+  date: string
+  consumerName: string | null
+  fromUnitNumber: string | null
+}
+
+export interface UnitChangeTicket {
+  id: string
+  ticketNumber: string
+  title: string
+  status: string
+  unitId: string | null
+}
+
+export interface UnitChangeAsset {
+  assignmentId: string
+  assetId: string
+  name: string
+  assetTag: string | null
+  assignedAt: string
+}
+
+/** What moving a resident to another flat affects (GET /residents/:id/unit-change-impact). */
+export interface UnitChangeImpact {
+  resident: { id: string; name: string }
+  fromUnit: { id: string; unitNumber: string } | null
+  toUnit: { id: string; unitNumber: string } | null
+  moveDate: string
+  canMove: boolean
+  /** Why the flat can't change yet (flat taken, open tickets, orders not delivered). Empty = can move. */
+  blockers: string[]
+  unbilled: { lines: UnitChangeChargeLine[]; total: number }
+  openInvoices: {
+    id: string
+    invoiceNumber: string
+    startDate: string
+    endDate: string
+    status: string
+    balance: number
+  }[]
+  foodOrders: {
+    id: string
+    date: string
+    mealSlot: string | null
+    status: string
+    totalAmount: number
+    consumerName: string
+    items: string
+  }[]
+  eventRegistrations: {
+    id: string
+    title: string
+    startDate: string | null
+    status: string
+    seatCount: number
+    entryFee: number
+    consumerName: string
+  }[]
+  eventRequests: { id: string; requestNumber: string | null; title: string; startDate: string; status: string }[]
+  amenityBookings: { id: string; amenity: string; date: string; startMinutes: number }[]
+  tickets: { raisedByResident: UnitChangeTicket[]; flatOnly: UnitChangeTicket[] }
+  assets: { flat: UnitChangeAsset[]; resident: UnitChangeAsset[] }
+  gatePasses: {
+    id: string
+    visitorName: string
+    visitorType: string
+    scheduleType: string | null
+    startDate: string | null
+    endDate: string | null
+    status: string
+  }[]
+  coResidents: { id: string; name: string; residentType: string }[]
 }

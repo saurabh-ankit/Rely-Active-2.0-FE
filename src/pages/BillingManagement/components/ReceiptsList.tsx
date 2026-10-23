@@ -11,7 +11,9 @@ import {
   UserRound,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Card } from '@/components/ui/card'
 import { Button, buttonVariants } from '@/components/ui/button'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiErrorMessage, useUnitReceipts } from '@/hooks/react-query/billing'
 import { useLocationContext } from '@/hooks/useLocation'
 import { getBillingDocumentAPI } from '@/lib/services/billingService'
@@ -131,34 +133,35 @@ export function ReceiptsList({ unitId }: { unitId: string }) {
       </div>
 
       {isLoading ? (
-        <div className="rounded-xl border border-gray-200 bg-white py-12">
-          <Loader2 className="mx-auto h-6 w-6 animate-spin text-[#2b4f7e]" />
-        </div>
+        <Card className="gap-0 rounded-xl border-gray-200 bg-white py-12">
+          <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
+        </Card>
       ) : groups.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white py-14 text-center text-gray-500">
+        <Card className="gap-0 rounded-xl border-gray-200 bg-white py-14 text-center text-gray-500">
           <ReceiptIndianRupee className="mx-auto mb-2 h-10 w-10 text-gray-300" />
           No payments recorded yet
-        </div>
+        </Card>
       ) : (
         <div className="space-y-3">
           {visible.map((g) => {
             const open = isOpen(g.invoiceId)
             return (
-              <div
+              <Card
                 key={g.invoiceId}
                 className={cn(
-                  'overflow-hidden rounded-xl border bg-white shadow-2xs transition-colors',
+                  'gap-0 overflow-hidden rounded-xl border bg-white shadow-2xs transition-colors',
                   open ? 'border-[#2b4f7e]/30' : 'border-gray-200',
                 )}
               >
                 {/* Invoice header */}
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   aria-expanded={open}
                   onClick={() => toggle(g.invoiceId)}
                   className={cn(
-                    'grid w-full grid-cols-[auto_1fr_auto] items-center gap-4 px-4 py-3.5 text-left transition-colors hover:bg-gray-50/70 md:grid-cols-[auto_1.4fr_1fr_1.3fr_auto]',
-                    open && 'bg-[#2b4f7e]/[0.03]',
+                    'h-auto rounded-none grid w-full grid-cols-[auto_1fr_auto] items-center gap-4 px-4 py-3.5 text-left transition-colors hover:bg-gray-50/70 md:grid-cols-[auto_1.4fr_1fr_1.3fr_auto] whitespace-normal font-normal',
+                    open && 'bg-[#2b4f7e]/[0.03] hover:bg-[#2b4f7e]/[0.03]',
                   )}
                 >
                   {open ? (
@@ -206,31 +209,31 @@ export function ReceiptsList({ unitId }: { unitId: string }) {
                       <p className="font-bold text-emerald-600">Settled</p>
                     )}
                   </div>
-                </button>
+                </Button>
 
                 {/* Payments on this invoice */}
                 {open && (
                   <div className="border-t border-gray-100">
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-[820px] text-sm">
-                        <thead>
-                          <tr className="bg-gray-50/70 text-[11px] tracking-wide text-gray-500 uppercase">
-                            <th className="px-4 py-2 text-left font-medium">Receipt</th>
-                            <th className="px-4 py-2 text-left font-medium">Method</th>
-                            <th className="px-4 py-2 text-left font-medium">Received By</th>
-                            <th className="px-4 py-2 text-right font-medium">Paid Earlier</th>
-                            <th className="px-4 py-2 text-right font-medium">Amount Paid</th>
-                            <th className="px-4 py-2 text-right font-medium">Balance After</th>
-                            <th className="px-4 py-2 text-right font-medium">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
+                    <div className="overflow-hidden">
+                      <Table className="w-full min-w-[820px] text-sm">
+                        <TableHeader>
+                          <TableRow className="bg-gray-50/70 text-[11px] tracking-wide text-gray-500 uppercase">
+                            <TableHead className="px-4 py-2 text-left font-medium">Receipt</TableHead>
+                            <TableHead className="px-4 py-2 text-left font-medium">Method</TableHead>
+                            <TableHead className="px-4 py-2 text-left font-medium">Received By</TableHead>
+                            <TableHead className="px-4 py-2 text-right font-medium">Paid Earlier</TableHead>
+                            <TableHead className="px-4 py-2 text-right font-medium">Amount Paid</TableHead>
+                            <TableHead className="px-4 py-2 text-right font-medium">Balance After</TableHead>
+                            <TableHead className="px-4 py-2 text-right font-medium">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
                           {g.entries.map(({ receipt: r, amount, via }) => {
                             const after = Number(r.invoiceRemainingBalance ?? 0)
                             const split = !via && r.appliedTo.some((a) => a.carried)
                             return (
-                              <tr key={r.id} className="border-t border-gray-100 align-middle">
-                                <td className="px-4 py-3">
+                              <TableRow key={r.id} className="border-t border-gray-100 align-middle">
+                                <TableCell className="px-4 py-3">
                                   <div className="flex items-center gap-2.5">
                                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
                                       <ReceiptIndianRupee className="h-4 w-4" />
@@ -243,16 +246,16 @@ export function ReceiptsList({ unitId }: { unitId: string }) {
                                       </p>
                                     </div>
                                   </div>
-                                </td>
-                                <td className="px-4 py-3 text-gray-700">
+                                </TableCell>
+                                <TableCell className="px-4 py-3 text-gray-700">
                                   {PAYMENT_METHOD_LABEL[r.paymentMethod]}
                                   {r.paymentReference && (
                                     <p className="max-w-[180px] truncate text-xs text-gray-500">
                                       Ref {r.paymentReference}
                                     </p>
                                   )}
-                                </td>
-                                <td className="px-4 py-3 text-gray-700">
+                                </TableCell>
+                                <TableCell className="px-4 py-3 text-gray-700">
                                   {r.handedOverTo ? (
                                     <span className="flex items-center gap-1.5 whitespace-nowrap">
                                       <UserRound className="h-3.5 w-3.5 text-gray-400" />
@@ -261,11 +264,11 @@ export function ReceiptsList({ unitId }: { unitId: string }) {
                                   ) : (
                                     <span className="text-gray-400">—</span>
                                   )}
-                                </td>
-                                <td className="px-4 py-3 text-right text-gray-600 tabular-nums">
+                                </TableCell>
+                                <TableCell className="px-4 py-3 text-right text-gray-600 tabular-nums">
                                   {via ? '—' : formatInr(r.paidBefore ?? 0)}
-                                </td>
-                                <td className="px-4 py-3 text-right tabular-nums">
+                                </TableCell>
+                                <TableCell className="px-4 py-3 text-right tabular-nums">
                                   <p className="font-bold text-emerald-600">{formatInr(amount)}</p>
                                   {via && <p className="text-[11px] text-gray-500">of {formatInr(r.paidAmount)}</p>}
                                   {split && (
@@ -276,16 +279,16 @@ export function ReceiptsList({ unitId }: { unitId: string }) {
                                         .join(' · ')}
                                     </p>
                                   )}
-                                </td>
-                                <td
+                                </TableCell>
+                                <TableCell
                                   className={cn(
                                     'px-4 py-3 text-right font-semibold tabular-nums',
                                     via ? 'text-gray-400' : after > 0 ? 'text-rose-600' : 'text-emerald-600',
                                   )}
                                 >
                                   {via ? '—' : formatInr(after)}
-                                </td>
-                                <td className="px-4 py-3">
+                                </TableCell>
+                                <TableCell className="px-4 py-3">
                                   <div className="flex items-center justify-end gap-1">
                                     {r.imageUrl && (
                                       <a
@@ -315,12 +318,12 @@ export function ReceiptsList({ unitId }: { unitId: string }) {
                                       )}
                                     </Button>
                                   </div>
-                                </td>
-                              </tr>
+                                </TableCell>
+                              </TableRow>
                             )
                           })}
-                        </tbody>
-                      </table>
+                        </TableBody>
+                      </Table>
                     </div>
                     {g.entries.some((e) => e.receipt.notes) && (
                       <div className="space-y-0.5 border-t border-gray-100 px-4 py-2 text-xs text-gray-500">
@@ -336,7 +339,7 @@ export function ReceiptsList({ unitId }: { unitId: string }) {
                     )}
                   </div>
                 )}
-              </div>
+              </Card>
             )
           })}
         </div>

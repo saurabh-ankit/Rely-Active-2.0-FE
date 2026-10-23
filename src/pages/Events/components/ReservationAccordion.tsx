@@ -1,4 +1,5 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { EventsPermission } from '@/pages/Events/components/EventsPermission'
@@ -114,20 +115,20 @@ export function ReservationAccordion({
                 <div className="text-sm font-normal text-gray-700">{formatDisplayDate(reg.registeredAt)}</div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
-                <div className="overflow-x-auto rounded-lg border border-gray-100">
-                  <table className="w-full table-fixed text-sm">
-                    <thead className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
-                      <tr>
-                        <th className="w-[40%] px-3 py-2 font-semibold">Person</th>
-                        <th className="w-[20%] px-3 py-2 font-semibold">Attendance</th>
-                        <th className="w-[20%] px-3 py-2 font-semibold">Came at</th>
-                        <th className="w-[20%] px-3 py-2 font-semibold">Marked by</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
+                <div className="overflow-hidden rounded-lg border border-gray-100">
+                  <Table className="w-full table-fixed text-sm">
+                    <TableHeader className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
+                      <TableRow>
+                        <TableHead className="w-[40%] px-3 py-2 font-semibold">Person</TableHead>
+                        <TableHead className="w-[20%] px-3 py-2 font-semibold">Attendance</TableHead>
+                        <TableHead className="w-[20%] px-3 py-2 font-semibold">Came at</TableHead>
+                        <TableHead className="w-[20%] px-3 py-2 font-semibold">Marked by</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="divide-y divide-gray-100">
                       {people.map((p) => (
-                        <tr key={p.familyMemberId ?? 'resident'}>
-                          <td className="px-3 py-2.5">
+                        <TableRow key={p.familyMemberId ?? 'resident'}>
+                          <TableCell className="px-3 py-2.5">
                             <span className="font-medium text-gray-900">{p.name}</span>{' '}
                             <span
                               className={
@@ -138,8 +139,8 @@ export function ReservationAccordion({
                             >
                               {p.familyMemberId ? p.relation || 'Family member' : 'Resident'}
                             </span>
-                          </td>
-                          <td className="px-3 py-2.5">
+                          </TableCell>
+                          <TableCell className="px-3 py-2.5">
                             {p.attended ? (
                               <span className="inline-flex items-center gap-1 font-semibold text-emerald-700">
                                 <CheckCircle2 className="h-4 w-4" />
@@ -151,13 +152,15 @@ export function ReservationAccordion({
                                 Not yet
                               </span>
                             )}
-                          </td>
-                          <td className="px-3 py-2.5 text-gray-700">{p.markedAt ? dateTime(p.markedAt) : '-'}</td>
-                          <td className="px-3 py-2.5 text-gray-700">{p.markedBy || '-'}</td>
-                        </tr>
+                          </TableCell>
+                          <TableCell className="px-3 py-2.5 text-gray-700">
+                            {p.markedAt ? dateTime(p.markedAt) : '-'}
+                          </TableCell>
+                          <TableCell className="px-3 py-2.5 text-gray-700">{p.markedBy || '-'}</TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-gray-500">
                   <span>

@@ -1,3 +1,5 @@
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -57,32 +59,35 @@ export function AddEntityDialog({ onOpenChange, onCreate }: AddEntityDialogProps
                 const Icon = preset.icon
                 const active = t === type
                 return (
-                  <button
+                  <Button
                     key={t}
                     type="button"
+                    variant="ghost"
                     aria-pressed={active}
                     onClick={() => pickType(t)}
                     className={cn(
-                      'flex cursor-pointer flex-col items-start gap-1 rounded-xl border p-3 text-left transition-colors',
+                      'flex cursor-pointer flex-col items-start gap-1 rounded-xl border p-3 text-left transition-colors h-auto justify-start font-normal',
                       active
-                        ? 'border-[#005390] bg-[#005390]/5 ring-2 ring-[#005390]/15'
+                        ? 'border-[#005390] bg-[#005390]/5 ring-2 ring-[#005390]/15 hover:bg-[#005390]/10'
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
                     )}
                   >
                     <Icon className={cn('h-4 w-4', active ? 'text-[#005390]' : 'text-gray-400')} />
                     <span className="text-xs font-semibold text-gray-900">{preset.label}</span>
-                    <span className="text-[10px] leading-tight text-gray-500">{preset.hint}</span>
-                  </button>
+                    <span className="text-[10px] leading-tight text-gray-500 whitespace-normal text-left">
+                      {preset.hint}
+                    </span>
+                  </Button>
                 )
               })}
             </div>
           </div>
 
           <div className="space-y-1">
-            <label htmlFor="entity-name" className="text-xs font-semibold text-gray-700">
+            <Label htmlFor="entity-name" className="text-xs font-semibold text-gray-700">
               Name
-            </label>
-            <input
+            </Label>
+            <Input
               id="entity-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -99,24 +104,25 @@ export function AddEntityDialog({ onOpenChange, onCreate }: AddEntityDialogProps
                   const active = sameLevels(option.levels, levels)
                   const Icon = option.icon
                   return (
-                    <button
+                    <Button
                       key={option.label}
                       type="button"
+                      variant="ghost"
                       aria-pressed={active}
                       onClick={() => setLevels(option.levels)}
                       className={cn(
-                        'flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition-colors',
+                        'flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition-colors h-auto justify-start font-normal',
                         active
-                          ? 'border-[#005390] bg-[#005390]/5 ring-2 ring-[#005390]/15'
+                          ? 'border-[#005390] bg-[#005390]/5 ring-2 ring-[#005390]/15 hover:bg-[#005390]/10'
                           : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
                       )}
                     >
                       <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-[#005390]' : 'text-gray-400')} />
-                      <span>
+                      <span className="text-left">
                         <span className="block text-xs font-semibold text-gray-900">{option.label}</span>
-                        <span className="block text-[10px] text-gray-500">{option.hint}</span>
+                        <span className="block text-[10px] text-gray-500 whitespace-normal">{option.hint}</span>
                       </span>
-                    </button>
+                    </Button>
                   )
                 })}
               </div>
@@ -136,10 +142,10 @@ export function AddEntityDialog({ onOpenChange, onCreate }: AddEntityDialogProps
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               {levels.map((level) => (
                 <div key={level} className="space-y-1">
-                  <label htmlFor={`label-${level}`} className="text-[11px] text-gray-500">
+                  <Label htmlFor={`label-${level}`} className="text-[11px] text-gray-500">
                     {LEVEL_NAMES[level]}
-                  </label>
-                  <input
+                  </Label>
+                  <Input
                     id={`label-${level}`}
                     value={labels[level] ?? ''}
                     placeholder={LEVEL_NAMES[level]}
