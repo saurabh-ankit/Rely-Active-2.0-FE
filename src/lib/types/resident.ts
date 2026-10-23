@@ -430,7 +430,23 @@ export interface ResidentFluidBalanceItem {
   note: string | null
   recordedAt: string
   createdByName: string | null
+  recordedByName?: string | null
   createdAt: string | null
+}
+
+export interface ResidentFluidBalanceHistory {
+  date: string
+  entries: ResidentFluidBalanceItem[]
+}
+
+export interface ResidentFluidBalanceSummary {
+  intakeMl: number
+  outputMl: number
+  netMl: number
+  bowelCount: number
+  lastRecordedAt: string | null
+  windowStart: string
+  windowEnd: string
 }
 
 export type IncidentType = 'fall_injury' | 'skin_wound' | 'behavior' | 'env_temp' | 'bathroom' | 'refusal' | 'other'
