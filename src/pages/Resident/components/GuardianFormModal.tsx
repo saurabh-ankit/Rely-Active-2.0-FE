@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ImagePlus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useCreateResidentGuardianMutation, useUpdateResidentGuardianMutation } from '@/hooks/react-query/resident'
 import type { ResidentGuardian } from '@/lib/types/resident'
-import { getFileUrl } from '@/lib/utils'
+import { cn, getFileUrl } from '@/lib/utils'
 
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024
 const ACCEPTED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -102,6 +102,7 @@ const GuardianFormModal = ({ open, onOpenChange, residentId, item }: GuardianFor
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors },
   } = useForm<GuardianFormValues>({
@@ -111,7 +112,7 @@ const GuardianFormModal = ({ open, onOpenChange, residentId, item }: GuardianFor
       firstName: item?.firstName ?? '',
       lastName: item?.lastName ?? '',
       relation: item?.relation ?? 'Son',
-      gender: item?.gender ?? '',
+      gender: item?.gender ? item.gender.toUpperCase() : '',
       phone: item?.phone ?? '',
       email: item?.email ?? '',
       address: item?.address ?? '',
@@ -161,23 +162,23 @@ const GuardianFormModal = ({ open, onOpenChange, residentId, item }: GuardianFor
   }
 
   const field = (id: string, label: string, required: boolean, input: React.ReactNode, error?: string) => (
-    <div className="space-y-2">
-      <Label htmlFor={id}>
-        {label} {required && <span className="text-red-500">*</span>}
+    <div className="space-y-1.5">
+      <Label htmlFor={id} className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+        {label} {required && <span className="text-red-500 font-bold">*</span>}
       </Label>
       {input}
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && <p className="text-xs font-medium text-red-500">{error}</p>}
     </div>
   )
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader className="border-b border-gray-300 pb-3 dark:border-gray-700">
+        <DialogHeader className="border-b border-gray-200 pb-3 dark:border-gray-800">
           <DialogTitle className="text-lg font-bold">{isEdit ? 'Edit Guardian' : 'Add Guardian'}</DialogTitle>
-          <p className="text-xs text-gray-500">
+          <DialogDescription className="text-xs text-gray-500 dark:text-gray-400">
             Family who don&apos;t live in the flat can sign in to the resident app to look after the residents.
-          </p>
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
@@ -228,39 +229,94 @@ const GuardianFormModal = ({ open, onOpenChange, residentId, item }: GuardianFor
                 'guardian-first-name',
                 'First Name',
                 true,
-                <Input id="guardian-first-name" placeholder="First name" maxLength={100} {...register('firstName')} />,
+                <Input
+                  id="guardian-first-name"
+                  placeholder="First name"
+                  maxLength={100}
+                  className={cn(errors.firstName && 'border-red-500 focus:border-red-500 focus:ring-red-500/20')}
+                  {...register('firstName')}
+                />,
                 errors.firstName?.message,
               )}
               {field(
                 'guardian-last-name',
                 'Last Name',
                 false,
-                <Input id="guardian-last-name" placeholder="Last name" maxLength={100} {...register('lastName')} />,
+                <Input
+                  id="guardian-last-name"
+                  placeholder="Last name"
+                  maxLength={100}
+                  className={cn(errors.lastName && 'border-red-500 focus:border-red-500 focus:ring-red-500/20')}
+                  {...register('lastName')}
+                />,
                 errors.lastName?.message,
               )}
               {field(
                 'guardian-relation',
                 'Relation to Resident',
                 true,
-                <NativeSelect id="guardian-relation" className="w-full [&_select]:h-9" {...register('relation')}>
-                  {RELATIONS.map((relation) => (
-                    <NativeSelectOption key={relation} value={relation}>
-                      {relation}
-                    </NativeSelectOption>
-                  ))}
-                </NativeSelect>,
+                <Controller
+                  name="relation"
+                  control={control}
+                  render={({ field: selectField }) => (
+                    <Select
+                      value={selectField.value || undefined}
+                      onValueChange={(val) => selectField.onChange(val || '')}
+                    >
+                      <SelectTrigger
+                        id="guardian-relation"
+                        className={cn(
+                          'w-full h-9',
+                          errors.relation && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+                        )}
+                      >
+                        <SelectValue placeholder="Select relation" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectField.value && !RELATIONS.includes(selectField.value) && (
+                          <SelectItem value={selectField.value}>{selectField.value}</SelectItem>
+                        )}
+                        {RELATIONS.map((relation) => (
+                          <SelectItem key={relation} value={relation}>
+                            {relation}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />,
                 errors.relation?.message,
               )}
               {field(
                 'guardian-gender',
                 'Gender',
                 false,
-                <NativeSelect id="guardian-gender" className="w-full [&_select]:h-9" {...register('gender')}>
-                  <NativeSelectOption value="">Select</NativeSelectOption>
-                  <NativeSelectOption value="MALE">Male</NativeSelectOption>
-                  <NativeSelectOption value="FEMALE">Female</NativeSelectOption>
-                  <NativeSelectOption value="OTHER">Other</NativeSelectOption>
-                </NativeSelect>,
+                <Controller
+                  name="gender"
+                  control={control}
+                  render={({ field: selectField }) => (
+                    <Select
+                      value={selectField.value || undefined}
+                      onValueChange={(val) => selectField.onChange(val || '')}
+                    >
+                      <SelectTrigger
+                        id="guardian-gender"
+                        className={cn(
+                          'w-full h-9',
+                          errors.gender && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+                        )}
+                      >
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MALE">Male</SelectItem>
+                        <SelectItem value="FEMALE">Female</SelectItem>
+                        <SelectItem value="OTHER">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />,
+                errors.gender?.message,
               )}
               {field(
                 'guardian-phone',
@@ -271,6 +327,7 @@ const GuardianFormModal = ({ open, onOpenChange, residentId, item }: GuardianFor
                   placeholder="10-digit mobile"
                   inputMode="numeric"
                   maxLength={10}
+                  className={cn(errors.phone && 'border-red-500 focus:border-red-500 focus:ring-red-500/20')}
                   {...phoneRegistration}
                   onChange={(e) => {
                     e.target.value = phoneDigitsOnly(e.target.value)
@@ -288,6 +345,7 @@ const GuardianFormModal = ({ open, onOpenChange, residentId, item }: GuardianFor
                   type="email"
                   placeholder="Email address"
                   maxLength={255}
+                  className={cn(errors.email && 'border-red-500 focus:border-red-500 focus:ring-red-500/20')}
                   {...register('email')}
                 />,
                 errors.email?.message,
@@ -301,6 +359,7 @@ const GuardianFormModal = ({ open, onOpenChange, residentId, item }: GuardianFor
                     id="guardian-address"
                     rows={2}
                     placeholder="Where the guardian lives"
+                    className={cn(errors.address && 'border-red-500 focus:border-red-500 focus:ring-red-500/20')}
                     {...register('address')}
                   />,
                   errors.address?.message,
@@ -321,6 +380,7 @@ const GuardianFormModal = ({ open, onOpenChange, residentId, item }: GuardianFor
                   placeholder="Login username"
                   autoComplete="off"
                   maxLength={50}
+                  className={cn(errors.username && 'border-red-500 focus:border-red-500 focus:ring-red-500/20')}
                   {...register('username')}
                 />,
                 errors.username?.message,
@@ -335,6 +395,7 @@ const GuardianFormModal = ({ open, onOpenChange, residentId, item }: GuardianFor
                   placeholder={isEdit ? 'Re-enter or set a new password' : 'At least 6 characters'}
                   autoComplete="new-password"
                   maxLength={PASSWORD_MAX}
+                  className={cn(errors.password && 'border-red-500 focus:border-red-500 focus:ring-red-500/20')}
                   {...register('password')}
                 />,
                 errors.password?.message,
@@ -349,6 +410,7 @@ const GuardianFormModal = ({ open, onOpenChange, residentId, item }: GuardianFor
                   placeholder="Re-enter the password"
                   autoComplete="new-password"
                   maxLength={PASSWORD_MAX}
+                  className={cn(errors.confirmPassword && 'border-red-500 focus:border-red-500 focus:ring-red-500/20')}
                   {...register('confirmPassword')}
                 />,
                 errors.confirmPassword?.message,
@@ -372,8 +434,14 @@ const GuardianFormModal = ({ open, onOpenChange, residentId, item }: GuardianFor
             >
               Cancel
             </Button>
-            <Button type="submit" variant="primary" className="h-10 min-w-40 rounded-xl" disabled={isPending}>
-              {isPending ? 'Saving...' : isEdit ? 'Save Changes' : 'Add Guardian'}
+            <Button
+              type="submit"
+              variant="primary"
+              className="h-10 min-w-40 rounded-xl"
+              disabled={isPending}
+              isLoading={isPending}
+            >
+              {isEdit ? 'Save Changes' : 'Add Guardian'}
             </Button>
           </div>
         </form>
