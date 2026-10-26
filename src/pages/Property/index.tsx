@@ -1,7 +1,7 @@
 import { Input } from '@/components/ui/input'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Building2, Edit, Eye, Layers, MapPin, Plus, Search, Trash2 } from 'lucide-react'
+import { ArrowLeft, Building2, Edit, Eye, Layers, MapPin, Plus, Search, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PROPERTY_TYPE_LABELS, type EntityInput, type Property } from './types'
@@ -114,7 +114,16 @@ export default function PropertyPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-10">
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={() => navigate('/global-settings')}
+        className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
+      >
+        <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+      </Button>
+
       <PageHeader
         icon={Building2}
         title="Properties"

@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
 import {
+  ArrowLeft,
   Building2,
   CreditCard,
   Download,
@@ -247,6 +248,15 @@ export default function CompanyPage() {
   if (!company) {
     return (
       <div className="w-full space-y-6 pb-12">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => navigate('/global-settings')}
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+        </Button>
+
         {/* Full Page Header */}
         <PageHeader
           icon={Building2}
@@ -484,6 +494,15 @@ export default function CompanyPage() {
   // Company Details Display Mode
   return (
     <div className="w-full space-y-6 pb-12">
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={() => navigate('/global-settings')}
+        className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
+      >
+        <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+      </Button>
+
       {/* Header Banner */}
       <Card className="gap-0 rounded-3xl border-white/60 bg-gradient-to-r from-white/90 via-white/85 to-indigo-50/50 p-6 shadow-xl backdrop-blur-xl">
         <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
