@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Pill, PlusCircle, Syringe, type LucideIcon } from 'lucide-react'
+import { Pill, Plus, Syringe, type LucideIcon } from 'lucide-react'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import {
@@ -71,13 +71,7 @@ const MedicationColumn: React.FC<MedicationColumnProps> = ({
       count={isLoading ? undefined : items.length}
       action={
         canUpdate ? (
-          <Button
-            variant="link"
-            type="button"
-            onClick={onAdd}
-            className="p-0 h-auto flex items-center gap-1.5 text-xs font-semibold text-[#005390] hover:text-[#004274] underline-offset-2 hover:underline hover:bg-transparent dark:text-sky-400 dark:hover:text-sky-300"
-          >
-            <PlusCircle className="h-4 w-4" />
+          <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={onAdd} className="rounded-xl">
             {addLabel}
           </Button>
         ) : undefined
