@@ -1,6 +1,7 @@
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Label } from '@/components/ui/label'
+import { TimePicker } from '@/components/ui/time-picker'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Utensils,
@@ -1660,27 +1661,17 @@ export function FnbPropertySettingsScreen({
                   <Label htmlFor="slot-start-time" className="font-bold text-gray-700 block mb-1">
                     Start Time (24h)
                   </Label>
-                  <Input
+                  <TimePicker
                     id="slot-start-time"
-                    type="time"
-                    required
                     value={slotStartTime}
-                    onChange={(e) => setSlotStartTime(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl font-semibold text-xs focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] outline-hidden"
+                    onChange={(newVal) => setSlotStartTime(newVal)}
                   />
                 </div>
                 <div>
                   <Label htmlFor="slot-end-time" className="font-bold text-gray-700 block mb-1">
                     End Time (24h)
                   </Label>
-                  <Input
-                    id="slot-end-time"
-                    type="time"
-                    required
-                    value={slotEndTime}
-                    onChange={(e) => setSlotEndTime(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl font-semibold text-xs focus:ring-2 focus:ring-[#005390]/20 focus:border-[#005390] outline-hidden"
-                  />
+                  <TimePicker id="slot-end-time" value={slotEndTime} onChange={(newVal) => setSlotEndTime(newVal)} />
                 </div>
               </div>
 

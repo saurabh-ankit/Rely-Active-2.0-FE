@@ -2,6 +2,7 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { TimePicker } from '@/components/ui/time-picker'
 import React, { useState } from 'react'
 import { isAxiosError } from 'axios'
 import { ArrowLeft, Building2, Home, Layers, Loader2, MapPin, Plus, Sparkles, Trash2, X, Check } from 'lucide-react'
@@ -1200,14 +1201,10 @@ export default function CreatePropertyScreen({
                             >
                               Available From (Optional)
                             </Label>
-                            <Input
+                            <TimePicker
                               id={availableFromId}
-                              type="time"
                               value={amenity.availableFrom || ''}
-                              onChange={(event) =>
-                                updateAmenityAvailability(amenity, 'availableFrom', event.target.value)
-                              }
-                              className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 outline-none focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20"
+                              onChange={(val) => updateAmenityAvailability(amenity, 'availableFrom', val)}
                             />
                           </div>
                           <div>
@@ -1217,14 +1214,10 @@ export default function CreatePropertyScreen({
                             >
                               Available To (Optional)
                             </Label>
-                            <Input
+                            <TimePicker
                               id={availableToId}
-                              type="time"
                               value={amenity.availableTo || ''}
-                              onChange={(event) =>
-                                updateAmenityAvailability(amenity, 'availableTo', event.target.value)
-                              }
-                              className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 outline-none focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20"
+                              onChange={(val) => updateAmenityAvailability(amenity, 'availableTo', val)}
                             />
                           </div>
                         </div>

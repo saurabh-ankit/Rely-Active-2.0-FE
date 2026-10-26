@@ -1,5 +1,6 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { TimePicker } from '@/components/ui/time-picker'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Loader2, Search, UserRound, X } from 'lucide-react'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -471,13 +472,11 @@ export function SlotManagerDrawer({
               <Label htmlFor="slot-open-time" className="mb-1 block text-xs text-gray-500">
                 From
               </Label>
-              <Input
+              <TimePicker
                 id="slot-open-time"
-                type="time"
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
                 value={formatMinutesToInput(draft.openMinutes)}
-                onChange={(event) => {
-                  const val = parseTimeToMinutes(event.target.value)
+                onChange={(newVal) => {
+                  const val = parseTimeToMinutes(newVal)
                   if (val === null) return
                   setDraft((prev) => ({ ...prev, openMinutes: val }))
                 }}
@@ -487,13 +486,11 @@ export function SlotManagerDrawer({
               <Label htmlFor="slot-close-time" className="mb-1 block text-xs text-gray-500">
                 To
               </Label>
-              <Input
+              <TimePicker
                 id="slot-close-time"
-                type="time"
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
                 value={formatMinutesToInput(draft.closeMinutes)}
-                onChange={(event) => {
-                  const val = parseTimeToMinutes(event.target.value)
+                onChange={(newVal) => {
+                  const val = parseTimeToMinutes(newVal)
                   if (val === null) return
                   setDraft((prev) => ({ ...prev, closeMinutes: val }))
                 }}

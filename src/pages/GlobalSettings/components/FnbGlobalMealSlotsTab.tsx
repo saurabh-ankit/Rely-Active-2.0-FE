@@ -2,6 +2,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { TimePicker } from '@/components/ui/time-picker'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Plus,
@@ -479,26 +480,20 @@ export default function FnbGlobalMealSlotsTab() {
                       >
                         Start Time (24h)
                       </Label>
-                      <Input
+                      <TimePicker
                         id="global-meal-slot-start-time"
-                        type="time"
                         value={formData.startTime}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, startTime: e.target.value }))}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2 text-xs font-bold text-[#005390] focus:outline-none focus:border-[#005390] focus:bg-white transition-all"
-                        required
+                        onChange={(newVal) => setFormData((prev) => ({ ...prev, startTime: newVal }))}
                       />
                     </div>
                     <div>
                       <Label htmlFor="global-meal-slot-end-time" className="block text-xs font-bold text-gray-700 mb-1">
                         End Time (24h)
                       </Label>
-                      <Input
+                      <TimePicker
                         id="global-meal-slot-end-time"
-                        type="time"
                         value={formData.endTime}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, endTime: e.target.value }))}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2 text-xs font-bold text-[#005390] focus:outline-none focus:border-[#005390] focus:bg-white transition-all"
-                        required
+                        onChange={(newVal) => setFormData((prev) => ({ ...prev, endTime: newVal }))}
                       />
                     </div>
                   </div>

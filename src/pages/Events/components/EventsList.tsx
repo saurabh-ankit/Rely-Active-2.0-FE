@@ -14,6 +14,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { TimePicker } from '@/components/ui/time-picker'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { ResponsiveTabs } from '@/components/common/ResponsiveTabs'
@@ -1024,12 +1025,7 @@ const EventsListPage = ({ embedded = false, enabled = true }: EventsListPageProp
             />
             <div className="space-y-2">
               <Label htmlFor="meeting-time">Meeting time</Label>
-              <Input
-                id="meeting-time"
-                type="time"
-                value={meetingTime}
-                onChange={(e) => setMeetingTime(e.target.value)}
-              />
+              <TimePicker id="meeting-time" value={meetingTime} onChange={(val) => setMeetingTime(val)} />
             </div>
           </div>
           <DialogFooter className="gap-2">
