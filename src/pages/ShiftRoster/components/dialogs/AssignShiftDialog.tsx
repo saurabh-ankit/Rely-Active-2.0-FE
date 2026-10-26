@@ -947,7 +947,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
 
                   {showAssignTo && targetType === 'area' && !isMedicalUnitOnly ? (
                     <div className="space-y-2">
-                      <Label>Area</Label>
+                      <Label>Area *</Label>
                       <Controller
                         name="areaIds"
                         control={control}

@@ -1,4 +1,6 @@
+import { lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
+import PageLoader from '@/components/shared/PageLoader'
 import {
   ArrowLeft,
   Activity,
@@ -19,22 +21,43 @@ import {
   Settings2,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { AdminUserManagement } from './components/AdminUserManagement'
-import { ResidentListScreen } from '../Resident/components/ResidentListScreen'
-import { OnboardResidentScreen } from '../Resident/components/OnboardResidentScreen'
-import { ResidentDetailsScreen } from '../Resident/components/ResidentDetailsScreen'
-import { EmployeeDetailsScreen } from '../Employees/components/EmployeeDetailsScreen'
-import { FnbGlobalPackagesTab } from './components/FnbGlobalPackagesTab'
-import { FnbDishesMasterTab } from './components/FnbDishesMasterTab'
-import FnbGlobalMealSlotsTab from './components/FnbGlobalMealSlotsTab'
-import { GlobalServicesTab } from './components/GlobalServicesTab'
-import { SpecializationsTab } from './components/SpecializationsTab'
-import { VitalsTab } from './components/VitalsTab'
-import { LabTestsTab } from './components/LabTestsTab'
-import { TasksTab } from './components/TasksTab'
-import { PackagesTab } from './components/PackagesTab'
-import { GstTaxSettingsTab } from './components/GstTaxSettingsTab'
-import { AmenitiesTab } from './components/AmenitiesTab'
+
+const AdminUserManagement = lazy(() =>
+  import('./components/AdminUserManagement').then((m) => ({ default: m.AdminUserManagement })),
+)
+const ResidentListScreen = lazy(() =>
+  import('../Resident/components/ResidentListScreen').then((m) => ({ default: m.ResidentListScreen })),
+)
+const OnboardResidentScreen = lazy(() =>
+  import('../Resident/components/OnboardResidentScreen').then((m) => ({ default: m.OnboardResidentScreen })),
+)
+const ResidentDetailsScreen = lazy(() =>
+  import('../Resident/components/ResidentDetailsScreen').then((m) => ({ default: m.ResidentDetailsScreen })),
+)
+const EmployeeDetailsScreen = lazy(() =>
+  import('../Employees/components/EmployeeDetailsScreen').then((m) => ({ default: m.EmployeeDetailsScreen })),
+)
+const FnbGlobalPackagesTab = lazy(() =>
+  import('./components/FnbGlobalPackagesTab').then((m) => ({ default: m.FnbGlobalPackagesTab })),
+)
+const FnbDishesMasterTab = lazy(() =>
+  import('./components/FnbDishesMasterTab').then((m) => ({ default: m.FnbDishesMasterTab })),
+)
+const FnbGlobalMealSlotsTab = lazy(() => import('./components/FnbGlobalMealSlotsTab'))
+const GlobalServicesTab = lazy(() =>
+  import('./components/GlobalServicesTab').then((m) => ({ default: m.GlobalServicesTab })),
+)
+const SpecializationsTab = lazy(() =>
+  import('./components/SpecializationsTab').then((m) => ({ default: m.SpecializationsTab })),
+)
+const VitalsTab = lazy(() => import('./components/VitalsTab').then((m) => ({ default: m.VitalsTab })))
+const LabTestsTab = lazy(() => import('./components/LabTestsTab').then((m) => ({ default: m.LabTestsTab })))
+const TasksTab = lazy(() => import('./components/TasksTab').then((m) => ({ default: m.TasksTab })))
+const PackagesTab = lazy(() => import('./components/PackagesTab').then((m) => ({ default: m.PackagesTab })))
+const GstTaxSettingsTab = lazy(() =>
+  import('./components/GstTaxSettingsTab').then((m) => ({ default: m.GstTaxSettingsTab })),
+)
+const AmenitiesTab = lazy(() => import('./components/AmenitiesTab').then((m) => ({ default: m.AmenitiesTab })))
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -295,236 +318,245 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
     }
   }
 
-  if (activeView === 'create-user') {
-    return <AdminUserManagement initialMode="create" />
+  const renderContent = () => {
+    if (activeView === 'create-user') {
+      return <AdminUserManagement initialMode="create" />
+    }
+
+    if (activeView === 'edit-user') {
+      return <AdminUserManagement initialMode="edit" />
+    }
+
+    if (activeView === 'permissions') {
+      return <AdminUserManagement initialMode="permissions" />
+    }
+
+    if (activeView === 'edit-resident') {
+      return <OnboardResidentScreen isEditMode={true} isGlobalMode={true} />
+    }
+
+    if (activeView === 'view-resident') {
+      return <ResidentDetailsScreen isGlobalMode={true} />
+    }
+
+    if (activeView === 'view-user') {
+      return <EmployeeDetailsScreen isGlobalMode={true} />
+    }
+
+    if (activeView === 'fnb-meal-slots') {
+      return (
+        <div className="space-y-6 pb-10">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => navigate('/global-settings')}
+            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+          </Button>
+          <FnbGlobalMealSlotsTab />
+        </div>
+      )
+    }
+
+    if (activeView === 'fnb-packages') {
+      return (
+        <div className="space-y-6 pb-10">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => navigate('/global-settings')}
+            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+          </Button>
+          <FnbGlobalPackagesTab />
+        </div>
+      )
+    }
+
+    if (activeView === 'fnb-dishes') {
+      return (
+        <div className="space-y-6 pb-10">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => navigate('/global-settings')}
+            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+          </Button>
+          <FnbDishesMasterTab />
+        </div>
+      )
+    }
+
+    if (activeView === 'specializations') {
+      return (
+        <div className="space-y-6 pb-10">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => navigate('/global-settings')}
+            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+          </Button>
+          <SpecializationsTab />
+        </div>
+      )
+    }
+
+    if (activeView === 'vitals') {
+      return (
+        <div className="space-y-6 pb-10">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => navigate('/global-settings')}
+            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+          </Button>
+          <VitalsTab />
+        </div>
+      )
+    }
+
+    if (activeView === 'lab-tests') {
+      return (
+        <div className="space-y-6 pb-10">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => navigate('/global-settings')}
+            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+          </Button>
+          <LabTestsTab />
+        </div>
+      )
+    }
+
+    if (activeView === 'global-services') {
+      return (
+        <div className="space-y-6 pb-10">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => navigate('/global-settings')}
+            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+          </Button>
+          <GlobalServicesTab />
+        </div>
+      )
+    }
+
+    if (activeView === 'tasks') {
+      return (
+        <div className="space-y-6 pb-10">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => navigate('/global-settings')}
+            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+          </Button>
+          <TasksTab />
+        </div>
+      )
+    }
+
+    if (activeView === 'packages') {
+      return (
+        <div className="space-y-6 pb-10">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => navigate('/global-settings')}
+            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+          </Button>
+          <PackagesTab />
+        </div>
+      )
+    }
+
+    if (activeView === 'gst-tax') {
+      return (
+        <div className="space-y-6 pb-10">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => navigate('/global-settings')}
+            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+          </Button>
+          <GstTaxSettingsTab />
+        </div>
+      )
+    }
+
+    if (activeView === 'amenities') {
+      return (
+        <div className="space-y-6 pb-10">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => navigate('/global-settings')}
+            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+          </Button>
+          <AmenitiesTab />
+        </div>
+      )
+    }
+
+    if (activeView === 'residents') {
+      return (
+        <div className="space-y-6 pb-10">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => navigate('/global-settings')}
+            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+          </Button>
+          <ResidentListScreen isGlobalMode={true} />
+        </div>
+      )
+    }
+
+    if (activeView === 'users') {
+      return (
+        <div className="space-y-6 pb-10">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => navigate('/global-settings')}
+            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
+          </Button>
+          <AdminUserManagement initialMode="list" />
+        </div>
+      )
+    }
+
+    return null
   }
 
-  if (activeView === 'edit-user') {
-    return <AdminUserManagement initialMode="edit" />
-  }
-
-  if (activeView === 'permissions') {
-    return <AdminUserManagement initialMode="permissions" />
-  }
-
-  if (activeView === 'edit-resident') {
-    return <OnboardResidentScreen isEditMode={true} isGlobalMode={true} />
-  }
-
-  if (activeView === 'view-resident') {
-    return <ResidentDetailsScreen isGlobalMode={true} />
-  }
-
-  if (activeView === 'view-user') {
-    return <EmployeeDetailsScreen isGlobalMode={true} />
-  }
-
-  if (activeView === 'fnb-meal-slots') {
-    return (
-      <div className="space-y-6 pb-10">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </Button>
-        <FnbGlobalMealSlotsTab />
-      </div>
-    )
-  }
-
-  if (activeView === 'fnb-packages') {
-    return (
-      <div className="space-y-6 pb-10">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </Button>
-        <FnbGlobalPackagesTab />
-      </div>
-    )
-  }
-
-  if (activeView === 'fnb-dishes') {
-    return (
-      <div className="space-y-6 pb-10">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </Button>
-        <FnbDishesMasterTab />
-      </div>
-    )
-  }
-
-  if (activeView === 'specializations') {
-    return (
-      <div className="space-y-6 pb-10">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </Button>
-        <SpecializationsTab />
-      </div>
-    )
-  }
-
-  if (activeView === 'vitals') {
-    return (
-      <div className="space-y-6 pb-10">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </Button>
-        <VitalsTab />
-      </div>
-    )
-  }
-
-  if (activeView === 'lab-tests') {
-    return (
-      <div className="space-y-6 pb-10">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </Button>
-        <LabTestsTab />
-      </div>
-    )
-  }
-
-  if (activeView === 'global-services') {
-    return (
-      <div className="space-y-6 pb-10">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </Button>
-        <GlobalServicesTab />
-      </div>
-    )
-  }
-
-  if (activeView === 'tasks') {
-    return (
-      <div className="space-y-6 pb-10">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </Button>
-        <TasksTab />
-      </div>
-    )
-  }
-
-  if (activeView === 'packages') {
-    return (
-      <div className="space-y-6 pb-10">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </Button>
-        <PackagesTab />
-      </div>
-    )
-  }
-
-  if (activeView === 'gst-tax') {
-    return (
-      <div className="space-y-6 pb-10">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </Button>
-        <GstTaxSettingsTab />
-      </div>
-    )
-  }
-
-  if (activeView === 'amenities') {
-    return (
-      <div className="space-y-6 pb-10">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </Button>
-        <AmenitiesTab />
-      </div>
-    )
-  }
-
-  if (activeView === 'residents') {
-    return (
-      <div className="space-y-6 pb-10">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </Button>
-        <ResidentListScreen isGlobalMode={true} />
-      </div>
-    )
-  }
-
-  if (activeView === 'users') {
-    return (
-      <div className="space-y-6 pb-10">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </Button>
-        <AdminUserManagement initialMode="list" />
-      </div>
-    )
+  const subview = renderContent()
+  if (subview) {
+    return <Suspense fallback={<PageLoader />}>{subview}</Suspense>
   }
 
   return (

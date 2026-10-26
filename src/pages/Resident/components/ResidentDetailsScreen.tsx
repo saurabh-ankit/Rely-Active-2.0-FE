@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { format, isValid, parseISO } from 'date-fns'
-import { ArrowLeft, CalendarDays, Edit, HeartPulse, Home, Loader2, Phone, User, Users } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Edit, HeartPulse, Home, Phone, User, Users } from 'lucide-react'
 import type { ResidentItem } from '@/lib/types'
 import { residentService } from '@/lib/services/residentService'
 import { AssignCareTaskDialog } from '@/components/common/AssignCareTaskDialog'
 import { AssignCareTeamDialog } from '@/components/common/AssignCareTeamDialog'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import PageLoader from '@/components/shared/PageLoader'
 import { ResponsiveTabs, type TabItem } from '@/components/common/ResponsiveTabs'
 import { HeroFact, NotAdded } from '@/components/common/DetailPanel'
 import { cn, getFileUrl } from '@/lib/utils'
@@ -135,23 +136,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   }, [id])
 
   if (isLoading) {
-    return (
-      <div className="w-full space-y-6 pb-12">
-        <Button
-          variant="ghost"
-          type="button"
-          onClick={() => navigate(backUrl)}
-          className="p-0 h-auto inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] hover:bg-transparent transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" />{' '}
-          {isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}
-        </Button>
-        <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-400 shadow-xl backdrop-blur-xl">
-          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
-          Loading resident profile & family details...
-        </Card>
-      </div>
-    )
+    return <PageLoader isVisible={true} message="Loading..." />
   }
 
   if (error || !resident) {

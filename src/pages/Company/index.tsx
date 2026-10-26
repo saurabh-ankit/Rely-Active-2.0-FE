@@ -10,7 +10,6 @@ import {
   Edit,
   FileText,
   Hash,
-  Loader2,
   Mail,
   MapPin,
   Phone,
@@ -23,6 +22,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import PageLoader from '@/components/shared/PageLoader'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { z } from 'zod'
 import EditCompanyModal from './components/EditCompanyModal'
@@ -240,14 +240,7 @@ export default function CompanyPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <span className="text-sm font-medium">Loading company details...</span>
-        </div>
-      </div>
-    )
+    return <PageLoader isVisible={true} message="Loading..." />
   }
 
   // If no company exists, render FULL PAGE Company Setup Form (matching Assist)

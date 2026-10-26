@@ -37,11 +37,12 @@ interface SidebarProps {
   onClose?: () => void
 }
 
-const SidebarItem: React.FC<{ item: SidebarItemData }> = ({ item }) => {
+const SidebarItem: React.FC<{ item: SidebarItemData; onClick?: () => void }> = ({ item, onClick }) => {
   return (
     <Link
       to={item.href}
-      className="flex flex-col items-center gap-1 md:gap-2 py-2 md:py-3 transition-all duration-200 hover:scale-105"
+      onClick={onClick}
+      className="flex flex-col items-center gap-1 md:gap-2 py-1.5 md:py-3 transition-all duration-200 hover:scale-105"
     >
       <div
         className={cn(
@@ -216,29 +217,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
 
       <aside
         className={cn(
-          'fixed left-0 top-16 z-50 md:top-0 md:z-10 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 w-[300px] md:w-[120px] shrink-0',
+          'fixed left-0 top-16 z-50 md:top-0 md:z-10 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 w-[64px] md:w-[120px] shrink-0',
           'h-[calc(100vh-4rem)]',
           isOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
-        <div className="h-full flex flex-col p-1 md:p-2 lg:p-3 pr-0 md:pr-0 lg:pr-0">
-          <div className="md:hidden absolute top-2 right-2 z-10">
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              type="button"
-              onClick={onClose}
-              aria-label="Close sidebar"
-              className="rounded-full bg-white/30 backdrop-blur-sm shadow-lg border border-white/40 hover:bg-white/40 transition-all duration-200"
-            >
-              <X className="h-4 w-4 text-gray-700" />
-            </Button>
-          </div>
+        <div className="h-full flex flex-col p-1.5 md:p-2 lg:p-3 pr-0 md:pr-0 lg:pr-0">
+          <div className="flex-1 bg-white/20 backdrop-blur-md rounded-2xl shadow-xl border border-white/30 p-1.5 md:p-3 overflow-hidden flex flex-col">
+            <div className="flex flex-col h-full overflow-y-auto no-scrollbar gap-1">
+              {/* Mobile close button at the top of the column */}
+              <div className="md:hidden flex items-center justify-center pt-0.5 pb-1 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Close sidebar"
+                  className="w-10 h-10 rounded-xl bg-white/40 hover:bg-white/60 text-gray-700 border border-white/40 shadow-sm transition-all duration-200"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
 
-          <div className="flex-1 bg-white/20 backdrop-blur-md rounded-2xl shadow-xl border border-white/30 p-2 md:p-3 overflow-hidden">
-            <div className="flex flex-col h-full overflow-y-auto no-scrollbar">
               {isLoadingLocations ? (
-                <div className="p-4 text-[10px] text-gray-400 text-center">Loading modules...</div>
+                <div className="p-2 text-[10px] text-gray-400 text-center">Loading modules...</div>
               ) : (
                 filteredItems.map((item, index) => (
                   <SidebarItem
@@ -249,6 +251,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
                         location.pathname === item.href ||
                         (item.href !== '/dashboard' && location.pathname.startsWith(item.href)),
                     }}
+                    onClick={onClose}
                   />
                 ))
               )}

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 import { ShieldAlert } from 'lucide-react'
 import SetupStatusGuard from '@/components/common/SetupStatusGuard'
+import PageLoader from '@/components/shared/PageLoader'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocationContext } from '@/hooks/useLocation'
 import { getDepartmentManagerType } from '@/utils/departmentManager'
@@ -85,7 +86,9 @@ export default function Layout() {
         >
           <div className="w-full min-h-full flex flex-col p-2 md:p-3 lg:p-6">
             <SetupStatusGuard>
-              <Outlet />
+              <Suspense fallback={<PageLoader />}>
+                <Outlet />
+              </Suspense>
             </SetupStatusGuard>
           </div>
         </main>

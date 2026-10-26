@@ -1,16 +1,28 @@
-import React, { useMemo } from 'react'
+import React, { lazy, Suspense, useMemo } from 'react'
 import { useSearchParams, useLocation } from 'react-router-dom'
 import { Activity, Boxes, CalendarDays, HeartHandshake, HeartPulse, Package, Shield, Stethoscope } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
 import { useAuth } from '@/hooks/useAuth'
-import { TasksTab } from '@/pages/GlobalSettings/components/TasksTab'
-import { PackagesTab } from '@/pages/GlobalSettings/components/PackagesTab'
-import { SubscriptionsTab } from '@/pages/GlobalSettings/components/SubscriptionsTab'
-import { AssignedTasksTab } from '@/pages/Medical/components/AssignedTasksTab'
-import { AppointmentsCalendar } from '@/pages/Medical/components/appointments/AppointmentsCalendar'
+import PageLoader from '@/components/shared/PageLoader'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ResponsiveTabs, type TabItem } from '@/components/common/ResponsiveTabs'
+
+const TasksTab = lazy(() => import('@/pages/GlobalSettings/components/TasksTab').then((m) => ({ default: m.TasksTab })))
+const PackagesTab = lazy(() =>
+  import('@/pages/GlobalSettings/components/PackagesTab').then((m) => ({ default: m.PackagesTab })),
+)
+const SubscriptionsTab = lazy(() =>
+  import('@/pages/GlobalSettings/components/SubscriptionsTab').then((m) => ({ default: m.SubscriptionsTab })),
+)
+const AssignedTasksTab = lazy(() =>
+  import('@/pages/Medical/components/AssignedTasksTab').then((m) => ({ default: m.AssignedTasksTab })),
+)
+const AppointmentsCalendar = lazy(() =>
+  import('@/pages/Medical/components/appointments/AppointmentsCalendar').then((m) => ({
+    default: m.AppointmentsCalendar,
+  })),
+)
 
 export type MedicalSection = 'care' | 'appointments'
 export type MedicalTab = 'tasks' | 'packages' | 'subscriptions' | 'assigned'
@@ -65,28 +77,44 @@ export const MedicalPage: React.FC<MedicalPageProps> = ({ initialTab }) => {
       label: 'Care Tasks',
       shortLabel: 'Tasks',
       icon: HeartHandshake,
-      content: <TasksTab isPropertyMode={true} forcedPropertyId={selectedLocationId} />,
+      content: (
+        <Suspense fallback={<PageLoader />}>
+          <TasksTab isPropertyMode={true} forcedPropertyId={selectedLocationId} />
+        </Suspense>
+      ),
     },
     {
       value: 'packages',
       label: 'Care Packages',
       shortLabel: 'Packages',
       icon: Boxes,
-      content: <PackagesTab isPropertyMode={true} forcedPropertyId={selectedLocationId} />,
+      content: (
+        <Suspense fallback={<PageLoader />}>
+          <PackagesTab isPropertyMode={true} forcedPropertyId={selectedLocationId} />
+        </Suspense>
+      ),
     },
     {
       value: 'subscriptions',
       label: 'Package Subscriptions',
       shortLabel: 'Subscriptions',
       icon: Package,
-      content: <SubscriptionsTab isPropertyMode={true} forcedPropertyId={selectedLocationId} />,
+      content: (
+        <Suspense fallback={<PageLoader />}>
+          <SubscriptionsTab isPropertyMode={true} forcedPropertyId={selectedLocationId} />
+        </Suspense>
+      ),
     },
     {
       value: 'assigned',
       label: 'Clinical Care Tasks',
       shortLabel: 'Clinical',
       icon: Activity,
-      content: <AssignedTasksTab forcedPropertyId={selectedLocationId} />,
+      content: (
+        <Suspense fallback={<PageLoader />}>
+          <AssignedTasksTab forcedPropertyId={selectedLocationId} />
+        </Suspense>
+      ),
     },
   ]
 
@@ -145,7 +173,9 @@ export const MedicalPage: React.FC<MedicalPageProps> = ({ initialTab }) => {
         </TabsContent>
 
         <TabsContent value="appointments" className="pt-2">
-          <AppointmentsCalendar />
+          <Suspense fallback={<PageLoader />}>
+            <AppointmentsCalendar />
+          </Suspense>
         </TabsContent>
       </Tabs>
     </div>
