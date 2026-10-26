@@ -3,7 +3,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useCallback, useEffect, useState } from 'react'
-import { Plus, Edit2, Trash2, Building2, CheckSquare, Square, Clock, IndianRupee } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Plus, Edit2, Trash2, Building2, Clock, IndianRupee } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -373,14 +374,14 @@ export default function FnbGlobalSpecialSlotsTab() {
               <div className="space-y-2 pt-2 border-t border-gray-100">
                 <div className="flex items-center justify-between">
                   <span className="block text-xs font-bold text-gray-700">Assign to Properties</span>
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
                     onClick={toggleAllProperties}
-                    className="text-xs text-[#005390] font-bold hover:underline cursor-pointer p-0 h-auto hover:bg-transparent"
+                    className="inline-flex items-center gap-1.5 text-xs text-[#005390] font-bold hover:underline cursor-pointer p-0 h-auto select-none"
                   >
-                    {isAllPropsSelected ? 'Deselect All' : 'Select All'}
-                  </Button>
+                    <Checkbox checked={isAllPropsSelected} className="pointer-events-none" />
+                    <span>{isAllPropsSelected ? 'Deselect All' : 'Select All'}</span>
+                  </button>
                 </div>
 
                 <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
@@ -390,7 +391,7 @@ export default function FnbGlobalSpecialSlotsTab() {
                       variant="ghost"
                       key={pa.locId}
                       onClick={() => togglePropertyAssignment(pa.locId)}
-                      className={`w-full flex items-center justify-between p-2.5 h-auto rounded-xl border text-xs cursor-pointer transition-all ${
+                      className={`w-full flex items-center justify-between p-2.5 h-auto rounded-xl border text-xs cursor-pointer transition-all select-none ${
                         pa.enabled
                           ? 'bg-blue-50/70 border-blue-200 text-[#005390] font-bold'
                           : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300'
@@ -400,11 +401,7 @@ export default function FnbGlobalSpecialSlotsTab() {
                         <Building2 className="w-3.5 h-3.5 text-gray-400" />
                         {pa.propertyName}
                       </span>
-                      {pa.enabled ? (
-                        <CheckSquare className="w-4 h-4 text-[#005390]" />
-                      ) : (
-                        <Square className="w-4 h-4 text-gray-300" />
-                      )}
+                      <Checkbox checked={pa.enabled} className="pointer-events-none shrink-0" />
                     </Button>
                   ))}
                 </div>
