@@ -48,7 +48,7 @@ export const CareTaskTab: React.FC<CareTaskTabProps> = ({
                   className="rounded-xl bg-[#005390] px-4 py-2 text-xs font-bold text-white hover:bg-[#004375] cursor-pointer shadow-xs"
                 >
                   <Users className="mr-1.5 size-4 text-white" />
-                  Assign Care Team
+                  Assign Care Team & View
                 </Button>
                 <Button
                   type="button"
