@@ -52,7 +52,8 @@ export const CommonProgressBar: React.FC<CommonProgressBarProps> = ({
               type="button"
               disabled={!isDone || !onStepClick}
               onClick={() => isDone && onStepClick?.(step.id)}
-              className={`relative z-10 flex flex-col items-center group bg-transparent border-0 p-0 h-auto w-28 sm:w-36 text-center whitespace-normal outline-none transition-all ${
+              // Steps that can't be clicked are disabled but must stay opaque, or the line shows through the circle
+              className={`relative z-10 flex flex-col items-center group bg-transparent border-0 p-0 h-auto w-28 sm:w-36 text-center whitespace-normal outline-none disabled:opacity-100 transition-all ${
                 isDone && onStepClick ? 'cursor-pointer hover:scale-105' : 'cursor-default'
               }`}
             >

@@ -30,6 +30,7 @@ import {
   isUnitOccupied,
   listNumbers,
   floorNameFor,
+  floorTypeLabel,
   newTower,
   normalizeEntity,
   occupiedInBlock,
@@ -223,6 +224,7 @@ function SelectField({
   value,
   onValueChange,
   placeholder,
+  disabled,
   children,
 }: {
   label: string
@@ -231,6 +233,7 @@ function SelectField({
   value?: string
   onValueChange?: (value: string) => void
   placeholder?: string
+  disabled?: boolean
   children: React.ReactNode
 }) {
   const isReq = required || label.includes('*')
@@ -241,7 +244,7 @@ function SelectField({
       <Label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
         {cleanLabel} {isReq && <span className="text-red-500 font-bold">*</span>}
       </Label>
-      <Select value={value || undefined} onValueChange={(val) => onValueChange?.(val || '')}>
+      <Select value={value || undefined} onValueChange={(val) => onValueChange?.(val || '')} disabled={disabled}>
         <SelectTrigger
           className={`w-full h-auto rounded-xl border ${
             error
@@ -1778,11 +1781,15 @@ export default function CreatePropertyScreen({
                                                 (posNum) =>
                                                   posNum === currentPos || !assignedInOtherVariants.includes(posNum),
                                               )
+                                              // Every position on the floor is taken, so there is nothing to swap to
+                                              const allAssigned =
+                                                (activeBlock.bhk_templates || []).length >= unitsPerFloor
 
                                               return (
                                                 <SelectField
                                                   label="Position"
                                                   value={String(currentPos)}
+                                                  disabled={allAssigned}
                                                   onValueChange={(val) => {
                                                     const pos = Number(val)
                                                     const updatedPos = [{ ...variant.positions[0], position: pos }]
@@ -1955,7 +1962,7 @@ export default function CreatePropertyScreen({
                                     <SelectContent>
                                       {FLOOR_TYPE_OPTIONS.map((ft) => (
                                         <SelectItem key={ft} value={ft}>
-                                          {ft}
+                                          {floorTypeLabel(ft)}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>

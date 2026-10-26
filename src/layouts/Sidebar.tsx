@@ -93,11 +93,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       resourceKey: 'RESIDENT',
     },
     {
-      icon: <Sparkles className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Amenities',
-      href: '/admin/amenities',
-    },
-    {
       icon: <HandHeart className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
       label: 'Employee',
       href: '/admin/employees',
@@ -156,6 +151,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       label: 'Events',
       href: '/admin/events',
       resourceKey: 'EVENTS',
+    },
+    {
+      icon: <Sparkles className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
+      label: 'Amenities',
+      href: '/admin/amenities',
     },
     {
       icon: <Settings className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
