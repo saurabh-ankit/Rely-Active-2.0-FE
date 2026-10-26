@@ -1,6 +1,5 @@
 import React from 'react'
 import { Check } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 
 export interface ProgressBarStep {
   id: number
@@ -27,7 +26,7 @@ export const CommonProgressBar: React.FC<CommonProgressBarProps> = ({
     <div className={`w-full py-4 ${className}`}>
       <div className="relative flex items-center justify-between w-full">
         {/* Connecting Progress Line */}
-        <div className="absolute top-[22px] left-6 right-6 -translate-y-1/2 h-1 bg-gray-100 rounded-full z-0">
+        <div className="absolute top-[22px] left-[56px] right-[56px] sm:left-[72px] sm:right-[72px] -translate-y-1/2 h-1 bg-gray-100 rounded-full z-0 overflow-hidden">
           <div
             className="h-full bg-[#005390] rounded-full transition-all duration-300 ease-in-out"
             style={{
@@ -48,14 +47,13 @@ export const CommonProgressBar: React.FC<CommonProgressBarProps> = ({
           const Icon = step.icon
 
           return (
-            <Button
+            <button
               key={step.id || index}
-              variant="ghost"
               type="button"
               disabled={!isDone || !onStepClick}
               onClick={() => isDone && onStepClick?.(step.id)}
-              className={`relative z-10 flex flex-col items-center group bg-transparent hover:bg-transparent border-0 p-0 h-auto text-left whitespace-normal ${
-                isDone && onStepClick ? 'cursor-pointer' : 'cursor-default'
+              className={`relative z-10 flex flex-col items-center group bg-transparent border-0 p-0 h-auto w-28 sm:w-36 text-center whitespace-normal outline-none transition-all ${
+                isDone && onStepClick ? 'cursor-pointer hover:scale-105' : 'cursor-default'
               }`}
             >
               {/* Step Circle & Icon */}
@@ -64,22 +62,22 @@ export const CommonProgressBar: React.FC<CommonProgressBarProps> = ({
                   isDone
                     ? 'bg-[#005390] text-white shadow-[#005390]/20'
                     : isActive
-                      ? 'bg-white border-2 border-[#005390] text-[#005390] ring-4 ring-[#005390]/10 shadow-md scale-105'
+                      ? 'bg-[#005390] text-white ring-4 ring-[#005390]/20 shadow-md scale-105'
                       : 'bg-white border border-gray-200 text-gray-400'
                 }`}
               >
                 {isDone ? (
                   <Check className="w-5.5 h-5.5 stroke-[2.5]" />
                 ) : Icon ? (
-                  <Icon className="w-5 h-5" />
+                  <Icon className="w-5 h-5 text-white" />
                 ) : (
-                  <span className="text-sm font-bold">{stepNumber}</span>
+                  <span className={`text-sm font-bold ${isActive ? 'text-white' : ''}`}>{stepNumber}</span>
                 )}
 
                 {/* Point Count Badge */}
                 <span
                   className={`absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[20px] h-[20px] px-1 text-[10px] font-bold rounded-full border border-white ${
-                    isDone || isActive ? 'bg-[#005390] text-white' : 'bg-gray-100 text-gray-500'
+                    isDone || isActive ? 'bg-[#005390] text-white shadow-xs' : 'bg-gray-100 text-gray-500'
                   }`}
                 >
                   {stepNumber}
@@ -89,9 +87,9 @@ export const CommonProgressBar: React.FC<CommonProgressBarProps> = ({
               {/* Point Name & Description */}
               <div className="mt-2.5 flex flex-col items-center text-center">
                 <span
-                  className={`text-xs font-bold tracking-tight transition-colors ${
+                  className={`text-xs tracking-tight transition-colors ${
                     isActive
-                      ? 'text-[#005390] font-extrabold'
+                      ? 'text-[#005390] font-black'
                       : isDone
                         ? 'text-gray-900 font-semibold'
                         : 'text-gray-400 font-medium'
@@ -100,12 +98,16 @@ export const CommonProgressBar: React.FC<CommonProgressBarProps> = ({
                   {step.label}
                 </span>
                 {step.description && (
-                  <span className="text-[10px] text-gray-400 mt-0.5 max-w-[120px] line-clamp-1">
+                  <span
+                    className={`text-[10px] mt-0.5 max-w-[120px] line-clamp-1 ${
+                      isActive ? 'text-gray-600 font-semibold' : 'text-gray-400'
+                    }`}
+                  >
                     {step.description}
                   </span>
                 )}
               </div>
-            </Button>
+            </button>
           )
         })}
       </div>

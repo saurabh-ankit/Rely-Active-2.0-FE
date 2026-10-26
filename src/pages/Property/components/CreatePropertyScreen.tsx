@@ -1325,7 +1325,7 @@ export default function CreatePropertyScreen({
                   type="button"
                   variant="outline"
                   onClick={() => setAddEntityOpen(true)}
-                  className="h-8 px-2.5 text-[11px] font-semibold rounded-lg border-gray-300 hover:bg-blue-50 hover:text-blue-600"
+                  className="h-8 px-2.5 text-[11px] font-semibold rounded-lg border-gray-300 hover:bg-blue-50 hover:text-[#005390]"
                 >
                   <Plus className="h-3 w-3 mr-1" /> Add Entity
                 </Button>
@@ -1350,15 +1350,15 @@ export default function CreatePropertyScreen({
                           className={cn(
                             'min-w-0 flex-1 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all cursor-pointer h-auto',
                             isActive
-                              ? 'bg-blue-50 border border-blue-200 text-blue-700 shadow-xs hover:bg-blue-50 hover:text-blue-700'
+                              ? 'bg-blue-50/80 border border-blue-200 text-[#005390] shadow-xs hover:bg-blue-50/80 hover:text-[#005390]'
                               : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100',
                           )}
                         >
                           <span className="flex min-w-0 items-center gap-2">
-                            <Icon className="h-4 w-4 shrink-0 text-blue-600" />
+                            <Icon className="h-4 w-4 shrink-0 text-[#005390]" />
                             <span className="truncate">{entity.name || 'Untitled'}</span>
                           </span>
-                          <span className="shrink-0 rounded-full bg-white border border-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5">
+                          <span className="shrink-0 rounded-full bg-white border border-blue-100 text-[#005390] text-[10px] font-bold px-2 py-0.5">
                             {countUnits(entity)} {levelLabel(entity, 'unit').toLowerCase()}
                             {countUnits(entity) === 1 ? '' : 's'}
                           </span>
@@ -1395,7 +1395,7 @@ export default function CreatePropertyScreen({
                                   className={cn(
                                     'flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1 text-left text-[11px] hover:bg-white h-auto font-normal',
                                     uIdx === activeBlockIndex
-                                      ? 'bg-white font-semibold text-blue-700 shadow-xs'
+                                      ? 'bg-white font-semibold text-[#005390] shadow-xs'
                                       : 'text-gray-600',
                                   )}
                                 >
@@ -1452,7 +1452,7 @@ export default function CreatePropertyScreen({
                                   onClick={() => setActiveBlockIndex(cIdx)}
                                   className={cn(
                                     'flex min-w-0 flex-1 items-center justify-between rounded-lg px-2 py-1 text-left text-[11px] h-auto font-normal',
-                                    selected ? 'bg-white font-semibold text-blue-700 shadow-xs' : 'text-gray-600',
+                                    selected ? 'bg-white font-semibold text-[#005390] shadow-xs' : 'text-gray-600',
                                     selectable
                                       ? 'cursor-pointer hover:bg-white'
                                       : 'cursor-default hover:bg-transparent',
@@ -1545,7 +1545,7 @@ export default function CreatePropertyScreen({
                   <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                     <div className="flex items-center gap-2">
                       <h3 className="text-lg font-bold text-gray-900">{activeBlock.block_name}</h3>
-                      <span className="rounded-full bg-blue-50 border border-blue-200 px-3 py-0.5 text-[11px] font-semibold text-blue-700">
+                      <span className="rounded-full bg-blue-50 border border-blue-200 px-3 py-0.5 text-[11px] font-semibold text-[#005390]">
                         {levelLabel(activeEntity, 'block')}
                       </span>
                     </div>
@@ -1740,7 +1740,7 @@ export default function CreatePropertyScreen({
                                         type="button"
                                         variant="outline"
                                         onClick={() => setExpandedAssignVariantIndex(isAssignExpanded ? null : vIdx)}
-                                        className="h-8 rounded-lg text-xs font-semibold px-3 py-1 border-gray-300 hover:bg-blue-50 hover:text-blue-600"
+                                        className="h-8 rounded-lg text-xs font-semibold px-3 py-1 border-gray-300 hover:bg-blue-50 hover:text-[#005390]"
                                       >
                                         Assign ({variant.positions.length})
                                       </Button>
@@ -1876,7 +1876,7 @@ export default function CreatePropertyScreen({
                               <p className="font-bold text-gray-800">Position {posNum}</p>
                               {assignedBHK ? (
                                 <>
-                                  <p className="font-bold text-blue-600">{formatUnitType(assignedBHK.type)}</p>
+                                  <p className="font-bold text-[#005390]">{formatUnitType(assignedBHK.type)}</p>
                                   <p className="text-gray-500 text-[10px]">{posObj?.direction || 'North-East'}</p>
                                   <p className="text-gray-400 text-[10px]">{posObj?.view_facing || 'Garden View'}</p>
                                 </>
@@ -1989,7 +1989,7 @@ export default function CreatePropertyScreen({
                       <Button
                         type="button"
                         onClick={generatePreview}
-                        className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center gap-2 text-xs px-4 py-2 shadow-xs"
+                        className="rounded-xl bg-[#005390] hover:bg-[#004273] text-white font-bold flex items-center gap-2 text-xs px-4 py-2 shadow-xs"
                       >
                         <Sparkles className="h-4 w-4" /> Generate preview
                       </Button>
@@ -2021,7 +2021,7 @@ export default function CreatePropertyScreen({
                                 <TableRow key={`${f.floor_number}-${uI}`}>
                                   <TableCell className="p-2.5 font-bold text-gray-900">{u.unit_number}</TableCell>
                                   <TableCell className="p-2.5">{f.floor_number}</TableCell>
-                                  <TableCell className="p-2.5 font-semibold text-blue-600">
+                                  <TableCell className="p-2.5 font-semibold text-[#005390]">
                                     {formatUnitType(u.unit_type)}
                                   </TableCell>
                                   <TableCell className="p-2.5">{u.built_up_area} sqft</TableCell>
