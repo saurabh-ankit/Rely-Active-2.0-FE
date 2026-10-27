@@ -1611,15 +1611,15 @@ export default function CreatePropertyScreen({
                         }
                       />
                     </div>
-                    <InputField
+                    {/* <InputField
                       label="Unit nomenclature template"
                       value="{{TowerPrefix}}-{{FloorNumber}}{{Position}}"
                       disabled
                       readOnly
-                    />
-                    <p className="text-[10px] text-gray-400">
+                    /> */}
+                    {/* <p className="text-[10px] text-gray-400">
                       Tokens: {'{{TowerPrefix}}'}, {'{{FloorNumber}}'}, {'{{Position}}'}, {'{{unitNumber}}'}
-                    </p>
+                    </p> */}
                   </div>
 
                   <div className="space-y-4 pt-3 border-t border-gray-100">
