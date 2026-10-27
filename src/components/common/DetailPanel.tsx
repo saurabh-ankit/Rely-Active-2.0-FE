@@ -23,7 +23,7 @@ export const Panel = ({
 }) => (
   <Card
     className={cn(
-      'gap-0 rounded-2xl border-gray-100 bg-white p-5 shadow-2xs dark:border-gray-800 dark:bg-slate-900',
+      'gap-0 rounded-2xl border border-gray-100 bg-white p-5 shadow-2xs dark:border-gray-800 dark:bg-slate-900',
       className,
     )}
   >

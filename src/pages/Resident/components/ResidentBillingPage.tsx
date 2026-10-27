@@ -5,7 +5,6 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
-  Loader2,
   Package,
   Plus,
   Printer,
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import PageLoader from '@/components/shared/PageLoader'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -486,14 +486,7 @@ export const ResidentBillingPage: React.FC = () => {
       )}
 
       {/* ── Loading & Error States ────────────────────────────────────── */}
-      {isLoading && (
-        <Card className="gap-0 rounded-3xl border border-gray-100 bg-white/80 p-12 text-center shadow-lg">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-          <p className="mt-3 text-sm font-semibold text-gray-600">
-            Calculating resident charges & invoice breakdown...
-          </p>
-        </Card>
-      )}
+      {isLoading && <PageLoader isVisible={true} message="Loading..." />}
 
       {error && !isLoading && (
         <Card className="gap-0 rounded-3xl border border-rose-200 bg-rose-50/80 p-6 text-center text-rose-700 font-semibold shadow-sm">

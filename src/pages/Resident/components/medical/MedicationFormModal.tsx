@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { TimePicker } from '@/components/ui/time-picker'
 import {
   useCreateResidentInsulinMutation,
   useCreateResidentMedicationMutation,
@@ -344,12 +345,18 @@ const MedicationFormModal = ({ open, onOpenChange, residentId, kind, item }: Med
                           </div>
                         )}
                       />
-                      <Input
-                        type="time"
-                        aria-label={`${TIME_OF_DAY_LABELS[timeOfDay]} time`}
-                        readOnly={!selected}
-                        className={cn(!selected && 'opacity-50')}
-                        {...register(`timings.${index}.time`)}
+                      <Controller
+                        control={control}
+                        name={`timings.${index}.time`}
+                        render={({ field }) => (
+                          <TimePicker
+                            value={field.value}
+                            onChange={field.onChange}
+                            disabled={!selected}
+                            aria-label={`${TIME_OF_DAY_LABELS[timeOfDay]} time`}
+                            className={cn(!selected && 'opacity-50')}
+                          />
+                        )}
                       />
                       <Input
                         type="number"

@@ -5,18 +5,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { FieldErrors } from 'react-hook-form'
-import {
-  Plus,
-  Edit2,
-  Trash2,
-  AlertCircle,
-  Building2,
-  CheckSquare,
-  Square,
-  Upload,
-  Image as ImageIcon,
-  Briefcase,
-} from 'lucide-react'
+import { Plus, Edit2, Trash2, AlertCircle, Building2, Upload, Image as ImageIcon, Briefcase } from 'lucide-react'
 import api from '@/lib/api/axios'
 import { getPropertiesAPI } from '@/lib/services/propertyService'
 import { notifyError, notifySuccess } from '@/utils/toast'
@@ -608,22 +597,16 @@ export function GlobalServicesTab() {
                       {propertyAssignments.filter((pa) => pa.enabled).length}/{propertyAssignments.length})
                     </h4>
                     {propertyAssignments.length > 0 && (
-                      <Button
+                      <button
                         type="button"
-                        variant="ghost"
                         onClick={handleSelectAllProperties}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#005390] hover:text-[#004070] cursor-pointer p-0 h-auto"
+                        className="inline-flex items-center gap-2 text-xs font-bold text-[#005390] hover:text-[#004070] cursor-pointer p-0 h-auto select-none"
                       >
-                        {isAllPropsSelected ? (
-                          <>
-                            <CheckSquare className="w-4 h-4 text-[#005390]" /> Deselect All
-                          </>
-                        ) : (
-                          <>
-                            <Square className="w-4 h-4 text-gray-400" /> Select All ({propertyAssignments.length})
-                          </>
-                        )}
-                      </Button>
+                        <Checkbox checked={isAllPropsSelected} className="pointer-events-none" />
+                        <span>
+                          {isAllPropsSelected ? 'Deselect All' : `Select All (${propertyAssignments.length})`}
+                        </span>
+                      </button>
                     )}
                   </div>
 

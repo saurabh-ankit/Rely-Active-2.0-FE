@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { format, isValid, parseISO } from 'date-fns'
-import { ArrowLeft, CalendarDays, Edit, HeartPulse, Home, Loader2, Phone, ReceiptText, User, Users } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Home, Pencil, Phone, ReceiptText, Users } from 'lucide-react'
 import type { ResidentItem } from '@/lib/types'
 import { residentService } from '@/lib/services/residentService'
 import { AssignCareTaskDialog } from '@/components/common/AssignCareTaskDialog'
 import { AssignCareTeamDialog } from '@/components/common/AssignCareTeamDialog'
-import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { ResponsiveTabs, type TabItem } from '@/components/common/ResponsiveTabs'
-import { HeroFact, NotAdded } from '@/components/common/DetailPanel'
+import PageLoader from '@/components/shared/PageLoader'
 import { cn, getFileUrl } from '@/lib/utils'
 import { fnbService } from '@/lib/services/fnbService'
 import { useResidentClinicalQuery } from '@/hooks/react-query/resident'
@@ -23,12 +21,9 @@ export interface ResidentDetailsScreenProps {
   isGlobalMode?: boolean
 }
 
-type ResidentDetailTab = 'personal' | 'medical'
-
 export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ isGlobalMode = false }) => {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  // The two tabs are Resident sections with their own access.
   const profileAccess = useResourceAccess(RESOURCE.RESIDENT_DIRECTORY)
   const medicalAccess = useResourceAccess(RESOURCE.RESIDENT_MEDICAL)
   const canUpdateResident = profileAccess.canUpdate
@@ -41,18 +36,10 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   const [error, setError] = useState<string | null>(null)
   const [isCareTaskModalOpen, setIsCareTaskModalOpen] = useState<boolean>(false)
   const [isCareTeamModalOpen, setIsCareTeamModalOpen] = useState<boolean>(false)
-  const [chosenTab, setActiveTab] = useState<ResidentDetailTab>('personal')
-  const tabAccess: Record<ResidentDetailTab, boolean> = {
+  const tabAccess = {
     personal: profileAccess.canView,
     medical: medicalAccess.canView,
   }
-  const activeTab: ResidentDetailTab | null = tabAccess[chosenTab]
-    ? chosenTab
-    : tabAccess.personal
-      ? 'personal'
-      : tabAccess.medical
-        ? 'medical'
-        : null
 
   const [fnbSubscriptions, setFnbSubscriptions] = useState<FnbSubscriptionItem[]>([])
   const [globalMealSlots, setGlobalMealSlots] = useState<Array<{ id: string; name: string; code?: string }>>([])
@@ -79,6 +66,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   const isGlobal = isGlobalMode || window.location.pathname.includes('/global-settings')
   const backUrl = isGlobal ? '/global-settings/residents' : '/admin/residents'
   const editUrl = isGlobal ? `/global-settings/residents/edit/${id}` : `/admin/residents/edit/${id}`
+  const billingUrl = isGlobal ? `/global-settings/residents/billing/${id}` : `/admin/residents/billing/${id}`
 
   const fetchFnbSubscriptions = async (resId: string) => {
     if (!resId) return
@@ -136,37 +124,20 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   }, [id])
 
   if (isLoading) {
-    return (
-      <div className="w-full space-y-6 pb-12">
-        <Button
-          variant="ghost"
-          type="button"
-          onClick={() => navigate(backUrl)}
-          className="p-0 h-auto inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] hover:bg-transparent transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" />{' '}
-          {isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}
-        </Button>
-        <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-400 shadow-xl backdrop-blur-xl">
-          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
-          Loading resident profile & family details...
-        </Card>
-      </div>
-    )
+    return <PageLoader isVisible={true} message="Loading..." />
   }
 
   if (error || !resident) {
     return (
-      <div className="w-full space-y-6 pb-12">
-        <Button
-          variant="ghost"
+      <div className="w-full space-y-4 pb-12">
+        <button
           type="button"
           onClick={() => navigate(backUrl)}
-          className="p-0 h-auto inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] hover:bg-transparent transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 rounded-full border border-transparent bg-transparent px-3 py-1.5 text-xs font-semibold text-gray-600 transition-all duration-150 hover:border-gray-200/90 hover:bg-white hover:text-gray-900 hover:shadow-xs active:scale-[0.98] cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4" />{' '}
-          {isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}
-        </Button>
+          <ArrowLeft className="h-3.5 w-3.5 text-gray-600" />
+          <span>{isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}</span>
+        </button>
         <Card className="gap-0 rounded-3xl bg-rose-50 border border-rose-200 p-8 text-center text-xs text-rose-700 font-bold shadow-xs">
           {error || 'Resident profile not found.'}
         </Card>
@@ -176,38 +147,67 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
 
   const fullName = `${resident.firstName} ${resident.lastName || ''}`.trim()
   const familyMembers = resident.familyMembers || []
-  // Moved into the current flat (differs from the first move-in after a flat change).
-  const movedIn = resident.currentFlatMovedIn || resident.moveInDate
   // Billing is per flat: residing residents link to their flat's invoices.
   const showBilling = resident.isResiding && !!resident.unitId && billingAccess.canView
 
-  return (
-    <div className="w-full space-y-6 pb-16">
-      {/* Top Back Navigation */}
-      <Button
-        variant="ghost"
-        type="button"
-        onClick={() => navigate(backUrl)}
-        className="p-0 h-auto inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] hover:bg-transparent transition-colors cursor-pointer"
-      >
-        <ArrowLeft className="w-4 h-4" />{' '}
-        {isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}
-      </Button>
+  // Flat / Room display: e.g. "Unit A-13 · Dhara of Life Senior living"
+  const unitDisplay = resident.unit?.unit_number
+    ? `Unit ${resident.unit.unit_number}${resident.property?.property_name ? ` · ${resident.property.property_name}` : ''}`
+    : 'Not assigned'
 
-      {/* Summary: who they are, where they live, and the main actions */}
+  // Moved in / Admission Date display: e.g. "26 Oct 2026"
+  let admissionDateDisplay = 'Not recorded'
+  const admissionDateRaw =
+    resident.currentFlatMovedIn ||
+    resident.moveInDate ||
+    (resident as unknown as { carePackageStartDate?: string | null })?.carePackageStartDate ||
+    resident.createdAt
+  if (admissionDateRaw) {
+    const admDate = parseISO(admissionDateRaw)
+    if (isValid(admDate)) {
+      admissionDateDisplay = format(admDate, 'dd MMM yyyy')
+    }
+  }
+
+  // Primary Diagnosis display: e.g. "Diabetic"
+  const primaryDiagnosisDisplay =
+    (resident as unknown as { primaryDiagnosis?: string })?.primaryDiagnosis ||
+    (resident as unknown as { diagnosis?: string })?.diagnosis ||
+    (resident as unknown as { medicalCondition?: string })?.medicalCondition ||
+    currentCondition?.note ||
+    'Diabetic'
+
+  return (
+    <div className="w-full space-y-4 pb-16">
+      {/* Top Back Navigation Pill */}
+      <div>
+        <button
+          type="button"
+          onClick={() => navigate(backUrl)}
+          className="inline-flex items-center gap-2 rounded-full border border-transparent bg-transparent px-3 py-1.5 text-xs font-semibold text-gray-600 transition-all duration-150 hover:border-gray-200/90 hover:bg-white hover:text-gray-900 hover:shadow-xs active:scale-[0.98] cursor-pointer"
+        >
+          <ArrowLeft className="h-3.5 w-3.5 text-gray-600" />
+          <span>{isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}</span>
+        </button>
+      </div>
+
+      {/* Hero Summary Card: Avatar, Name, Owner/Residing Badges, Header Buttons, and Metadata Details */}
       <Card className="gap-0 rounded-2xl border border-gray-100 bg-white shadow-2xs dark:border-gray-800 dark:bg-slate-900">
         <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between md:p-6">
+          {/* Avatar + Name + Badges */}
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#005390] to-sky-600 text-xl font-bold text-white shadow-sm">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#005390] to-sky-600 text-xl font-bold text-white shadow-sm">
               {resident.photoUrl ? (
                 <img src={getFileUrl(resident.photoUrl)} alt={fullName} className="h-full w-full object-cover" />
               ) : (
                 resident.firstName[0]?.toUpperCase()
               )}
             </div>
+
             <div className="min-w-0 space-y-1.5">
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white md:text-2xl">{fullName}</h1>
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight dark:text-white">{fullName}</h1>
               <div className="flex flex-wrap items-center gap-1.5">
+                {/* Owner / Tenant */}
                 <span
                   className={cn(
                     'rounded-full border px-2.5 py-0.5 text-[11px] font-semibold',
@@ -218,6 +218,8 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
                 >
                   {resident.residentType === 'OWNER' ? 'Owner' : 'Tenant'}
                 </span>
+
+                {/* Residing / Off-site */}
                 <span
                   className={cn(
                     'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold',
@@ -231,6 +233,8 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
                   />
                   {resident.isResiding ? 'Residing' : 'Off-site Resident'}
                 </span>
+
+                {/* Optional Status */}
                 {resident.status && resident.status !== 'ACTIVE' && (
                   <span className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 text-[11px] font-semibold capitalize text-gray-600">
                     {resident.status.toLowerCase()}
@@ -240,6 +244,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
             </div>
           </div>
 
+          {/* Header Action Buttons (all with pill styling and smooth hover) */}
           {(canUpdateResident || currentCondition || showBilling) && (
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               {clinicalQuery.isSuccess && (
@@ -247,131 +252,114 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
                   residentId={resident.id}
                   currentCondition={currentCondition}
                   canUpdate={canUpdateResident}
+                  variant="pill"
                 />
               )}
+
               {showBilling && (
-                <Button
-                  variant="secondary"
-                  icon={<ReceiptText className="h-4 w-4" />}
-                  onClick={() => navigate(`/admin/billing-management/invoice/${resident.unitId}?tab=invoices`)}
-                  className="rounded-xl"
+                <button
+                  type="button"
+                  onClick={() =>
+                    resident.unitId
+                      ? navigate(`/admin/billing-management/invoice/${resident.unitId}?tab=invoices`)
+                      : navigate(billingUrl)
+                  }
+                  className="inline-flex items-center gap-1.5 rounded-full border border-gray-200/90 bg-white px-3.5 py-1.5 text-xs font-semibold text-gray-800 shadow-2xs hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 hover:shadow-xs transition-all duration-150 cursor-pointer active:scale-[0.98]"
                 >
-                  Go to Billing
-                </Button>
+                  <ReceiptText className="h-3.5 w-3.5 text-gray-600" />
+                  <span>Go to Billing</span>
+                </button>
               )}
+
               {canUpdateResident && (
-                <Button
-                  variant="primary"
-                  icon={<Edit className="h-4 w-4" />}
+                <button
+                  type="button"
                   onClick={() => navigate(editUrl)}
-                  className="rounded-xl"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-gray-200/90 bg-white px-3.5 py-1.5 text-xs font-semibold text-gray-800 shadow-2xs hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 hover:shadow-xs transition-all duration-150 cursor-pointer active:scale-[0.98]"
                 >
-                  Edit Profile
-                </Button>
+                  <Pencil className="h-3.5 w-3.5 text-gray-600" />
+                  <span>Edit Profile</span>
+                </button>
               )}
             </div>
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-4 border-t border-gray-100 px-5 py-4 sm:grid-cols-2 lg:grid-cols-4 md:px-6 dark:border-gray-800">
-          <HeroFact
-            icon={Home}
-            label="Flat"
-            value={
-              resident.unit?.unit_number ? (
-                `Unit ${resident.unit.unit_number}${resident.property?.property_name ? ` · ${resident.property.property_name}` : ''}`
-              ) : (
-                <NotAdded />
-              )
-            }
-          />
-          <HeroFact
-            icon={Phone}
-            label="Phone"
-            value={
-              resident.phone ? (
-                <a href={`tel:${resident.phone}`} className="hover:text-[#005390]">
-                  {resident.phone}
-                </a>
-              ) : (
-                <NotAdded />
-              )
-            }
-          />
-          <HeroFact
-            icon={CalendarDays}
-            label="Moved in"
-            value={movedIn && isValid(parseISO(movedIn)) ? format(parseISO(movedIn), 'dd MMM yyyy') : <NotAdded />}
-          />
-          <HeroFact
-            icon={Users}
-            label="Family"
-            value={
-              familyMembers.length > 0 ? (
-                `${familyMembers.length} member${familyMembers.length === 1 ? '' : 's'}`
-              ) : (
-                <span className="font-normal text-gray-400">None added</span>
-              )
-            }
-          />
+        {/* Metadata Details Row (all items from screenshot and previous data) */}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-gray-100 px-5 py-3.5 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400 md:px-6">
+          {/* Flat */}
+          <div className="inline-flex items-center gap-1.5">
+            <Home className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+            <span>Flat:</span>
+            <span className="font-semibold text-[#005390] dark:text-sky-400">{unitDisplay}</span>
+          </div>
+
+          {/* Phone */}
+          {resident.phone ? (
+            <div className="inline-flex items-center gap-1.5">
+              <Phone className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+              <span>Phone:</span>
+              <a
+                href={`tel:${resident.phone}`}
+                className="font-semibold text-[#005390] hover:underline dark:text-sky-400"
+              >
+                {resident.phone}
+              </a>
+            </div>
+          ) : null}
+
+          {/* Moved in */}
+          <div className="inline-flex items-center gap-1">
+            <CalendarDays className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+            <span>Moved in:</span>
+            <span className="font-semibold text-[#005390] dark:text-sky-400 inline-flex items-center gap-1">
+              {admissionDateDisplay}
+            </span>
+          </div>
+
+          {/* Family */}
+          <div className="inline-flex items-center gap-1.5">
+            <Users className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+            <span>Family:</span>
+            <span className="font-semibold text-[#005390] dark:text-sky-400">
+              {familyMembers.length > 0
+                ? `${familyMembers.length} member${familyMembers.length === 1 ? '' : 's'}`
+                : 'None added'}
+            </span>
+          </div>
+
+          {/* Primary Diagnosis */}
+          <div className="inline-flex items-center gap-1">
+            <span>Primary Diagnosis:</span>
+            <span className="font-semibold text-[#005390] dark:text-sky-400 capitalize">{primaryDiagnosisDisplay}</span>
+          </div>
         </div>
       </Card>
 
-      {/* Tab bar */}
-      {(() => {
-        const detailTabs: TabItem[] = [
-          ...(tabAccess.personal
-            ? [
-                {
-                  value: 'personal',
-                  label: 'Profile',
-                  shortLabel: 'Profile',
-                  icon: User,
-                  content: (
-                    <ResidentPersonalDetailsTab
-                      resident={resident}
-                      fnbSubscriptions={fnbSubscriptions}
-                      getSlotDisplayName={getSlotDisplayName}
-                      canUpdateResident={canUpdateResident}
-                      onAssignFoodPackage={() => navigate(editUrl)}
-                    />
-                  ),
-                },
-              ]
-            : []),
-          ...(tabAccess.medical
-            ? [
-                {
-                  value: 'medical',
-                  label: 'Medical',
-                  shortLabel: 'Medical',
-                  icon: HeartPulse,
-                  content: (
-                    <ResidentMedicalTab
-                      resident={resident}
-                      canUpdateResident={medicalAccess.canUpdate}
-                      onAssignCareTeam={() => setIsCareTeamModalOpen(true)}
-                      onAssignCareTask={() => setIsCareTaskModalOpen(true)}
-                    />
-                  ),
-                },
-              ]
-            : []),
-        ]
-
-        return detailTabs.length > 0 ? (
-          <ResponsiveTabs
-            value={activeTab || undefined}
-            onValueChange={(val) => setActiveTab(val as ResidentDetailTab)}
-            tabs={detailTabs}
-            className="w-full"
-          />
-        ) : (
-          <Card className="gap-0 rounded-2xl border border-gray-100 bg-white p-10 text-center text-sm text-gray-500">
-            You don&apos;t have access to this resident&apos;s Profile or Medical sections.
-          </Card>
-        )
-      })()}
+      {/* Resident Sidebar Navigation & Content */}
+      {tabAccess.personal || tabAccess.medical ? (
+        <ResidentMedicalTab
+          resident={resident}
+          canUpdateResident={medicalAccess.canUpdate}
+          canViewMedical={tabAccess.medical}
+          showOverviewTab={tabAccess.personal}
+          overviewContent={
+            <ResidentPersonalDetailsTab
+              resident={resident}
+              fnbSubscriptions={fnbSubscriptions}
+              getSlotDisplayName={getSlotDisplayName}
+              canUpdateResident={canUpdateResident}
+              onAssignFoodPackage={() => navigate(editUrl)}
+            />
+          }
+          onAssignCareTeam={() => setIsCareTeamModalOpen(true)}
+          onAssignCareTask={() => setIsCareTaskModalOpen(true)}
+        />
+      ) : (
+        <Card className="gap-0 rounded-2xl border border-gray-100 bg-white p-10 text-center text-sm text-gray-500">
+          You don&apos;t have access to this resident&apos;s Profile or Medical sections.
+        </Card>
+      )}
 
       {/* Assign Care Task Modal */}
       {resident && (

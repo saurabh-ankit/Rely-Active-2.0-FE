@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Clock,
   IndianRupee,
-  Loader2,
   Package,
   Search,
   User,
@@ -20,6 +19,7 @@ import { notifyError, notifySuccess } from '@/utils/toast'
 import { ChangePackageDialog } from '@/components/common/ChangePackageDialog'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import PageLoader from '@/components/shared/PageLoader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 interface SubscriptionsTabProps {
@@ -212,10 +212,7 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
 
       {/* Main Content Area */}
       {isLoading ? (
-        <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-400 shadow-xl backdrop-blur-xl">
-          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
-          Loading package subscriptions...
-        </Card>
+        <PageLoader isVisible={true} message="Loading..." />
       ) : subscriptionsByResident.size === 0 ? (
         <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-12 text-center text-sm text-gray-500 shadow-xl backdrop-blur-xl">
           <Package className="w-8 h-8 text-gray-400 mx-auto mb-2" />

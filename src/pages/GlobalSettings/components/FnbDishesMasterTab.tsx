@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
@@ -13,8 +14,6 @@ import {
   AlertCircle,
   Upload,
   Image as ImageIcon,
-  CheckSquare,
-  Square,
   ChevronDown,
   ChevronRight,
   Building2,
@@ -893,22 +892,14 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                       <p className="text-[11px] text-gray-500">Select properties where this dish will be available.</p>
                     </div>
 
-                    <Button
+                    <button
                       type="button"
-                      variant="ghost"
                       onClick={handleSelectAllProperties}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#005390] hover:text-[#004070] cursor-pointer p-0 h-auto"
+                      className="inline-flex items-center gap-2 text-xs font-bold text-[#005390] hover:text-[#004070] cursor-pointer p-0 h-auto select-none"
                     >
-                      {isAllPropsSelected ? (
-                        <>
-                          <CheckSquare className="w-4 h-4 text-[#005390]" /> Deselect All
-                        </>
-                      ) : (
-                        <>
-                          <Square className="w-4 h-4 text-gray-400" /> Select All ({availableProperties.length})
-                        </>
-                      )}
-                    </Button>
+                      <Checkbox checked={isAllPropsSelected} className="pointer-events-none" />
+                      <span>{isAllPropsSelected ? 'Deselect All' : `Select All (${availableProperties.length})`}</span>
+                    </button>
                   </div>
 
                   {availableProperties.length === 0 ? (
@@ -923,18 +914,14 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                             variant="ghost"
                             key={prop.id}
                             onClick={() => handleToggleProperty(prop.id)}
-                            className={`p-2.5 h-auto rounded-xl border text-xs font-semibold flex items-center justify-between cursor-pointer transition-all ${
+                            className={`p-2.5 h-auto rounded-xl border text-xs font-semibold flex items-center justify-between cursor-pointer transition-all select-none ${
                               isSelected
                                 ? 'bg-blue-50/80 border-blue-200 text-[#005390]'
-                                : 'bg-gray-50/50 border-gray-200 text-gray-600 hover:bg-gray-100/50'
+                                : 'bg-gray-50/50 border-gray-200 text-gray-700 hover:bg-gray-100/50'
                             }`}
                           >
                             <span className="truncate max-w-[160px]">{getPropName(prop)}</span>
-                            {isSelected ? (
-                              <CheckSquare className="w-4 h-4 text-[#005390] shrink-0" />
-                            ) : (
-                              <Square className="w-4 h-4 text-gray-300 shrink-0" />
-                            )}
+                            <Checkbox checked={isSelected} className="pointer-events-none shrink-0" />
                           </Button>
                         )
                       })}

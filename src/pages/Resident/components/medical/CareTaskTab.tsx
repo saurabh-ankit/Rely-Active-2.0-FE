@@ -33,7 +33,7 @@ export const CareTaskTab: React.FC<CareTaskTabProps> = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="h-full min-h-0 flex flex-col flex-1 min-w-0">
       <ClinicalCard icon={HeartPulse} title="Assigned Care Tasks & Clinical Care">
         <AssignedTasksTab
           forcedResidentId={resident.id}
@@ -41,19 +41,19 @@ export const CareTaskTab: React.FC<CareTaskTabProps> = ({
           isCompact={true}
           actionSlot={
             canUpdateResident ? (
-              <div className="flex items-center gap-2.5 flex-wrap">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto [&>button]:w-full sm:[&>button]:w-auto">
                 <Button
                   type="button"
                   onClick={onAssignCareTeam}
-                  className="rounded-xl bg-[#005390] px-4 py-2 text-xs font-bold text-white hover:bg-[#004375] cursor-pointer shadow-xs"
+                  className="rounded-xl border border-[#005390] bg-white px-3.5 sm:px-4 py-2 text-xs font-bold text-[#005390] hover:bg-sky-50 cursor-pointer shadow-2xs"
                 >
-                  <Users className="mr-1.5 size-4 text-white" />
-                  Assign Care Team
+                  <Users className="mr-1.5 size-4 text-[#005390]" />
+                  Assign Care Team & View
                 </Button>
                 <Button
                   type="button"
                   onClick={onAssignCareTask}
-                  className="rounded-xl bg-[#005390] px-4 py-2 text-xs font-bold text-white hover:bg-[#004375] cursor-pointer shadow-xs"
+                  className="rounded-xl bg-[#005390] px-3.5 sm:px-4 py-2 text-xs font-bold text-white hover:bg-[#004375] cursor-pointer shadow-xs"
                 >
                   <HeartPulse className="mr-1.5 size-4 text-white" />
                   Assign Care Task

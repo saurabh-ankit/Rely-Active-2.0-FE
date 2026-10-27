@@ -10,7 +10,6 @@ import {
   History,
   KeyRound,
   LayoutGrid,
-  Loader2,
   Mail,
   Phone,
   ShieldAlert,
@@ -20,6 +19,7 @@ import {
 import { useEmployeeActivitySummary, useUserByIdQuery } from '@/hooks/react-query/user'
 import { useLocationStore } from '@/lib/stores/locationStore'
 import { Button } from '@/components/ui/button'
+import PageLoader from '@/components/shared/PageLoader'
 import { Card } from '@/components/ui/card'
 import { RoleBadges } from '@/components/employees/EmployeeCells'
 import { HeroFact, InfoList, NotAdded, Panel } from '@/components/common/DetailPanel'
@@ -121,15 +121,7 @@ export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ is
   )
 
   if (isLoading) {
-    return (
-      <div className="w-full space-y-6 pb-12">
-        {backButton}
-        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center text-sm text-muted-foreground">
-          <Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin text-primary" />
-          Loading employee profile…
-        </div>
-      </div>
-    )
+    return <PageLoader isVisible={true} message="Loading..." />
   }
 
   const errorMsg =

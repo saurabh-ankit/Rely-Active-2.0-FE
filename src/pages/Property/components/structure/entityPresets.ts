@@ -419,6 +419,10 @@ const FLOOR_TYPE_NAMES: Record<string, string> = {
   PENTHOUSE: 'Penthouse',
 }
 
+/** Display label for a floor type: "GROUND_FLOOR" → "Ground Floor" */
+export const floorTypeLabel = (floorType: string) =>
+  FLOOR_TYPE_NAMES[floorType] ?? floorType.charAt(0) + floorType.slice(1).toLowerCase().replace(/_/g, ' ')
+
 /** Names the system generates; anything else was typed by someone and is kept. */
 const isAutoFloorName = (name?: string | null) =>
   !name || /^(ground floor|floor \d+|stilt|basement|penthouse)$/i.test(name.trim())

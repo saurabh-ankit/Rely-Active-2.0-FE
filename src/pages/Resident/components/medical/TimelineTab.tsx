@@ -300,12 +300,7 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({ residentId, minDate })
               description={`No activity recorded on ${displayDate}.`}
             />
           ) : (
-            <ol
-              className={cn(
-                'max-h-[640px] overflow-y-auto overscroll-contain pr-2 transition-opacity',
-                isFetching && 'opacity-60',
-              )}
-            >
+            <ol className={cn('max-h-[640px] overflow-y-auto pr-2 transition-opacity', isFetching && 'opacity-60')}>
               {events.map((event, index) => (
                 <TimelineEntry key={event.id} event={event} isLast={index === events.length - 1} />
               ))}

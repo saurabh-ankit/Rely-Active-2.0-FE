@@ -1,34 +1,35 @@
 import { lazy } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Layout from '@/layouts/Layout'
-import CompanyPage from '@/pages/Company'
-import ComponentShowcase from '@/pages/ComponentShowcase'
-import DashboardPage from '@/pages/Dashboard'
-import EmployeeDirectoryPage from '@/pages/Employees'
-import GlobalSettingsPage from '@/pages/GlobalSettings'
 import LoginPage from '@/pages/Login'
-import PropertyPage from '@/pages/Property'
-import CreatePropertyPage from '@/pages/Property/CreatePropertyPage'
-import PropertyDetailsPage from '@/pages/Property/PropertyDetailsPage'
-import ResidentPage, { ResidentBillingPage } from '@/pages/Resident'
-import SectionPage from '@/pages/SectionPage'
-import SetupPage from '@/pages/Setup'
-import AssetManagementPage from '@/pages/AssetManagement'
-import FnbManagementPage from '@/pages/FnbManagement'
-import UserProfilePage from '@/pages/Profile'
-import TicketsPage from '@/pages/Tickets'
-import GateManagementPage from '@/pages/GateManagement'
-import EventsPage from '@/pages/Events'
-import EventForm from '@/pages/Events/components/EventForm'
-import EventRegistrationsPage from '@/pages/Events/components/EventRegistrations'
-import ShiftRosterPage from '@/pages/ShiftRoster'
-import BillingManagementPage from '@/pages/BillingManagement'
-import SettingsPage from '@/pages/Settings'
-import MedicalPage from '@/pages/Medical'
-import AppointmentBookingsPage from '@/pages/Medical/components/appointments/AppointmentBookings'
-import AmenitiesPage from '@/pages/Amenities'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 
+const CompanyPage = lazy(() => import('@/pages/Company'))
+const ComponentShowcase = lazy(() => import('@/pages/ComponentShowcase'))
+const DashboardPage = lazy(() => import('@/pages/Dashboard'))
+const EmployeeDirectoryPage = lazy(() => import('@/pages/Employees'))
+const GlobalSettingsPage = lazy(() => import('@/pages/GlobalSettings'))
+const PropertyPage = lazy(() => import('@/pages/Property'))
+const CreatePropertyPage = lazy(() => import('@/pages/Property/CreatePropertyPage'))
+const PropertyDetailsPage = lazy(() => import('@/pages/Property/PropertyDetailsPage'))
+const ResidentPage = lazy(() => import('@/pages/Resident'))
+const ResidentBillingPage = lazy(() => import('@/pages/Resident').then((m) => ({ default: m.ResidentBillingPage })))
+const SectionPage = lazy(() => import('@/pages/SectionPage'))
+const SetupPage = lazy(() => import('@/pages/Setup'))
+const AssetManagementPage = lazy(() => import('@/pages/AssetManagement'))
+const FnbManagementPage = lazy(() => import('@/pages/FnbManagement'))
+const UserProfilePage = lazy(() => import('@/pages/Profile'))
+const TicketsPage = lazy(() => import('@/pages/Tickets'))
+const GateManagementPage = lazy(() => import('@/pages/GateManagement'))
+const EventsPage = lazy(() => import('@/pages/Events'))
+const EventForm = lazy(() => import('@/pages/Events/components/EventForm'))
+const EventRegistrationsPage = lazy(() => import('@/pages/Events/components/EventRegistrations'))
+const ShiftRosterPage = lazy(() => import('@/pages/ShiftRoster'))
+const BillingManagementPage = lazy(() => import('@/pages/BillingManagement'))
+const SettingsPage = lazy(() => import('@/pages/Settings'))
+const MedicalPage = lazy(() => import('@/pages/Medical'))
+const AppointmentBookingsPage = lazy(() => import('@/pages/Medical/components/appointments/AppointmentBookings'))
+const AmenitiesPage = lazy(() => import('@/pages/Amenities'))
 const InventoryPage = lazy(() => import('@/pages/Inventory'))
 const FeedbackPage = lazy(() => import('@/pages/Feedback'))
 const AdvertisementsPage = lazy(() => import('@/pages/Feedback/AdvertisementsPage'))

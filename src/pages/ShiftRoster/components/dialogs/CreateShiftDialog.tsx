@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 /* eslint-disable react-hooks/incompatible-library -- react-hook-form watch() */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { RefreshCw } from 'lucide-react'
@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { TimePicker } from '@/components/ui/time-picker'
 import type { ShiftV2 } from '@/lib/services/rosterService'
 import {
   createShiftFormDefaultValues,
@@ -37,6 +38,7 @@ const CreateShiftDialog = ({ open, onOpenChange, shift }: CreateShiftDialogProps
     reset,
     watch,
     setValue,
+    control,
     formState: { errors },
   } = useForm<CreateShiftFormValues>({
     resolver: zodResolver(createShiftFormSchema),
@@ -147,12 +149,34 @@ const CreateShiftDialog = ({ open, onOpenChange, shift }: CreateShiftDialogProps
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="start-time">Start (HH:mm)</Label>
-              <Input id="start-time" type="time" {...register('startTime')} />
+              <Controller
+                control={control}
+                name="startTime"
+                render={({ field }) => (
+                  <TimePicker
+                    id="start-time"
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={errors.startTime?.message}
+                  />
+                )}
+              />
               {errors.startTime && <p className="text-sm text-red-600">{errors.startTime.message}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="end-time">End (HH:mm)</Label>
-              <Input id="end-time" type="time" {...register('endTime')} />
+              <Controller
+                control={control}
+                name="endTime"
+                render={({ field }) => (
+                  <TimePicker
+                    id="end-time"
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={errors.endTime?.message}
+                  />
+                )}
+              />
               {errors.endTime && <p className="text-sm text-red-600">{errors.endTime.message}</p>}
             </div>
           </div>

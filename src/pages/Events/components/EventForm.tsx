@@ -4,6 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { TimePicker } from '@/components/ui/time-picker'
 import {
   Combobox,
   ComboboxContent,
@@ -1273,20 +1274,17 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div>
                         <Label className="mb-1.5">Select Start Time *</Label>
-                        <Input
-                          type="time"
+                        <TimePicker
                           value={sameScheduleStartTime}
-                          onChange={(e) => handleSameScheduleStartTimeChange(e.target.value)}
+                          onChange={(val) => handleSameScheduleStartTimeChange(val)}
                         />
                       </div>
                       <div>
                         <Label className="mb-1.5">Select End Time *</Label>
-                        <Input
-                          type="time"
+                        <TimePicker
                           value={sameScheduleEndTime}
-                          min={sameScheduleStartTime ? getMinEndTime(sameScheduleStartTime) : undefined}
                           disabled={!sameScheduleStartTime}
-                          onChange={(e) => handleSameScheduleEndTimeChange(e.target.value)}
+                          onChange={(val) => handleSameScheduleEndTimeChange(val)}
                         />
                       </div>
                     </div>
@@ -1300,24 +1298,17 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
                           <div className="grid grid-cols-2 gap-3">
                             <div>
                               <Label className="text-xs mb-1.5">Select Start Time *</Label>
-                              <Input
-                                type="time"
+                              <TimePicker
                                 value={scheduleTimes[dateKey]?.startTime || ''}
-                                onChange={(e) => handleOccurrenceStartTimeChange(dateKey, e.target.value)}
+                                onChange={(val) => handleOccurrenceStartTimeChange(dateKey, val)}
                               />
                             </div>
                             <div>
                               <Label className="text-xs mb-1.5">Select End Time *</Label>
-                              <Input
-                                type="time"
+                              <TimePicker
                                 value={scheduleTimes[dateKey]?.endTime || ''}
-                                min={
-                                  scheduleTimes[dateKey]?.startTime
-                                    ? getMinEndTime(scheduleTimes[dateKey]!.startTime)
-                                    : undefined
-                                }
                                 disabled={!scheduleTimes[dateKey]?.startTime}
-                                onChange={(e) => handleOccurrenceEndTimeChange(dateKey, e.target.value)}
+                                onChange={(val) => handleOccurrenceEndTimeChange(dateKey, val)}
                               />
                             </div>
                           </div>

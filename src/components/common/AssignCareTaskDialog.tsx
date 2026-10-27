@@ -1,5 +1,6 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { TimePicker } from '@/components/ui/time-picker'
 import React, { useState, useMemo, useEffect } from 'react'
 import { X, Loader2, Clock, Plus, Trash2, Search, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -520,17 +521,15 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
                         )}
                       </div>
                     </div>
-                    <Input
-                      type="time"
+                    <TimePicker
                       aria-label={`Time slot ${idx + 1}`}
                       value={slotTime}
-                      onChange={(e) => {
+                      onChange={(newVal) => {
                         const updated = [...times]
-                        updated[idx] = e.target.value
+                        updated[idx] = newVal
                         setTimes(updated)
                       }}
-                      className="w-full rounded-lg border border-gray-200 bg-gray-50/50 px-2.5 py-1.5 text-xs text-gray-900 transition-colors focus:border-[#005390] focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-slate-900 dark:text-white cursor-pointer"
-                      required
+                      className="w-full text-xs"
                     />
                   </div>
                 ))}
