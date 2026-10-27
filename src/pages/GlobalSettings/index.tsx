@@ -196,7 +196,7 @@ const SETTING_GROUPS: SettingGroup[] = [
       },
       {
         id: 'fnb-dishes',
-        name: 'Dish Catalogue',
+        name: 'Master Dish Catalogue',
         description: 'Dishes, categories, dietary tags and base prices.',
         icon: Utensils,
         link: '/global-settings/fnb-dishes',
