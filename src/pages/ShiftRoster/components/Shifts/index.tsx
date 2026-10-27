@@ -4,7 +4,6 @@ import { Calendar, Clock, MapPin, Pencil, Plus, Timer, Trash2, Users } from 'luc
 import { useSearchParams } from 'react-router-dom'
 import { ResponsiveTabs } from '@/components/common/ResponsiveTabs'
 import PageLoader from '@/components/shared/PageLoader'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import StatCard from '@/pages/AssetManagement/components/StatCard'
@@ -102,16 +101,6 @@ const ShiftsGrid = () => {
             </div>
           )
         },
-      },
-      {
-        id: 'status',
-        header: 'Status',
-        cell: ({ row }) =>
-          row.original.isActive ? (
-            <Badge className="border border-green-200 bg-green-50 text-green-700">Active</Badge>
-          ) : (
-            <Badge className="border border-gray-200 bg-gray-100 text-gray-600">Inactive</Badge>
-          ),
       },
       {
         id: 'actions',
