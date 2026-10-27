@@ -143,7 +143,19 @@ export const ResidentPersonalDetailsTab: React.FC<ResidentPersonalDetailsTabProp
   const primarySub = fnbSubscriptions.find((s) => !s.familyMemberId && (!s.familyMember || !s.familyMember.id))
   const isTenant = resident.residentType === 'TENANT'
   const flatHistory = resident.flatHistory || []
-  const hasMoved = flatHistory.length > 1
+  const residentRaw = resident as unknown as Record<string, unknown>
+  const currentStay =
+    flatHistory.find((s) => s.current) || (flatHistory.length > 0 ? flatHistory[flatHistory.length - 1] : null)
+  const oldestStay = flatHistory.length > 0 ? flatHistory[0] : null
+  const currentFlatMovedIn =
+    resident.currentFlatMovedIn ||
+    (residentRaw.current_flat_moved_in as string | undefined) ||
+    currentStay?.from ||
+    resident.moveInDate
+  const firstMoveInDate = resident.moveInDate || (residentRaw.move_in_date as string | undefined) || oldestStay?.from
+  const hasMoved =
+    flatHistory.length > 1 ||
+    Boolean(currentFlatMovedIn && firstMoveInDate && formatDate(currentFlatMovedIn) !== formatDate(firstMoveInDate))
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -155,8 +167,8 @@ export const ResidentPersonalDetailsTab: React.FC<ResidentPersonalDetailsTabProp
               ['Flat', unit?.unit_number ? unitLocationLabel(unit) : null],
               ['Layout', unit?.unit_type || null],
               ['Flat occupancy', humanize(unit?.occupancyStatus)],
-              ['Moved in', formatDate(resident.currentFlatMovedIn || resident.moveInDate)],
-              ...(hasMoved ? [['First moved in', formatDate(resident.moveInDate)] as [string, string | null]] : []),
+              ['Moved in', formatDate(currentFlatMovedIn)],
+              ...(hasMoved ? [['First moved in', formatDate(firstMoveInDate)] as [string, string | null]] : []),
             ]}
           />
           {hasMoved && (

@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card'
 import { Clock, Trash2, Sparkles, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { TimePicker } from '@/components/ui/time-picker'
 
 export interface PackageTaskItemInfo {
   taskId: string
@@ -254,12 +254,10 @@ export const PackageTaskSchedulesConfig: React.FC<PackageTaskSchedulesConfigProp
                           )}
                         </div>
                       </div>
-                      <Input
-                        type="time"
+                      <TimePicker
                         value={slotTime}
-                        onChange={(e) => handleTimeChange(t.taskId, t.taskName, idx, e.target.value)}
-                        className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 transition-colors focus:border-[#005390] focus:outline-none dark:border-gray-700 dark:bg-slate-800 dark:text-white cursor-pointer"
-                        required
+                        onChange={(newVal) => handleTimeChange(t.taskId, t.taskName, idx, newVal)}
+                        className="w-full text-xs"
                       />
                     </div>
                   ))}

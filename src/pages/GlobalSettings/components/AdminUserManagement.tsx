@@ -16,6 +16,7 @@ import {
 import { DataTable } from '@/components/ui/data-table'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import PageLoader from '@/components/shared/PageLoader'
 import {
   ArrowLeft,
   Building2,
@@ -276,7 +277,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
     debouncedSearch,
     isLocationScoped ? selectedLocationId : null,
   )
-  const { data: fetchedUser } = useUserByIdQuery(paramId)
+  const { data: fetchedUser, isLoading: isLoadingUser } = useUserByIdQuery(paramId)
   const { data: rawRoles = [] } = useRolesQuery()
   const { data: departments = [] } = useDepartmentsQuery()
   const { data: availableProperties = [] } = usePropertiesQuery()
@@ -777,6 +778,11 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
         <RoleModuleManagement onClose={() => navigate('/global-settings/users')} />
       </div>
     )
+  }
+
+  // If loading user data in edit mode, show PageLoader
+  if ((initialMode === 'edit' || paramId) && paramId && isLoadingUser && !fetchedUser) {
+    return <PageLoader isVisible={true} message="Loading..." />
   }
 
   // If mode is create or edit, render FULL PAGE form view directly

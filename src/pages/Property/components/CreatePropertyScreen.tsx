@@ -2,6 +2,7 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { TimePicker } from '@/components/ui/time-picker'
 import React, { useState } from 'react'
 import { isAxiosError } from 'axios'
 import { ArrowLeft, Building2, Home, Layers, Loader2, MapPin, Plus, Sparkles, Trash2, X, Check } from 'lucide-react'
@@ -29,6 +30,7 @@ import {
   isUnitOccupied,
   listNumbers,
   floorNameFor,
+  floorTypeLabel,
   newTower,
   normalizeEntity,
   occupiedInBlock,
@@ -222,6 +224,7 @@ function SelectField({
   value,
   onValueChange,
   placeholder,
+  disabled,
   children,
 }: {
   label: string
@@ -230,6 +233,7 @@ function SelectField({
   value?: string
   onValueChange?: (value: string) => void
   placeholder?: string
+  disabled?: boolean
   children: React.ReactNode
 }) {
   const isReq = required || label.includes('*')
@@ -240,7 +244,7 @@ function SelectField({
       <Label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider block">
         {cleanLabel} {isReq && <span className="text-red-500 font-bold">*</span>}
       </Label>
-      <Select value={value || undefined} onValueChange={(val) => onValueChange?.(val || '')}>
+      <Select value={value || undefined} onValueChange={(val) => onValueChange?.(val || '')} disabled={disabled}>
         <SelectTrigger
           className={`w-full h-auto rounded-xl border ${
             error
@@ -1200,14 +1204,10 @@ export default function CreatePropertyScreen({
                             >
                               Available From (Optional)
                             </Label>
-                            <Input
+                            <TimePicker
                               id={availableFromId}
-                              type="time"
                               value={amenity.availableFrom || ''}
-                              onChange={(event) =>
-                                updateAmenityAvailability(amenity, 'availableFrom', event.target.value)
-                              }
-                              className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 outline-none focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20"
+                              onChange={(val) => updateAmenityAvailability(amenity, 'availableFrom', val)}
                             />
                           </div>
                           <div>
@@ -1217,14 +1217,10 @@ export default function CreatePropertyScreen({
                             >
                               Available To (Optional)
                             </Label>
-                            <Input
+                            <TimePicker
                               id={availableToId}
-                              type="time"
                               value={amenity.availableTo || ''}
-                              onChange={(event) =>
-                                updateAmenityAvailability(amenity, 'availableTo', event.target.value)
-                              }
-                              className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 outline-none focus:border-[#005390] focus:ring-2 focus:ring-[#005390]/20"
+                              onChange={(val) => updateAmenityAvailability(amenity, 'availableTo', val)}
                             />
                           </div>
                         </div>
@@ -1332,7 +1328,7 @@ export default function CreatePropertyScreen({
                   type="button"
                   variant="outline"
                   onClick={() => setAddEntityOpen(true)}
-                  className="h-8 px-2.5 text-[11px] font-semibold rounded-lg border-gray-300 hover:bg-blue-50 hover:text-blue-600"
+                  className="h-8 px-2.5 text-[11px] font-semibold rounded-lg border-gray-300 hover:bg-blue-50 hover:text-[#005390]"
                 >
                   <Plus className="h-3 w-3 mr-1" /> Add Entity
                 </Button>
@@ -1357,15 +1353,15 @@ export default function CreatePropertyScreen({
                           className={cn(
                             'min-w-0 flex-1 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all cursor-pointer h-auto',
                             isActive
-                              ? 'bg-blue-50 border border-blue-200 text-blue-700 shadow-xs hover:bg-blue-50 hover:text-blue-700'
+                              ? 'bg-blue-50/80 border border-blue-200 text-[#005390] shadow-xs hover:bg-blue-50/80 hover:text-[#005390]'
                               : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100',
                           )}
                         >
                           <span className="flex min-w-0 items-center gap-2">
-                            <Icon className="h-4 w-4 shrink-0 text-blue-600" />
+                            <Icon className="h-4 w-4 shrink-0 text-[#005390]" />
                             <span className="truncate">{entity.name || 'Untitled'}</span>
                           </span>
-                          <span className="shrink-0 rounded-full bg-white border border-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5">
+                          <span className="shrink-0 rounded-full bg-white border border-blue-100 text-[#005390] text-[10px] font-bold px-2 py-0.5">
                             {countUnits(entity)} {levelLabel(entity, 'unit').toLowerCase()}
                             {countUnits(entity) === 1 ? '' : 's'}
                           </span>
@@ -1402,7 +1398,7 @@ export default function CreatePropertyScreen({
                                   className={cn(
                                     'flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1 text-left text-[11px] hover:bg-white h-auto font-normal',
                                     uIdx === activeBlockIndex
-                                      ? 'bg-white font-semibold text-blue-700 shadow-xs'
+                                      ? 'bg-white font-semibold text-[#005390] shadow-xs'
                                       : 'text-gray-600',
                                   )}
                                 >
@@ -1459,7 +1455,7 @@ export default function CreatePropertyScreen({
                                   onClick={() => setActiveBlockIndex(cIdx)}
                                   className={cn(
                                     'flex min-w-0 flex-1 items-center justify-between rounded-lg px-2 py-1 text-left text-[11px] h-auto font-normal',
-                                    selected ? 'bg-white font-semibold text-blue-700 shadow-xs' : 'text-gray-600',
+                                    selected ? 'bg-white font-semibold text-[#005390] shadow-xs' : 'text-gray-600',
                                     selectable
                                       ? 'cursor-pointer hover:bg-white'
                                       : 'cursor-default hover:bg-transparent',
@@ -1552,7 +1548,7 @@ export default function CreatePropertyScreen({
                   <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                     <div className="flex items-center gap-2">
                       <h3 className="text-lg font-bold text-gray-900">{activeBlock.block_name}</h3>
-                      <span className="rounded-full bg-blue-50 border border-blue-200 px-3 py-0.5 text-[11px] font-semibold text-blue-700">
+                      <span className="rounded-full bg-blue-50 border border-blue-200 px-3 py-0.5 text-[11px] font-semibold text-[#005390]">
                         {levelLabel(activeEntity, 'block')}
                       </span>
                     </div>
@@ -1747,7 +1743,7 @@ export default function CreatePropertyScreen({
                                         type="button"
                                         variant="outline"
                                         onClick={() => setExpandedAssignVariantIndex(isAssignExpanded ? null : vIdx)}
-                                        className="h-8 rounded-lg text-xs font-semibold px-3 py-1 border-gray-300 hover:bg-blue-50 hover:text-blue-600"
+                                        className="h-8 rounded-lg text-xs font-semibold px-3 py-1 border-gray-300 hover:bg-blue-50 hover:text-[#005390]"
                                       >
                                         Assign ({variant.positions.length})
                                       </Button>
@@ -1785,11 +1781,15 @@ export default function CreatePropertyScreen({
                                                 (posNum) =>
                                                   posNum === currentPos || !assignedInOtherVariants.includes(posNum),
                                               )
+                                              // Every position on the floor is taken, so there is nothing to swap to
+                                              const allAssigned =
+                                                (activeBlock.bhk_templates || []).length >= unitsPerFloor
 
                                               return (
                                                 <SelectField
                                                   label="Position"
                                                   value={String(currentPos)}
+                                                  disabled={allAssigned}
                                                   onValueChange={(val) => {
                                                     const pos = Number(val)
                                                     const updatedPos = [{ ...variant.positions[0], position: pos }]
@@ -1883,7 +1883,7 @@ export default function CreatePropertyScreen({
                               <p className="font-bold text-gray-800">Position {posNum}</p>
                               {assignedBHK ? (
                                 <>
-                                  <p className="font-bold text-blue-600">{formatUnitType(assignedBHK.type)}</p>
+                                  <p className="font-bold text-[#005390]">{formatUnitType(assignedBHK.type)}</p>
                                   <p className="text-gray-500 text-[10px]">{posObj?.direction || 'North-East'}</p>
                                   <p className="text-gray-400 text-[10px]">{posObj?.view_facing || 'Garden View'}</p>
                                 </>
@@ -1962,7 +1962,7 @@ export default function CreatePropertyScreen({
                                     <SelectContent>
                                       {FLOOR_TYPE_OPTIONS.map((ft) => (
                                         <SelectItem key={ft} value={ft}>
-                                          {ft}
+                                          {floorTypeLabel(ft)}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
@@ -1996,7 +1996,7 @@ export default function CreatePropertyScreen({
                       <Button
                         type="button"
                         onClick={generatePreview}
-                        className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center gap-2 text-xs px-4 py-2 shadow-xs"
+                        className="rounded-xl bg-[#005390] hover:bg-[#004273] text-white font-bold flex items-center gap-2 text-xs px-4 py-2 shadow-xs"
                       >
                         <Sparkles className="h-4 w-4" /> Generate preview
                       </Button>
@@ -2028,7 +2028,7 @@ export default function CreatePropertyScreen({
                                 <TableRow key={`${f.floor_number}-${uI}`}>
                                   <TableCell className="p-2.5 font-bold text-gray-900">{u.unit_number}</TableCell>
                                   <TableCell className="p-2.5">{f.floor_number}</TableCell>
-                                  <TableCell className="p-2.5 font-semibold text-blue-600">
+                                  <TableCell className="p-2.5 font-semibold text-[#005390]">
                                     {formatUnitType(u.unit_type)}
                                   </TableCell>
                                   <TableCell className="p-2.5">{u.built_up_area} sqft</TableCell>

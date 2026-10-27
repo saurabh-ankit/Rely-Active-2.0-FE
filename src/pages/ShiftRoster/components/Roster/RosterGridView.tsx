@@ -320,7 +320,7 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                   <TableHead
                     key={`day-${ds}`}
                     onClick={() => onSelectDate(ds)}
-                    className={`px-1 py-1.5 text-center font-bold border-r border-white/20 min-w-[118px] cursor-pointer hover:bg-white/20 transition-colors ${
+                    className={`px-1 py-1.5 text-center font-bold text-white border-r border-white/20 min-w-[118px] cursor-pointer hover:bg-gray-200 hover:text-gray-900 transition-colors ${
                       ds === todayStr ? 'bg-blue-600' : 'bg-[#2a517c]'
                     }`}
                     title={`View rosters for ${date.toLocaleDateString()}`}
@@ -344,7 +344,7 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
                   <TableHead
                     key={`date-${ds}`}
                     onClick={() => onSelectDate(ds)}
-                    className={`px-1 py-1 text-center font-extrabold text-sm border-r border-white/20 min-w-[118px] cursor-pointer hover:bg-white/20 transition-colors ${
+                    className={`px-1 py-1 text-center font-extrabold text-sm text-white border-r border-white/20 min-w-[118px] cursor-pointer hover:bg-gray-200 hover:text-gray-900 transition-colors ${
                       ds === todayStr ? 'bg-blue-700 ring-2 ring-sky-300' : 'bg-[#1e3a5a]'
                     }`}
                     title={`View rosters for ${date.toLocaleDateString()}`}

@@ -45,7 +45,7 @@ import { Card } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
+//import { Switch } from '@/components/ui/switch'
 
 interface ParsedCompletion {
   notes: string | null
@@ -413,7 +413,7 @@ export default function TicketsPage() {
   const [activeTab, setActiveTab] = useState<'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED'>('OPEN')
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [automateTickets, setAutomateTickets] = useState(false)
+  //const [automateTickets, setAutomateTickets] = useState(false)
 
   // Modals & Drawers
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -800,7 +800,7 @@ export default function TicketsPage() {
               </Button>
             )}
 
-            {canUpdateTicket && (
+            {/* {canUpdateTicket && (
               <div className="flex items-center gap-2.5 bg-white px-3.5 py-2 rounded-xl border border-gray-200 shadow-2xs">
                 <span className="text-xs font-semibold text-gray-700">Automate Tickets</span>
                 <Switch
@@ -810,7 +810,7 @@ export default function TicketsPage() {
                   className="data-checked:bg-[#005390]"
                 />
               </div>
-            )}
+            )} */}
           </>
         }
       />

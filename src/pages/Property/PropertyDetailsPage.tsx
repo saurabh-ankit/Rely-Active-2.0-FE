@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Building2, CalendarDays, Edit, Home, Layers, Loader2, MapPin, Phone } from 'lucide-react'
+import { Building2, CalendarDays, Edit, Home, Layers, MapPin, Phone } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
+import PageLoader from '@/components/shared/PageLoader'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { getPropertyByIdAPI } from '@/lib/services/propertyService'
@@ -375,11 +376,7 @@ export default function PropertyDetailsPage() {
     )
   }
   if (!property) {
-    return (
-      <div className="flex items-center justify-center gap-2 p-16 text-sm text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin text-primary" /> Loading property…
-      </div>
-    )
+    return <PageLoader isVisible={true} message="Loading..." />
   }
 
   const address = [property.street, property.city, property.state, property.pincode, property.country]

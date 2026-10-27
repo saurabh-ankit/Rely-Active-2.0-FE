@@ -3,6 +3,7 @@ import { Building2, CheckCircle2, Clock3, Search, Sparkles } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import PageLoader from '@/components/shared/PageLoader'
 import { useLocationContext } from '@/hooks/useLocation'
 import { getAmenitySlotConfigAPI, type AmenitySlotConfigResponse } from '@/lib/services/amenitySlotService'
 import { getPropertyByIdAPI } from '@/lib/services/propertyService'
@@ -222,9 +223,7 @@ export default function AmenitiesPage() {
           </div>
 
           {isLoading ? (
-            <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
-              Loading amenities...
-            </div>
+            <PageLoader isVisible={true} message="Loading..." />
           ) : error ? (
             <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div>
           ) : filteredAmenities.length === 0 ? (

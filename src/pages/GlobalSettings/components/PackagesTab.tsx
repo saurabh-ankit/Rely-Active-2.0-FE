@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Plus,
   Edit2,
@@ -13,7 +14,6 @@ import {
   Boxes,
   CalendarClock,
   ReceiptIndianRupee,
-  CheckSquare,
   Gift,
   Minus,
   Lock,
@@ -890,15 +890,7 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                                 onClick={() => handleToggleTask(task)}
                                 className="flex items-center gap-2.5 min-w-0 flex-1 mr-2 text-left cursor-pointer p-0 h-auto justify-start hover:bg-transparent"
                               >
-                                <span
-                                  className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 transition-colors ${
-                                    isSelected
-                                      ? 'bg-[#005390] border-[#005390] text-white dark:bg-sky-600 dark:border-sky-600'
-                                      : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-slate-700'
-                                  }`}
-                                >
-                                  {isSelected && <CheckSquare className="w-3.5 h-3.5" />}
-                                </span>
+                                <Checkbox checked={isSelected} className="pointer-events-none shrink-0" />
                                 <span className="font-bold truncate text-gray-900 dark:text-white">{name}</span>
                                 <span
                                   className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold shrink-0 border ${

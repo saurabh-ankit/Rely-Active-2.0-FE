@@ -27,27 +27,29 @@ export const ClinicalCard: React.FC<ClinicalCardProps> = ({
 }) => (
   <Card
     className={cn(
-      'gap-0 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl dark:border-gray-800 dark:bg-slate-900/80',
+      'gap-0 rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 md:p-6 shadow-2xs dark:border-gray-800 dark:bg-slate-900 min-h-0 md:min-h-[720px] flex flex-col',
       className,
     )}
   >
-    <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 p-0 pb-3">
-      <CardTitle className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-        <Icon className={`w-5 h-5 ${iconClassName}`} />
-        {title}
-      </CardTitle>
-      {(count !== undefined || action) && (
-        <div className="flex items-center gap-3">
-          {count !== undefined && (
-            <span className="rounded-full border border-gray-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-bold text-gray-600 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-300">
-              {count}
-            </span>
-          )}
+    <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 p-0 pb-3 shrink-0">
+      <div className="flex items-center justify-between sm:justify-start gap-2.5 min-w-0">
+        <CardTitle className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 truncate">
+          <Icon className={`w-5 h-5 shrink-0 ${iconClassName}`} />
+          <span>{title}</span>
+        </CardTitle>
+        {count !== undefined && (
+          <span className="rounded-full border border-gray-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-bold text-gray-600 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-300 shrink-0">
+            {count}
+          </span>
+        )}
+      </div>
+      {action && (
+        <div className="flex items-center gap-2 sm:shrink-0 w-full sm:w-auto [&>button]:w-full sm:[&>button]:w-auto">
           {action}
         </div>
       )}
     </CardHeader>
-    <CardContent className={cn('p-0 pt-4', bodyClassName)}>{children}</CardContent>
+    <CardContent className={cn('p-0 pt-4 flex-1 flex flex-col min-w-0', bodyClassName)}>{children}</CardContent>
   </Card>
 )
 

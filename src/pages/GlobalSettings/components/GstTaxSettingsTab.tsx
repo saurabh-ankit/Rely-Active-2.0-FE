@@ -3,6 +3,7 @@ import { Receipt, Loader2, CheckCircle2, Save, Building2, Percent } from 'lucide
 import { useGetTaxSettings, useUpdateTaxSettings } from '@/hooks/react-query/billing'
 import type { TaxSettings } from '@/lib/services/billingService'
 import { Button } from '@/components/ui/button'
+import PageLoader from '@/components/shared/PageLoader'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,14 +15,7 @@ export const GstTaxSettingsTab: React.FC = () => {
   const { data: taxData, isLoading } = useGetTaxSettings()
 
   if (isLoading) {
-    return (
-      <Card className="gap-0 flex items-center justify-center p-12 bg-white/60 rounded-3xl border border-white/50 backdrop-blur-xl">
-        <div className="flex items-center gap-3 text-sm font-semibold text-muted-foreground">
-          <Loader2 className="w-5 h-5 animate-spin text-primary" />
-          Loading Tax & GST Settings...
-        </div>
-      </Card>
-    )
+    return <PageLoader isVisible={true} message="Loading..." />
   }
 
   return <GstTaxSettingsForm key={taxData?.data ? 'loaded' : 'empty'} initial={taxData?.data} />

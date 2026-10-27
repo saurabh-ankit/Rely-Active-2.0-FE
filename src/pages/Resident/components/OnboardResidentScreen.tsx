@@ -2,6 +2,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import PageLoader from '@/components/shared/PageLoader'
 import { type FieldPath, useFieldArray, useForm, useWatch, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -1374,10 +1375,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
       )}
 
       {isLoading ? (
-        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center text-sm text-gray-400">
-          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
-          Loading flats…
-        </div>
+        <PageLoader isVisible={true} message="Loading..." />
       ) : (
         <form onSubmit={handleHookSubmit(onSubmit, onInvalid)} className="space-y-6">
           <StepCard
