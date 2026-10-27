@@ -73,6 +73,8 @@ export interface TicketFeedback {
   id: string
   rating: TicketFeedbackRating
   comment?: string | null
+  /** The photo and voice note sent with the feedback from the resident app */
+  attachments?: { photoUrl?: string | null; audioUrl?: string | null } | null
   createdAt: string
   resident?: { id: string; firstName: string; lastName?: string | null } | null
   familyMember?: { id: string; firstName: string; lastName?: string | null; relation?: string | null } | null
