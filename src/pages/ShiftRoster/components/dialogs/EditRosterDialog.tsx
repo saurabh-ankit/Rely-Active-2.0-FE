@@ -36,7 +36,7 @@ const NONE = '__none__'
 
 const ymd = (value?: string | null) => (value ? String(value).slice(0, 10) : '')
 
-type TargetType = 'area' | 'unit'
+type TargetType = 'area' | 'unit' | 'amenity'
 
 type BlockOption = {
   id: string
@@ -103,6 +103,17 @@ const EditRosterDialog = ({
     enabled: open && !!locationId,
   })
   const blocks = useMemo(() => (property?.blocks || []) as BlockOption[], [property])
+  // Same source as Amenities page: propertyAmenities, else legacy property.amenities names.
+  const amenities = useMemo(() => {
+    const linked = (property?.propertyAmenities || []).filter((a) => a.isActive !== false)
+    if (linked.length > 0) {
+      return linked.map((a) => ({ id: a.amenityId, name: a.name }))
+    }
+    return (property?.amenities || [])
+      .map((name) => String(name || '').trim())
+      .filter(Boolean)
+      .map((name) => ({ id: name, name }))
+  }, [property])
 
   const employee = useMemo(
     () => (users || []).find((u) => u.id === assignment.employeeId) || null,
@@ -138,8 +149,11 @@ const EditRosterDialog = ({
   const isMedicalNoAssign = isMedicalDept && isMedicalNoAssignRosterRole(medicalRoleCode)
   const showLocation = !isMedicalNoAssign
 
-  const initialTargetType: TargetType =
-    assignment.areaId || (!assignment.blockId && !assignment.unitId && !assignment.floorId) ? 'area' : 'unit'
+  const initialTargetType: TargetType = assignment.amenityId
+    ? 'amenity'
+    : assignment.areaId || (!assignment.blockId && !assignment.unitId && !assignment.floorId)
+      ? 'area'
+      : 'unit'
 
   const [shiftId, setShiftId] = useState(assignment.shiftId)
   const [slot, setSlot] = useState(assignment.slotTimeRange || FULL_SHIFT)
@@ -149,6 +163,7 @@ const EditRosterDialog = ({
   const [notes, setNotes] = useState(assignment.notes || '')
   const [targetType, setTargetType] = useState<TargetType>(isMedicalUnitOnly ? 'unit' : initialTargetType)
   const [areaId, setAreaId] = useState(assignment.areaId || '')
+  const [amenityId, setAmenityId] = useState(assignment.amenityId || '')
   const [blockId, setBlockId] = useState(assignment.blockId || '')
   const [floorId, setFloorId] = useState(assignment.floorId || '')
   const [unitId, setUnitId] = useState(assignment.unitId || '')
@@ -201,9 +216,13 @@ const EditRosterDialog = ({
       if (!blockId) return 'Select a block for this roster location.'
       return null
     }
+    if (targetType === 'amenity') {
+      if (!amenityId) return 'Select an amenity for this roster location.'
+      return null
+    }
     if (!areaId) return 'Select an area for this roster location.'
     return null
-  }, [showLocation, isMedicalUnitOnly, targetType, blockId, areaId])
+  }, [showLocation, isMedicalUnitOnly, targetType, blockId, areaId, amenityId])
 
   const error = useMemo(() => {
     if (!startDate || !endDate) return 'Pick both dates.'
@@ -256,15 +275,22 @@ const EditRosterDialog = ({
   }
 
   const chooseTargetType = (next: TargetType) => {
-    if (isMedicalUnitOnly && next === 'area') return
+    if (isMedicalUnitOnly && next !== 'unit') return
     if (next === targetType) return
     setTargetType(next)
     if (next === 'area') {
+      setAmenityId('')
+      setBlockId('')
+      setFloorId('')
+      setUnitId('')
+    } else if (next === 'amenity') {
+      setAreaId('')
       setBlockId('')
       setFloorId('')
       setUnitId('')
     } else {
       setAreaId('')
+      setAmenityId('')
     }
   }
 
@@ -287,20 +313,31 @@ const EditRosterDialog = ({
       unitId: string | null
       blockId: string | null
       floorId: string | null
+      amenityId: string | null
     }
 
     if (!showLocation) {
-      locationPayload = { areaId: null, unitId: null, blockId: null, floorId: null }
+      locationPayload = { areaId: null, unitId: null, blockId: null, floorId: null, amenityId: null }
     } else if (isMedicalUnitOnly || targetType === 'unit') {
       locationPayload = {
         areaId: null,
+        amenityId: null,
         blockId: blockId || null,
         floorId: floorId || null,
         unitId: unitId || null,
       }
+    } else if (targetType === 'amenity') {
+      locationPayload = {
+        amenityId: amenityId || null,
+        areaId: null,
+        unitId: null,
+        blockId: null,
+        floorId: null,
+      }
     } else {
       locationPayload = {
         areaId: areaId || null,
+        amenityId: null,
         unitId: null,
         blockId: null,
         floorId: null,
@@ -451,20 +488,21 @@ const EditRosterDialog = ({
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#2a517c]" />
                 <div>
                   <p className="text-sm font-semibold text-gray-900">Location</p>
-                  <p className="text-xs text-gray-500">Common area, or a block / floor / flat.</p>
+                  <p className="text-xs text-gray-500">Common area, amenities, or a block / floor / flat.</p>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Assign to *</Label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {(
                     [
                       { value: 'area' as const, label: 'Common area', hint: 'e.g. lobby, gate, kitchen' },
+                      { value: 'amenity' as const, label: 'Amenities', hint: 'e.g. gym, pool, clubhouse' },
                       { value: 'unit' as const, label: 'Flats & units', hint: 'Blocks, floors or flats' },
                     ] as const
                   ).map((o) => {
-                    const disabled = isMedicalUnitOnly && o.value === 'area'
+                    const disabled = isMedicalUnitOnly && o.value !== 'unit'
                     const active = effectiveTargetType === o.value
                     return (
                       <button
@@ -506,6 +544,26 @@ const EditRosterDialog = ({
                       {areas.map((a) => (
                         <SelectItem key={a.id} value={a.id}>
                           {a.areaName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : effectiveTargetType === 'amenity' ? (
+                <div className="space-y-2">
+                  <Label>Amenity *</Label>
+                  <Select
+                    value={amenityId || NONE}
+                    onValueChange={(v) => setAmenityId(v === NONE || !v ? '' : String(v))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select amenity" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>Select amenity…</SelectItem>
+                      {amenities.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>
+                          {a.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

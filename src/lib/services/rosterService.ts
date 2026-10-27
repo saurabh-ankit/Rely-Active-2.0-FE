@@ -131,6 +131,7 @@ export interface UpdateEmployeeShiftPayload {
   unitId?: string | null
   blockId?: string | null
   floorId?: string | null
+  amenityId?: string | null
 }
 
 export const updateEmployeeShiftAPI = async (

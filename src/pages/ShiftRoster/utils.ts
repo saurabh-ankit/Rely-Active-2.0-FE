@@ -240,6 +240,7 @@ export const parseLocalDate = (dateStr: string): Date => parseLocalYmd(toDateKey
 
 /** Area name, else block · floor · unit label for a roster assignment. */
 export const buildLocationLabel = (assignment: EmployeeShiftAssignment): string | null => {
+  if (assignment.amenity?.name) return assignment.amenity.name
   if (assignment.area?.areaName) return assignment.area.areaName
   const parts: string[] = []
   if (assignment.block?.block_name) parts.push(assignment.block.block_name)

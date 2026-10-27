@@ -97,11 +97,13 @@ export const assignShiftFormSchema = z
     slotValue: z.string().min(1),
     startDate: dateYmd,
     endDate: dateYmd,
-    targetType: z.enum(['area', 'unit']),
+    targetType: z.enum(['area', 'unit', 'amenity']),
     areaIds: z.array(z.string().uuid()),
     blockIds: z.array(z.string().uuid()),
     floorIds: z.array(z.string().uuid()),
     unitIds: z.array(z.string().uuid()),
+    /** Catalog amenity UUID, or legacy property amenity name until linked. */
+    amenityIds: z.array(z.string().min(1)),
     notes: z.string().max(500).optional().or(z.literal('')),
     workingDays: z.array(z.enum(WEEK_DAYS as unknown as [WeekDay, ...WeekDay[]])),
   })
@@ -122,7 +124,7 @@ export const assignShiftFormSchema = z
     }
 
     const role = (data.roleCode || '').toUpperCase()
-    // Medical Visiting Doctor: no Area / Unit assignment
+    // Medical Visiting Doctor: no Area / Unit / Amenity assignment
     if (role === 'DOCTOR_VISITING') {
       return
     }
@@ -153,6 +155,13 @@ export const assignShiftFormSchema = z
         path: ['areaIds'],
       })
     }
+    if (data.targetType === 'amenity' && data.amenityIds.length === 0) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Select at least one amenity',
+        path: ['amenityIds'],
+      })
+    }
     if (data.targetType === 'unit' && data.blockIds.length === 0) {
       ctx.addIssue({
         code: 'custom',
@@ -177,6 +186,7 @@ export const assignShiftFormDefaultValues: AssignShiftFormValues = {
   blockIds: [],
   floorIds: [],
   unitIds: [],
+  amenityIds: [],
   notes: '',
   workingDays: [],
 }
