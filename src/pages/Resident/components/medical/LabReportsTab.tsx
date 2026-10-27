@@ -30,6 +30,31 @@ const COLUMNS = [
 const formatCost = (cost: number | null) =>
   cost === null ? '-' : `₹${cost.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
 
+/**
+ * Where the lab test's cost stands. Billing skips reports paid at the lab (they carry a payment
+ * method), so those are "Already paid"; any other report with a cost is billed on the flat's invoice.
+ */
+const BillingTag: React.FC<{ report: ResidentLabReportItem }> = ({ report }) => {
+  const tag = report.paymentMethod
+    ? { label: 'Already paid', className: 'border-sky-200 bg-sky-50 text-sky-700' }
+    : report.isInvoiced
+      ? { label: 'Invoiced', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' }
+      : report.cost
+        ? { label: 'To be invoiced', className: 'border-amber-200 bg-amber-50 text-amber-700' }
+        : null
+  if (!tag) return null
+  return (
+    <span
+      className={cn(
+        'mt-1 inline-block whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-semibold',
+        tag.className,
+      )}
+    >
+      {tag.label}
+    </span>
+  )
+}
+
 interface LabReportsTabProps {
   residentId: string
   canUpdateResident: boolean
@@ -92,6 +117,7 @@ export const LabReportsTab: React.FC<LabReportsTabProps> = ({ residentId, canUpd
                 {report.paymentMethod && (
                   <div className="text-[11px] text-gray-400">{report.paymentMethod.replace(/_/g, ' ')}</div>
                 )}
+                <BillingTag report={report} />
               </TableCell>
               <ClinicalAddedByCell name={report.createdByName} createdAt={report.createdAt} />
               <TableCell className="px-4 py-3.5">
@@ -130,6 +156,11 @@ export const LabReportsTab: React.FC<LabReportsTabProps> = ({ residentId, canUpd
                     label="lab report"
                     onEdit={() => setFormTarget({ item: report })}
                     onDelete={() => setDeleting(report)}
+                    lockedReason={
+                      report.isInvoiced
+                        ? 'Already on an invoice, so this lab report can no longer be changed'
+                        : undefined
+                    }
                   />
                 </TableCell>
               )}

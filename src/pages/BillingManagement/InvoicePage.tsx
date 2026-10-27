@@ -10,12 +10,14 @@ import {
   Plus,
   ReceiptIndianRupee,
   Phone,
+  UserRound,
   Users,
   Wallet,
   type LucideIcon,
 } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { ResponsiveTabs, type TabItem } from '@/components/common/ResponsiveTabs'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useInvoicePreview } from '@/hooks/react-query/billing'
@@ -193,6 +195,16 @@ export default function InvoicePage() {
                               </p>
                             )}
                           </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/admin/residents/details/${r.id}`)}
+                            className="cursor-pointer rounded-lg text-xs font-semibold text-[#005390]"
+                          >
+                            <UserRound className="h-3.5 w-3.5" />
+                            Go to Profile
+                          </Button>
                         </div>
 
                         <div className="border-t border-gray-100 px-3 py-2">

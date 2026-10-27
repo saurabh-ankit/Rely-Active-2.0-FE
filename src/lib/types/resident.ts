@@ -209,6 +209,8 @@ export interface ResidentLabReportItem {
   reportFileUrl: string
   receiptFileUrl: string | null
   isPaid: boolean
+  /** On an invoice: the report is locked against edits and deletion */
+  isInvoiced?: boolean
   createdByName: string | null
   createdAt: string
 }
