@@ -1,5 +1,5 @@
 import React from 'react'
-import { HeartPulse, Users } from 'lucide-react'
+import { HeartPulse } from 'lucide-react'
 import type { ResidentItem } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -10,7 +10,6 @@ interface CareTaskTabProps {
   resident: ResidentItem
   propertyId: string | null
   canUpdateResident: boolean
-  onAssignCareTeam: () => void
   onAssignCareTask: () => void
 }
 
@@ -18,7 +17,6 @@ export const CareTaskTab: React.FC<CareTaskTabProps> = ({
   resident,
   propertyId,
   canUpdateResident,
-  onAssignCareTeam,
   onAssignCareTask,
 }) => {
   if (!resident.isResiding) {
@@ -42,14 +40,6 @@ export const CareTaskTab: React.FC<CareTaskTabProps> = ({
           actionSlot={
             canUpdateResident ? (
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto [&>button]:w-full sm:[&>button]:w-auto">
-                <Button
-                  type="button"
-                  onClick={onAssignCareTeam}
-                  className="rounded-xl border border-[#005390] bg-white px-3.5 sm:px-4 py-2 text-xs font-bold text-[#005390] hover:bg-sky-50 cursor-pointer shadow-2xs"
-                >
-                  <Users className="mr-1.5 size-4 text-[#005390]" />
-                  Assign Care Team & View
-                </Button>
                 <Button
                   type="button"
                   onClick={onAssignCareTask}

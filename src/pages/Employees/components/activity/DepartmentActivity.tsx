@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ClipboardList,
   Clock,
+  ExternalLink,
   FlaskConical,
   HeartPulse,
   Info,
@@ -20,6 +21,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useEmployeeActivityRecords } from '@/hooks/react-query/user'
 import { Panel } from '@/components/common/DetailPanel'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -247,12 +249,18 @@ const TicketsTable = ({ rows }: { rows: TicketActivityRecord[] }) => {
     ) : (
       <span className="text-xs text-gray-400">Common area</span>
     )
+  // Opens the ticket on the Tickets page, on whichever tab it currently sits.
   const ticket = (r: TicketActivityRecord) => (
-    <div className="min-w-0">
-      <p className="font-mono text-[11px] text-gray-400">{r.ticketNumber}</p>
-      <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">{r.title}</p>
+    <Link to={`/admin/tickets?ticketId=${r.id}`} title="Open ticket" className="group block min-w-0">
+      <p className="inline-flex items-center gap-1 font-mono text-[11px] text-[#005390]">
+        {r.ticketNumber}
+        <ExternalLink className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" />
+      </p>
+      <p className="truncate text-sm font-semibold text-gray-900 group-hover:text-[#005390] group-hover:underline dark:text-white">
+        {r.title}
+      </p>
       {r.category && <p className="truncate text-[11px] text-gray-500">{humanize(r.category)}</p>}
-    </div>
+    </Link>
   )
 
   return (

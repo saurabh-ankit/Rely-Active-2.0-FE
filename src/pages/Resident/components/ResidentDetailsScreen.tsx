@@ -149,6 +149,8 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   const familyMembers = resident.familyMembers || []
   // Billing is per flat: residing residents link to their flat's invoices.
   const showBilling = resident.isResiding && !!resident.unitId && billingAccess.canView
+  // Care teams are for residents living here, managed by those who can edit medical care.
+  const canAssignCareTeam = resident.isResiding && medicalAccess.canUpdate
 
   // Flat / Room display: e.g. "Unit A-13 · Dhara of Life Senior living"
   const unitDisplay = resident.unit?.unit_number
@@ -245,7 +247,7 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
           </div>
 
           {/* Header Action Buttons (all with pill styling and smooth hover) */}
-          {(canUpdateResident || currentCondition || showBilling) && (
+          {(canUpdateResident || currentCondition || showBilling || canAssignCareTeam) && (
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               {clinicalQuery.isSuccess && (
                 <ResidentConditionMenu
@@ -254,6 +256,17 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
                   canUpdate={canUpdateResident}
                   variant="pill"
                 />
+              )}
+
+              {canAssignCareTeam && (
+                <button
+                  type="button"
+                  onClick={() => setIsCareTeamModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-gray-200/90 bg-white px-3.5 py-1.5 text-xs font-semibold text-gray-800 shadow-2xs hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 hover:shadow-xs transition-all duration-150 cursor-pointer active:scale-[0.98]"
+                >
+                  <Users className="h-3.5 w-3.5 text-gray-600" />
+                  <span>Assign Care Team & View</span>
+                </button>
               )}
 
               {showBilling && (
@@ -352,7 +365,6 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
               onAssignFoodPackage={() => navigate(editUrl)}
             />
           }
-          onAssignCareTeam={() => setIsCareTeamModalOpen(true)}
           onAssignCareTask={() => setIsCareTaskModalOpen(true)}
         />
       ) : (
