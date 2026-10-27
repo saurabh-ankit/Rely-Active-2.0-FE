@@ -411,17 +411,17 @@ export default function GateManagementPage() {
             onValueChange={(val) => setActiveTab(val as 'ENTRIES' | 'INVITES')}
             className="w-full gap-0"
           >
-            <div className="w-full rounded-2xl bg-card text-card-foreground/70 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100/80">
-              <TabsList className="grid grid-cols-2 w-full gap-1.5 bg-transparent p-0 h-auto">
+            <div className="w-full rounded-full bg-slate-200/70 dark:bg-slate-800/80 border border-slate-300/70 dark:border-slate-700/80 p-1 shadow-2xs">
+              <TabsList className="grid grid-cols-2 w-full gap-1 bg-transparent p-0 h-auto">
                 <TabsTrigger
                   value="ENTRIES"
-                  className="flex h-9 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-4 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                  className="flex h-8 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-xs focus-visible:!ring-0 transition-all cursor-pointer"
                 >
                   Entry Logs
                 </TabsTrigger>
                 <TabsTrigger
                   value="INVITES"
-                  className="flex h-9 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-4 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                  className="flex h-8 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-xs focus-visible:!ring-0 transition-all cursor-pointer"
                 >
                   Pre-Approved (by Resident)
                 </TabsTrigger>

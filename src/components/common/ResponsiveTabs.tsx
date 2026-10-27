@@ -100,19 +100,19 @@ export const ResponsiveTabs = ({ defaultValue, value, onValueChange, tabs, class
 
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className={className}>
-      <div className="rounded-2xl bg-card text-card-foreground/70 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+      <div className="rounded-full bg-slate-200/70 dark:bg-slate-800/80 border border-slate-300/70 dark:border-slate-700/80 p-1 shadow-2xs">
         <div
           ref={scrollContainerRef}
-          className="patient-tabs-scrollbar w-full overflow-x-auto overflow-y-hidden px-1 py-1"
+          className="patient-tabs-scrollbar w-full overflow-x-auto overflow-y-hidden"
           style={{ scrollBehavior: 'auto' }}
         >
-          <TabsList className="inline-flex w-max min-w-full h-auto gap-2 justify-start bg-transparent p-0">
+          <TabsList className="flex w-full min-w-full h-auto gap-1 items-center justify-between bg-transparent p-0">
             {tabs.map((tab) => (
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
                 ref={tab.value === activeTab ? activeTriggerRef : null}
-                className="flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-5 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-md focus-visible:!ring-0 focus-visible:!ring-offset-0 transition-all cursor-pointer"
+                className="flex-1 flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-full px-3 sm:px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-xs focus-visible:!ring-0 focus-visible:!ring-offset-0 transition-all cursor-pointer"
               >
                 {tab.icon && <tab.icon className="size-4 shrink-0" />}
                 <span className="hidden sm:inline">{tab.label}</span>

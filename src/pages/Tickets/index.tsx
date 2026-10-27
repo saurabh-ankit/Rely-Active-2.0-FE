@@ -833,7 +833,7 @@ export default function TicketsPage() {
               }}
               className="w-full gap-0"
             >
-              <div className="rounded-2xl bg-card text-card-foreground/70 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100/80">
+              <div className="rounded-full bg-slate-200/70 dark:bg-slate-800/80 border border-slate-300/70 dark:border-slate-700/80 p-1 shadow-2xs">
                 <TabsList className="grid grid-cols-4 w-full h-auto p-0 bg-transparent gap-1">
                   {(
                     [
@@ -848,7 +848,7 @@ export default function TicketsPage() {
                       <TabsTrigger
                         key={value}
                         value={value}
-                        className="flex h-8 items-center justify-center gap-1.5 rounded-xl px-2 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all duration-200 cursor-pointer"
+                        className="flex h-8 items-center justify-center gap-1.5 rounded-full px-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-xs focus-visible:!ring-0 transition-all duration-200 cursor-pointer"
                       >
                         {isLoading && isCurrent && <Loader2 className="w-3 h-3 animate-spin shrink-0 text-white" />}
                         <span>{label}</span>
