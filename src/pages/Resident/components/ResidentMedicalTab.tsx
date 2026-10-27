@@ -41,7 +41,6 @@ export interface ResidentMedicalTabProps {
   canViewMedical?: boolean
   overviewContent?: React.ReactNode
   showOverviewTab?: boolean
-  onAssignCareTeam: () => void
   onAssignCareTask: () => void
 }
 
@@ -86,7 +85,6 @@ export const ResidentMedicalTab: React.FC<ResidentMedicalTabProps> = ({
   canViewMedical = true,
   overviewContent,
   showOverviewTab = false,
-  onAssignCareTeam,
   onAssignCareTask,
 }) => {
   const propertyId = resident.locId || (resident as unknown as Record<string, string>).loc_id || null
@@ -285,7 +283,6 @@ export const ResidentMedicalTab: React.FC<ResidentMedicalTabProps> = ({
             resident={resident}
             propertyId={propertyId}
             canUpdateResident={canUpdateResident}
-            onAssignCareTeam={onAssignCareTeam}
             onAssignCareTask={onAssignCareTask}
           />
         )

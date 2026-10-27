@@ -689,33 +689,23 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
 
   return (
     <div className="space-y-6">
-      {/* Top Overview Header */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xs">
-        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-          <CalendarIcon className="w-5 h-5 text-[#005390]" /> Food & Beverage Weekly Menu Planner
-        </h2>
-        <p className="text-xs text-gray-500 mt-1">
-          Configure default dishes for <strong>All Mondays–Sundays</strong>, or customize dishes for{' '}
-          <strong>specific dates</strong>.
-        </p>
-      </div>
-
       {loading ? (
         <div className="p-12 text-center text-gray-400">Loading food menu...</div>
       ) : (
         <div className="space-y-8">
           {/* SECTION 1: RECURRING WEEKLY BASE TEMPLATE (ALL MONDAYS - SUNDAYS) */}
-          <Card className="gap-0 bg-white rounded-2xl border-gray-200/80 shadow-xs p-6 space-y-6">
+          <Card className="gap-0 overflow-visible bg-white rounded-2xl border-gray-200/80 shadow-xs p-6 space-y-6">
             <div className="space-y-5 border-b border-gray-100 pb-5">
               {/* Header Title + Action Controls inside Card */}
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-[#005390]" />
-                    Recurring Weekly Menu (Applies to ALL {activeBaseDay.toUpperCase()}s)
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Select a day of the week below to configure standard recurring dishes served every week on that day.
+                <div className="min-w-0">
+                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <CalendarIcon className="w-5 h-5 shrink-0 text-[#005390]" />
+                    Weekly Menu Planner
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Dishes served every <strong className="capitalize">{activeBaseDay}</strong> · pick a date to
+                    customize one day
                   </p>
                 </div>
 
@@ -781,145 +771,95 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                       )
                     )
                   })()}
-
-                  {(() => {
-                    const isAlreadyPublished = selectedMenu?.status === 'published' && !hasUnpublishedChanges
-                    const isMenuEmpty = menuItems.length === 0
-                    const isDisabled = !canUpdateFnb || isMenuEmpty || isAlreadyPublished
-
-                    let tooltipTitle = ''
-                    if (!canUpdateFnb) {
-                      tooltipTitle = 'You have read-only access to F&B.'
-                    } else if (isAlreadyPublished) {
-                      tooltipTitle = 'Menu is already published.'
-                    } else if (isMenuEmpty) {
-                      tooltipTitle = 'Add at least 1 dish to menu before reviewing or publishing'
-                    }
-
-                    return (
-                      canUpdateFnb && (
-                        <Button
-                          type="button"
-                          disabled={isDisabled}
-                          onClick={() => setIsReviewModalOpen(true)}
-                          className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs ${
-                            isAlreadyPublished
-                              ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-70 shadow-none'
-                              : isMenuEmpty
-                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60'
-                                : hasUnpublishedChanges || selectedMenu?.status === 'draft'
-                                  ? 'bg-amber-600 text-white hover:bg-amber-700 animate-pulse cursor-pointer'
-                                  : 'bg-[#005390] text-white hover:bg-[#004070] cursor-pointer'
-                          }`}
-                          title={tooltipTitle}
-                        >
-                          <Eye className="w-4 h-4" /> Review & Publish Menu
-                        </Button>
-                      )
-                    )
-                  })()}
                 </div>
               </div>
 
-              {/* WEEK CAROUSEL NAVIGATOR WITH CALENDAR DATE CARDS */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-3 bg-gray-100/80 p-2 rounded-2xl border border-gray-200 shadow-2xs">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handlePrevWeek}
-                      className="h-8 px-3 bg-white hover:bg-gray-100 text-gray-700 font-extrabold border border-gray-200 rounded-xl cursor-pointer shrink-0"
-                      title="Previous Week"
-                    >
-                      <ChevronLeft className="w-4 h-4 mr-1" /> Prev Week
-                    </Button>
-
-                    <span className="text-xs font-extrabold text-gray-700 hidden sm:inline-block">
-                      Week: {weekDates[0] ? formatDDMMYYYY(weekDates[0].dateStr) : ''} –{' '}
-                      {weekDates[6] ? formatDDMMYYYY(weekDates[6].dateStr) : ''}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleResetToCurrentWeek}
-                      className="h-8 px-2.5 text-xs font-bold text-[#005390] hover:bg-blue-50 rounded-xl cursor-pointer shrink-0"
-                      title="Reset to Current Week"
-                    >
-                      Today
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleNextWeek}
-                      className="h-8 px-3 bg-white hover:bg-gray-100 text-gray-700 font-extrabold border border-gray-200 rounded-xl cursor-pointer shrink-0"
-                      title="Next Week"
-                    >
-                      Next Week <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Calendar Date Cards Grid (Mon - Sun) */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5 w-full">
-                  {weekDates.map((wItem) => {
-                    const isSelected = activeBaseDay === wItem.dayOfWeek
-                    const isToday = wItem.dateStr === getTodayDateStr()
-                    const parts = wItem.dateStr.split('-')
-                    const dayNum = Number(parts[2])
-                    const dObj = new Date(Number(parts[0]), Number(parts[1]) - 1, dayNum)
-                    const monthShort = dObj.toLocaleDateString('en-US', { month: 'short' })
-
-                    return (
+              {/* WEEK NAVIGATOR: week range with arrows, one compact chip per day, and a jump back to today */}
+              {(() => {
+                const shortDate = (dStr: string, withYear = false) => {
+                  const [y, m, d] = dStr.split('-').map(Number)
+                  return new Date(y, m - 1, d).toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    ...(withYear ? { year: 'numeric' } : {}),
+                  })
+                }
+                const first = weekDates[0]?.dateStr
+                const last = weekDates[6]?.dateStr
+                return (
+                  <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+                    <div className="flex shrink-0 items-center rounded-xl border border-gray-200 bg-white shadow-2xs">
                       <Button
                         type="button"
                         variant="ghost"
-                        key={wItem.dayOfWeek}
-                        onClick={() => setActiveBaseDay(wItem.dayOfWeek)}
-                        className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col items-center justify-between text-center select-none shadow-2xs relative group py-3.5 h-auto font-normal ${
-                          isSelected
-                            ? 'bg-[#005390] text-white border-[#005390] shadow-md ring-2 ring-blue-200 scale-[1.02] hover:bg-[#005390] hover:text-white'
-                            : isToday
-                              ? 'bg-blue-50/70 text-gray-900 border-blue-300 ring-2 ring-blue-100 hover:bg-blue-50/70'
-                              : 'bg-white text-gray-700 hover:bg-blue-50/50 border-gray-200 hover:border-blue-300'
-                        }`}
+                        size="icon"
+                        onClick={handlePrevWeek}
+                        className="h-10 w-10 rounded-l-xl rounded-r-none text-gray-600 cursor-pointer"
+                        title="Previous week"
+                        aria-label="Previous week"
                       >
-                        {/* Day Label (e.g. MON) */}
-                        <div className="flex items-center gap-1">
-                          <span
-                            className={`text-[11px] font-black uppercase tracking-wider ${isSelected ? 'text-blue-100' : 'text-gray-500'}`}
-                          >
-                            {wItem.label.slice(0, 3)}
-                          </span>
-                          {isToday && (
-                            <span
-                              className={`text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded-full ${
-                                isSelected ? 'bg-amber-400 text-gray-900' : 'bg-amber-100 text-amber-800'
-                              }`}
-                            >
-                              Today
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Big Calendar Date Number (e.g. 31) */}
-                        <span className={`text-2xl font-black my-1.5 ${isSelected ? 'text-white' : 'text-gray-900'}`}>
-                          {dayNum < 10 ? `0${dayNum}` : dayNum}
-                        </span>
-
-                        {/* Month Subtext (e.g. Aug) */}
-                        <span className={`text-xs font-semibold ${isSelected ? 'text-blue-100' : 'text-gray-400'}`}>
-                          {monthShort}
-                        </span>
+                        <ChevronLeft className="w-4 h-4" />
                       </Button>
-                    )
-                  })}
-                </div>
-              </div>
+                      <span className="flex-1 border-x border-gray-200 px-4 text-center text-sm font-bold whitespace-nowrap text-gray-900">
+                        {first && last ? `${shortDate(first)} – ${shortDate(last, true)}` : ''}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleNextWeek}
+                        className="h-10 w-10 rounded-l-none rounded-r-xl text-gray-600 cursor-pointer"
+                        title="Next week"
+                        aria-label="Next week"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+
+                    <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1 xl:pb-0">
+                      {weekDates.map((wItem) => {
+                        const isSelected = activeBaseDay === wItem.dayOfWeek
+                        const isToday = wItem.dateStr === getTodayDateStr()
+                        return (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            key={wItem.dayOfWeek}
+                            onClick={() => setActiveBaseDay(wItem.dayOfWeek)}
+                            aria-pressed={isSelected}
+                            title={isToday ? 'Today' : undefined}
+                            className={`relative flex h-auto min-w-[76px] flex-1 cursor-pointer flex-col items-center gap-0.5 rounded-xl border px-2 py-1.5 font-normal shadow-2xs transition-colors ${
+                              isSelected
+                                ? 'border-[#005390] bg-[#005390] text-white hover:bg-[#005390] hover:text-white'
+                                : isToday
+                                  ? 'border-blue-300 bg-blue-50/70 text-gray-900 hover:bg-blue-50'
+                                  : 'border-gray-200 bg-white text-gray-900 hover:border-blue-300 hover:bg-blue-50/50'
+                            }`}
+                          >
+                            <span className={`text-[11px] ${isSelected ? 'text-blue-100' : 'text-gray-500'}`}>
+                              {wItem.label.slice(0, 3)}
+                            </span>
+                            <span className="text-sm font-bold whitespace-nowrap">{shortDate(wItem.dateStr)}</span>
+                            {isToday && !isSelected && (
+                              <span className="absolute top-1 right-1.5 h-1.5 w-1.5 rounded-full bg-[#005390]" />
+                            )}
+                          </Button>
+                        )
+                      })}
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleResetToCurrentWeek}
+                      className="h-10 shrink-0 rounded-xl border-blue-200 bg-blue-50/80 px-5 text-sm font-bold text-[#005390] hover:bg-blue-100 cursor-pointer"
+                      title="Go to today"
+                    >
+                      Today
+                    </Button>
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Custom Menu Override Preview Toggle Banner (if custom override exists for active selected date) */}
@@ -1281,7 +1221,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                                     : `Drag & drop dish here to serve on All ${activeBaseDay.toUpperCase()}s.`}
                                 </div>
                               ) : (
-                                <div className="space-y-2">
+                                <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
                                   {slotItems.map((item) => {
                                     const fullDish = dishes.find((d) => d.id === item.dishId) || item.dish
                                     const imgUrl = getDishImageUrl(fullDish)
@@ -1448,7 +1388,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                                   Drag & drop dish here to serve on Every Day for {spSlot.name}.
                                 </div>
                               ) : (
-                                <div className="space-y-2">
+                                <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
                                   {specDishes.map((sdItem) => {
                                     const fullDish = sdItem.dish
                                     const imgUrl = getDishImageUrl(fullDish)
@@ -1505,6 +1445,44 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                 )}
               </div>
             </div>
+
+            {/* Footer: publish the week's menu once it has been reviewed. Sticky, so it stays in view while the menu scrolls behind it. */}
+            {canUpdateFnb &&
+              (() => {
+                const isAlreadyPublished = selectedMenu?.status === 'published' && !hasUnpublishedChanges
+                const isMenuEmpty = menuItems.length === 0
+                const isDisabled = isMenuEmpty || isAlreadyPublished
+                // Disabled buttons show no tooltip, so the reason is written out beside the button.
+                const hint = isAlreadyPublished
+                  ? 'Menu is already published.'
+                  : isMenuEmpty
+                    ? 'Add at least 1 dish to the menu before reviewing or publishing.'
+                    : hasUnpublishedChanges || selectedMenu?.status === 'draft'
+                      ? 'You have unpublished changes.'
+                      : ''
+
+                return (
+                  <div className="sticky bottom-0 z-20 -mx-6 -mb-6 flex flex-col gap-3 rounded-b-2xl border-t border-gray-200 bg-white/95 px-6 py-4 shadow-[0_-6px_16px_-8px_rgba(0,0,0,0.12)] backdrop-blur-sm sm:flex-row sm:items-center sm:justify-end">
+                    {hint && <p className="text-xs text-gray-500 sm:mr-auto">{hint}</p>}
+                    <Button
+                      type="button"
+                      disabled={isDisabled}
+                      onClick={() => setIsReviewModalOpen(true)}
+                      className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-6 text-sm font-bold transition-all shadow-2xs ${
+                        isAlreadyPublished
+                          ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-70 shadow-none'
+                          : isMenuEmpty
+                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60'
+                            : hasUnpublishedChanges || selectedMenu?.status === 'draft'
+                              ? 'bg-amber-600 text-white hover:bg-amber-700 animate-pulse cursor-pointer'
+                              : 'bg-[#005390] text-white hover:bg-[#004070] cursor-pointer'
+                      }`}
+                    >
+                      <Eye className="w-4 h-4" /> Review & Publish Menu
+                    </Button>
+                  </div>
+                )
+              })()}
           </Card>
         </div>
       )}

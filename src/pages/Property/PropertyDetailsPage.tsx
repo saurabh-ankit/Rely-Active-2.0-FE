@@ -286,17 +286,21 @@ function SitePlan({ units, isVilla }: { units: ViewUnit[]; isVilla: boolean }) {
             key={unit.id ?? unit.unit_number}
             unit={unit}
             className={cn(
-              'block rounded-xl border-2 border-dashed p-3 text-left transition hover:ring-2 hover:ring-[#005390]/30',
+              // Top-aligned column, so an occupied plot (one extra line) lines up with the others.
+              'flex min-w-0 flex-col items-stretch justify-start rounded-xl border-2 border-dashed text-left transition hover:ring-2 hover:ring-[#005390]/30',
               STATUS_STYLES[unitStatus(unit)].cell,
             )}
           >
-            <div className="flex items-center justify-between">
-              <Home className="h-4 w-4 opacity-70" />
-              <span className="text-[10px] font-semibold opacity-70">{formatUnitType(unit.unit_type)}</span>
+            {/* UnitHover's button resets padding, so it lives on this wrapper. */}
+            <div className="flex min-w-0 flex-1 flex-col p-3">
+              <div className="flex items-center justify-between">
+                <Home className="h-4 w-4 opacity-70" />
+                <span className="text-[10px] font-semibold opacity-70">{formatUnitType(unit.unit_type)}</span>
+              </div>
+              <p className="mt-2 text-sm font-bold">{unit.unit_number}</p>
+              <p className="text-[10px] opacity-70">{area ? `${area.toLocaleString('en-IN')} sqft` : '—'}</p>
+              {resident && <p className="mt-1 truncate text-[10px] font-semibold">{fullName(resident)}</p>}
             </div>
-            <p className="mt-2 text-sm font-bold">{unit.unit_number}</p>
-            <p className="text-[10px] opacity-70">{area ? `${area.toLocaleString('en-IN')} sqft` : '—'}</p>
-            {resident && <p className="mt-1 truncate text-[10px] font-semibold">{fullName(resident)}</p>}
           </UnitHover>
         )
       })}

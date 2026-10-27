@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Plus,
   MessageSquare,
@@ -403,6 +404,14 @@ function parseTicketMedia(ticket: Ticket | null): ParsedTicketMedia {
   }
 }
 
+/** The list tab a ticket appears on; mirrors the API's tab filter. */
+const ticketTab = (ticket: Ticket): 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED' => {
+  if (ticket.status === 'RESOLVED') return 'COMPLETED'
+  if (ticket.status === 'CLOSED' || ticket.status === 'CANCELLED') return 'CLOSED'
+  if (ticket.status === 'OPEN' && !ticket.assignedToUserId) return 'OPEN'
+  return 'IN_PROGRESS'
+}
+
 export default function TicketsPage() {
   const { selectedLocationId, hasResourcePermission } = useLocationContext()
   const canCreateTicket = hasResourcePermission('TICKETS', 'create')
@@ -527,6 +536,39 @@ export default function TicketsPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTickets()
   }, [activeTab, fetchTickets])
+
+  // Deep link (?ticketId=…, e.g. from an employee's work log): open that ticket on the tab it lives in.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const linkedTicketId = searchParams.get('ticketId')
+  useEffect(() => {
+    if (!linkedTicketId || !selectedLocationId) return
+    let cancelled = false
+    apiClient
+      .get(API_ENDPOINTS.tickets.get(linkedTicketId, selectedLocationId))
+      .then((res) => {
+        const ticket: Ticket | undefined = res.data?.data
+        if (cancelled || !ticket) return
+        selectedTicketIdRef.current = ticket.id
+        const tab = ticketTab(ticket)
+        if (tab === activeTabRef.current) fetchTickets(true)
+        else setActiveTab(tab)
+      })
+      .catch(() => notifyError('Could not open that ticket'))
+      .finally(() => {
+        if (cancelled) return
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev)
+            next.delete('ticketId')
+            return next
+          },
+          { replace: true },
+        )
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [linkedTicketId, selectedLocationId, fetchTickets, setSearchParams])
 
   // Handle Option Update (Category, Sub-Category, TAT, Priority, Status)
   const handleUpdateOption = async (payload: {

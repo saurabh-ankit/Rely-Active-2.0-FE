@@ -1,20 +1,20 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
-  Box,
-  CalendarCheck,
+  Armchair,
+  PartyPopper,
   CalendarClock,
-  HandHeart,
+  IdCard,
   LayoutDashboard,
-  Package,
+  Boxes,
   ReceiptIndianRupee,
   Settings,
   ShieldCheck,
-  Sparkles,
+  Dumbbell,
   Stethoscope,
   User,
   Utensils,
-  Wrench,
+  Ticket,
   X,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
@@ -93,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       resourceKey: 'RESIDENT',
     },
     {
-      icon: <HandHeart className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
+      icon: <IdCard className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
       label: 'Employee',
       href: '/admin/employees',
       resourceKey: 'EMPLOYEE',
@@ -105,7 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       resourceKey: 'ROSTER',
     },
     {
-      icon: <Wrench className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
+      icon: <Ticket className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
       label: 'Tickets',
       href: '/admin/tickets',
       resourceKey: 'TICKETS',
@@ -117,13 +117,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       resourceKey: 'GNS',
     },
     {
-      icon: <Package className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
+      icon: <Boxes className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
       label: 'Inventory',
       href: '/admin/inventory/home',
       resourceKey: 'INVENTORY',
     },
     {
-      icon: <Box className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
+      icon: <Armchair className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
       label: 'Asset Management',
       href: '/admin/asset-management',
       resourceKey: 'ASSET',
@@ -147,13 +147,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       resourceKey: 'BILLING',
     },
     {
-      icon: <CalendarCheck className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
+      icon: <PartyPopper className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
       label: 'Events',
       href: '/admin/events',
       resourceKey: 'EVENTS',
     },
     {
-      icon: <Sparkles className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
+      icon: <Dumbbell className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
       label: 'Amenities',
       href: '/admin/amenities',
     },
