@@ -82,7 +82,7 @@ export default function Layout() {
 
         <main
           data-scroll-container
-          className="min-h-0 min-w-0 flex-1 bg-white/30 rounded-lg shadow-[2px_3px_6px_0px_rgba(0,0,0,0.06),inset_1px_1px_2px_0px_#FFFFFF] backdrop-blur-[10px] overflow-x-hidden overflow-y-auto m-1 md:m-2 lg:m-3"
+          className="min-h-0 min-w-0 flex-1 bg-white/30 rounded-lg shadow-[2px_3px_6px_0px_rgba(0,0,0,0.06),inset_1px_1px_2px_0px_#FFFFFF] backdrop-blur-[10px] overflow-x-hidden overflow-y-auto m-1 md:m-2 lg:m-3 scroll-smooth"
         >
           <div className="w-full min-h-full flex flex-col p-2 md:p-3 lg:p-6">
             <SetupStatusGuard>

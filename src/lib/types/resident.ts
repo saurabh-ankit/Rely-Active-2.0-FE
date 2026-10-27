@@ -30,6 +30,24 @@ export interface ResidentFamilyMember {
   carePackageStartDate?: string | null
 }
 
+/** One flat a resident lived in, and when (YYYY-MM-DD; `to` null for the current flat). */
+export interface ResidentFlatStay {
+  unit: {
+    id: string
+    unit_number: string
+    unit_type?: string | null
+    floor?: {
+      floor_number?: number | null
+      floor_name?: string | null
+      is_virtual?: boolean
+      block?: { block_name?: string | null } | null
+    } | null
+  } | null
+  from: string | null
+  to: string | null
+  current: boolean
+}
+
 export interface ResidentItem {
   id: string
   unitId: string
@@ -50,6 +68,10 @@ export interface ResidentItem {
   photoUrl?: string | null
   moveInDate?: string | null
   moveOutDate?: string | null
+  /** Day they moved into their current flat (the original move-in if they never changed flats). */
+  currentFlatMovedIn?: string | null
+  /** Flats lived in, oldest first; the last is the current flat. */
+  flatHistory?: ResidentFlatStay[]
   rentAmount?: number | null
   payRentToCompany?: boolean
   status: ResidentStatus

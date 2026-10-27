@@ -71,7 +71,12 @@ const MedicationColumn: React.FC<MedicationColumnProps> = ({
       count={isLoading ? undefined : items.length}
       action={
         canUpdate ? (
-          <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={onAdd} className="rounded-xl">
+          <Button
+            variant="primary"
+            icon={<Plus className="w-4 h-4" />}
+            onClick={onAdd}
+            className="rounded-xl w-full sm:w-auto text-xs sm:text-sm"
+          >
             {addLabel}
           </Button>
         ) : undefined
@@ -136,8 +141,8 @@ export const MedicationsTab: React.FC<MedicationsTabProps> = ({
   const deleteMutation = deleting?.kind === 'insulin' ? deleteInsulin : deleteMedication
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <div className="h-full min-h-0 flex flex-col flex-1 space-y-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 flex-1 min-h-0">
         <MedicationColumn
           icon={Pill}
           iconClassName="text-indigo-500"

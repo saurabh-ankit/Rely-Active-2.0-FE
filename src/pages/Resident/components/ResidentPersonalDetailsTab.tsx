@@ -142,6 +142,20 @@ export const ResidentPersonalDetailsTab: React.FC<ResidentPersonalDetailsTabProp
   const familyMembers = resident.familyMembers || []
   const primarySub = fnbSubscriptions.find((s) => !s.familyMemberId && (!s.familyMember || !s.familyMember.id))
   const isTenant = resident.residentType === 'TENANT'
+  const flatHistory = resident.flatHistory || []
+  const residentRaw = resident as unknown as Record<string, unknown>
+  const currentStay =
+    flatHistory.find((s) => s.current) || (flatHistory.length > 0 ? flatHistory[flatHistory.length - 1] : null)
+  const oldestStay = flatHistory.length > 0 ? flatHistory[0] : null
+  const currentFlatMovedIn =
+    resident.currentFlatMovedIn ||
+    (residentRaw.current_flat_moved_in as string | undefined) ||
+    currentStay?.from ||
+    resident.moveInDate
+  const firstMoveInDate = resident.moveInDate || (residentRaw.move_in_date as string | undefined) || oldestStay?.from
+  const hasMoved =
+    flatHistory.length > 1 ||
+    Boolean(currentFlatMovedIn && firstMoveInDate && formatDate(currentFlatMovedIn) !== formatDate(firstMoveInDate))
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -153,9 +167,43 @@ export const ResidentPersonalDetailsTab: React.FC<ResidentPersonalDetailsTabProp
               ['Flat', unit?.unit_number ? unitLocationLabel(unit) : null],
               ['Layout', unit?.unit_type || null],
               ['Flat occupancy', humanize(unit?.occupancyStatus)],
-              ['Moved in', formatDate(resident.moveInDate)],
+              ['Moved in', formatDate(currentFlatMovedIn)],
+              ...(hasMoved ? [['First moved in', formatDate(firstMoveInDate)] as [string, string | null]] : []),
             ]}
           />
+          {hasMoved && (
+            <div className="mt-4 border-t border-gray-100 pt-4 dark:border-gray-800">
+              <p className="mb-2.5 text-xs font-bold tracking-wide text-gray-500 uppercase">Flat history</p>
+              <ol className="space-y-2.5">
+                {[...flatHistory].reverse().map((stay, i) => (
+                  <li key={`${stay.unit?.id ?? 'unit'}-${i}`} className="flex items-start gap-3 text-xs">
+                    <span
+                      className={cn(
+                        'mt-1 h-2 w-2 shrink-0 rounded-full',
+                        stay.current ? 'bg-emerald-500' : 'bg-gray-300',
+                      )}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-gray-900 dark:text-white">
+                        {stay.unit ? unitLocationLabel(stay.unit) : 'Flat removed'}
+                        {stay.unit?.unit_type && (
+                          <span className="font-normal text-gray-400"> · {stay.unit.unit_type}</span>
+                        )}
+                        {stay.current && (
+                          <span className="ml-2 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                            Current
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-gray-500">
+                        {formatDate(stay.from) || 'Not recorded'} – {stay.current ? 'now' : formatDate(stay.to)}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
         </Panel>
 
         {resident.isResiding && (

@@ -378,7 +378,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       {/* ── Summary Matrix Cards (if not compact) ─────────────────────────── */}
       {!isCompact && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -420,18 +420,22 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
 
       {/* ── Tabs Navigation Bar ───────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-3 dark:border-gray-800">
-        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as AssignedTasksTabType)} className="gap-0">
-          <div className="rounded-2xl bg-card text-card-foreground/70 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100/80">
-            <TabsList className="inline-flex w-max min-w-full h-auto gap-2 justify-start bg-transparent p-0">
+        <Tabs
+          value={activeTab}
+          onValueChange={(val) => setActiveTab(val as AssignedTasksTabType)}
+          className="gap-0 w-full sm:w-auto"
+        >
+          <div className="w-full sm:w-auto overflow-x-auto scrollbar-none rounded-2xl bg-card text-card-foreground/70 p-1 sm:p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100/80">
+            <TabsList className="flex w-full sm:w-max min-w-full sm:min-w-0 h-auto gap-1 sm:gap-2 justify-start bg-transparent p-0">
               <TabsTrigger
                 value="PENDING"
-                className="flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-5 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-md focus-visible:!ring-0 transition-all cursor-pointer"
+                className="flex-1 sm:flex-initial min-w-fit flex h-8 items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap rounded-xl px-2.5 sm:px-5 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-md focus-visible:!ring-0 transition-all cursor-pointer"
               >
-                <Clock className="size-4 shrink-0" />
+                <Clock className="size-3.5 sm:size-4 shrink-0" />
                 <span>Pending Tasks</span>
                 <span
                   className={cn(
-                    'rounded-full px-2 py-0.5 text-[10px] font-extrabold',
+                    'rounded-full px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold shrink-0',
                     activeTab === 'PENDING'
                       ? 'bg-white/20 text-white'
                       : 'bg-gray-200/80 text-gray-700 dark:bg-slate-700 dark:text-gray-300',
@@ -443,13 +447,13 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
 
               <TabsTrigger
                 value="COMPLETED"
-                className="flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-5 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-md focus-visible:!ring-0 transition-all cursor-pointer"
+                className="flex-1 sm:flex-initial min-w-fit flex h-8 items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap rounded-xl px-2.5 sm:px-5 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-md focus-visible:!ring-0 transition-all cursor-pointer"
               >
-                <CheckCircle2 className="size-4 shrink-0" />
+                <CheckCircle2 className="size-3.5 sm:size-4 shrink-0" />
                 <span>Completed Tasks</span>
                 <span
                   className={cn(
-                    'rounded-full px-2 py-0.5 text-[10px] font-extrabold',
+                    'rounded-full px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold shrink-0',
                     activeTab === 'COMPLETED'
                       ? 'bg-white/20 text-white'
                       : 'bg-gray-200/80 text-gray-700 dark:bg-slate-700 dark:text-gray-300',
@@ -469,7 +473,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
           <Button
             type="button"
             onClick={() => setIsAssignModalOpen(true)}
-            className="rounded-xl bg-[#005390] px-4 py-2 text-xs font-bold text-white hover:bg-[#004375] cursor-pointer shadow-xs"
+            className="w-full sm:w-auto rounded-xl bg-[#005390] px-4 py-2 text-xs font-bold text-white hover:bg-[#004375] cursor-pointer shadow-xs"
           >
             <Plus className="mr-1.5 size-4" />
             Assign Task to Resident
@@ -478,9 +482,9 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
       </div>
 
       {/* ── Action & Filter Bar ────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5">
         {/* Search */}
-        <div className="relative min-w-[220px]">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-gray-400" />
           <Input
             type="text"
@@ -493,7 +497,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
 
         {/* Source Filter (Available for both Pending and Completed views) */}
         <Select value={sourceFilter} onValueChange={(val) => setSourceFilter(val || 'ALL')}>
-          <SelectTrigger className="w-auto min-w-[130px] rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-300">
+          <SelectTrigger className="w-full sm:w-auto min-w-[130px] rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-300">
             <SelectValue placeholder="All Sources" />
           </SelectTrigger>
           <SelectContent>
@@ -506,7 +510,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
         {activeTab === 'COMPLETED' && (
           /* Completed Tab Status Filter */
           <Select value={completedStatusFilter} onValueChange={(val) => setCompletedStatusFilter(val || 'ALL')}>
-            <SelectTrigger className="w-auto min-w-[130px] rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-300">
+            <SelectTrigger className="w-full sm:w-auto min-w-[130px] rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-300">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
@@ -520,7 +524,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
 
       {/* ── Tables Container ──────────────────────────────────────────────── */}
       <Card className="gap-0 overflow-hidden rounded-2xl border-gray-200 bg-white shadow-xs dark:border-gray-800 dark:bg-slate-900">
-        <div className="overflow-hidden">
+        <div className="overflow-x-auto scrollbar-thin">
           {activeTab === 'COMPLETED' ? (
             /* ══════════════════════════════════════════════════════════════════════
                COMPLETED TASKS TABLE
