@@ -4,24 +4,13 @@ import { useNavigate } from 'react-router-dom'
 import { type FieldPath, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import {
-  User,
-  Mail,
-  Phone,
-  Lock,
-  Camera,
-  Shield,
-  Save,
-  ArrowLeft,
-  BadgeCheck,
-  CheckCircle2,
-  KeyRound,
-} from 'lucide-react'
+import { User, Mail, Phone, Lock, Camera, Shield, Save, BadgeCheck, CheckCircle2, KeyRound } from 'lucide-react'
 import api from '@/lib/api/axios'
 import { useAuth } from '@/hooks/useAuth'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { BackButton } from '@/components/common/BackButton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 
@@ -258,21 +247,14 @@ export default function UserProfilePage() {
   const roleTitle = isSuperAdmin ? 'Super Admin' : user?.roles?.includes('ADMIN') ? 'Property Admin' : 'Admin'
 
   return (
-    <div className="w-full space-y-6 pb-12">
+    <div className="w-full space-y-4 pb-12">
+      <div>
+        <BackButton onClick={() => navigate(-1)}>Back to Dashboard</BackButton>
+      </div>
+
       {/* Top Header Navigation */}
       <Card className="gap-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border-gray-100 rounded-2xl p-5 shadow-2xs">
         <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={() => navigate(-1)}
-            className="p-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
-            title="Go Back"
-            aria-label="Go Back"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
           <div>
             <h1 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
               <User className="w-5 h-5 text-[#005390]" />

@@ -30,9 +30,10 @@ import {
 } from '@/hooks/react-query/events'
 import type { Event, EventRequest } from '@/lib/services/eventService'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
-import { ArrowLeft, Calendar, List, MapPin, Pencil, Plus, Trash2, Users } from 'lucide-react'
+import { Calendar, List, MapPin, Pencil, Plus, Trash2, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { BackButton } from '@/components/common/BackButton'
 import { formatDisplayDate } from '@/lib/utils/dateUtils'
 import CreateEventModal from './CreateEventModal'
 
@@ -605,10 +606,9 @@ const EventsListPage = ({ embedded = false, enabled = true }: EventsListPageProp
     <div>
       {!embedded && (
         <div className="mb-6">
-          <Button variant="ghost" onClick={() => navigate('/admin/events')} className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Calendar
-          </Button>
+          <div className="mb-4">
+            <BackButton onClick={() => navigate('/admin/events')}>Back to Events</BackButton>
+          </div>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Events List</h1>

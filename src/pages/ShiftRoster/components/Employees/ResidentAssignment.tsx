@@ -3,8 +3,9 @@ import { Controller, useForm } from 'react-hook-form'
 /* eslint-disable react-hooks/incompatible-library -- react-hook-form watch() */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { BackButton } from '@/components/common/BackButton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -152,15 +153,14 @@ const ResidentAssignment = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      <div>
+        <BackButton onClick={() => navigate(`/admin/shift-roster-management/employees/${employeeId}`)}>
+          Back to Employee Details
+        </BackButton>
+      </div>
+
       <div className="flex items-center gap-3">
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => navigate(`/admin/shift-roster-management/employees/${employeeId}`)}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
         <div>
           <h2 className="text-xl font-bold text-gray-900">Resident Assignment</h2>
           <p className="text-sm text-gray-500">

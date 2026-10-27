@@ -30,6 +30,7 @@ export function ItemImportPage() {
       onBack={() => {
         if (!pending) back()
       }}
+      backLabel={`Back to ${category.data.name}`}
     >
       <fieldset disabled={pending || !category.data.isActive} className="flex min-w-0 flex-col gap-6">
         <FormSection

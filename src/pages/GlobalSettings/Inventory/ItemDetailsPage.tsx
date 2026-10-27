@@ -43,7 +43,12 @@ export function ItemDetailsPage() {
   const displayQuantity = (quantity: number) =>
     `${quantity / record.packQuantity} ${record.packType} (${quantity} ${record.packUnit})`
   return (
-    <InventoryPage title={record.name} description={category.data.name} onBack={back}>
+    <InventoryPage
+      title={record.name}
+      description={category.data.name}
+      onBack={back}
+      backLabel={`Back to ${category.data.name}`}
+    >
       <div className="flex flex-wrap gap-2">
         <Button render={<Link to={target('edit')} />}>Edit Item</Button>
         <Button variant="outline" render={<Link to={target('vendors')} />}>

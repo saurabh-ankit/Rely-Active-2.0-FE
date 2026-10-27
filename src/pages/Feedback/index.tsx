@@ -15,6 +15,7 @@ const FeedbackPage = () => {
         title="Feedback"
         description="Create feedback forms and send them to residents, employees or both."
         onBack={() => navigate('/admin/settings')}
+        backLabel="Back to Settings"
         actions={
           <FeedbackPermission action="create">
             <Button

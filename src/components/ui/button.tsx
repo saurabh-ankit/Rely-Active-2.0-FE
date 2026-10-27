@@ -27,6 +27,7 @@ const buttonVariants = cva(
         cancel:
           'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 shadow-sm active:bg-gray-100',
         link: 'text-[#005390] underline-offset-4 hover:underline',
+        back: 'rounded-full border border-transparent bg-transparent px-3 py-1.5 text-xs font-semibold text-gray-600 transition-all duration-150 hover:border-gray-200/90 hover:bg-white hover:text-gray-900 hover:shadow-xs active:scale-[0.98] cursor-pointer dark:text-gray-400 dark:hover:border-gray-700 dark:hover:bg-slate-800 dark:hover:text-white',
       },
       size: {
         default: 'h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2',

@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { format } from 'date-fns'
-import { ArrowLeft, CalendarCheck, Trash2 } from 'lucide-react'
+import { CalendarCheck, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { BackButton } from '@/components/common/BackButton'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -280,47 +281,43 @@ const EmployeeDetail = () => {
   }
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-4 pb-10">
+      <div>
+        <BackButton onClick={() => navigate('/admin/shift-roster-management?tab=employees')}>
+          Back to Employee Roster
+        </BackButton>
+      </div>
+
       <Card className="gap-0 relative overflow-hidden rounded-2xl border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(42,81,124,0.05)]">
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#1e3a5a] via-[#2a517c] to-[#5b8bb8]" />
         <div className="flex flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div className="flex items-start gap-3">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="mt-0.5 h-9 w-9 rounded-xl border border-slate-200 bg-white text-slate-600 shadow-xs hover:bg-slate-50"
-              onClick={() => navigate('/admin/shift-roster-management?tab=employees')}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div className="flex items-start gap-3 min-w-0">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2a517c] to-[#476587] text-sm font-bold tracking-wide text-white shadow-sm">
-                {employee
-                  ? getUserDisplayName(employee)
-                      .split(/\s+/)
-                      .filter(Boolean)
-                      .slice(0, 2)
-                      .map((p) => p[0]?.toUpperCase() || '')
-                      .join('') || '?'
-                  : '?'}
-              </div>
-              <div className="min-w-0">
-                <h2 className="truncate text-xl font-semibold tracking-tight text-slate-900">
-                  {employee ? getUserDisplayName(employee) : 'Employee'}
-                </h2>
-                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
-                  {employee ? (
-                    <span className="rounded-full bg-[#2a517c]/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#2a517c]">
-                      {getUserDepartmentName(employee, departments || [], locationId) ||
-                        getUserRoleCodes(employee)[0] ||
-                        'Staff'}
-                    </span>
-                  ) : null}
-                  <span className="truncate">{employee?.email || employeeId}</span>
-                  {(employee?.phone || employee?.profile?.phone) && (
-                    <span className="tabular-nums">{employee?.phone || employee?.profile?.phone}</span>
-                  )}
-                </div>
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2a517c] to-[#476587] text-sm font-bold tracking-wide text-white shadow-sm">
+              {employee
+                ? getUserDisplayName(employee)
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((p) => p[0]?.toUpperCase() || '')
+                    .join('') || '?'
+                : '?'}
+            </div>
+            <div className="min-w-0">
+              <h2 className="truncate text-xl font-semibold tracking-tight text-slate-900">
+                {employee ? getUserDisplayName(employee) : 'Employee'}
+              </h2>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
+                {employee ? (
+                  <span className="rounded-full bg-[#2a517c]/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#2a517c]">
+                    {getUserDepartmentName(employee, departments || [], locationId) ||
+                      getUserRoleCodes(employee)[0] ||
+                      'Staff'}
+                  </span>
+                ) : null}
+                <span className="truncate">{employee?.email || employeeId}</span>
+                {(employee?.phone || employee?.profile?.phone) && (
+                  <span className="tabular-nums">{employee?.phone || employee?.profile?.phone}</span>
+                )}
               </div>
             </div>
           </div>

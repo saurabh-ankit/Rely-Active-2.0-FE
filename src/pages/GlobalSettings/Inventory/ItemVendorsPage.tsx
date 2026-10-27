@@ -80,6 +80,7 @@ function ItemVendorsEditor({
       onBack={() => {
         if (!mutation.isPending) back()
       }}
+      backLabel={`Back to ${record.name}`}
     >
       <FormProvider {...form}>
         <form

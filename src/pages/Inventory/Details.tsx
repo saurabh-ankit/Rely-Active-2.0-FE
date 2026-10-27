@@ -1,9 +1,10 @@
 import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { AlertTriangle, ArrowLeft, ChevronRight, Gauge, Package, Pencil, SlidersHorizontal, Truck } from 'lucide-react'
+import { AlertTriangle, ChevronRight, Gauge, Package, Pencil, SlidersHorizontal, Truck } from 'lucide-react'
 import { ActiveStatus } from '@/components/inventory/InventoryStatus'
 import { Button } from '@/components/ui/button'
+import { BackButton } from '@/components/common/BackButton'
 import { Card } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -67,9 +68,7 @@ export function PODetail({
     <div className="flex min-w-0 flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 flex-wrap items-center gap-3">
-          <Button variant="ghost" onClick={onBack}>
-            Back
-          </Button>
+          <BackButton onClick={onBack}>Back to Purchase Orders</BackButton>
           <h2 className="break-words text-xl font-semibold text-gray-900">{po.poNumber}</h2>
           <Status status={po.status} />
         </div>
@@ -258,9 +257,7 @@ export function TransactionDetail({
   return (
     <div className="flex min-w-0 flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="ghost" onClick={onBack}>
-          Back
-        </Button>
+        <BackButton onClick={onBack}>Back to Transactions</BackButton>
         <h2 className="break-words text-xl font-semibold text-gray-900">{record.transactionNumber}</h2>
       </div>
       <Section title="Transaction Information">
@@ -358,15 +355,7 @@ export function ItemDetail({
     <div className="flex min-w-0 flex-col gap-6">
       {/* Where we are: category › items › this item */}
       <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-gray-500">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={onBack}
-          className="h-auto p-0 inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-100 hover:text-[#005390]"
-        >
-          <ArrowLeft className="size-3.5" />
-          Back to items
-        </Button>
+        <BackButton onClick={onBack}>Back to Items</BackButton>
         {activeCategory && (
           <>
             <ChevronRight className="size-3.5 text-gray-300" />

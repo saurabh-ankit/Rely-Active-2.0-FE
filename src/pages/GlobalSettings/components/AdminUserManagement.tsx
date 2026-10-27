@@ -17,8 +17,8 @@ import { DataTable } from '@/components/ui/data-table'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import PageLoader from '@/components/shared/PageLoader'
+import { BackButton } from '@/components/common/BackButton'
 import {
-  ArrowLeft,
   Building2,
   Check,
   Key,
@@ -765,15 +765,10 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
   // If mode is permissions, render Role & Module Permissions screen directly
   if (initialMode === 'permissions' || paramUserId) {
     return (
-      <div className="space-y-6 pb-10">
-        <Button
-          variant="ghost"
-          type="button"
-          onClick={() => navigate('/global-settings/users')}
-          className="p-0 h-auto inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] hover:bg-transparent transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Employee Directory
-        </Button>
+      <div className="space-y-4 pb-10">
+        <div>
+          <BackButton onClick={() => navigate('/global-settings/users')}>Back to Employee Directory</BackButton>
+        </div>
 
         <RoleModuleManagement onClose={() => navigate('/global-settings/users')} />
       </div>
@@ -792,20 +787,18 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
       createUserMutation.isPending || updateUserMutation.isPending || updateUserPropertiesMutation.isPending
 
     return (
-      <div className="space-y-6 pb-12">
+      <div className="space-y-4 pb-12">
         {/* Back Button */}
-        <Button
-          variant="ghost"
-          type="button"
-          onClick={() => {
-            resetForm()
-            navigate(isLocationScoped ? '/admin/employees' : '/global-settings/users')
-          }}
-          className="p-0 h-auto inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] hover:bg-transparent transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" />{' '}
-          {isLocationScoped ? 'Back to Employee Directory' : 'Back to User Management'}
-        </Button>
+        <div>
+          <BackButton
+            onClick={() => {
+              resetForm()
+              navigate(isLocationScoped ? '/admin/employees' : '/global-settings/users')
+            }}
+          >
+            {isLocationScoped ? 'Back to Employee Directory' : 'Back to User Management'}
+          </BackButton>
+        </div>
 
         {/* Page Header */}
         <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur-xl">

@@ -1,8 +1,8 @@
 import { lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PageLoader from '@/components/shared/PageLoader'
+import { BackButton } from '@/components/common/BackButton'
 import {
-  ArrowLeft,
   Activity,
   Boxes,
   Briefcase,
@@ -345,15 +345,10 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
 
     if (activeView === 'fnb-meal-slots') {
       return (
-        <div className="space-y-6 pb-10">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => navigate('/global-settings')}
-            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-          </Button>
+        <div className="space-y-4 pb-10">
+          <div>
+            <BackButton onClick={() => navigate('/global-settings')}>Back to Global Settings</BackButton>
+          </div>
           <FnbGlobalMealSlotsTab />
         </div>
       )
@@ -361,15 +356,10 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
 
     if (activeView === 'fnb-packages') {
       return (
-        <div className="space-y-6 pb-10">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => navigate('/global-settings')}
-            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-          </Button>
+        <div className="space-y-4 pb-10">
+          <div>
+            <BackButton onClick={() => navigate('/global-settings')}>Back to Global Settings</BackButton>
+          </div>
           <FnbGlobalPackagesTab />
         </div>
       )
@@ -377,15 +367,10 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
 
     if (activeView === 'fnb-dishes') {
       return (
-        <div className="space-y-6 pb-10">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => navigate('/global-settings')}
-            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-          </Button>
+        <div className="space-y-4 pb-10">
+          <div>
+            <BackButton onClick={() => navigate('/global-settings')}>Back to Global Settings</BackButton>
+          </div>
           <FnbDishesMasterTab />
         </div>
       )
@@ -393,15 +378,10 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
 
     if (activeView === 'specializations') {
       return (
-        <div className="space-y-6 pb-10">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => navigate('/global-settings')}
-            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-          </Button>
+        <div className="space-y-4 pb-10">
+          <div>
+            <BackButton onClick={() => navigate('/global-settings')}>Back to Global Settings</BackButton>
+          </div>
           <SpecializationsTab />
         </div>
       )
@@ -409,15 +389,10 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
 
     if (activeView === 'vitals') {
       return (
-        <div className="space-y-6 pb-10">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => navigate('/global-settings')}
-            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-          </Button>
+        <div className="space-y-4 pb-10">
+          <div>
+            <BackButton onClick={() => navigate('/global-settings')}>Back to Global Settings</BackButton>
+          </div>
           <VitalsTab />
         </div>
       )
@@ -425,15 +400,10 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
 
     if (activeView === 'lab-tests') {
       return (
-        <div className="space-y-6 pb-10">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => navigate('/global-settings')}
-            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-          </Button>
+        <div className="space-y-4 pb-10">
+          <div>
+            <BackButton onClick={() => navigate('/global-settings')}>Back to Global Settings</BackButton>
+          </div>
           <LabTestsTab />
         </div>
       )
@@ -441,15 +411,10 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
 
     if (activeView === 'global-services') {
       return (
-        <div className="space-y-6 pb-10">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => navigate('/global-settings')}
-            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-          </Button>
+        <div className="space-y-4 pb-10">
+          <div>
+            <BackButton onClick={() => navigate('/global-settings')}>Back to Global Settings</BackButton>
+          </div>
           <GlobalServicesTab />
         </div>
       )
@@ -457,15 +422,10 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
 
     if (activeView === 'tasks') {
       return (
-        <div className="space-y-6 pb-10">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => navigate('/global-settings')}
-            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-          </Button>
+        <div className="space-y-4 pb-10">
+          <div>
+            <BackButton onClick={() => navigate('/global-settings')}>Back to Global Settings</BackButton>
+          </div>
           <TasksTab />
         </div>
       )
@@ -473,15 +433,10 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
 
     if (activeView === 'packages') {
       return (
-        <div className="space-y-6 pb-10">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => navigate('/global-settings')}
-            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-          </Button>
+        <div className="space-y-4 pb-10">
+          <div>
+            <BackButton onClick={() => navigate('/global-settings')}>Back to Global Settings</BackButton>
+          </div>
           <PackagesTab />
         </div>
       )
@@ -489,15 +444,10 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
 
     if (activeView === 'gst-tax') {
       return (
-        <div className="space-y-6 pb-10">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => navigate('/global-settings')}
-            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-          </Button>
+        <div className="space-y-4 pb-10">
+          <div>
+            <BackButton onClick={() => navigate('/global-settings')}>Back to Global Settings</BackButton>
+          </div>
           <GstTaxSettingsTab />
         </div>
       )
@@ -505,15 +455,10 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
 
     if (activeView === 'amenities') {
       return (
-        <div className="space-y-6 pb-10">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => navigate('/global-settings')}
-            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-          </Button>
+        <div className="space-y-4 pb-10">
+          <div>
+            <BackButton onClick={() => navigate('/global-settings')}>Back to Global Settings</BackButton>
+          </div>
           <AmenitiesTab />
         </div>
       )
@@ -521,15 +466,10 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
 
     if (activeView === 'residents') {
       return (
-        <div className="space-y-6 pb-10">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => navigate('/global-settings')}
-            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-          </Button>
+        <div className="space-y-4 pb-10">
+          <div>
+            <BackButton onClick={() => navigate('/global-settings')}>Back to Global Settings</BackButton>
+          </div>
           <ResidentListScreen isGlobalMode={true} />
         </div>
       )
@@ -537,15 +477,10 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
 
     if (activeView === 'users') {
       return (
-        <div className="space-y-6 pb-10">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => navigate('/global-settings')}
-            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-          </Button>
+        <div className="space-y-4 pb-10">
+          <div>
+            <BackButton onClick={() => navigate('/global-settings')}>Back to Global Settings</BackButton>
+          </div>
           <AdminUserManagement initialMode="list" />
         </div>
       )
@@ -565,6 +500,8 @@ export default function GlobalSettingsPage({ initialView = 'main' }: GlobalSetti
         icon={Settings2}
         title="Global Settings"
         description="User access, operations settings (medical, food, events, inventory) and system settings (company, properties, tax) shared by every property."
+        onBack={() => navigate('/dashboard')}
+        backLabel="Back to Dashboard"
       />
 
       {SETTING_SECTIONS.map((section) => {

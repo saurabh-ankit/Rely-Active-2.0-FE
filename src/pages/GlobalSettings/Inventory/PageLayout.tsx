@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import { ArrowLeft, Briefcase, type LucideIcon } from 'lucide-react'
+import { Briefcase, type LucideIcon } from 'lucide-react'
+import { BackButton } from '@/components/common/BackButton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -23,15 +24,10 @@ export function InventoryPage({
   children: ReactNode
 }) {
   return (
-    <div className="w-full min-w-0 space-y-6 pb-10">
-      <Button
-        variant="ghost"
-        type="button"
-        onClick={onBack}
-        className="p-0 h-auto inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] hover:bg-transparent transition-colors cursor-pointer"
-      >
-        <ArrowLeft className="w-4 h-4" /> {backLabel}
-      </Button>
+    <div className="w-full min-w-0 space-y-4 pb-10">
+      <div>
+        <BackButton onClick={onBack}>{backLabel}</BackButton>
+      </div>
 
       {/* Top Header Banner matching other Global Settings pages */}
       <Card className="gap-0 bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">

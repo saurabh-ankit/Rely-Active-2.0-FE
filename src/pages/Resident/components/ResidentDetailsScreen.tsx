@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { format, isValid, parseISO } from 'date-fns'
-import { ArrowLeft, CalendarDays, Home, Pencil, Phone, ReceiptText, Users } from 'lucide-react'
+import { CalendarDays, Home, Pencil, Phone, ReceiptText, Users } from 'lucide-react'
 import type { ResidentItem } from '@/lib/types'
 import { residentService } from '@/lib/services/residentService'
 import { AssignCareTaskDialog } from '@/components/common/AssignCareTaskDialog'
 import { AssignCareTeamDialog } from '@/components/common/AssignCareTeamDialog'
 import { Card } from '@/components/ui/card'
 import PageLoader from '@/components/shared/PageLoader'
+import { BackButton } from '@/components/common/BackButton'
 import { cn, getFileUrl } from '@/lib/utils'
 import { fnbService } from '@/lib/services/fnbService'
 import { useResidentClinicalQuery } from '@/hooks/react-query/resident'
@@ -130,14 +131,9 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
   if (error || !resident) {
     return (
       <div className="w-full space-y-4 pb-12">
-        <button
-          type="button"
-          onClick={() => navigate(backUrl)}
-          className="inline-flex items-center gap-2 rounded-full border border-transparent bg-transparent px-3 py-1.5 text-xs font-semibold text-gray-600 transition-all duration-150 hover:border-gray-200/90 hover:bg-white hover:text-gray-900 hover:shadow-xs active:scale-[0.98] cursor-pointer"
-        >
-          <ArrowLeft className="h-3.5 w-3.5 text-gray-600" />
-          <span>{isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}</span>
-        </button>
+        <BackButton onClick={() => navigate(backUrl)}>
+          {isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}
+        </BackButton>
         <Card className="gap-0 rounded-3xl bg-rose-50 border border-rose-200 p-8 text-center text-xs text-rose-700 font-bold shadow-xs">
           {error || 'Resident profile not found.'}
         </Card>
@@ -181,14 +177,9 @@ export const ResidentDetailsScreen: React.FC<ResidentDetailsScreenProps> = ({ is
     <div className="w-full space-y-4 pb-16">
       {/* Top Back Navigation Pill */}
       <div>
-        <button
-          type="button"
-          onClick={() => navigate(backUrl)}
-          className="inline-flex items-center gap-2 rounded-full border border-transparent bg-transparent px-3 py-1.5 text-xs font-semibold text-gray-600 transition-all duration-150 hover:border-gray-200/90 hover:bg-white hover:text-gray-900 hover:shadow-xs active:scale-[0.98] cursor-pointer"
-        >
-          <ArrowLeft className="h-3.5 w-3.5 text-gray-600" />
-          <span>{isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}</span>
-        </button>
+        <BackButton onClick={() => navigate(backUrl)}>
+          {isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}
+        </BackButton>
       </div>
 
       {/* Hero Summary Card: Avatar, Name, Owner/Residing Badges, Header Buttons, and Metadata Details */}

@@ -136,6 +136,7 @@ export default function InvoicePage() {
         title={flat ? `Flat ${flat.unitNumber}` : 'Flat billing'}
         description="Generate invoices, record payments and review unbilled charges for this flat."
         onBack={() => navigate('/admin/billing-management')}
+        backLabel="Back to Billing Management"
       />
 
       {error ? (

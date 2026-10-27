@@ -9,13 +9,13 @@ import {
   ArrowLeftRight,
   AlertTriangle,
   Clock,
-  ArrowLeft,
   ChevronRight,
   Eye,
   Plus,
   Truck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { BackButton } from '@/components/common/BackButton'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
 import { Card } from '@/components/ui/card'
@@ -182,15 +182,7 @@ function CategoryInventory({
     <div className="min-w-0 space-y-6">
       {/* Where we are: Inventory › category */}
       <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-gray-500">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => navigate({})}
-          className="h-auto p-0 inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 hover:bg-gray-100 hover:text-[#005390]"
-        >
-          <ArrowLeft className="size-3.5" />
-          Back to Categories
-        </Button>
+        <BackButton onClick={() => navigate({})}>Back to Categories</BackButton>
         <ChevronRight className="size-3.5 text-gray-300" />
         <span>Inventory</span>
         <ChevronRight className="size-3.5 text-gray-300" />

@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { PageHeader } from '@/components/common/PageHeader'
 import PageLoader from '@/components/shared/PageLoader'
 import { Button } from '@/components/ui/button'
+import { BackButton } from '@/components/common/BackButton'
 import { Card, CardContent } from '@/components/ui/card'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
@@ -165,9 +166,9 @@ const FormBuilder = () => {
     return (
       <div className="space-y-4 py-12 text-center">
         <p className="text-gray-600">This feedback form could not be found.</p>
-        <Button variant="outline" onClick={() => navigate(BACK_TO_LIST)}>
-          Back to Feedback Forms
-        </Button>
+        <div>
+          <BackButton onClick={() => navigate(BACK_TO_LIST)}>Back to Feedback Forms</BackButton>
+        </div>
       </div>
     )
   }
@@ -183,6 +184,7 @@ const FormBuilder = () => {
             existing.sentAt ? ` · Sent ${format(new Date(existing.sentAt), 'dd MMM yyyy, h:mm a')}` : ''
           }`}
           onBack={() => navigate(BACK_TO_LIST)}
+          backLabel="Back to Feedback Forms"
           actions={<FormStatusBadge form={existing} />}
         />
 
@@ -250,6 +252,7 @@ const FormBuilder = () => {
         title={isEdit ? 'Edit Feedback Form' : 'Create Feedback Form'}
         description="Add questions, then send the form to residents, employees or both."
         onBack={() => navigate(BACK_TO_LIST)}
+        backLabel="Back to Feedback Forms"
         actions={actionButtons}
       />
 

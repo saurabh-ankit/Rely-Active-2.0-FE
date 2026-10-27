@@ -1,18 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import {
-  ArrowLeft,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  Package,
-  Plus,
-  Printer,
-  Receipt,
-  Sparkles,
-  Trash2,
-  User,
-} from 'lucide-react'
+import { BackButton } from '@/components/common/BackButton'
+import { Calendar, CheckCircle2, Clock, Package, Plus, Printer, Receipt, Sparkles, Trash2, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import PageLoader from '@/components/shared/PageLoader'
@@ -296,16 +285,13 @@ export const ResidentBillingPage: React.FC = () => {
       {/* ── Top Navigation Bar ────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden">
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            type="button"
+          <BackButton
             onClick={() =>
               residentId ? navigate(`/admin/residents/details/${residentId}`) : navigate('/admin/residents')
             }
-            className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer bg-white px-3 py-2 h-auto rounded-xl border border-gray-200 shadow-xs hover:bg-gray-50"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Resident Profile
-          </Button>
+            Back to Resident Profile
+          </BackButton>
         </div>
 
         {/* Action Buttons: Print & Generate */}

@@ -23,9 +23,10 @@ import {
 } from '@/hooks/react-query/events'
 import type { EventRegistration, RegistrationStatus } from '@/lib/services/eventService'
 import type { PaginationState } from '@tanstack/react-table'
-import { ArrowLeft, TrendingUp, Users } from 'lucide-react'
+import { TrendingUp, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { BackButton } from '@/components/common/BackButton'
 
 const EventRegistrationsPage = () => {
   const navigate = useNavigate()
@@ -130,10 +131,9 @@ const EventRegistrationsPage = () => {
     <div>
       <div className="w-full space-y-4">
         {/* Header */}
-        <Button variant="ghost" onClick={() => navigate('/admin/events/list')} className="mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Events
-        </Button>
+        <div className="mb-4">
+          <BackButton onClick={() => navigate('/admin/events/list')}>Back to Events</BackButton>
+        </div>
         <h1 className="text-3xl font-bold text-gray-900">{isOpen ? 'Event Attendance' : 'Event Registrations'}</h1>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">

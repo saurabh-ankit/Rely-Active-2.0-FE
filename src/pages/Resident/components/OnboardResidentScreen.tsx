@@ -1358,6 +1358,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
             : 'Add an owner or tenant to a flat in a few steps.'
         }
         onBack={() => navigate(backUrl)}
+        backLabel={isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}
       />
 
       {formError && (

@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { differenceInYears, format, formatDistanceToNowStrict, isValid, parseISO } from 'date-fns'
+import { BackButton } from '@/components/common/BackButton'
 import {
-  ArrowLeft,
   Briefcase,
   Building2,
   CalendarDays,
@@ -109,15 +109,9 @@ export const EmployeeDetailsScreen: React.FC<EmployeeDetailsScreenProps> = ({ is
 
   const backLabel = isGlobal ? 'Back to Global Employee Directory' : 'Back to Employee Directory'
   const backButton = (
-    <Button
-      variant="ghost"
-      type="button"
-      onClick={() => navigate(backUrl)}
-      className="p-0 h-auto inline-flex cursor-pointer items-center gap-2 text-xs font-bold text-gray-600 transition-colors hover:text-[#005390] hover:bg-transparent"
-    >
-      <ArrowLeft className="h-4 w-4" />
-      {backLabel}
-    </Button>
+    <div>
+      <BackButton onClick={() => navigate(backUrl)}>{backLabel}</BackButton>
+    </div>
   )
 
   if (isLoading) {

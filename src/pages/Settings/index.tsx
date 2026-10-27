@@ -63,6 +63,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ initialView = 'main'
         icon={SettingsIcon}
         title="Settings"
         description="Configure property-level operations and templates."
+        onBack={() => navigate('/dashboard')}
+        backLabel="Back to Dashboard"
         actions={
           <>
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-600 bg-white/70 border border-gray-200 shadow-2xs backdrop-blur-sm">
