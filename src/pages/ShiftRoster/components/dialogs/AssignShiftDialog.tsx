@@ -107,6 +107,7 @@ const FormSection = ({
 )
 
 type AreaOption = { id: string; areaName: string }
+type AmenityOption = { id: string; name: string }
 type BlockOption = {
   id: string
   block_name: string
@@ -172,6 +173,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
   const createBulk = useBulkCreateEmployeeShifts()
   const employeeChipsAnchor = useComboboxAnchor()
   const areaChipsAnchor = useComboboxAnchor()
+  const amenityChipsAnchor = useComboboxAnchor()
   const blockChipsAnchor = useComboboxAnchor()
   const floorChipsAnchor = useComboboxAnchor()
   const flatChipsAnchor = useComboboxAnchor()
@@ -193,6 +195,18 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
     queryFn: () => getPropertyByIdAPI(locationId!),
     enabled: open && !!locationId,
   })
+
+  // Same source as Amenities page: propertyAmenities, else legacy property.amenities names.
+  const amenities = useMemo<AmenityOption[]>(() => {
+    const linked = (property?.propertyAmenities || []).filter((a) => a.isActive !== false)
+    if (linked.length > 0) {
+      return linked.map((a) => ({ id: a.amenityId, name: a.name }))
+    }
+    return (property?.amenities || [])
+      .map((name) => String(name || '').trim())
+      .filter(Boolean)
+      .map((name) => ({ id: name, name }))
+  }, [property])
 
   const today = todayYmdLocal()
 
@@ -220,6 +234,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
   const endDate = watch('endDate')
   const targetType = watch('targetType')
   const areaIds = watch('areaIds')
+  const amenityIds = watch('amenityIds')
   const blockIds = watch('blockIds')
   const floorIds = watch('floorIds')
   const unitIds = watch('unitIds')
@@ -388,6 +403,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
 
     if (isMedicalNoAssignRosterRole(roleCode || '')) {
       setValue('areaIds', [], { shouldValidate: true })
+      setValue('amenityIds', [], { shouldValidate: true })
       setValue('blockIds', [], { shouldValidate: true })
       setValue('floorIds', [], { shouldValidate: true })
       setValue('unitIds', [], { shouldValidate: true })
@@ -397,6 +413,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
     if (isMedicalUnitOnlyRosterRole(roleCode || '')) {
       setValue('targetType', 'unit', { shouldValidate: true })
       setValue('areaIds', [], { shouldValidate: true })
+      setValue('amenityIds', [], { shouldValidate: true })
     }
   }, [isMedicalDept, roleCode, setValue])
 
@@ -432,7 +449,9 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
     ? true
     : targetType === 'area'
       ? areaIds.length > 0
-      : blockIds.length > 0
+      : targetType === 'amenity'
+        ? amenityIds.length > 0
+        : blockIds.length > 0
 
   const selectedSlotRange = slotValue === FULL_SHIFT_VALUE ? null : slotValue
 
@@ -531,6 +550,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
         notes: values.notes?.trim() || null,
         workingDays: values.workingDays,
         areaIds: effectiveTargetType === 'area' ? values.areaIds : undefined,
+        amenityIds: effectiveTargetType === 'amenity' ? values.amenityIds : undefined,
         blockIds: effectiveTargetType === 'unit' ? values.blockIds : undefined,
         floorIds: effectiveTargetType === 'unit' && values.floorIds.length > 0 ? values.floorIds : undefined,
         unitIds: effectiveTargetType === 'unit' && values.unitIds.length > 0 ? values.unitIds : undefined,
@@ -880,7 +900,7 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                   step={3}
                   icon={MapPin}
                   title="Where"
-                  hint="A common area, or specific blocks, floors and flats."
+                  hint="A common area, amenities, or specific blocks, floors and flats."
                 >
                   {showAssignTo && (
                     <div className="space-y-2">
@@ -890,22 +910,24 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                         control={control}
                         render={({ field }) => {
                           const current = isMedicalUnitOnly ? 'unit' : field.value
-                          const choose = (v: 'area' | 'unit') => {
+                          const choose = (v: 'area' | 'unit' | 'amenity') => {
                             if (v === current) return
                             field.onChange(v)
                             setValue('areaIds', [], { shouldValidate: true })
+                            setValue('amenityIds', [], { shouldValidate: true })
                             setValue('blockIds', [], { shouldValidate: true })
                             setValue('floorIds', [], { shouldValidate: true })
                             setValue('unitIds', [], { shouldValidate: true })
                           }
-                          const options: Array<{ value: 'area' | 'unit'; label: string; hint: string }> = [
+                          const options: Array<{ value: 'area' | 'unit' | 'amenity'; label: string; hint: string }> = [
                             { value: 'area', label: 'Common area', hint: 'e.g. lobby, gate, kitchen' },
+                            { value: 'amenity', label: 'Amenities', hint: 'e.g. gym, pool, clubhouse' },
                             { value: 'unit', label: 'Flats & units', hint: 'Blocks, floors or specific flats' },
                           ]
                           return (
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-3 gap-2">
                               {options.map((o) => {
-                                const disabled = isMedicalUnitOnly && o.value === 'area'
+                                const disabled = isMedicalUnitOnly && o.value !== 'unit'
                                 const active = current === o.value
                                 return (
                                   <Button
@@ -999,6 +1021,67 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                         }}
                       />
                       {errors.areaIds && <p className="text-sm text-red-600">{errors.areaIds.message}</p>}
+                    </div>
+                  ) : showAssignTo && targetType === 'amenity' && !isMedicalUnitOnly ? (
+                    <div className="space-y-2">
+                      <Label>Amenity</Label>
+                      <Controller
+                        name="amenityIds"
+                        control={control}
+                        render={({ field }) => {
+                          const selected = amenities.filter((a) => field.value.includes(a.id))
+                          return (
+                            <div className="space-y-1.5">
+                              <Combobox
+                                multiple
+                                items={amenities}
+                                value={selected}
+                                onValueChange={(vals: AmenityOption[]) => field.onChange(vals.map((a) => a.id))}
+                                itemToStringLabel={(item) => item.name}
+                                isItemEqualToValue={(a, b) => a.id === b.id}
+                              >
+                                <ComboboxChips ref={amenityChipsAnchor} className="w-full min-h-9 rounded-md">
+                                  {selected.length === 0 && (
+                                    <span className="flex-1 text-sm text-muted-foreground">Select amenities...</span>
+                                  )}
+                                  {selected.map((a) => (
+                                    <ComboboxChip key={a.id}>{a.name}</ComboboxChip>
+                                  ))}
+                                  <ComboboxTrigger className="ml-auto shrink-0 self-center" />
+                                </ComboboxChips>
+                                <ComboboxContent
+                                  anchor={amenityChipsAnchor}
+                                  side="bottom"
+                                  align="start"
+                                  className="w-[var(--anchor-width)]"
+                                >
+                                  <ComboboxInput
+                                    placeholder="Search amenities..."
+                                    showTrigger={false}
+                                    className="w-full"
+                                  />
+                                  <ComboboxList className="max-h-60">
+                                    {(a: AmenityOption) => (
+                                      <ComboboxItem key={a.id} value={a}>
+                                        {a.name}
+                                      </ComboboxItem>
+                                    )}
+                                  </ComboboxList>
+                                  <ComboboxEmpty className="text-xs text-gray-500 py-2">
+                                    No amenities found
+                                  </ComboboxEmpty>
+                                </ComboboxContent>
+                              </Combobox>
+                              {selected.length > 0 && (
+                                <p className="text-xs text-muted-foreground">
+                                  {selected.length} amenit{selected.length === 1 ? 'y' : 'ies'} selected
+                                </p>
+                              )}
+                            </div>
+                          )
+                        }}
+                      />
+                      {errors.amenityIds && <p className="text-sm text-red-600">{errors.amenityIds.message}</p>}
                     </div>
                   ) : showAssignTo && (targetType === 'unit' || isMedicalUnitOnly) ? (
                     <div className="space-y-3">

@@ -240,6 +240,7 @@ export const parseLocalDate = (dateStr: string): Date => parseLocalYmd(toDateKey
 
 /** Area name, else block · floor · unit label for a roster assignment. */
 export const buildLocationLabel = (assignment: EmployeeShiftAssignment): string | null => {
+  if (assignment.amenity?.name) return assignment.amenity.name
   if (assignment.area?.areaName) return assignment.area.areaName
   const parts: string[] = []
   if (assignment.block?.block_name) parts.push(assignment.block.block_name)
@@ -326,6 +327,10 @@ const getProfileWeekOffSet = (assignment: EmployeeShiftAssignment): Set<string> 
  * BE auto-stores day_off + week_off fillers for assignment non-working days;
  * those are "not rostered" (—), not weekly offs — same rule as the month calendar.
  * Deleted overrides drop the day.
+ *
+ * When `dateStrs` is provided (visible grid week), profile week offs are also
+ * stamped onto empty cells in that window even if no assignment covers those dates
+ * — so employees with no shifts that week still show OFF / Week Off.
  */
 export const buildRosterGridData = ({
   assignments,
@@ -333,12 +338,15 @@ export const buildRosterGridData = ({
   shiftDates,
   employeeIds,
   nameByUserId,
+  dateStrs,
 }: {
   assignments: EmployeeShiftAssignment[]
   shifts: ShiftV2[]
   shiftDates: ShiftEmployeeDate[]
   employeeIds?: Set<string> | null
   nameByUserId?: Map<string, string>
+  /** Visible week dates (YYYY-MM-DD); used to stamp profile week offs outside assignment ranges. */
+  dateStrs?: string[]
 }): RosterGridData => {
   const shiftsById = new Map(shifts.map((s) => [s.id, s]))
 
@@ -353,6 +361,8 @@ export const buildRosterGridData = ({
   const shiftMap: RosterGridShiftMap = {}
   const metaByLabel = new Map<string, RosterGridShiftMeta>()
   const employeesById = new Map<string, RosterGridEmployee>()
+  /** Profile weekOffDays per employee (from any of their assignments). */
+  const weekOffsByEmployeeId = new Map<string, Set<string>>()
 
   for (const assignment of assignments) {
     const employeeId = assignment.employeeId || assignment.employee?.id
@@ -384,6 +394,9 @@ export const buildRosterGridData = ({
 
     const workingDays = Array.isArray(assignment.workingDays) ? assignment.workingDays : []
     const profileWeekOffs = getProfileWeekOffSet(assignment)
+    if (profileWeekOffs.size > 0 && !weekOffsByEmployeeId.has(employeeId)) {
+      weekOffsByEmployeeId.set(employeeId, profileWeekOffs)
+    }
     const start = parseLocalDate(assignment.startDate)
     const end = parseLocalDate(assignment.endDate)
 
@@ -439,6 +452,29 @@ export const buildRosterGridData = ({
         active.push({ label, shiftId, shiftName, shiftTime, isOff: false })
       }
       empCells[dateStr] = active
+    }
+  }
+
+  // Visible week: stamp profile Week Off onto empty cells even outside assignment ranges.
+  if (dateStrs && dateStrs.length > 0) {
+    for (const [employeeId, profileWeekOffs] of weekOffsByEmployeeId) {
+      if (profileWeekOffs.size === 0) continue
+      const empCells = (shiftMap[employeeId] ??= {})
+      for (const dateStr of dateStrs) {
+        const dayName = WEEKDAY_BY_INDEX[parseLocalDate(dateStr).getDay()]
+        if (!dayName || !profileWeekOffs.has(dayName)) continue
+        const current = empCells[dateStr] ?? []
+        if (getActiveGridEntries(current).length > 0 || isGridCellOff(current)) continue
+        empCells[dateStr] = [
+          {
+            label: ROSTER_GRID_OFF_LABEL,
+            shiftId: '',
+            shiftName: LEAVE_LABELS.week_off,
+            shiftTime: '',
+            isOff: true,
+          },
+        ]
+      }
     }
   }
 

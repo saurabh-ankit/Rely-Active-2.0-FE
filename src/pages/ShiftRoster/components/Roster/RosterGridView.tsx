@@ -74,8 +74,9 @@ const RosterGridView = ({ employeeIds, nameByUserId, onSelectDate }: RosterGridV
         shiftDates: (Array.isArray(datesData?.data) ? datesData.data : []) as ShiftEmployeeDate[],
         employeeIds,
         nameByUserId,
+        dateStrs,
       }),
-    [assignmentsData, shiftsData, datesData, employeeIds, nameByUserId],
+    [assignmentsData, shiftsData, datesData, employeeIds, nameByUserId, dateStrs],
   )
 
   const displayedEmployees = useMemo(

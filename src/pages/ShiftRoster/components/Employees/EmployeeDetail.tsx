@@ -70,6 +70,7 @@ const matchesRosterFilter = (event: RosterCalendarEvent, filter: RosterStatusFil
 
 const buildLocationLabel = (assignment?: EmployeeShiftAssignment | null): string | null => {
   if (!assignment) return null
+  if (assignment.amenity?.name) return assignment.amenity.name
   if (assignment.area?.areaName) return assignment.area.areaName
   const parts: string[] = []
   if (assignment.block?.block_name) parts.push(assignment.block.block_name)

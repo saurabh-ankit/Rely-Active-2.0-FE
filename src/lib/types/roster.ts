@@ -65,6 +65,7 @@ export interface EmployeeShiftAssignment {
   unitId?: string | null
   blockId?: string | null
   floorId?: string | null
+  amenityId?: string | null
   slotTimeRange?: string | null
   isDeleted?: boolean
   employee?: {
@@ -102,6 +103,10 @@ export interface EmployeeShiftAssignment {
     floor_name?: string | null
     floor_number?: number
   }
+  amenity?: {
+    id: string
+    name: string
+  }
   createdAt?: string
   updatedAt?: string
 }
@@ -117,6 +122,7 @@ export interface CreateEmployeeShiftPayload {
   unitId?: string | null
   blockId?: string | null
   floorId?: string | null
+  amenityId?: string | null
   slotTimeRange?: string | null
 }
 
@@ -135,6 +141,8 @@ export interface BulkCreateEmployeeShiftPayload {
   blockIds?: string[]
   floorId?: string | null
   floorIds?: string[]
+  amenityId?: string | null
+  amenityIds?: string[]
   slotTimeRange?: string | null
 }
 
@@ -163,6 +171,7 @@ export interface ShiftEmployeeDate {
     blockId?: string | null
     floorId?: string | null
     unitId?: string | null
+    amenityId?: string | null
     employee?: {
       id: string
       email?: string
@@ -173,6 +182,7 @@ export interface ShiftEmployeeDate {
     block?: { id: string; block_name?: string }
     floor?: { id: string; floor_name?: string | null; floor_number?: number }
     unit?: { id: string; unit_number?: string }
+    amenity?: { id: string; name: string }
   }
   area?: { id: string; areaName: string }
   coveringEmployee?: {

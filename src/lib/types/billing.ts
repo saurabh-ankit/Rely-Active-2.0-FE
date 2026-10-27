@@ -251,6 +251,10 @@ export interface ReceiptListItem {
   appliedTo: ReceiptAppliedTo[]
   invoiceId: string
   invoiceNumber: string | null
+  /** Flat the invoice was raised on */
+  unitNumber: string | null
+  /** Paid on a flat the residents moved here from */
+  fromPreviousFlat: boolean
   startDate: string | null
   endDate: string | null
   status: InvoiceStatus | null
