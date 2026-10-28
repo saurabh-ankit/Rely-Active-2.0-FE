@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Eye, FlaskConical, Plus, Receipt } from 'lucide-react'
+import { Eye, FlaskConical, Plus, ReceiptText } from 'lucide-react'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { TableCell, TableRow } from '@/components/ui/table'
@@ -145,7 +145,7 @@ export const LabReportsTab: React.FC<LabReportsTabProps> = ({ residentId, canUpd
                       }
                       className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-600 hover:text-[#005390] hover:underline"
                     >
-                      <Receipt className="size-3.5" /> View receipt
+                      <ReceiptText className="size-3.5" /> View receipt
                     </button>
                   )}
                 </div>
