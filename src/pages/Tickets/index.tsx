@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Plus,
   MessageSquare,
@@ -32,12 +33,14 @@ import { useTicketStore } from '@/lib/stores/ticketStore'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { getDepartmentManagerType } from '@/utils/departmentManager'
-import type { Ticket, TicketCategoryMaster, TicketFeedback, TicketPriority, TicketStatus } from '@/lib/types'
+import type { Ticket, TicketCategoryMaster, TicketPriority, TicketStatus } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { CreateTicketModal } from './components/CreateTicketModal'
 import { SelectPersonDrawer } from './components/SelectPersonDrawer'
 import { AddInvoiceModal } from './components/AddInvoiceModal'
 import { ConfirmStatusChangeDialog } from './components/ConfirmStatusChangeDialog'
+import { TicketFeedbackCard } from './components/TicketFeedbackCard'
+import { FEEDBACK_RATING_LABELS } from './ticketFeedback'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -211,31 +214,6 @@ const writeViewedTickets = (userId: string | undefined | null, ids: string[]) =>
 }
 
 /** Used only until the real departments and job categories load. */
-const FEEDBACK_RATING_STYLES: Record<string, string> = {
-  GOOD: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  AVERAGE: 'bg-amber-50 text-amber-700 border-amber-200',
-  POOR: 'bg-rose-50 text-rose-700 border-rose-200',
-}
-
-const FEEDBACK_RATING_LABELS: Record<string, string> = {
-  GOOD: 'Good',
-  AVERAGE: 'Average',
-  POOR: 'Poor',
-}
-
-/** "Gopi (Son)" when a family member left it, otherwise the resident's name. */
-const describeFeedbackAuthor = (feedback: TicketFeedback): string => {
-  const member = feedback.familyMember
-  if (member) {
-    const name = `${member.firstName || ''} ${member.lastName || ''}`.trim()
-    return member.relation ? `${name} (${member.relation})` : name
-  }
-
-  const resident = feedback.resident
-  if (resident) return `${resident.firstName || ''} ${resident.lastName || ''}`.trim()
-  return 'Resident'
-}
-
 const FALLBACK_JOB_CATEGORIES: Record<string, string[]> = {
   CON: ['Housekeeping', 'Laundry', 'Customer Support', 'Transportation', 'Others'],
   RNM: ['Electrical', 'Carpentry', 'Plumbing', 'Miscellaneous'],
@@ -403,6 +381,14 @@ function parseTicketMedia(ticket: Ticket | null): ParsedTicketMedia {
   }
 }
 
+/** The list tab a ticket appears on; mirrors the API's tab filter. */
+const ticketTab = (ticket: Ticket): 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED' => {
+  if (ticket.status === 'RESOLVED') return 'COMPLETED'
+  if (ticket.status === 'CLOSED' || ticket.status === 'CANCELLED') return 'CLOSED'
+  if (ticket.status === 'OPEN' && !ticket.assignedToUserId) return 'OPEN'
+  return 'IN_PROGRESS'
+}
+
 export default function TicketsPage() {
   const { selectedLocationId, hasResourcePermission } = useLocationContext()
   const canCreateTicket = hasResourcePermission('TICKETS', 'create')
@@ -527,6 +513,39 @@ export default function TicketsPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTickets()
   }, [activeTab, fetchTickets])
+
+  // Deep link (?ticketId=…, e.g. from an employee's work log): open that ticket on the tab it lives in.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const linkedTicketId = searchParams.get('ticketId')
+  useEffect(() => {
+    if (!linkedTicketId || !selectedLocationId) return
+    let cancelled = false
+    apiClient
+      .get(API_ENDPOINTS.tickets.get(linkedTicketId, selectedLocationId))
+      .then((res) => {
+        const ticket: Ticket | undefined = res.data?.data
+        if (cancelled || !ticket) return
+        selectedTicketIdRef.current = ticket.id
+        const tab = ticketTab(ticket)
+        if (tab === activeTabRef.current) fetchTickets(true)
+        else setActiveTab(tab)
+      })
+      .catch(() => notifyError('Could not open that ticket'))
+      .finally(() => {
+        if (cancelled) return
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev)
+            next.delete('ticketId')
+            return next
+          },
+          { replace: true },
+        )
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [linkedTicketId, selectedLocationId, fetchTickets, setSearchParams])
 
   // Handle Option Update (Category, Sub-Category, TAT, Priority, Status)
   const handleUpdateOption = async (payload: {
@@ -1554,34 +1573,7 @@ export default function TicketsPage() {
 
                 {/* Resident Feedback on the completed work */}
                 {selectedTicket.feedback && (
-                  <Card className="gap-0 bg-white rounded-2xl border-gray-200/80 p-4 shadow-2xs space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-xs font-extrabold text-gray-900 tracking-wide uppercase flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4 text-[#005390]" />
-                        Resident Feedback
-                      </h3>
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                          FEEDBACK_RATING_STYLES[selectedTicket.feedback.rating] || FEEDBACK_RATING_STYLES.AVERAGE
-                        }`}
-                      >
-                        {FEEDBACK_RATING_LABELS[selectedTicket.feedback.rating] || selectedTicket.feedback.rating}
-                      </span>
-                    </div>
-
-                    {selectedTicket.feedback.comment && (
-                      <p className="text-xs font-medium text-gray-700 leading-relaxed whitespace-pre-line">
-                        {selectedTicket.feedback.comment}
-                      </p>
-                    )}
-
-                    <div className="text-[10px] font-semibold text-gray-400">
-                      {describeFeedbackAuthor(selectedTicket.feedback)}
-                      {selectedTicket.feedback.createdAt
-                        ? ` · ${new Date(selectedTicket.feedback.createdAt).toLocaleString()}`
-                        : ''}
-                    </div>
-                  </Card>
+                  <TicketFeedbackCard feedback={selectedTicket.feedback} onPreviewPhoto={setPreviewMediaUrl} />
                 )}
               </div>
             ) : isInProgressView ? (
@@ -2314,34 +2306,7 @@ export default function TicketsPage() {
 
                 {/* Resident Feedback on the completed work */}
                 {selectedTicket.feedback && (
-                  <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-2xs space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-xs font-extrabold text-gray-900 tracking-wide uppercase flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4 text-[#005390]" />
-                        Resident Feedback
-                      </h3>
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                          FEEDBACK_RATING_STYLES[selectedTicket.feedback.rating] || FEEDBACK_RATING_STYLES.AVERAGE
-                        }`}
-                      >
-                        {FEEDBACK_RATING_LABELS[selectedTicket.feedback.rating] || selectedTicket.feedback.rating}
-                      </span>
-                    </div>
-
-                    {selectedTicket.feedback.comment && (
-                      <p className="text-xs font-medium text-gray-700 leading-relaxed whitespace-pre-line">
-                        {selectedTicket.feedback.comment}
-                      </p>
-                    )}
-
-                    <div className="text-[10px] font-semibold text-gray-400">
-                      {describeFeedbackAuthor(selectedTicket.feedback)}
-                      {selectedTicket.feedback.createdAt
-                        ? ` · ${new Date(selectedTicket.feedback.createdAt).toLocaleString()}`
-                        : ''}
-                    </div>
-                  </div>
+                  <TicketFeedbackCard feedback={selectedTicket.feedback} onPreviewPhoto={setPreviewMediaUrl} />
                 )}
               </div>
             )

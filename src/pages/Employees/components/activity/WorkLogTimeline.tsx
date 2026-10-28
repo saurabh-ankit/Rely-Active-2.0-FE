@@ -1,7 +1,18 @@
 import { useMemo } from 'react'
 import { format, isToday, isValid, isYesterday, parseISO } from 'date-fns'
-import { ArrowRight, HeartPulse, History, LogIn, MessageSquareText, Stethoscope, Truck, Wrench } from 'lucide-react'
+import {
+  ArrowRight,
+  ExternalLink,
+  HeartPulse,
+  History,
+  LogIn,
+  MessageSquareText,
+  Stethoscope,
+  Truck,
+  Wrench,
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useEmployeeWorkLog } from '@/hooks/react-query/user'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/common/DetailPanel'
@@ -41,11 +52,22 @@ const LogEntry = ({ event }: { event: WorkLogEvent }) => {
       <div className="min-w-0 pb-5">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="text-sm font-semibold text-gray-900 dark:text-white">{event.action}</span>
-          {event.code && (
-            <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-              {event.code}
-            </span>
-          )}
+          {event.code &&
+            (event.module === 'ticket' && event.refId ? (
+              // Opens the ticket on the Tickets page, on whichever tab it currently sits.
+              <Link
+                to={`/admin/tickets?ticketId=${event.refId}`}
+                title="Open ticket"
+                className="inline-flex items-center gap-1 rounded-md bg-[#005390]/10 px-1.5 py-0.5 font-mono text-[11px] text-[#005390] hover:bg-[#005390]/20 hover:underline"
+              >
+                {event.code}
+                <ExternalLink className="h-3 w-3" />
+              </Link>
+            ) : (
+              <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                {event.code}
+              </span>
+            ))}
           <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-gray-400">{style.label}</span>
         </div>
         <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-300">{event.title}</p>
