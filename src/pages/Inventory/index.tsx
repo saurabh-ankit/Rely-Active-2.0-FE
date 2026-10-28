@@ -102,6 +102,7 @@ function CategoryList({ locationId, onSelect }: { locationId: string; onSelect: 
     <InventoryTable
       locationId={locationId}
       kind="categories"
+      onRowClick={onSelect}
       columns={[
         {
           accessorKey: 'name',
@@ -111,14 +112,9 @@ function CategoryList({ locationId, onSelect }: { locationId: string; onSelect: 
               icon={FolderOpen}
               image={row.original.image}
               title={
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-auto p-0 cursor-pointer text-left hover:text-[#005390] hover:underline hover:bg-transparent font-normal whitespace-normal justify-start inline"
-                  onClick={() => onSelect(row.original)}
-                >
+                <span className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-[#005390] group-hover transition-colors">
                   {row.original.name}
-                </Button>
+                </span>
               }
               subtitle={row.original.description}
             />
@@ -409,6 +405,7 @@ function InventoryTable<K extends keyof CenterLists>({
   columns,
   filters = {},
   filterActions,
+  onRowClick,
 }: {
   locationId: string
   kind: K
@@ -416,6 +413,7 @@ function InventoryTable<K extends keyof CenterLists>({
   columns: ColumnDef<CenterLists[K]>[]
   filters?: CenterListParams
   filterActions?: ReactNode
+  onRowClick?: (row: CenterLists[K]) => void
 }) {
   const scope = JSON.stringify({ locationId, kind, categoryId, filters })
   const [state, setState] = useState({ scope, search: '', pagination: { pageIndex: 0, pageSize: 10 } })
@@ -455,6 +453,7 @@ function InventoryTable<K extends keyof CenterLists>({
       }}
       filterActions={filterActions}
       searchPlaceholder={`Search ${kind === 'purchase-orders' ? 'purchase orders' : kind}…`}
+      onRowClick={onRowClick}
     />
   )
 }
