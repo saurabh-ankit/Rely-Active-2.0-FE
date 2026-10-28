@@ -319,6 +319,7 @@ const RosterCalendar = () => {
             const dayEvents = eventsByDate[dateStr] || []
             const isToday = dateStr === todayStr
             const shiftGroups = groupRostersByShift(dayEvents)
+            const staffCount = shiftGroups.reduce((sum, group) => sum + group.employees.length, 0)
 
             return (
               // A day cell (not a <button>, since each employee inside is one): clicking the
@@ -341,8 +342,8 @@ const RosterCalendar = () => {
               >
                 <div className="flex items-center justify-between gap-1">
                   <span className={`text-sm font-semibold ${isToday ? 'text-[#2a517c]' : 'text-gray-900'}`}>{day}</span>
-                  {dayEvents.length > 0 && (
-                    <span className="text-[10px] font-semibold text-gray-400">{dayEvents.length} staff</span>
+                  {staffCount > 0 && (
+                    <span className="text-[10px] font-semibold text-gray-400">{staffCount} staff</span>
                   )}
                 </div>
 
@@ -359,29 +360,53 @@ const RosterCalendar = () => {
                         </span>
                       </div>
                       <ul className="divide-y divide-gray-100 bg-white">
-                        {group.events.map((event) => (
-                          <li key={event.id}>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setDetailEvent(event)
-                              }}
-                              title={`Open ${event.employeeName}'s roster for this day`}
-                              className={`h-auto p-0 rounded-none block w-full cursor-pointer border-l-[3px] px-2 py-1.5 text-left transition-colors hover:bg-[#2a517c]/5 whitespace-normal font-normal ${statusEdge[event.status] || statusEdge.upcoming}`}
-                            >
-                              <p className="truncate text-[13px] font-semibold leading-tight text-[#1e3a5a]">
-                                {event.employeeName}
-                              </p>
-                              {event.departmentName && (
-                                <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                                  {event.departmentName}
-                                </p>
-                              )}
-                            </Button>
-                          </li>
-                        ))}
+                        {group.employees.map(({ key: employeeKey, employeeName, events: areaEvents }) => {
+                          const [first] = areaEvents
+                          const multiArea = areaEvents.length > 1
+                          const areas = areaEvents
+                            .map((event) => event.locationLabel || event.areaName)
+                            .filter(Boolean)
+                            .join(' · ')
+                          return (
+                            <li key={employeeKey}>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  // One roster opens directly; several areas open the day list to pick one.
+                                  if (multiArea) setSelectedDay(dateStr)
+                                  else setDetailEvent(first)
+                                }}
+                                title={
+                                  multiArea
+                                    ? `${employeeName}: ${areaEvents.length} areas on this shift`
+                                    : `Open ${employeeName}'s roster for this day`
+                                }
+                                className={`h-auto p-0 rounded-none block w-full cursor-pointer border-l-[3px] px-2 py-1.5 text-left transition-colors hover:bg-[#2a517c]/5 whitespace-normal font-normal ${statusEdge[first.status] || statusEdge.upcoming}`}
+                              >
+                                <div className="flex items-center justify-between gap-1">
+                                  <p className="truncate text-[13px] font-semibold leading-tight text-[#1e3a5a]">
+                                    {employeeName}
+                                  </p>
+                                  {multiArea && (
+                                    <span className="shrink-0 rounded bg-[#2a517c]/10 px-1 text-[9px] font-bold uppercase text-[#2a517c]">
+                                      {areaEvents.length} areas
+                                    </span>
+                                  )}
+                                </div>
+                                {first.departmentName && (
+                                  <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                                    {first.departmentName}
+                                  </p>
+                                )}
+                                {multiArea && areas && (
+                                  <p className="mt-0.5 truncate text-[10px] text-gray-500">{areas}</p>
+                                )}
+                              </Button>
+                            </li>
+                          )
+                        })}
                       </ul>
                     </div>
                   ))}

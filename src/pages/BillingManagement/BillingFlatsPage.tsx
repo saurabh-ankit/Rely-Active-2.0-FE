@@ -22,9 +22,25 @@ import { RESOURCE } from '@/lib/permissions/resourceKeys'
 import type { BillingUnit, MonthBillingStatus } from '@/lib/types/billing'
 import { cn } from '@/lib/utils'
 import { MonthStatusBadge } from './components/billingUi'
-import { MONTH_STATUS_META, formatDay, formatInr, monthLabel, monthRange } from './components/billingFormat'
+import {
+  MONTH_STATUS_META,
+  formatDay,
+  formatInr,
+  monthLabel,
+  monthRange,
+  toDayString,
+} from './components/billingFormat'
 
 const PAGE_SIZE = 20
+
+const OPEN_STATUSES = new Set(['PENDING', 'PARTIALLY_PAID', 'OVERDUE'])
+
+/** Earliest due date among a month's invoices that still owe money. */
+const openDueDate = (invoices: BillingUnit['month']['invoices']) =>
+  invoices
+    .filter((i) => i.dueDate && OPEN_STATUSES.has(i.status))
+    .map((i) => i.dueDate as string)
+    .sort()[0] ?? null
 
 const currentMonth = () => {
   const d = new Date()
@@ -145,10 +161,23 @@ export default function BillingFlatsPage() {
             <div className="space-y-1">
               <MonthStatusBadge status={m.status} />
               {m.invoices.length > 0 && (
-                <p className="text-[11px] text-gray-500">
-                  {m.invoices.map((i) => i.invoiceNumber).join(', ')}
-                  {m.partlyBilled && <span className="ml-1 text-amber-600">· part of month only</span>}
-                </p>
+                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-gray-500">
+                  {m.invoices.map((i) => (
+                    <span key={i.id} className="inline-flex flex-wrap items-center gap-1.5">
+                      {i.invoiceNumber}
+                      <span className="text-gray-400">
+                        · {formatDay(i.startDate)} – {formatDay(i.endDate)}
+                      </span>
+                      {/* Raised on the flat this household moved out of; it is owed here now. */}
+                      {i.fromUnitNumber && (
+                        <span className="rounded-full border border-orange-200 bg-orange-50 px-1.5 py-px text-[10px] font-semibold text-orange-700">
+                          From old flat {i.fromUnitNumber}
+                        </span>
+                      )}
+                    </span>
+                  ))}
+                  {m.partlyBilled && <span className="text-amber-600">· part of month only</span>}
+                </div>
               )}
               {m.status === 'NOT_MOVED_IN' && row.original.movedInDate && (
                 <p className="text-[11px] text-gray-400">From {monthLabel(row.original.movedInDate.slice(0, 7))}</p>
@@ -159,20 +188,61 @@ export default function BillingFlatsPage() {
       },
       {
         id: 'amounts',
-        header: () => <div className="text-right">Billed · Paid · Due</div>,
+        header: () => <div className="text-right">Due</div>,
         cell: ({ row }) => {
           const m = row.original.month
           if (!m.invoices.length) return <div className="text-right text-gray-300">—</div>
+          // The earliest due date among this month's still-unpaid invoices.
+          const dueBy = m.balance > 0 ? openDueDate(m.invoices) : null
+          const overdue = !!dueBy && dueBy < toDayString(new Date())
           return (
-            <div className="text-right text-sm">
-              <span className="text-gray-900">{formatInr(m.billed)}</span>
-              <span className="mx-1 text-gray-300">·</span>
-              <span className="text-emerald-700">{formatInr(m.paid)}</span>
-              <span className="mx-1 text-gray-300">·</span>
-              <span className={m.balance > 0 ? 'font-semibold text-amber-700' : 'text-gray-400'}>
+            <div className="text-right">
+              <p
+                className={cn('text-sm tabular-nums', m.balance > 0 ? 'font-semibold text-amber-700' : 'text-gray-400')}
+              >
                 {formatInr(m.balance)}
-              </span>
+              </p>
+              {dueBy ? (
+                <p className={cn('text-[11px]', overdue ? 'font-semibold text-rose-600' : 'text-gray-400')}>
+                  {overdue ? `Overdue since ${formatDay(dueBy)}` : `by ${formatDay(dueBy)}`}
+                </p>
+              ) : (
+                m.balance <= 0 && <p className="text-[11px] text-emerald-600">Settled</p>
+              )}
             </div>
+          )
+        },
+      },
+      {
+        id: 'outstanding',
+        header: () => <div className="text-right">Total outstanding</div>,
+        cell: ({ row }) => {
+          const { outstanding, month: m } = row.original
+          if (outstanding <= 0) return <div className="text-right text-sm text-gray-300">—</div>
+          // Older months still unpaid, on top of this month's due.
+          const older = Math.round((outstanding - m.balance) * 100) / 100
+          return (
+            <div className="text-right">
+              <p className="text-sm font-semibold tabular-nums text-rose-700">{formatInr(outstanding)}</p>
+              <p className="text-[11px] text-gray-400">
+                {older > 0 ? `incl. ${formatInr(older)} from earlier bills` : 'all months'}
+              </p>
+            </div>
+          )
+        },
+      },
+      {
+        id: 'billedUntil',
+        header: 'Billed until',
+        cell: ({ row }) => {
+          const until = row.original.lastBilledUntil
+          return until ? (
+            <div>
+              <p className="text-sm whitespace-nowrap text-gray-800">{formatDay(until)}</p>
+              <p className="text-[11px] text-gray-400">last invoiced day</p>
+            </div>
+          ) : (
+            <p className="text-[11px] text-gray-400">Never billed</p>
           )
         },
       },

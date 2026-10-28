@@ -103,8 +103,6 @@ export function SelectPersonDrawer({ isOpen, ticket, locationId, onClose, onAssi
   const [employees, setEmployees] = useState<AssignableEmployee[]>([])
   const [selectedUserId, setSelectedUserId] = useState<string>(SELF_ID)
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  /** Staff outside the ticket's department stay collapsed until asked for. */
-  const [showOtherStaff, setShowOtherStaff] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -116,7 +114,6 @@ export function SelectPersonDrawer({ isOpen, ticket, locationId, onClose, onAssi
       setIsLoading(true)
       setSelectedUserId(SELF_ID)
       setExpandedId(null)
-      setShowOtherStaff(false)
       try {
         const url = API_ENDPOINTS.tickets.assignableEmployees(
           locationId,
@@ -357,32 +354,21 @@ export function SelectPersonDrawer({ isOpen, ticket, locationId, onClose, onAssi
                   'Same department, a different category',
                 )}
 
-                {inDepartmentCount === 0 && otherStaff.length > 0 && (departmentName || jobCategoryName) && (
-                  <p className="px-1 py-2 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-xl">
-                    No staff are posted to{' '}
-                    {[jobCategoryName, departmentName].filter(Boolean).join(' in ') || 'this ticket\u2019s category'}.
-                    Showing everyone at this property instead.
-                  </p>
-                )}
+                {/* A ticket goes to its own department's staff; only one without a department lists everyone. */}
+                {ticket?.departmentId
+                  ? inDepartmentCount === 0 && (
+                      <p className="px-3 py-2 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-xl">
+                        No staff are posted to{' '}
+                        {[jobCategoryName, departmentName].filter(Boolean).join(' in ') ||
+                          'this ticket\u2019s department'}{' '}
+                        yet. Add staff to this department, or assign the ticket to yourself.
+                      </p>
+                    )
+                  : renderGroup(otherStaff, 'All staff', 'This ticket has no department')}
 
-                {otherStaff.length > 0 &&
-                  (inDepartmentCount === 0 || showOtherStaff ? (
-                    renderGroup(otherStaff, 'Other departments', 'Outside this ticket\u2019s department')
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowOtherStaff(true)}
-                      className="w-full py-2.5 h-auto rounded-xl border border-dashed border-gray-300 text-[11px] font-bold text-gray-500 hover:text-gray-700 hover:border-gray-400 transition-colors cursor-pointer"
-                    >
-                      Show staff from other departments ({otherStaff.length})
-                    </Button>
-                  ))}
-
-                {otherEmployees.length === 0 && (
+                {!ticket?.departmentId && otherEmployees.length === 0 && (
                   <p className="py-8 text-center text-xs font-semibold text-gray-400">
-                    No other staff available for this department.
+                    No other staff available at this property.
                   </p>
                 )}
               </>
