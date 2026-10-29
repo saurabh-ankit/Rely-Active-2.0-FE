@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type React from 'react'
-import { CalendarPlus, Clock, MapPin, Users, type LucideIcon } from 'lucide-react'
+import { AlertTriangle, CalendarPlus, Clock, MapPin, Users, type LucideIcon } from 'lucide-react'
 import { Controller, useForm } from 'react-hook-form'
 /* eslint-disable react-hooks/incompatible-library -- react-hook-form watch() */
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -816,6 +816,17 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                   </div>
                 </div>
 
+                {/* Shown beside the shift choice, since picking another shift or slot is how it's fixed. */}
+                {overlapValidationError && (
+                  <p
+                    role="alert"
+                    className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                  >
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    {overlapValidationError}
+                  </p>
+                )}
+
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label>From *</Label>
@@ -1306,9 +1317,9 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                 {errors.notes && <p className="text-sm text-red-600">{errors.notes.message}</p>}
               </div>
 
-              {(timeValidationError || overlapValidationError) && (
+              {timeValidationError && (
                 <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {timeValidationError || overlapValidationError}
+                  {timeValidationError}
                 </p>
               )}
             </div>

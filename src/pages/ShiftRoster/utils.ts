@@ -1050,19 +1050,34 @@ export const resolveLifecycleRosterStatus = (
 
 // ── Roster calendar grouping ──────────────────────────────────────────────────
 
+export interface RosterEmployeeGroup<T> {
+  key: string
+  employeeName: string
+  /** One roster per area the employee covers on this shift. */
+  events: T[]
+}
+
 export interface RosterShiftGroup<T> {
   key: string
   shiftName: string
   time: string
   events: T[]
+  employees: RosterEmployeeGroup<T>[]
 }
 
 /**
  * A day's rosters grouped by shift (name + time), so the shift is shown once with
- * its employees listed under it. Groups follow the order the shifts first appear.
+ * its employees listed under it. An employee rostered on the same shift for several
+ * areas is listed once, with the areas under them. Groups follow the order the shifts first appear.
  */
 export const groupRostersByShift = <
-  T extends { shiftName: string; shiftTime: string; slotTimeRange?: string | null; employeeName: string },
+  T extends {
+    shiftName: string
+    shiftTime: string
+    slotTimeRange?: string | null
+    employeeId?: string
+    employeeName: string
+  },
 >(
   events: T[],
 ): RosterShiftGroup<T>[] => {
@@ -1070,10 +1085,21 @@ export const groupRostersByShift = <
   for (const event of events) {
     const time = event.slotTimeRange || event.shiftTime || ''
     const key = `${event.shiftName}|${time}`
-    const group = groups.get(key) ?? { key, shiftName: event.shiftName, time, events: [] }
+    const group = groups.get(key) ?? { key, shiftName: event.shiftName, time, events: [], employees: [] }
     group.events.push(event)
     groups.set(key, group)
   }
-  for (const group of groups.values()) group.events.sort((a, b) => a.employeeName.localeCompare(b.employeeName))
+  for (const group of groups.values()) {
+    group.events.sort((a, b) => a.employeeName.localeCompare(b.employeeName))
+    // The name is part of the key so a cover or day-off entry stays separate from the employee's own.
+    const byEmployee = new Map<string, RosterEmployeeGroup<T>>()
+    for (const event of group.events) {
+      const key = `${event.employeeId ?? ''}|${event.employeeName}`
+      const employee = byEmployee.get(key) ?? { key, employeeName: event.employeeName, events: [] }
+      employee.events.push(event)
+      byEmployee.set(key, employee)
+    }
+    group.employees = [...byEmployee.values()]
+  }
   return [...groups.values()]
 }

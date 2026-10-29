@@ -276,7 +276,16 @@ export interface BillingUnit {
   movedOutDate: string | null
   month: {
     status: MonthBillingStatus
-    invoices: { id: string; invoiceNumber: string; startDate: string; endDate: string; status: InvoiceStatus }[]
+    invoices: {
+      id: string
+      invoiceNumber: string
+      /** Set when the invoice was raised on a flat the household moved here from */
+      fromUnitNumber: string | null
+      startDate: string
+      endDate: string
+      dueDate: string | null
+      status: InvoiceStatus
+    }[]
     billed: number
     paid: number
     balance: number
