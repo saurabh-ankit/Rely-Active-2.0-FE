@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
-import { ExternalLink, FileText, Plus } from 'lucide-react'
+import { Eye, FileText, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TableCell, TableRow } from '@/components/ui/table'
 import { useResidentDocumentsQuery } from '@/hooks/react-query/resident'
-import { formatDisplayDate, getFileUrl } from '@/lib/utils'
+import { formatDisplayDate } from '@/lib/utils'
 import { ClinicalCard, ClinicalErrorBanner, ClinicalTable } from './ClinicalShared'
 import AddDocumentModal from './AddDocumentModal'
+import FilePreviewModal from './FilePreviewModal'
 
 interface DocumentsTabProps {
   residentId: string
@@ -14,6 +15,7 @@ interface DocumentsTabProps {
 
 export const DocumentsTab: React.FC<DocumentsTabProps> = ({ residentId, canUpdateResident }) => {
   const [isAddOpen, setIsAddOpen] = useState(false)
+  const [preview, setPreview] = useState<{ url: string; title: string } | null>(null)
   const documentsQuery = useResidentDocumentsQuery(residentId)
   const documents = documentsQuery.data ?? []
   const isLoading = documentsQuery.isLoading
@@ -60,14 +62,18 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({ residentId, canUpdat
               <TableCell className="px-4 py-3.5 whitespace-pre-wrap break-words">{doc.note || '-'}</TableCell>
               <TableCell className="px-4 py-3.5 whitespace-nowrap">{formatDisplayDate(doc.createdAt)}</TableCell>
               <TableCell className="px-4 py-3.5">
-                <a
-                  href={getFileUrl(doc.fileUrl)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#005390] hover:underline"
+                <Button
+                  variant="link"
+                  onClick={() =>
+                    setPreview({
+                      url: doc.fileUrl,
+                      title: doc.name || 'Document',
+                    })
+                  }
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#005390] "
                 >
-                  <ExternalLink className="size-3.5" /> View
-                </a>
+                  <Eye className="size-3.5" /> View
+                </Button>
               </TableCell>
             </TableRow>
           ))}
@@ -75,6 +81,13 @@ export const DocumentsTab: React.FC<DocumentsTabProps> = ({ residentId, canUpdat
       </ClinicalCard>
 
       {isAddOpen && <AddDocumentModal open={isAddOpen} onOpenChange={setIsAddOpen} residentId={residentId} />}
+
+      <FilePreviewModal
+        open={!!preview}
+        onOpenChange={(open) => !open && setPreview(null)}
+        url={preview?.url ?? null}
+        title={preview?.title}
+      />
     </>
   )
 }
