@@ -270,7 +270,7 @@ const RosterCalendar = () => {
             className="gap-0 w-full sm:w-auto"
           >
             <div className="rounded-full bg-slate-200/70 dark:bg-slate-800/80 border border-slate-300/70 dark:border-slate-700/80 p-1 shadow-2xs flex w-full sm:w-auto">
-              <TabsList className="grid grid-cols-3 w-full sm:w-auto items-center gap-1 bg-transparent p-0 h-auto">
+              <TabsList className="grid grid-cols-2 w-full sm:w-auto items-center gap-1 bg-transparent p-0 h-auto">
                 {VIEW_MODES.map((mode) => (
                   <TabsTrigger
                     key={mode}
