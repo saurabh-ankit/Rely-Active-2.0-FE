@@ -22,6 +22,9 @@ export interface PropertyAmenity {
   name: string
   description: string | null
   slotBookable: boolean
+  /** Payable amenities bill `price` per booked slot to the resident's flat. */
+  isPayable?: boolean
+  price?: number | null
   settings: AmenitySlotSettings | Record<string, unknown> | null
   isActive: boolean
 }
@@ -29,6 +32,8 @@ export interface PropertyAmenity {
 export interface PropertyAmenityInput {
   amenityId: string
   slotBookable?: boolean
+  isPayable?: boolean
+  price?: number | null
   settings?: AmenitySlotSettings | Record<string, unknown> | null
 }
 

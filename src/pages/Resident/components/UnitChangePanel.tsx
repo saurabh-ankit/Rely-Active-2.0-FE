@@ -41,6 +41,7 @@ const CHARGE_LABEL: Record<string, string> = {
   INVENTORY_ITEM: 'Medicines & items',
   EVENT_FEE: 'Events',
   VENUE_BOOKING: 'Venue bookings',
+  AMENITY_BOOKING: 'Amenity bookings',
   MAINTENANCE: 'Maintenance tickets',
   MISCELLANEOUS_AS_SERVICE: 'Miscellaneous',
 }

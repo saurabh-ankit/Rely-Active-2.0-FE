@@ -26,6 +26,7 @@ export const SERVICE_TYPE_LABEL: Record<BillingServiceType, string> = {
   INVENTORY_ITEM: 'Medicines & Consumables',
   EVENT_FEE: 'Events',
   VENUE_BOOKING: 'Venue Bookings',
+  AMENITY_BOOKING: 'Amenity Bookings',
   MAINTENANCE: 'Maintenance',
   MISCELLANEOUS_AS_SERVICE: 'Miscellaneous',
   MISCELLANEOUS_AT_BILLING: 'Miscellaneous',

@@ -508,6 +508,16 @@ export default function PropertyDetailsPage() {
                       <span className="text-[10px] font-semibold text-[#005390]/70">
                         {item.slotBookable ? 'Slot' : 'Non-slot'}
                       </span>
+                      {item.isPayable && item.price ? (
+                        <span className="rounded-full bg-emerald-50 px-1.5 text-[10px] font-semibold text-emerald-700">
+                          ₹{item.price.toLocaleString('en-IN')}/
+                          {item.slotSetup?.bookingUnit === 'NIGHT'
+                            ? 'night'
+                            : item.slotSetup?.bookingUnit === 'FULL_DAY'
+                              ? 'day'
+                              : 'slot'}
+                        </span>
+                      ) : null}
                       {timeWindow ? (
                         <span className="text-[10px] font-semibold text-[#005390]/70">{timeWindow}</span>
                       ) : null}

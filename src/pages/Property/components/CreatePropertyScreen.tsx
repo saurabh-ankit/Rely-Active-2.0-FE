@@ -2,16 +2,17 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { TimePicker } from '@/components/ui/time-picker'
 import React, { useState } from 'react'
 import { isAxiosError } from 'axios'
-import { Building2, Home, Layers, Loader2, MapPin, Plus, Sparkles, Trash2, X, Check } from 'lucide-react'
+import { Building2, Home, Layers, Loader2, MapPin, Plus, Sparkles, Trash2, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BackButton } from '@/components/common/BackButton'
 import { AddEntityDialog } from './structure/AddEntityDialog'
 import { EntityUnitsEditor } from './structure/EntityUnitsEditor'
 import { ApplyToAllButton, BulkAddControl } from './structure/BlockCopyBar'
 import { HomeEditor } from './structure/HomeEditor'
+import { AmenitySetupRow } from './AmenitySetupRow'
+import { priceUnitLabel, type SelectedAmenity } from '../amenityBooking'
 import {
   allUnitNumbers,
   countUnits,
@@ -104,6 +105,7 @@ export type PropertyAddressFormValues = z.infer<typeof propertyAddressSchema>
 export type FullPropertyFormValues = z.infer<typeof fullPropertySchema>
 import type {
   AmenitySlotSettings,
+  PropertyAmenity,
   AreaUnit,
   BHKTemplateVariant,
   BlockInput,
@@ -133,14 +135,6 @@ const VIEW_FACING_OPTIONS = [
 const FLOOR_TYPE_OPTIONS = ['GROUND_FLOOR', 'FLOOR', 'STILT', 'BASEMENT', 'PENTHOUSE']
 const TIME_24_HOUR_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/
 
-interface SelectedAmenity {
-  amenityId: string | null
-  name: string
-  slotBookable: boolean
-  availableFrom?: string
-  availableTo?: string
-}
-
 const toTimeMinutes = (value: string) => {
   const [hours, minutes] = value.split(':').map((part) => Number(part))
   return hours * 60 + minutes
@@ -157,6 +151,75 @@ const extractAmenitySlotSettings = (settings: unknown): AmenitySlotSettings | nu
   if (TIME_24_HOUR_REGEX.test(availableTo)) normalized.availableTo = availableTo
 
   return normalized.availableFrom || normalized.availableTo ? normalized : null
+}
+
+const minutesToHHmm = (minutes: number) =>
+  minutes >= 1440
+    ? '23:59'
+    : `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+
+const newSelectedAmenity = (amenityId: string | null, name: string): SelectedAmenity => ({
+  amenityId,
+  name,
+  slotBookable: false,
+  isPayable: false,
+  price: '',
+  bookingUnit: 'SLOT',
+  slotDurationMinutes: 60,
+  availableFrom: '',
+  availableTo: '',
+  checkInTime: '12:00',
+  checkOutTime: '11:00',
+})
+
+/** Form state from a saved amenity: its settings, else the slot setup made before booking units existed. */
+const toSelectedAmenity = (item: PropertyAmenity): SelectedAmenity => {
+  const settings = (item.settings ?? {}) as AmenitySlotSettings
+  const setup = item.slotSetup
+  const window = extractAmenitySlotSettings(item.settings)
+  const unit = settings.bookingUnit ?? setup?.bookingUnit ?? 'SLOT'
+  const fromSetup = setup && setup.bookingUnit === unit ? setup : null
+  return {
+    ...newSelectedAmenity(item.amenityId, item.name),
+    slotBookable: item.slotBookable,
+    isPayable: !!item.isPayable,
+    price: item.price != null ? String(item.price) : '',
+    bookingUnit: unit,
+    slotDurationMinutes:
+      Number(settings.slotDurationMinutes) || (unit === 'SLOT' && fromSetup ? fromSetup.durationMin : 60),
+    availableFrom:
+      window?.availableFrom ||
+      (fromSetup && unit !== 'NIGHT' && !(unit === 'FULL_DAY' && fromSetup.openMinutes === 0)
+        ? minutesToHHmm(fromSetup.openMinutes)
+        : ''),
+    availableTo:
+      window?.availableTo ||
+      (fromSetup && unit !== 'NIGHT' && !(unit === 'FULL_DAY' && fromSetup.closeMinutes >= 1440)
+        ? minutesToHHmm(fromSetup.closeMinutes)
+        : ''),
+    checkInTime:
+      settings.checkInTime || (fromSetup && unit === 'NIGHT' ? minutesToHHmm(fromSetup.openMinutes) : '12:00'),
+    checkOutTime:
+      settings.checkOutTime ||
+      (fromSetup?.checkOutMinutes != null && unit === 'NIGHT' ? minutesToHHmm(fromSetup.checkOutMinutes) : '11:00'),
+  }
+}
+
+/** The settings saved for an amenity: its booking unit and times, or a non-bookable amenity's availability. */
+const amenitySettingsPayload = (item: SelectedAmenity): AmenitySlotSettings | null => {
+  const availableFrom = (item.availableFrom || '').trim()
+  const availableTo = (item.availableTo || '').trim()
+  const hasWindow =
+    TIME_24_HOUR_REGEX.test(availableFrom) &&
+    TIME_24_HOUR_REGEX.test(availableTo) &&
+    toTimeMinutes(availableFrom) < toTimeMinutes(availableTo)
+  const window = hasWindow ? { availableFrom, availableTo } : {}
+  if (!item.slotBookable) return hasWindow ? { availableFrom, availableTo } : null
+  if (item.bookingUnit === 'NIGHT') {
+    return { bookingUnit: 'NIGHT', checkInTime: item.checkInTime, checkOutTime: item.checkOutTime }
+  }
+  if (item.bookingUnit === 'FULL_DAY') return { bookingUnit: 'FULL_DAY', ...window }
+  return { bookingUnit: 'SLOT', ...window, slotDurationMinutes: item.slotDurationMinutes }
 }
 
 // ─── Step progress config ───────────────────────────────────────────────────
@@ -387,33 +450,14 @@ export default function CreatePropertyScreen({
           setCountry(p.country || 'India')
           setTotalArea(p.total_area ? String(p.total_area) : '')
           setAreaUnit(p.area_unit || 'sqft')
-          if (p.propertyAmenities?.length) {
-            setSelectedAmenities(
-              p.propertyAmenities.map((item) => {
-                const slotSettings = extractAmenitySlotSettings(item.settings)
-                return {
-                  amenityId: item.amenityId,
-                  name: item.name,
-                  slotBookable: item.slotBookable,
-                  availableFrom: slotSettings?.availableFrom || '',
-                  availableTo: slotSettings?.availableTo || '',
-                }
-              }),
-            )
-          } else {
-            setSelectedAmenities(
-              (p.amenities || []).map((name) => {
-                const catalogItem = amenitiesByName.get(name.trim().toLowerCase())
-                return {
-                  amenityId: catalogItem?.id || null,
-                  name,
-                  slotBookable: false,
-                  availableFrom: '',
-                  availableTo: '',
-                }
-              }),
-            )
-          }
+          // Saved amenity rows, plus names kept only on the property (older saves, or not in the
+          // catalog): without them those amenities would vanish from the form and the next save.
+          const saved = (p.propertyAmenities ?? []).map(toSelectedAmenity)
+          const savedNames = new Set(saved.map((item) => item.name.trim().toLowerCase()))
+          const nameOnly = (p.amenities || [])
+            .filter((name) => name.trim() && !savedNames.has(name.trim().toLowerCase()))
+            .map((name) => newSelectedAmenity(amenitiesByName.get(name.trim().toLowerCase())?.id || null, name))
+          setSelectedAmenities([...saved, ...nameOnly])
           if (p.entities && p.entities.length > 0) {
             setEntities(p.entities.map(normalizeEntity))
             setActiveEntityIndex(0)
@@ -705,25 +749,10 @@ export default function CreatePropertyScreen({
         const next = [...prev]
         const current = next[byNameIndex]
         if (!current) return prev
-        next[byNameIndex] = {
-          amenityId: amenity.id,
-          name: amenity.name,
-          slotBookable: current.slotBookable,
-          availableFrom: current.availableFrom || '',
-          availableTo: current.availableTo || '',
-        }
+        next[byNameIndex] = { ...current, amenityId: amenity.id, name: amenity.name }
         return next
       }
-      return [
-        ...prev,
-        {
-          amenityId: amenity.id,
-          name: amenity.name,
-          slotBookable: false,
-          availableFrom: '',
-          availableTo: '',
-        },
-      ]
+      return [...prev, newSelectedAmenity(amenity.id, amenity.name)]
     })
   }
 
@@ -737,28 +766,17 @@ export default function CreatePropertyScreen({
     )
   }
 
-  const toggleAmenitySlotBookable = (amenity: SelectedAmenity) => {
-    setSelectedAmenities((prev) =>
-      prev.map((item) => {
-        const same = amenity.amenityId
-          ? item.amenityId === amenity.amenityId
-          : item.name.trim().toLowerCase() === amenity.name.trim().toLowerCase()
-        return same ? { ...item, slotBookable: !item.slotBookable } : item
-      }),
-    )
-  }
+  /** Catalog id for an amenity kept only by name, matched when the catalog has loaded. */
+  const catalogIdByName = (name: string): string | null =>
+    amenityCatalog.find((item) => item.name.trim().toLowerCase() === name.trim().toLowerCase())?.id ?? null
 
-  const updateAmenityAvailability = (
-    amenity: SelectedAmenity,
-    field: 'availableFrom' | 'availableTo',
-    value: string,
-  ) => {
+  const patchAmenity = (amenity: SelectedAmenity, patch: Partial<SelectedAmenity>) => {
     setSelectedAmenities((prev) =>
       prev.map((item) => {
         const same = amenity.amenityId
           ? item.amenityId === amenity.amenityId
           : item.name.trim().toLowerCase() === amenity.name.trim().toLowerCase()
-        return same ? { ...item, [field]: value } : item
+        return same ? { ...item, ...patch } : item
       }),
     )
   }
@@ -766,8 +784,25 @@ export default function CreatePropertyScreen({
   const validateStep = (): boolean => {
     if (step === 1) {
       for (const amenity of selectedAmenities) {
+        if (amenity.isPayable && !(Number(amenity.price) > 0)) {
+          setError(`${amenity.name}: enter a price per ${priceUnitLabel(amenity)}, or make it free`)
+          return false
+        }
+
+        if (amenity.slotBookable && amenity.bookingUnit === 'NIGHT') {
+          if (!TIME_24_HOUR_REGEX.test(amenity.checkInTime) || !TIME_24_HOUR_REGEX.test(amenity.checkOutTime)) {
+            setError(`${amenity.name}: set the check-in and check-out times`)
+            return false
+          }
+          continue
+        }
+
         const from = (amenity.availableFrom || '').trim()
         const to = (amenity.availableTo || '').trim()
+        if (amenity.slotBookable && amenity.bookingUnit === 'SLOT' && (!from || !to)) {
+          setError(`${amenity.name}: set the opening hours for its slots`)
+          return false
+        }
         if (!from && !to) continue
 
         if (!from || !to) {
@@ -781,7 +816,10 @@ export default function CreatePropertyScreen({
         }
 
         if (toTimeMinutes(from) >= toTimeMinutes(to)) {
-          setError(`${amenity.name}: Available To must be later than Available From`)
+          setError(
+            `${amenity.name}: closing time must be later than opening time` +
+              (amenity.slotBookable ? '' : '. For overnight use, turn on booking and choose Overnight stay'),
+          )
           return false
         }
       }
@@ -986,29 +1024,19 @@ export default function CreatePropertyScreen({
         total_area: totalArea ? Number(totalArea) : null,
         area_unit: areaUnit,
         amenities: selectedAmenities.length > 0 ? selectedAmenities.map((item) => item.name) : null,
-        ...(selectedAmenities.length === 0 || selectedAmenities.some((item) => !!item.amenityId)
+        ...(selectedAmenities.length === 0 ||
+        selectedAmenities.some((item) => !!item.amenityId || !!catalogIdByName(item.name))
           ? {
               propertyAmenities: selectedAmenities
+                .map((item) => ({ ...item, amenityId: item.amenityId || catalogIdByName(item.name) }))
                 .filter((item) => !!item.amenityId)
-                .map((item) => {
-                  const availableFrom = (item.availableFrom || '').trim()
-                  const availableTo = (item.availableTo || '').trim()
-                  const hasWindow =
-                    TIME_24_HOUR_REGEX.test(availableFrom) &&
-                    TIME_24_HOUR_REGEX.test(availableTo) &&
-                    toTimeMinutes(availableFrom) < toTimeMinutes(availableTo)
-
-                  return {
-                    amenityId: item.amenityId as string,
-                    slotBookable: item.slotBookable,
-                    settings: hasWindow
-                      ? {
-                          availableFrom,
-                          availableTo,
-                        }
-                      : null,
-                  }
-                }),
+                .map((item) => ({
+                  amenityId: item.amenityId as string,
+                  slotBookable: item.slotBookable,
+                  isPayable: item.slotBookable && item.isPayable,
+                  price: item.slotBookable && item.isPayable ? Number(item.price) : null,
+                  settings: amenitySettingsPayload(item),
+                })),
             }
           : {}),
         entities: entitiesPayload,
@@ -1144,84 +1172,21 @@ export default function CreatePropertyScreen({
                 Amenities Catalog
               </div>
               <p className="text-[11px] text-gray-500">
-                Pick amenities from global settings, choose slot-bookable if needed, and set optional availability
-                timings for each amenity.
+                Pick amenities from global settings. Turn on booking if residents reserve it, then choose how it&apos;s
+                booked: timed slots, full days, or overnight stays. A payable amenity adds its price per slot, day or
+                night booked to the flat&apos;s monthly bill.
               </p>
 
               {selectedAmenities.length > 0 && (
                 <div className="space-y-2 rounded-xl border border-[#005390]/20 bg-[#005390]/10 p-3">
-                  {selectedAmenities.map((amenity) => {
-                    const amenityKey = `${amenity.amenityId || 'legacy'}-${amenity.name}`
-                    const inputIdBase = amenityKey.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-                    const availableFromId = `${inputIdBase}-available-from`
-                    const availableToId = `${inputIdBase}-available-to`
-
-                    return (
-                      <div key={amenityKey} className="rounded-xl border border-[#005390]/15 bg-white/80 p-2.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#005390] text-white text-xs font-medium px-3 py-1 shadow-sm">
-                            {amenity.name}
-                            {amenity.amenityId ? null : <span className="text-[10px] text-white/75">Legacy</span>}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => toggleAmenitySlotBookable(amenity)}
-                              className={cn(
-                                'rounded-full px-2.5 py-1 text-[11px] font-semibold border transition-colors h-auto',
-                                amenity.slotBookable
-                                  ? 'border-[#005390]/30 bg-[#005390]/10 text-[#005390]'
-                                  : 'border-gray-300 bg-white text-gray-600',
-                              )}
-                            >
-                              {amenity.slotBookable ? 'Slot-bookable' : 'Non-slot'}
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon-xs"
-                              aria-label={`Remove ${amenity.name}`}
-                              onClick={() => removeAmenity(amenity)}
-                              className="hover:bg-[#004274] bg-[#005390] text-white rounded-full p-1 h-6 w-6"
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                          <div>
-                            <Label
-                              htmlFor={availableFromId}
-                              className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-gray-600"
-                            >
-                              Available From (Optional)
-                            </Label>
-                            <TimePicker
-                              id={availableFromId}
-                              value={amenity.availableFrom || ''}
-                              onChange={(val) => updateAmenityAvailability(amenity, 'availableFrom', val)}
-                            />
-                          </div>
-                          <div>
-                            <Label
-                              htmlFor={availableToId}
-                              className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-gray-600"
-                            >
-                              Available To (Optional)
-                            </Label>
-                            <TimePicker
-                              id={availableToId}
-                              value={amenity.availableTo || ''}
-                              onChange={(val) => updateAmenityAvailability(amenity, 'availableTo', val)}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
+                  {selectedAmenities.map((amenity) => (
+                    <AmenitySetupRow
+                      key={`${amenity.amenityId || 'legacy'}-${amenity.name}`}
+                      amenity={amenity}
+                      onChange={(patch) => patchAmenity(amenity, patch)}
+                      onRemove={() => removeAmenity(amenity)}
+                    />
+                  ))}
                 </div>
               )}
 
