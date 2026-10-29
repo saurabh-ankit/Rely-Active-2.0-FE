@@ -3,8 +3,8 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
+import { BackButton } from '@/components/common/BackButton'
 import {
-  ArrowLeft,
   Building2,
   CreditCard,
   Download,
@@ -247,15 +247,10 @@ export default function CompanyPage() {
   // If no company exists, render FULL PAGE Company Setup Form (matching Assist)
   if (!company) {
     return (
-      <div className="w-full space-y-6 pb-12">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => navigate('/global-settings')}
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-        </Button>
+      <div className="w-full space-y-4 pb-12">
+        <div>
+          <BackButton onClick={() => navigate('/global-settings')}>Back to Global Settings</BackButton>
+        </div>
 
         {/* Full Page Header */}
         <PageHeader
@@ -493,15 +488,10 @@ export default function CompanyPage() {
 
   // Company Details Display Mode
   return (
-    <div className="w-full space-y-6 pb-12">
-      <Button
-        type="button"
-        variant="ghost"
-        onClick={() => navigate('/global-settings')}
-        className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#005390] transition-colors cursor-pointer p-0 h-auto"
-      >
-        <ArrowLeft className="w-4 h-4" /> Back to Global Settings
-      </Button>
+    <div className="w-full space-y-4 pb-12">
+      <div>
+        <BackButton onClick={() => navigate('/global-settings')}>Back to Global Settings</BackButton>
+      </div>
 
       {/* Header Banner */}
       <Card className="gap-0 rounded-3xl border-white/60 bg-gradient-to-r from-white/90 via-white/85 to-indigo-50/50 p-6 shadow-xl backdrop-blur-xl">

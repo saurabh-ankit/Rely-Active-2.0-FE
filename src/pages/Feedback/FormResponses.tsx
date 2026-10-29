@@ -7,6 +7,7 @@ import PageLoader from '@/components/shared/PageLoader'
 import { ResponsiveTabs } from '@/components/common/ResponsiveTabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { BackButton } from '@/components/common/BackButton'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -116,9 +117,9 @@ const FormResponses = () => {
     return (
       <div className="space-y-4 py-12 text-center">
         <p className="text-gray-600">This feedback form could not be found.</p>
-        <Button variant="outline" onClick={() => navigate('/admin/settings/feedback')}>
-          Back to Feedback Forms
-        </Button>
+        <div>
+          <BackButton onClick={() => navigate('/admin/settings/feedback')}>Back to Feedback Forms</BackButton>
+        </div>
       </div>
     )
   }
@@ -147,6 +148,7 @@ const FormResponses = () => {
         title={form.title}
         description={`Responses · Expires ${format(new Date(form.expiryDate), 'dd MMM yyyy')}`}
         onBack={() => navigate('/admin/settings/feedback')}
+        backLabel="Back to Feedback Forms"
         actions={
           <>
             <FormStatusBadge form={form} />

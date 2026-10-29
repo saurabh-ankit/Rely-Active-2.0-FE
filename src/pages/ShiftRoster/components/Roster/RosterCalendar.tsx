@@ -264,14 +264,18 @@ const RosterCalendar = () => {
               </Button>
             </div>
           )}
-          <Tabs value={viewMode} onValueChange={(val) => setViewMode(val as RosterViewMode)} className="gap-0">
-            <div className="rounded-2xl bg-card text-card-foreground/70 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100/80 inline-flex">
-              <TabsList className="inline-flex items-center gap-1 bg-transparent p-0 h-auto">
+          <Tabs
+            value={viewMode}
+            onValueChange={(val) => setViewMode(val as RosterViewMode)}
+            className="gap-0 w-full sm:w-auto"
+          >
+            <div className="rounded-full bg-slate-200/70 dark:bg-slate-800/80 border border-slate-300/70 dark:border-slate-700/80 p-1 shadow-2xs flex w-full sm:w-auto">
+              <TabsList className="grid grid-cols-3 w-full sm:w-auto items-center gap-1 bg-transparent p-0 h-auto">
                 {VIEW_MODES.map((mode) => (
                   <TabsTrigger
                     key={mode}
                     value={mode}
-                    className="flex h-7 items-center justify-center rounded-lg px-3 text-xs font-bold capitalize text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-sm focus-visible:!ring-0 transition-all cursor-pointer"
+                    className="flex h-7.5 w-full items-center justify-center rounded-full px-3 text-xs font-semibold capitalize text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-xs focus-visible:!ring-0 transition-all cursor-pointer"
                   >
                     {mode}
                   </TabsTrigger>

@@ -3,8 +3,9 @@ import { Controller, useForm } from 'react-hook-form'
 /* eslint-disable react-hooks/incompatible-library -- react-hook-form watch() */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, RefreshCw } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { BackButton } from '@/components/common/BackButton'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -221,16 +222,15 @@ const DailyShiftManagement = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      <div>
+        <BackButton onClick={() => navigate(`/admin/shift-roster-management/employees/${employeeId}`)}>
+          Back to Employee Details
+        </BackButton>
+      </div>
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-start gap-3">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => navigate(`/admin/shift-roster-management/employees/${employeeId}`)}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
           <div>
             <h2 className="text-xl font-bold text-gray-900">Daily Shift Management</h2>
             <p className="text-sm text-gray-500">

@@ -9,13 +9,13 @@ import {
   ArrowLeftRight,
   AlertTriangle,
   Clock,
-  ArrowLeft,
   ChevronRight,
   Eye,
   Plus,
   Truck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { BackButton } from '@/components/common/BackButton'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
 import { Card } from '@/components/ui/card'
@@ -102,6 +102,7 @@ function CategoryList({ locationId, onSelect }: { locationId: string; onSelect: 
     <InventoryTable
       locationId={locationId}
       kind="categories"
+      onRowClick={onSelect}
       columns={[
         {
           accessorKey: 'name',
@@ -111,14 +112,9 @@ function CategoryList({ locationId, onSelect }: { locationId: string; onSelect: 
               icon={FolderOpen}
               image={row.original.image}
               title={
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-auto p-0 cursor-pointer text-left hover:text-[#005390] hover:underline hover:bg-transparent font-normal whitespace-normal justify-start inline"
-                  onClick={() => onSelect(row.original)}
-                >
+                <span className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-[#005390] group-hover transition-colors">
                   {row.original.name}
-                </Button>
+                </span>
               }
               subtitle={row.original.description}
             />
@@ -182,15 +178,7 @@ function CategoryInventory({
     <div className="min-w-0 space-y-6">
       {/* Where we are: Inventory › category */}
       <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-gray-500">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => navigate({})}
-          className="h-auto p-0 inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 hover:bg-gray-100 hover:text-[#005390]"
-        >
-          <ArrowLeft className="size-3.5" />
-          Back to Categories
-        </Button>
+        <BackButton onClick={() => navigate({})}>Back to Categories</BackButton>
         <ChevronRight className="size-3.5 text-gray-300" />
         <span>Inventory</span>
         <ChevronRight className="size-3.5 text-gray-300" />
@@ -417,6 +405,7 @@ function InventoryTable<K extends keyof CenterLists>({
   columns,
   filters = {},
   filterActions,
+  onRowClick,
 }: {
   locationId: string
   kind: K
@@ -424,6 +413,7 @@ function InventoryTable<K extends keyof CenterLists>({
   columns: ColumnDef<CenterLists[K]>[]
   filters?: CenterListParams
   filterActions?: ReactNode
+  onRowClick?: (row: CenterLists[K]) => void
 }) {
   const scope = JSON.stringify({ locationId, kind, categoryId, filters })
   const [state, setState] = useState({ scope, search: '', pagination: { pageIndex: 0, pageSize: 10 } })
@@ -463,6 +453,7 @@ function InventoryTable<K extends keyof CenterLists>({
       }}
       filterActions={filterActions}
       searchPlaceholder={`Search ${kind === 'purchase-orders' ? 'purchase orders' : kind}…`}
+      onRowClick={onRowClick}
     />
   )
 }

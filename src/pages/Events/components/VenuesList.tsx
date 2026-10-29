@@ -11,9 +11,10 @@ import {
 import { notifyError } from '@/utils/toast'
 import type { Venue, AddOnService, VenueImage } from '@/lib/services/eventService'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
-import { ArrowLeft, Users, Plus } from 'lucide-react'
+import { Users, Plus } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { BackButton } from '@/components/common/BackButton'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { FieldErrors } from 'react-hook-form'
@@ -349,10 +350,9 @@ const VenuesListPage = ({ embedded = false, enabled = true }: VenuesListPageProp
     <div>
       {!embedded && (
         <div className="mb-6">
-          <Button variant="ghost" onClick={() => navigate('/admin/events')} className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Calendar
-          </Button>
+          <div className="mb-4">
+            <BackButton onClick={() => navigate('/admin/events')}>Back to Events</BackButton>
+          </div>
           <h1 className="text-3xl font-bold text-gray-900">Venues List</h1>
           <p className="text-gray-600 mt-2">View and manage all venues</p>
         </div>

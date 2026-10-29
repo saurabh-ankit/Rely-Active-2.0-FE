@@ -5,8 +5,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { TimePicker } from '@/components/ui/time-picker'
 import React, { useState } from 'react'
 import { isAxiosError } from 'axios'
-import { ArrowLeft, Building2, Home, Layers, Loader2, MapPin, Plus, Sparkles, Trash2, X, Check } from 'lucide-react'
+import { Building2, Home, Layers, Loader2, MapPin, Plus, Sparkles, Trash2, X, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { BackButton } from '@/components/common/BackButton'
 import { AddEntityDialog } from './structure/AddEntityDialog'
 import { EntityUnitsEditor } from './structure/EntityUnitsEditor'
 import { ApplyToAllButton, BulkAddControl } from './structure/BlockCopyBar'
@@ -291,6 +292,7 @@ interface CreatePropertyScreenProps {
   editPropertyId?: string | null
   onBack: () => void
   onSuccess: () => void
+  backLabel?: string
 }
 
 export default function CreatePropertyScreen({
@@ -298,6 +300,7 @@ export default function CreatePropertyScreen({
   editPropertyId,
   onBack,
   onSuccess,
+  backLabel = 'Back to Properties',
 }: CreatePropertyScreenProps) {
   const { refreshLocations } = useLocationContext()
   const [step, setStep] = useState(1)
@@ -1047,15 +1050,7 @@ export default function CreatePropertyScreen({
       {/* Header Bar with Back Button */}
       <div className="flex items-center justify-between border-b border-gray-200 pb-4">
         <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onBack}
-            className="rounded-xl border-gray-200 hover:bg-gray-100"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1.5" />
-            Back
-          </Button>
+          <BackButton onClick={onBack}>{backLabel}</BackButton>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
               {editPropertyId ? 'Edit Property' : 'Create New Property'}
@@ -1611,15 +1606,15 @@ export default function CreatePropertyScreen({
                         }
                       />
                     </div>
-                    <InputField
+                    {/* <InputField
                       label="Unit nomenclature template"
                       value="{{TowerPrefix}}-{{FloorNumber}}{{Position}}"
                       disabled
                       readOnly
-                    />
-                    <p className="text-[10px] text-gray-400">
+                    /> */}
+                    {/* <p className="text-[10px] text-gray-400">
                       Tokens: {'{{TowerPrefix}}'}, {'{{FloorNumber}}'}, {'{{Position}}'}, {'{{unitNumber}}'}
-                    </p>
+                    </p> */}
                   </div>
 
                   <div className="space-y-4 pt-3 border-t border-gray-100">

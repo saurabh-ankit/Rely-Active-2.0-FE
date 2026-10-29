@@ -29,7 +29,6 @@ import { checkVenueAvailabilityAPI } from '@/lib/services/eventService'
 import { parseJsonArray } from '@/lib/utils/jsonUtils'
 import { useLocationStore } from '@/lib/stores/locationStore'
 import {
-  ArrowLeft,
   CalendarClock,
   CalendarDays,
   ImagePlus,
@@ -43,6 +42,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { BackButton } from '@/components/common/BackButton'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { FieldErrors } from 'react-hook-form'
@@ -1622,10 +1622,9 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
   return (
     <div>
       <div>
-        <Button variant="ghost" onClick={() => navigate('/admin/events/list')} className="mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Events
-        </Button>
+        <div className="mb-4">
+          <BackButton onClick={() => navigate('/admin/events/list')}>Back to Events</BackButton>
+        </div>
         <h2 className="text-2xl font-bold text-gray-700">{isEditMode ? 'Edit Event' : 'Create an Event'}</h2>
       </div>
 

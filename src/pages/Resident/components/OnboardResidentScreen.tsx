@@ -1358,6 +1358,7 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
             : 'Add an owner or tenant to a flat in a few steps.'
         }
         onBack={() => navigate(backUrl)}
+        backLabel={isGlobal ? 'Back to Global Resident Directory' : 'Back to Resident Directory'}
       />
 
       {formError && (
@@ -2498,13 +2499,16 @@ export const OnboardResidentScreen: React.FC<OnboardResidentScreenProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
               <Input
                 label="Username"
+                autoComplete="off"
                 {...register('username')}
                 error={errors.username?.message}
                 placeholder="e.g. rahul_101"
               />
+
               <Input
                 label="Password"
                 type="password"
+                autoComplete="new-password"
                 {...register('password')}
                 error={errors.password?.message}
                 helperText={

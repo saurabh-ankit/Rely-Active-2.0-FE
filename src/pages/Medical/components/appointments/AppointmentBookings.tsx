@@ -25,9 +25,10 @@ import {
 } from '@/hooks/react-query/appointments'
 import type { AppointmentStatus, DoctorAppointment } from '@/lib/types/appointment'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
-import { ArrowLeft, CheckCircle2, Mail, Phone, Plus, TrendingUp, UserX, Users, XCircle } from 'lucide-react'
+import { CheckCircle2, Mail, Phone, Plus, TrendingUp, UserX, Users, XCircle } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { BackButton } from '@/components/common/BackButton'
 import { formatDisplayDate } from '@/lib/utils/dateUtils'
 
 const AppointmentBookingsPage = () => {
@@ -249,10 +250,9 @@ const AppointmentBookingsPage = () => {
   return (
     <div>
       <div className="container mx-auto space-y-4">
-        <Button variant="ghost" onClick={() => navigate('/admin/medical?section=appointments')} className="mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Appointments
-        </Button>
+        <div>
+          <BackButton onClick={() => navigate('/admin/medical?section=appointments')}>Back to Appointments</BackButton>
+        </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>

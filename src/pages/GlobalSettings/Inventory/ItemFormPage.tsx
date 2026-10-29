@@ -126,6 +126,7 @@ export function ItemEditor({
       onBack={() => {
         if (!mutation.isPending) back()
       }}
+      backLabel={`Back to ${category.name}`}
     >
       <FormProvider {...form}>
         <form

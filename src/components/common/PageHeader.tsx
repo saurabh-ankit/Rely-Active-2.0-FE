@@ -1,7 +1,7 @@
 import type React from 'react'
-import { ArrowLeft, type LucideIcon } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import { BackButton } from '@/components/common/BackButton'
 
 interface PageHeaderProps {
   title: React.ReactNode
@@ -11,31 +11,20 @@ interface PageHeaderProps {
   actions?: React.ReactNode
   /** Shows a back arrow before the title. */
   onBack?: () => void
+  backLabel?: string
   className?: string
 }
 
 /** The standard page header card: icon + title, a one-line description, and actions on the right. */
-export function PageHeader({ title, description, icon: Icon, actions, onBack, className }: PageHeaderProps) {
-  return (
+export function PageHeader({ title, description, icon: Icon, actions, onBack, backLabel, className }: PageHeaderProps) {
+  const headerCard = (
     <div
       className={cn(
         'flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-2xs',
         className,
       )}
     >
-      <div className="flex min-w-0 items-start gap-2">
-        {onBack && (
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            type="button"
-            aria-label="Back"
-            onClick={onBack}
-            className="-ml-1 mt-0.5 rounded-lg p-1 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 cursor-pointer dark:hover:bg-slate-800"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        )}
+      <div className="flex min-w-0 items-start gap-2.5">
         <div className="min-w-0">
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 dark:text-white">
             {Icon && <Icon className="w-5 h-5 shrink-0 text-[#005390]" />}
@@ -47,6 +36,19 @@ export function PageHeader({ title, description, icon: Icon, actions, onBack, cl
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   )
+
+  if (onBack) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <BackButton onClick={onBack}>{backLabel || 'Back'}</BackButton>
+        </div>
+        {headerCard}
+      </div>
+    )
+  }
+
+  return headerCard
 }
 
 export default PageHeader

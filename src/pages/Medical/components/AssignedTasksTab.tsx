@@ -425,11 +425,11 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
           onValueChange={(val) => setActiveTab(val as AssignedTasksTabType)}
           className="gap-0 w-full sm:w-auto"
         >
-          <div className="w-full sm:w-auto overflow-x-auto scrollbar-none rounded-2xl bg-card text-card-foreground/70 p-1 sm:p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100/80">
-            <TabsList className="flex w-full sm:w-max min-w-full sm:min-w-0 h-auto gap-1 sm:gap-2 justify-start bg-transparent p-0">
+          <div className="w-full overflow-x-auto scrollbar-none rounded-full bg-slate-200/70 dark:bg-slate-800/80 border border-slate-300/70 dark:border-slate-700/80 p-1 shadow-2xs">
+            <TabsList className="grid grid-cols-2 w-full h-auto gap-1 justify-start bg-transparent p-0">
               <TabsTrigger
                 value="PENDING"
-                className="flex-1 sm:flex-initial min-w-fit flex h-8 items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap rounded-xl px-2.5 sm:px-5 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-md focus-visible:!ring-0 transition-all cursor-pointer"
+                className="flex-1 w-full flex h-8 items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap rounded-full px-3.5 sm:px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-xs focus-visible:!ring-0 transition-all cursor-pointer"
               >
                 <Clock className="size-3.5 sm:size-4 shrink-0" />
                 <span>Pending Tasks</span>
@@ -447,7 +447,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
 
               <TabsTrigger
                 value="COMPLETED"
-                className="flex-1 sm:flex-initial min-w-fit flex h-8 items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap rounded-xl px-2.5 sm:px-5 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-white dark:text-gray-300 dark:hover:text-white dark:hover:bg-slate-800 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-md focus-visible:!ring-0 transition-all cursor-pointer"
+                className="flex-1 w-full flex h-8 items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap rounded-full px-3.5 sm:px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-xs focus-visible:!ring-0 transition-all cursor-pointer"
               >
                 <CheckCircle2 className="size-3.5 sm:size-4 shrink-0" />
                 <span>Completed Tasks</span>

@@ -394,6 +394,7 @@ export default function PropertyDetailsPage() {
         title={property.property_name}
         description={`${formatPropertyTypes(property)} · ${[property.city, property.state].filter(Boolean).join(', ')}`}
         onBack={() => navigate('/property')}
+        backLabel="Back to Properties"
         actions={
           <Button
             type="button"

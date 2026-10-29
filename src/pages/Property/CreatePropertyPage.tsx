@@ -27,6 +27,7 @@ export default function CreatePropertyPage() {
       companyId={companyId}
       editPropertyId={editId}
       onBack={() => navigate('/property')}
+      backLabel="Back to Properties"
       onSuccess={() => navigate('/property')}
     />
   )

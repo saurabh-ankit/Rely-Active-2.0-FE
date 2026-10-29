@@ -155,7 +155,10 @@ export const FilterChips = ({
   value: string
   onChange: (value: string) => void
 }) => (
-  <div className="-mx-1 flex max-w-full gap-1 overflow-x-auto px-1 pb-0.5" role="tablist">
+  <div
+    className="flex w-full items-center gap-1 overflow-x-auto p-1 rounded-full bg-slate-200/70 border border-slate-300/70 shadow-2xs dark:bg-slate-800/80 dark:border-slate-700/80"
+    role="tablist"
+  >
     {options.map((o) => {
       const active = o.value === value
       return (
@@ -167,10 +170,10 @@ export const FilterChips = ({
           aria-selected={active}
           onClick={() => onChange(o.value)}
           className={cn(
-            'h-auto inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-colors',
+            'flex-1 h-7.5 sm:h-8 inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-transparent px-3.5 sm:px-4 text-xs font-semibold transition-all',
             active
-              ? 'border-[#005390] bg-[#005390] text-white hover:bg-[#005390] hover:text-white'
-              : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-900 dark:border-gray-700 dark:bg-slate-900 dark:text-gray-300',
+              ? '!bg-[#005390] !text-white shadow-xs hover:!bg-[#005390] hover:!text-white'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10',
           )}
         >
           {o.label}

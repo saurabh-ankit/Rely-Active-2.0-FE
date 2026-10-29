@@ -356,7 +356,7 @@ export const ResidentMedicalTab: React.FC<ResidentMedicalTabProps> = ({
       <div className="md:hidden w-full mb-3.5">
         <div
           ref={mobileTabContainerRef}
-          className="flex items-center gap-1.5 overflow-x-auto p-1.5 rounded-2xl bg-white/90 border border-gray-200/80 shadow-2xs dark:bg-slate-800/90 dark:border-gray-700/80 scrollbar-none scroll-smooth touch-pan-x"
+          className="flex items-center gap-1 overflow-x-auto p-1 rounded-full bg-slate-200/70 border border-slate-300/70 shadow-2xs dark:bg-slate-800/80 dark:border-slate-700/80 scrollbar-none scroll-smooth touch-pan-x"
         >
           {tabsList.map((tab) => {
             const isActive = activeSubTab === tab.value
@@ -369,10 +369,10 @@ export const ResidentMedicalTab: React.FC<ResidentMedicalTabProps> = ({
                 type="button"
                 onClick={() => handleSubTabChange(tab.value)}
                 className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs whitespace-nowrap font-semibold transition-all shrink-0 cursor-pointer',
+                  'flex items-center gap-1.5 h-8 px-4 rounded-full text-xs whitespace-nowrap font-semibold transition-all shrink-0 cursor-pointer',
                   isActive
-                    ? 'bg-[#005390] text-white shadow-xs font-bold dark:bg-[#005390] dark:text-white'
-                    : 'bg-transparent text-gray-700 hover:bg-slate-100 dark:text-gray-300 dark:hover:bg-slate-700/60',
+                    ? 'bg-[#005390] text-white shadow-xs font-semibold'
+                    : 'bg-transparent text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10',
                 )}
               >
                 <Icon className="size-3.5 shrink-0" />

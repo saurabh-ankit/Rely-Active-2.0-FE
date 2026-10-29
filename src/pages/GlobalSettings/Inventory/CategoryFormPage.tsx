@@ -110,6 +110,7 @@ export function CategoryEditor({ record }: { record?: InventoryCategory }) {
       onBack={() => {
         if (!pending) back()
       }}
+      backLabel="Back to Categories"
     >
       <FormProvider {...form}>
         <form

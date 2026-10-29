@@ -156,6 +156,7 @@ const AdvertisementsPage = () => {
         title="Advertisements"
         description="Upload advertisements shown to residents and employees of this property."
         onBack={() => navigate('/admin/settings')}
+        backLabel="Back to Settings"
         actions={
           <FeedbackPermission action="create">
             <Button onClick={() => openModal(null)} size="sm" className="bg-[#2a517c] hover:bg-[#476587] text-white">

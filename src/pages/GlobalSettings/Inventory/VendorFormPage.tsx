@@ -57,6 +57,7 @@ function VendorEditor({ record, locations }: { record?: InventoryVendor; locatio
       onBack={() => {
         if (!mutation.isPending) back()
       }}
+      backLabel="Back to Suppliers"
     >
       <FormProvider {...form}>
         <form
