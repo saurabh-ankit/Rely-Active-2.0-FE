@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Building2, CheckCircle2, Clock3, Search, Sparkles } from 'lucide-react'
+import { Building2, CheckCircle2, Clock3, IndianRupee, Search, Sparkles } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -14,10 +14,18 @@ interface AmenityItem {
   id: string
   name: string
   slotBookable: boolean
+  isPayable?: boolean
+  price?: number | null
   description?: string | null
   availableFrom?: string | null
   availableTo?: string | null
 }
+
+/** What one price covers: a slot, a day or a night. */
+const priceUnit = (unit?: 'SLOT' | 'FULL_DAY' | 'NIGHT') =>
+  unit === 'NIGHT' ? 'night' : unit === 'FULL_DAY' ? 'day' : 'slot'
+
+const formatRupees = (amount: number) => amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })
 
 const TIME_24_HOUR_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/
 
@@ -73,6 +81,8 @@ export default function AmenitiesPage() {
       amenityId: string
       name: string
       slotBookable: boolean
+      isPayable?: boolean
+      price?: number | null
       description?: string | null
       settings?: unknown
     }> | null
@@ -82,6 +92,8 @@ export default function AmenitiesPage() {
         id: item.amenityId,
         name: item.name,
         slotBookable: item.slotBookable,
+        isPayable: !!item.isPayable,
+        price: item.price ?? null,
         description: item.description,
         availableFrom:
           item.settings && typeof item.settings === 'object' && !Array.isArray(item.settings)
@@ -165,6 +177,13 @@ export default function AmenitiesPage() {
 
   const slotSummaryText = (item: AmenityItem): string => {
     const slotConfig = slotConfigByAmenity[item.id]
+    const unit = slotConfig?.config?.bookingUnit
+    if (slotConfig?.hasSetup && slotConfig.summary && unit === 'NIGHT') {
+      return `Overnight stay · check-in ${slotConfig.summary.openLabel}`
+    }
+    if (slotConfig?.hasSetup && slotConfig.summary && unit === 'FULL_DAY') {
+      return `Booked by the day · ${slotConfig.summary.openLabel} to ${slotConfig.summary.closeLabel}`
+    }
     if (slotConfig?.hasSetup && slotConfig.summary) {
       return `Open ${slotConfig.summary.openLabel} to ${slotConfig.summary.closeLabel} · ${slotConfig.summary.durationLabel} slots`
     }
@@ -248,6 +267,12 @@ export default function AmenitiesPage() {
                   >
                     <div className="flex items-start justify-between gap-2 w-full">
                       <p className="text-sm font-semibold text-gray-900">{item.name}</p>
+                      {item.isPayable && item.price ? (
+                        <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                          <IndianRupee className="h-3 w-3" />
+                          {formatRupees(item.price)} / {priceUnit(slotConfigByAmenity[item.id]?.config?.bookingUnit)}
+                        </span>
+                      ) : null}
                       <span
                         className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                           item.slotBookable ? 'bg-[#005390]/10 text-[#005390]' : 'bg-gray-100 text-gray-600'

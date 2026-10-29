@@ -24,6 +24,9 @@ export interface AmenitySlotSetup {
   durationMin: number
   capacity: number
   daysOfWeek: number[]
+  /** Timed slots, whole days, or overnight stays (check-in at openMinutes, check-out next day). */
+  bookingUnit?: 'SLOT' | 'FULL_DAY' | 'NIGHT'
+  checkOutMinutes?: number | null
 }
 
 export interface AmenitySlotBookingItem {
@@ -35,6 +38,15 @@ export interface AmenitySlotBookingItem {
   floorNumber: number | null
   unitNumber: string | null
   status: 'BOOKED' | 'CANCELLED'
+  /** Total captured when booked (unitPrice × unitCount); billed on the resident's flat invoice. Null when free. */
+  chargeAmount?: number | null
+  unitPrice?: number | null
+  /** Slots, days or nights booked. */
+  unitCount?: number
+  /** Last date occupied, for a multi-day or overnight booking. */
+  endDate?: string | null
+  /** Overnight stays: the morning the guest leaves. */
+  checkOutDate?: string | null
 }
 
 export type AmenitySlotStatus = 'AVAILABLE' | 'PARTIALLY_BOOKED' | 'BOOKED' | 'BLOCKED' | 'PAST' | 'LEGACY_BOOKED'
@@ -129,7 +141,17 @@ export const getAmenitySlotsForDateAPI = async (
 export const createAmenitySlotBookingAPI = async (
   locationId: string,
   amenityId: string,
-  payload: { date: string; startMinutes: number; residentId: string; notes?: string },
+  payload: {
+    date: string
+    /** Timed slots only. */
+    startMinutes?: number
+    /** Full day: last day booked (inclusive). */
+    endDate?: string
+    /** Overnight stay: the check-out date. */
+    checkOutDate?: string
+    residentId: string
+    notes?: string
+  },
 ) => {
   const url = formatUrl(API_ENDPOINTS.amenitySlots.bookings, locationId, amenityId)
   const response = await api.post(url, payload)

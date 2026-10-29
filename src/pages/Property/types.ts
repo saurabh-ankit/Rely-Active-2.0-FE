@@ -23,14 +23,29 @@ export type UnitFacing = 'north' | 'south' | 'east' | 'west' | 'northeast' | 'no
 export type UnitStatus = 'available' | 'booked' | 'sold' | 'on_hold'
 
 export interface AmenitySlotSettings {
+  /** How a slot-bookable amenity is booked: timed slots, whole days, or overnight stays. */
+  bookingUnit?: 'SLOT' | 'FULL_DAY' | 'NIGHT'
   availableFrom?: string | null
   availableTo?: string | null
   slotDurationMinutes?: number | null
+  checkInTime?: string | null
+  checkOutTime?: string | null
+}
+
+/** The saved slot setup; times in minutes from midnight (closeMinutes 1440 = end of day). */
+export interface AmenitySlotSetup {
+  bookingUnit: 'SLOT' | 'FULL_DAY' | 'NIGHT'
+  openMinutes: number
+  closeMinutes: number
+  durationMin: number
+  checkOutMinutes: number | null
 }
 
 export interface PropertyAmenityInput {
   amenityId: string
   slotBookable?: boolean
+  isPayable?: boolean
+  price?: number | null
   settings?: AmenitySlotSettings | Record<string, unknown> | null
 }
 
@@ -40,7 +55,11 @@ export interface PropertyAmenity {
   name: string
   description: string | null
   slotBookable: boolean
+  /** Payable amenities bill `price` per booked slot to the resident's flat. */
+  isPayable?: boolean
+  price?: number | null
   settings?: AmenitySlotSettings | Record<string, unknown> | null
+  slotSetup?: AmenitySlotSetup | null
   isActive: boolean
 }
 

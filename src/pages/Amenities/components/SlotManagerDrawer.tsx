@@ -2,7 +2,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { TimePicker } from '@/components/ui/time-picker'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, Loader2, Search, UserRound, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, IndianRupee, Loader2, Search, UserRound, X } from 'lucide-react'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,7 @@ import {
   getAmenitySlotConfigAPI,
   getAmenitySlotsForDateAPI,
   type AmenitySlotConfigResponse,
+  type AmenitySlotBookingItem,
   type AmenitySlotItem,
   type AmenitySlotSetup,
   type AmenitySlotsForDateResponse,
@@ -24,10 +25,44 @@ import {
 import type { ResidentItem } from '@/lib/types'
 import { notifyError, notifySuccess } from '@/utils/toast'
 
+const formatRupees = (amount: number) => amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })
+
+const addDaysYmd = (ymd: string, days: number): string => {
+  const [y = 0, m = 1, d = 1] = ymd.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10)
+}
+
+const daysBetweenYmd = (from: string, to: string): number =>
+  Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000)
+
+const shortDate = (ymd: string) =>
+  new Date(`${ymd}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+
+const UNIT_TITLE = { SLOT: 'Timed slots', FULL_DAY: 'Full day', NIGHT: 'Overnight stay' } as const
+
+/** "30 Oct → 2 Nov · 3 nights" for a stay, "30 Oct – 31 Oct · 2 days" for a day range. */
+const bookingRangeText = (booking: AmenitySlotBookingItem): string | null => {
+  const count = booking.unitCount ?? 1
+  if (booking.checkOutDate) {
+    return `${shortDate(booking.date)} → ${shortDate(booking.checkOutDate)} · ${count} night${count === 1 ? '' : 's'}`
+  }
+  if (booking.endDate) return `${shortDate(booking.date)} – ${shortDate(booking.endDate)} · ${count} days`
+  return null
+}
+
+/** " (night 2 of 3)" on a tile showing a stay or day range on one of its dates. */
+const stayNightLabel = (booking: AmenitySlotBookingItem, onDate: string): string => {
+  if (!booking.endDate) return ''
+  const nth = daysBetweenYmd(booking.date, onDate) + 1
+  return ` (${booking.checkOutDate ? 'night' : 'day'} ${nth} of ${booking.unitCount ?? nth})`
+}
+
 interface AmenitySummary {
   id: string
   name: string
   slotBookable: boolean
+  isPayable?: boolean
+  price?: number | null
   availableFrom?: string | null
   availableTo?: string | null
 }
@@ -82,6 +117,15 @@ const formatMinutesAmPm = (minutes: number): string => {
   const suffix = h >= 12 ? 'PM' : 'AM'
   const hour12 = h % 12 || 12
   return `${hour12}:${String(m).padStart(2, '0')} ${suffix}`
+}
+
+const setupSummary = (config: AmenitySlotSetup): string => {
+  if (config.bookingUnit === 'NIGHT') {
+    return `Check-in ${formatMinutesAmPm(config.openMinutes)} · check-out ${formatMinutesAmPm(config.checkOutMinutes ?? 0)} next day`
+  }
+  const close = config.closeMinutes >= 1440 ? '11:59 PM' : formatMinutesAmPm(config.closeMinutes)
+  const hours = `${formatMinutesAmPm(config.openMinutes)} to ${close}`
+  return config.bookingUnit === 'FULL_DAY' ? `Whole day, ${hours}` : `${config.durationMin} min slots, ${hours}`
 }
 
 const startOfWeekMonday = (date: Date): Date => {
@@ -168,6 +212,8 @@ export function SlotManagerDrawer({
   const [residentLoading, setResidentLoading] = useState(false)
   const [selectedResidentId, setSelectedResidentId] = useState<string | null>(null)
   const [bookingPending, setBookingPending] = useState(false)
+  /** Full day: last day; overnight stay: check-out date. */
+  const [rangeEnd, setRangeEnd] = useState('')
   const initialLoadKeyRef = useRef<string | null>(null)
 
   const selectedDateYmd = useMemo(() => toYmd(selectedDate), [selectedDate])
@@ -285,6 +331,14 @@ export function SlotManagerDrawer({
   }, [open, activeSlot])
 
   const currentConfig: AmenitySlotSetup | null = configResponse?.config || null
+  const unit = currentConfig?.bookingUnit ?? 'SLOT'
+  // Unit and times are set on the property's amenity once the setup exists; capacity and days stay here.
+  const timesLocked = !!configResponse?.hasSetup
+  const rangeUnits =
+    unit === 'SLOT' || !rangeEnd
+      ? 1
+      : Math.max(0, daysBetweenYmd(selectedDateYmd, rangeEnd) + (unit === 'FULL_DAY' ? 1 : 0))
+  const unitPrice = amenity?.isPayable && amenity.price ? amenity.price : null
   const dayClosedByConfig =
     currentConfig && !currentConfig.daysOfWeek.includes(dayMon0(selectedDate)) && toYmd(selectedDate) >= toYmd(today)
 
@@ -306,7 +360,8 @@ export function SlotManagerDrawer({
     if (slot.status === 'PAST') return 'Past'
     if (slot.status === 'LEGACY_BOOKED') return 'Outside current setup'
     if (slot.status === 'BOOKED') {
-      if (slot.capacity === 1 && slot.bookings[0]) return slot.bookings[0].residentName
+      if (slot.capacity === 1 && slot.bookings[0])
+        return `${slot.bookings[0].residentName}${stayNightLabel(slot.bookings[0], selectedDateYmd)}`
       return 'Full'
     }
     if (slot.status === 'PARTIALLY_BOOKED') return `${slot.bookedCount} of ${slot.capacity} booked`
@@ -314,6 +369,10 @@ export function SlotManagerDrawer({
       return `${slot.remainingCount} of ${slot.capacity} left`
     return 'Available'
   }
+
+  // A resident can hold only one place in a slot, so those already booked aren't offered again.
+  const bookedResidentIds = new Set(activeSlot?.bookings.map((booking) => booking.residentId) ?? [])
+  const availableResidents = residentResults.filter((resident) => !bookedResidentIds.has(resident.id))
 
   const residentLocationLabel = (floorNumber: number | null, unitNumber: string | null): string => {
     const parts = [floorNumber !== null ? String(floorNumber) : null, unitNumber || null].filter(Boolean)
@@ -323,6 +382,7 @@ export function SlotManagerDrawer({
   const openSlotPanel = (slot: AmenitySlotItem) => {
     if (slot.status === 'PAST') return
     setActiveSlot(slot)
+    setRangeEnd(unit === 'NIGHT' ? addDaysYmd(selectedDateYmd, 1) : unit === 'FULL_DAY' ? selectedDateYmd : '')
     setSelectedResidentId(null)
     setResidentQuery('')
   }
@@ -338,8 +398,12 @@ export function SlotManagerDrawer({
       setBookingPending(true)
       const response = await createAmenitySlotBookingAPI(locationId, amenity.id, {
         date: selectedDateYmd,
-        startMinutes: activeSlot.startMinutes,
         residentId: selectedResidentId,
+        ...(unit === 'SLOT'
+          ? { startMinutes: activeSlot.startMinutes }
+          : unit === 'NIGHT'
+            ? { checkOutDate: rangeEnd }
+            : { endDate: rangeEnd }),
       })
       notifySuccess(response?.message || `Booked ${activeSlot.startLabel}`)
       setActiveSlot(null)
@@ -465,7 +529,21 @@ export function SlotManagerDrawer({
   const setupView = (
     <div className="flex h-full flex-col">
       <div className="space-y-5 p-4 pb-28">
-        <div>
+        {timesLocked && currentConfig ? (
+          <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm">
+            <p className="font-semibold text-gray-900">{UNIT_TITLE[unit]}</p>
+            <p className="mt-0.5 text-gray-600">{setupSummary(currentConfig)}</p>
+            {unitPrice ? (
+              <p className="mt-0.5 font-semibold text-emerald-700">
+                ₹{formatRupees(unitPrice)} per {unit === 'NIGHT' ? 'night' : unit === 'FULL_DAY' ? 'day' : 'slot'}
+              </p>
+            ) : null}
+            <p className="mt-1.5 text-xs text-gray-500">
+              Booking type, times and price are set on the property (Property → Edit → Amenities).
+            </p>
+          </div>
+        ) : null}
+        <div className={timesLocked ? 'hidden' : undefined}>
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Bookable hours</p>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <div>
@@ -499,7 +577,7 @@ export function SlotManagerDrawer({
           </div>
         </div>
 
-        <div>
+        <div className={timesLocked ? 'hidden' : undefined}>
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Slot length</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {[30, 45, 60, 90, 120].map((duration) => (
@@ -521,7 +599,13 @@ export function SlotManagerDrawer({
         </div>
 
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Bookings per slot</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            {unit === 'NIGHT'
+              ? 'Rooms (stays per night)'
+              : unit === 'FULL_DAY'
+                ? 'Bookings per day'
+                : 'Bookings per slot'}
+          </p>
           <div className="mt-2 flex items-center gap-3">
             <Button
               variant="outline"
@@ -580,9 +664,11 @@ export function SlotManagerDrawer({
         </div>
 
         <div className="rounded-lg border border-[#005390]/20 bg-[#005390]/10 px-3 py-2 text-sm font-medium text-[#005390]">
-          {invalidHours
-            ? 'Closing time must be after opening time'
-            : `${slotsPerDay} slots a day · ${formatMinutesAmPm(draft.openMinutes)} to ${formatMinutesAmPm(draft.closeMinutes)}`}
+          {timesLocked && currentConfig
+            ? `${setupSummary(currentConfig)} · ${draft.capacity} ${unit === 'NIGHT' ? 'room' : 'booking'}${draft.capacity === 1 ? '' : 's'} at a time`
+            : invalidHours
+              ? 'Closing time must be after opening time'
+              : `${slotsPerDay} slots a day · ${formatMinutesAmPm(draft.openMinutes)} to ${formatMinutesAmPm(draft.closeMinutes)}`}
         </div>
       </div>
 
@@ -591,7 +677,7 @@ export function SlotManagerDrawer({
           type="button"
           className="w-full rounded-xl bg-[#005390] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#005390]/90 disabled:opacity-50"
           onClick={saveSetup}
-          disabled={savingConfig || invalidHours || draft.daysOfWeek.length === 0}
+          disabled={savingConfig || (!timesLocked && invalidHours) || draft.daysOfWeek.length === 0}
         >
           {savingConfig ? 'Saving...' : 'Save slot setup'}
         </Button>
@@ -707,8 +793,25 @@ export function SlotManagerDrawer({
                         disabled={slot.status === 'PAST'}
                         className={`rounded-xl border p-2 h-auto text-left flex-col items-start justify-start font-normal whitespace-normal transition ${slotStatusClasses[slot.status]} ${selected ? 'ring-2 ring-[#005390]' : ''}`}
                       >
-                        <p className="text-sm font-semibold">{slot.startLabel}</p>
+                        <p className="text-sm font-semibold">
+                          {unit === 'NIGHT'
+                            ? `Check-in ${slot.startLabel}`
+                            : unit === 'FULL_DAY'
+                              ? 'Whole day'
+                              : slot.startLabel}
+                        </p>
                         <p className="mt-1 text-[11px] font-medium opacity-85">{statusText(slot)}</p>
+                        {/* A shared slot lists who already holds a place; a single-place slot shows the name above. */}
+                        {slot.capacity > 1 && slot.bookings.length > 0 ? (
+                          <p className="mt-0.5 w-full truncate text-[11px] text-gray-600">
+                            {slot.bookings
+                              .map(
+                                (booking) =>
+                                  `${booking.residentName}${booking.unitNumber ? ` (${booking.unitNumber})` : ''}`,
+                              )
+                              .join(', ')}
+                          </p>
+                        ) : null}
                       </Button>
                     )
                   })}
@@ -755,7 +858,11 @@ export function SlotManagerDrawer({
             <div className="flex items-start justify-between gap-2">
               <div>
                 <p className="text-base font-semibold text-gray-900">
-                  Book {activeSlot.startLabel} to {activeSlot.endLabel}
+                  {unit === 'NIGHT'
+                    ? `Stay: check-in ${activeSlot.startLabel}, check-out ${activeSlot.endLabel}`
+                    : unit === 'FULL_DAY'
+                      ? `Book the whole day (${activeSlot.startLabel} to ${activeSlot.endLabel})`
+                      : `Book ${activeSlot.startLabel} to ${activeSlot.endLabel}`}
                 </p>
                 <p className="text-sm text-gray-500">
                   {activeSlot.bookedCount} of {activeSlot.capacity} booked
@@ -775,6 +882,9 @@ export function SlotManagerDrawer({
 
             {activeSlot.bookings.length > 0 && (
               <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Already booked ({activeSlot.bookedCount} of {activeSlot.capacity})
+                </p>
                 {activeSlot.bookings.map((booking) => (
                   <div
                     key={booking.id}
@@ -785,15 +895,26 @@ export function SlotManagerDrawer({
                       <p className="truncate text-xs text-gray-500">
                         from {residentLocationLabel(booking.floorNumber, booking.unitNumber)}
                       </p>
+                      {bookingRangeText(booking) ? (
+                        <p className="truncate text-xs text-gray-600">{bookingRangeText(booking)}</p>
+                      ) : null}
+                      {booking.chargeAmount ? (
+                        <p className="mt-0.5 text-[11px] font-semibold text-emerald-700">
+                          ₹{formatRupees(booking.chargeAmount)} · on the flat&apos;s bill
+                        </p>
+                      ) : null}
                     </div>
-                    <Button
-                      variant="ghost"
-                      type="button"
-                      onClick={() => void handleCancelBooking(booking.id, booking.residentName)}
-                      className="h-auto rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 hover:text-rose-800"
-                    >
-                      Cancel
-                    </Button>
+                    {/* A paid booking is billed once its slot starts, so it can only be cancelled before then. */}
+                    {booking.chargeAmount && activeSlot.isPast ? null : (
+                      <Button
+                        variant="ghost"
+                        type="button"
+                        onClick={() => void handleCancelBooking(booking.id, booking.residentName)}
+                        className="h-auto rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 hover:text-rose-800"
+                      >
+                        Cancel
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -804,6 +925,11 @@ export function SlotManagerDrawer({
               activeSlot.remainingCount > 0 &&
               activeSlot.status !== 'LEGACY_BOOKED' && (
                 <>
+                  {activeSlot.bookings.length > 0 ? (
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Book for another resident ({activeSlot.remainingCount} left)
+                    </p>
+                  ) : null}
                   <div className="relative">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                     <Input
@@ -820,10 +946,10 @@ export function SlotManagerDrawer({
                       <div className="flex items-center justify-center py-3 text-xs text-gray-500">
                         <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Loading residents...
                       </div>
-                    ) : residentResults.length === 0 ? (
+                    ) : availableResidents.length === 0 ? (
                       <div className="py-3 text-center text-xs text-gray-500">No resident found</div>
                     ) : (
-                      residentResults.map((resident) => {
+                      availableResidents.map((resident) => {
                         const name = `${resident.firstName || ''} ${resident.lastName || ''}`.trim() || 'Resident'
                         const floorNumber = resident.unit?.floor?.floor_number ?? null
                         const unitNumber = resident.unit?.unit_number || null
@@ -857,6 +983,40 @@ export function SlotManagerDrawer({
                 </>
               )}
 
+            {unit !== 'SLOT' && !activeSlot.isPast && !activeSlot.isBlocked && activeSlot.remainingCount > 0 ? (
+              <div>
+                <Label htmlFor="amenity-range-end" className="mb-1 block text-xs font-semibold text-gray-600">
+                  {unit === 'NIGHT' ? 'Check-out date' : 'Last day'}
+                </Label>
+                <Input
+                  id="amenity-range-end"
+                  type="date"
+                  value={rangeEnd}
+                  min={unit === 'NIGHT' ? addDaysYmd(selectedDateYmd, 1) : selectedDateYmd}
+                  max={addDaysYmd(selectedDateYmd, unit === 'NIGHT' ? 31 : 30)}
+                  onChange={(e) => setRangeEnd(e.target.value)}
+                  className="h-9 rounded-lg text-sm"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  {rangeUnits > 0
+                    ? `${rangeUnits} ${unit === 'NIGHT' ? 'night' : 'day'}${rangeUnits === 1 ? '' : 's'}`
+                    : unit === 'NIGHT'
+                      ? 'Check-out must be after the check-in date'
+                      : 'The last day cannot be before the first day'}
+                </p>
+              </div>
+            ) : null}
+
+            {unitPrice && !activeSlot.isPast && !activeSlot.isBlocked && rangeUnits > 0 ? (
+              <p className="flex items-start gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                <IndianRupee className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                {rangeUnits > 1
+                  ? `${rangeUnits} × ₹${formatRupees(unitPrice)} = ₹${formatRupees(unitPrice * rangeUnits)}`
+                  : `₹${formatRupees(unitPrice)}`}{' '}
+                will be added to the resident&apos;s flat bill. It can be cancelled free of charge until it starts.
+              </p>
+            ) : null}
+
             <div className="flex flex-wrap gap-2">
               {!activeSlot.isPast &&
               !activeSlot.isBlocked &&
@@ -865,7 +1025,7 @@ export function SlotManagerDrawer({
                 <Button
                   type="button"
                   onClick={handleBook}
-                  disabled={!selectedResidentId || bookingPending}
+                  disabled={!selectedResidentId || bookingPending || rangeUnits <= 0}
                   className="flex-1 rounded-lg bg-[#005390] px-3 py-2 text-sm font-semibold text-white hover:bg-[#005390]/90 disabled:opacity-50"
                 >
                   {bookingPending ? 'Booking...' : 'Confirm booking'}
