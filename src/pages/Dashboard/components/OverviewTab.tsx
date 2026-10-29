@@ -19,7 +19,7 @@ import {
   UtensilsCrossed,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { Button } from '@/components/ui/button'
 import {
   ChartContainer,
@@ -144,38 +144,51 @@ export function OverviewTab({
         >
           {hasTicketTrend ? (
             <ChartContainer config={ticketTrendConfig} className="aspect-auto h-64 w-full">
-              <LineChart data={tickets.trend} margin={{ top: 8, right: 12, left: -16, bottom: 0 }}>
-                <CartesianGrid vertical={false} stroke={GRID} />
+              <AreaChart data={tickets.trend} margin={{ top: 8, right: 12, left: -16, bottom: 0 }}>
+                {/* Soft top-to-bottom fades under each line; low enough that the two overlap legibly. */}
+                <defs>
+                  {(['created', 'resolved'] as const).map((key) => (
+                    <linearGradient key={key} id={`ticket-fill-${key}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={`var(--color-${key})`} stopOpacity={0.28} />
+                      <stop offset="100%" stopColor={`var(--color-${key})`} stopOpacity={0.02} />
+                    </linearGradient>
+                  ))}
+                </defs>
+                <CartesianGrid vertical={false} stroke={GRID} strokeDasharray="4 4" />
                 <XAxis
                   dataKey="day"
                   tickFormatter={dayLabel}
                   tickLine={false}
-                  axisLine={false}
+                  axisLine={{ stroke: GRID }}
                   tick={AXIS_TICK}
+                  tickMargin={8}
                   minTickGap={16}
                 />
                 <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={AXIS_TICK} width={40} />
                 <ChartTooltip
+                  cursor={{ stroke: GRID, strokeWidth: 1 }}
                   content={<ChartTooltipContent indicator="line" labelFormatter={(v) => dayLabel(String(v))} />}
                 />
                 <ChartLegend content={<ChartLegendContent />} />
-                <Line
+                <Area
                   dataKey="created"
-                  type="linear"
+                  type="monotone"
                   stroke="var(--color-created)"
                   strokeWidth={2}
+                  fill="url(#ticket-fill-created)"
                   dot={false}
-                  activeDot={{ r: 4 }}
+                  activeDot={{ r: 4, strokeWidth: 2, stroke: '#fff' }}
                 />
-                <Line
+                <Area
                   dataKey="resolved"
-                  type="linear"
+                  type="monotone"
                   stroke="var(--color-resolved)"
                   strokeWidth={2}
+                  fill="url(#ticket-fill-resolved)"
                   dot={false}
-                  activeDot={{ r: 4 }}
+                  activeDot={{ r: 4, strokeWidth: 2, stroke: '#fff' }}
                 />
-              </LineChart>
+              </AreaChart>
             </ChartContainer>
           ) : (
             <EmptyChart message="No tickets raised or resolved in the last 14 days" />
