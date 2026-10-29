@@ -70,7 +70,7 @@ export const CommonProgressBar: React.FC<CommonProgressBarProps> = ({
                 {isDone ? (
                   <Check className="w-5.5 h-5.5 stroke-[2.5]" />
                 ) : Icon ? (
-                  <Icon className="w-5 h-5 text-white" />
+                  <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-400'}`} />
                 ) : (
                   <span className={`text-sm font-bold ${isActive ? 'text-white' : ''}`}>{stepNumber}</span>
                 )}

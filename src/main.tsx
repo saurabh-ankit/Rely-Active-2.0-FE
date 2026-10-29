@@ -9,6 +9,12 @@ import './index.css'
 import App from './App'
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } })
+window.addEventListener('error', (e) => {
+  if (e.message?.includes('Failed to fetch dynamically imported module')) {
+    console.log('Chunk load failed → Reloading...')
+    window.location.reload()
+  }
+})
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
