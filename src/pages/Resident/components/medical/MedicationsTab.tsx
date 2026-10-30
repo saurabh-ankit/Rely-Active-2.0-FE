@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Pill, Plus, Syringe, type LucideIcon } from 'lucide-react'
+import { History, Pill, Plus, Syringe, type LucideIcon } from 'lucide-react'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,6 +13,7 @@ import { todayDateInputValue } from './clinicalFormUtils'
 import MedicationAdministrationLogModal from './MedicationAdministrationLogModal'
 import MedicationCard from './MedicationCard'
 import MedicationFormModal, { type MedicationKind } from './MedicationFormModal'
+import MedicationHistoryModal from './MedicationHistoryModal'
 import { administrationKey, medicationDayStatus, type TodayAdministrations } from './medicationSchedule'
 
 interface MedicationColumnProps {
@@ -29,6 +30,7 @@ interface MedicationColumnProps {
   today: string
   administrations: TodayAdministrations
   onAdd: () => void
+  onHistory: () => void
   onEdit: (item: ResidentMedicationItem) => void
   onDelete: (item: ResidentMedicationItem) => void
   onViewLog: (item: ResidentMedicationItem) => void
@@ -48,18 +50,14 @@ const MedicationColumn: React.FC<MedicationColumnProps> = ({
   today,
   administrations,
   onAdd,
+  onHistory,
   onEdit,
   onDelete,
   onViewLog,
 }) => {
-  // Ended courses sink to the bottom; the rest keep their prescribed order.
-  const sorted = useMemo(
-    () =>
-      [...items].sort(
-        (a, b) =>
-          Number(medicationDayStatus(a, kind, today, administrations) === 'ENDED') -
-          Number(medicationDayStatus(b, kind, today, administrations) === 'ENDED'),
-      ),
+  // Active courses stay in the panel; ended courses move to History.
+  const active = useMemo(
+    () => items.filter((item) => medicationDayStatus(item, kind, today, administrations) !== 'ENDED'),
     [items, kind, today, administrations],
   )
 
@@ -68,27 +66,39 @@ const MedicationColumn: React.FC<MedicationColumnProps> = ({
       icon={icon}
       iconClassName={iconClassName}
       title={title}
-      count={isLoading ? undefined : items.length}
+      count={isLoading ? undefined : active.length}
       action={
-        canUpdate ? (
+        <>
           <Button
-            variant="primary"
-            icon={<Plus className="w-4 h-4" />}
-            onClick={onAdd}
-            className="rounded-xl w-full sm:w-auto text-xs sm:text-sm"
+            type="button"
+            variant="outline"
+            onClick={onHistory}
+            className="h-8 rounded-xl border border-gray-200 bg-white px-2.5 text-xs font-semibold text-gray-700 hover:bg-slate-50 cursor-pointer shadow-2xs dark:border-gray-700 dark:bg-slate-800 dark:text-gray-200"
+            title="View History"
           >
-            {addLabel}
+            <History className="mr-1.5 size-3.5 text-slate-500" />
+            History
           </Button>
-        ) : undefined
+          {canUpdate ? (
+            <Button
+              variant="primary"
+              icon={<Plus className="w-4 h-4" />}
+              onClick={onAdd}
+              className="rounded-xl w-full sm:w-auto text-xs sm:text-sm"
+            >
+              {addLabel}
+            </Button>
+          ) : null}
+        </>
       }
     >
       {isLoading ? (
         <ClinicalLoadingState label={`Loading ${title.toLowerCase()}...`} />
-      ) : sorted.length === 0 ? (
+      ) : active.length === 0 ? (
         <ClinicalEmptyState icon={icon} title={emptyTitle} description={emptyDescription} />
       ) : (
         <div className="max-h-[640px] space-y-3 overflow-y-auto pr-1">
-          {sorted.map((med) => (
+          {active.map((med) => (
             <MedicationCard
               key={med.id}
               med={med}
@@ -117,6 +127,15 @@ interface MedicationsTabProps {
 
 type MedicationTarget = { kind: MedicationKind; item: ResidentMedicationItem | null }
 
+function isEnded(
+  item: ResidentMedicationItem,
+  kind: MedicationAdministrationKind,
+  today: string,
+  administrations: TodayAdministrations,
+): boolean {
+  return medicationDayStatus(item, kind, today, administrations) === 'ENDED'
+}
+
 export const MedicationsTab: React.FC<MedicationsTabProps> = ({
   residentId,
   canUpdateResident,
@@ -130,6 +149,7 @@ export const MedicationsTab: React.FC<MedicationsTabProps> = ({
     kind: MedicationAdministrationKind
     item: ResidentMedicationItem
   } | null>(null)
+  const [historyKind, setHistoryKind] = useState<MedicationAdministrationKind | null>(null)
   const [today] = useState(todayDateInputValue)
   const { data: todayRows = [] } = useResidentMedicationAdministrationsQuery(residentId, { date: today })
   const todayAdministrations = useMemo<TodayAdministrations>(
@@ -139,6 +159,15 @@ export const MedicationsTab: React.FC<MedicationsTabProps> = ({
   const deleteMedication = useDeleteResidentMedicationMutation(residentId)
   const deleteInsulin = useDeleteResidentInsulinMutation(residentId)
   const deleteMutation = deleting?.kind === 'insulin' ? deleteInsulin : deleteMedication
+
+  const medicationHistory = useMemo(
+    () => medications.filter((item) => isEnded(item, 'MEDICATION', today, todayAdministrations)),
+    [medications, today, todayAdministrations],
+  )
+  const insulinHistory = useMemo(
+    () => insulin.filter((item) => isEnded(item, 'INSULIN', today, todayAdministrations)),
+    [insulin, today, todayAdministrations],
+  )
 
   return (
     <div className="h-full min-h-0 flex flex-col flex-1 space-y-6">
@@ -157,6 +186,7 @@ export const MedicationsTab: React.FC<MedicationsTabProps> = ({
           today={today}
           administrations={todayAdministrations}
           onAdd={() => setFormTarget({ kind: 'medication', item: null })}
+          onHistory={() => setHistoryKind('MEDICATION')}
           onEdit={(item) => setFormTarget({ kind: 'medication', item })}
           onDelete={(item) => setDeleting({ kind: 'medication', item })}
           onViewLog={(item) => setLogTarget({ kind: 'MEDICATION', item })}
@@ -175,6 +205,7 @@ export const MedicationsTab: React.FC<MedicationsTabProps> = ({
           today={today}
           administrations={todayAdministrations}
           onAdd={() => setFormTarget({ kind: 'insulin', item: null })}
+          onHistory={() => setHistoryKind('INSULIN')}
           onEdit={(item) => setFormTarget({ kind: 'insulin', item })}
           onDelete={(item) => setDeleting({ kind: 'insulin', item })}
           onViewLog={(item) => setLogTarget({ kind: 'INSULIN', item })}
@@ -198,6 +229,20 @@ export const MedicationsTab: React.FC<MedicationsTabProps> = ({
           residentId={residentId}
           kind={logTarget.kind}
           medication={logTarget.item}
+        />
+      )}
+
+      {historyKind && (
+        <MedicationHistoryModal
+          open
+          onOpenChange={(open) => !open && setHistoryKind(null)}
+          kind={historyKind}
+          items={historyKind === 'INSULIN' ? insulinHistory : medicationHistory}
+          today={today}
+          administrations={todayAdministrations}
+          onViewLog={(item) => {
+            setLogTarget({ kind: historyKind, item })
+          }}
         />
       )}
 
