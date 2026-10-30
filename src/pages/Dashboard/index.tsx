@@ -101,13 +101,13 @@ export default function DashboardPage() {
       )}
 
       <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as Tab)} className="w-full gap-0">
-        <div className="w-full rounded-full bg-slate-200/70 dark:bg-slate-800/80 border border-slate-300/70 dark:border-slate-700/80 p-1 shadow-2xs">
-          <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full h-auto gap-1 items-center bg-transparent p-0">
+        <div className="w-full rounded-2xl sm:rounded-full bg-slate-200/70 dark:bg-slate-800/80 border border-slate-300/70 dark:border-slate-700/80 p-1 shadow-2xs">
+          <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full h-auto gap-1 items-center bg-transparent p-0 border-0 shadow-none sm:border sm:border-slate-300/70 sm:shadow-2xs">
             {TABS.map(({ value, label, icon: Icon }) => (
               <TabsTrigger
                 key={value}
                 value={value}
-                className="flex h-8 w-full items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-xs focus-visible:!ring-0 transition-all cursor-pointer"
+                className="flex h-8 w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl sm:rounded-full px-3 sm:px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-xs focus-visible:!ring-0 transition-all cursor-pointer"
               >
                 <Icon className="size-4 shrink-0" />
                 <span>{label}</span>
