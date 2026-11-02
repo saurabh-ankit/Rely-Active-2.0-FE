@@ -30,8 +30,19 @@ interface FlatGroup {
   }[]
 }
 
+/** Marked after the event ended (attendance staff can mark up to 3 days late). */
+const isLateMark = (markedAt: string | null | undefined, eventEnd: string | null | undefined) =>
+  !!markedAt && !!eventEnd && new Date(markedAt).getTime() > new Date(eventEnd).getTime()
+
 /** People who came to an event without reservations, grouped by flat; each person has their own time. */
-export function OpenAttendanceAccordion({ registrations }: { registrations: EventRegistration[] }) {
+export function OpenAttendanceAccordion({
+  registrations,
+  eventEnd,
+}: {
+  registrations: EventRegistration[]
+  /** The event's end: marks after it are tagged late. */
+  eventEnd?: string | null | undefined
+}) {
   const groups = useMemo(() => {
     const byFlat = new Map<string, FlatGroup>()
     for (const r of registrations) {
@@ -140,6 +151,11 @@ export function OpenAttendanceAccordion({ registrations }: { registrations: Even
                           <TableCell className="px-3 py-2.5 text-gray-700">{p.contact || '-'}</TableCell>
                           <TableCell className="px-3 py-2.5 text-gray-700">
                             {p.attendedAt ? dateTime(p.attendedAt) : '-'}
+                            {isLateMark(p.attendedAt, eventEnd) && (
+                              <span className="ml-1.5 rounded bg-orange-100 px-1 text-[9px] font-bold tracking-wide text-orange-800 uppercase">
+                                Late
+                              </span>
+                            )}
                           </TableCell>
                           <TableCell className="px-3 py-2.5 text-gray-700">{p.markedBy || '-'}</TableCell>
                         </TableRow>
