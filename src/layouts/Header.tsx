@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Building2, ChevronDown, LogOut, Menu, Settings, Shield, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
@@ -12,7 +12,6 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = true }) => {
-  const navigate = useNavigate()
   const location = useLocation()
   const { user, isSuperAdmin, logout } = useAuth()
   const { selectedLocationName, accessibleLocations, selectLocation } = useLocationContext()
@@ -62,8 +61,8 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
 
   const handleLogout = () => {
     setShowProfileDropdown(false)
+    // Redirects to login itself, once this browser is unregistered from push
     logout()
-    navigate('/login')
   }
 
   return (

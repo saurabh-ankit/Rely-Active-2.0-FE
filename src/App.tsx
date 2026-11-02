@@ -1,6 +1,7 @@
 import { Component, Suspense, type ErrorInfo, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
+import { NotificationPermissionPrompt } from '@/components/notifications/NotificationPermissionPrompt'
 import { LocationSelectionModal } from './components/common/LocationSelectionModal'
 import { GlobalLoadingIndicator } from './components/common/GlobalLoadingIndicator'
 import SuspenseLoader from './components/shared/SuspenseLoader'
@@ -47,6 +48,7 @@ export default function App() {
         <RootRouter />
       </Suspense>
       <LocationSelectionModal />
+      <NotificationPermissionPrompt />
     </AppErrorBoundary>
   )
 }
