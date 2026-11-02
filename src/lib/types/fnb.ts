@@ -245,6 +245,8 @@ export interface FnbFoodAttendanceMember {
     meal_slot_id?: string | null
     mealSlot?: { id?: string; name?: string; slotKey?: string } | null
     orderId?: string | null
+    /** Marked after the meal slot had ended. */
+    markedLate?: boolean
     created_by?: string | null
     created_by_user?: {
       id: string
@@ -266,6 +268,8 @@ export interface FnbFoodAttendanceMember {
     meal_slot_id?: string | null
     mealSlot?: { id?: string; name?: string; slotKey?: string } | null
     orderId?: string | null
+    /** Marked after the meal slot had ended. */
+    markedLate?: boolean
     created_by?: string | null
     created_by_user?: {
       id: string

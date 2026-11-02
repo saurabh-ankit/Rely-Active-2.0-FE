@@ -309,6 +309,7 @@ const EventRegistrationsPage = () => {
             {!isOpen ? (
               <ReservationAccordion
                 registrations={registrations}
+                eventEnd={event?.endDate}
                 statusBadge={getStatusBadge}
                 onCancel={(reg) => openStatusDialog(reg, 'CANCELLED')}
                 pageIndex={pagination.pageIndex}
@@ -317,7 +318,7 @@ const EventRegistrationsPage = () => {
                 onPageChange={(pageIndex) => setPagination((p) => ({ ...p, pageIndex }))}
               />
             ) : (
-              <OpenAttendanceAccordion registrations={registrations} />
+              <OpenAttendanceAccordion registrations={registrations} eventEnd={event?.endDate} />
             )}
           </CardContent>
         </Card>
