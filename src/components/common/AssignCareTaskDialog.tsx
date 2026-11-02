@@ -228,10 +228,10 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
       <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
         {/* Scrollable Form Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {/* 1. Select Resident */}
+          {/* 1. Flat */}
           <div className="space-y-1.5">
             <Label htmlFor="assign-resident-select" className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-              1. Select Resident <span className="text-rose-500">*</span>
+              1. Flat <span className="text-rose-500">*</span>
             </Label>
             <Select
               value={selectedResidentId || undefined}
@@ -245,25 +245,19 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
                 id="assign-resident-select"
                 className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-xs text-gray-900 transition-colors focus:border-[#005390] focus:bg-white dark:border-gray-800 dark:bg-slate-800 dark:text-white sm:text-sm h-auto"
               >
-                <SelectValue placeholder={loadingResidents ? 'Loading residents...' : '-- Select Resident --'} />
+                <SelectValue placeholder={loadingResidents ? 'Loading flats...' : '-- Select Flat --'} />
               </SelectTrigger>
               <SelectContent>
                 {selectedResident && !residents.some((r) => r.id === selectedResident.id) && (
                   <SelectItem key={selectedResident.id} value={selectedResident.id}>
-                    {`${selectedResident.firstName || ''} ${selectedResident.lastName || ''}`.trim() || 'Resident'}
-                    {selectedResident.unit?.unit_number ? ` (Flat ${selectedResident.unit.unit_number})` : ''}
+                    {selectedResident.unit?.unit_number || '—'}
                   </SelectItem>
                 )}
-                {residents.map((r) => {
-                  const name = `${r.firstName || ''} ${r.lastName || ''}`.trim() || 'Resident'
-                  const unit = r.unit?.unit_number ? ` (Flat ${r.unit.unit_number})` : ''
-                  return (
-                    <SelectItem key={r.id} value={r.id}>
-                      {name}
-                      {unit}
-                    </SelectItem>
-                  )
-                })}
+                {residents.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.unit?.unit_number || '—'}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
