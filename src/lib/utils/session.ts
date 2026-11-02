@@ -56,7 +56,8 @@ export const clearAppSession = (options: ClearSessionOptions = {}) => {
       'rely-active-location-storage',
       'rely-active-auth',
       'rely-active-tickets-storage',
-      'rely-active-push-storage',
+      // rely-active-push-storage stays: its device id identifies this browser across logins, so
+      // the backend replaces this browser's old token (clearPushState already dropped the token)
       'rely_active_web_push_token',
       'rely_active_web_push_device_id',
     ]

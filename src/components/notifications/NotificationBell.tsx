@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNow } from 'date-fns'
-import { Archive, Bell, CheckCheck, Loader2 } from 'lucide-react'
+import { Archive, Bell, CheckCheck, Loader2, Volume2, VolumeX } from 'lucide-react'
 import {
   useArchiveNotificationMutation,
   useMarkAllNotificationsReadMutation,
@@ -13,6 +13,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button'
 import type { NotificationItem } from '@/lib/types/notification'
 import { cn } from '@/lib/utils'
+import {
+  isNotificationSoundEnabled,
+  playNotificationSound,
+  setNotificationSoundEnabled,
+  wasPushReceivedRecently,
+} from '@/utils/notificationSound'
+import { notifySuccess } from '@/utils/toast'
 
 interface NotificationBellProps {
   onOpen?: () => void
@@ -41,6 +48,7 @@ function severityClass(severity?: string | null): string {
 
 export function NotificationBell({ onOpen }: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [soundOn, setSoundOn] = useState(isNotificationSoundEnabled)
   const navigate = useNavigate()
 
   const unreadCountQuery = useUnreadNotificationCountQuery()
@@ -51,6 +59,18 @@ export function NotificationBell({ onOpen }: NotificationBellProps) {
   const archiveMutation = useArchiveNotificationMutation()
 
   const unreadCount = unreadCountQuery.data?.data.unreadCount ?? 0
+
+  // Fallback when a push never reaches this tab: the 30-second check still alerts the user
+  const lastUnreadCount = useRef<number | null>(null)
+  useEffect(() => {
+    if (!unreadCountQuery.isSuccess) return
+    const previous = lastUnreadCount.current
+    lastUnreadCount.current = unreadCount
+    if (previous === null || unreadCount <= previous || wasPushReceivedRecently()) return
+    const added = unreadCount - previous
+    playNotificationSound()
+    notifySuccess('New notification', added > 1 ? `${added} new updates` : 'You have a new update.')
+  }, [unreadCount, unreadCountQuery.isSuccess])
   // Newest on top: the API already sorts this way; sorting again keeps the order right
   // even if items arrive out of order. The sort is stable, so ties keep the API order.
   const notifications = useMemo(
@@ -60,6 +80,11 @@ export function NotificationBell({ onOpen }: NotificationBellProps) {
       ),
     [notificationsQuery.data?.data.notifications],
   )
+
+  const toggleSound = () => {
+    setNotificationSoundEnabled(!soundOn)
+    setSoundOn(!soundOn)
+  }
 
   const handleOpenChange = (next: boolean) => {
     setIsOpen(next)
@@ -126,16 +151,29 @@ export function NotificationBell({ onOpen }: NotificationBellProps) {
             <h3 className="text-sm font-bold text-gray-900">Notifications</h3>
             <p className="text-[11px] text-gray-500">{unreadCount} unread</p>
           </div>
-          <Button
-            variant="ghost"
-            type="button"
-            onClick={() => markAllReadMutation.mutate(undefined)}
-            disabled={unreadCount === 0 || markAllReadMutation.isPending}
-            className="h-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-[#005390] bg-blue-50 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-          >
-            <CheckCheck className="h-3.5 w-3.5" />
-            Mark all read
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={toggleSound}
+              aria-pressed={soundOn}
+              aria-label={soundOn ? 'Turn notification sound off' : 'Turn notification sound on'}
+              title={soundOn ? 'Sound on' : 'Sound off'}
+              className="h-auto rounded-lg p-1.5 text-[#005390] bg-blue-50 hover:bg-blue-100 cursor-pointer"
+            >
+              {soundOn ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5 text-gray-500" />}
+            </Button>
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={() => markAllReadMutation.mutate(undefined)}
+              disabled={unreadCount === 0 || markAllReadMutation.isPending}
+              className="h-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-[#005390] bg-blue-50 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <CheckCheck className="h-3.5 w-3.5" />
+              Mark all read
+            </Button>
+          </div>
         </div>
 
         <div className="max-h-[420px] overflow-y-auto p-2">

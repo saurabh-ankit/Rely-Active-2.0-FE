@@ -91,36 +91,28 @@ async function getMessagingClient() {
   }
 }
 
-export async function ensureWebPushRegistration(authToken?: string): Promise<string | null> {
-  const vapidKey = getVapidKey()
-  if (!vapidKey) return null
+/** The browser's notification permission, or 'unsupported' where web push can't work here. */
+export function getWebPushPermission(): NotificationPermission | 'unsupported' {
+  if (typeof window === 'undefined') return 'unsupported'
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return 'unsupported'
+  if (!getVapidKey() || !getFirebaseWebConfig()) return 'unsupported'
+  return window.Notification.permission
+}
 
-  const client = await getMessagingClient()
-  if (!client) return null
-
-  if (window.Notification.permission === 'denied') {
-    return null
+/**
+ * Shows the browser's permission prompt, then registers this browser for push. Call it straight
+ * from a click: browsers hide or block prompts that don't follow one.
+ */
+export async function requestWebPushPermission(authToken?: string): Promise<NotificationPermission> {
+  const permission = await window.Notification.requestPermission()
+  if (permission === 'granted') {
+    await ensureWebPushRegistration(authToken).catch(() => null)
   }
+  return permission
+}
 
-  if (window.Notification.permission !== 'granted') {
-    const permission = await window.Notification.requestPermission()
-    if (permission !== 'granted') {
-      return null
-    }
-  }
-
-  const registration = await navigator.serviceWorker.register(buildServiceWorkerUrl(client.config))
-
-  const fcmToken = await getToken(client.messaging, {
-    vapidKey,
-    serviceWorkerRegistration: registration,
-  })
-
-  if (!fcmToken) {
-    return null
-  }
-
-  await registerNotificationDeviceAPI(
+const registerToken = async (fcmToken: string, authToken?: string) =>
+  registerNotificationDeviceAPI(
     {
       fcmToken,
       appSurface: 'WEB_APP',
@@ -131,10 +123,59 @@ export async function ensureWebPushRegistration(authToken?: string): Promise<str
     authToken,
   )
 
+async function registerThisBrowser(authToken?: string): Promise<string | null> {
+  const vapidKey = getVapidKey()
+  if (!vapidKey) return null
+
+  const client = await getMessagingClient()
+  if (!client) return null
+
+  if (window.Notification.permission !== 'granted') {
+    return null
+  }
+
+  const registration = await navigator.serviceWorker.register(buildServiceWorkerUrl(client.config))
+  const tokenOptions = { vapidKey, serviceWorkerRegistration: registration }
+
+  let fcmToken = await getToken(client.messaging, tokenOptions)
+  if (!fcmToken) {
+    return null
+  }
+
+  const registered = await registerToken(fcmToken, authToken)
+
+  // Firebase rejected this token on a send, but the browser would keep reusing it: replace it.
+  if (registered.data?.tokenWasRejected) {
+    await deleteToken(client.messaging)
+    fcmToken = await getToken(client.messaging, tokenOptions)
+    if (!fcmToken) {
+      return null
+    }
+    await registerToken(fcmToken, authToken)
+  }
+
   usePushStore.getState().setRegisteredFcmToken(fcmToken)
   return fcmToken
 }
 
+let registrationInFlight: Promise<string | null> | null = null
+
+/**
+ * Registers this browser for push. Never prompts: NotificationPermissionPrompt asks first. Calls
+ * made while one is running share it, because parallel getToken calls can leave the backend
+ * holding a token the browser has already replaced.
+ */
+export function ensureWebPushRegistration(authToken?: string): Promise<string | null> {
+  registrationInFlight ??= registerThisBrowser(authToken).finally(() => {
+    registrationInFlight = null
+  })
+  return registrationInFlight
+}
+
+/**
+ * Stops push to this browser for the user logging out. The Firebase token is kept: the next login
+ * reuses it, and deleting it here could leave the backend holding a dead one.
+ */
 export async function unregisterWebPushToken(authToken?: string): Promise<void> {
   const storedToken = usePushStore.getState().registeredFcmToken
 
@@ -146,15 +187,6 @@ export async function unregisterWebPushToken(authToken?: string): Promise<void> 
       },
       authToken,
     )
-  }
-
-  const client = await getMessagingClient()
-  if (client) {
-    try {
-      await deleteToken(client.messaging)
-    } catch {
-      // Ignore browser-side token cleanup errors.
-    }
   }
 
   usePushStore.getState().setRegisteredFcmToken(null)

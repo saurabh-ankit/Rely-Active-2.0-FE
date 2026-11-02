@@ -41,9 +41,13 @@ export const archiveNotificationAPI = async (id: string) => {
 }
 
 export const registerNotificationDeviceAPI = async (payload: RegisterNotificationDevicePayload, authToken?: string) => {
-  const response = await api.post<ApiResponse<null>>(API_ENDPOINTS.notifications.registerDevice, payload, {
-    ...(authToken ? { headers: { Authorization: `Bearer ${authToken}` } } : {}),
-  })
+  const response = await api.post<ApiResponse<{ tokenWasRejected?: boolean }>>(
+    API_ENDPOINTS.notifications.registerDevice,
+    payload,
+    {
+      ...(authToken ? { headers: { Authorization: `Bearer ${authToken}` } } : {}),
+    },
+  )
   return response.data
 }
 

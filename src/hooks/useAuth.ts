@@ -5,6 +5,8 @@ import { useUserStore } from '@/lib/stores/userStore'
 import { clearAppSession } from '@/lib/utils/session'
 import type { LoginPayload, UserAuthData } from '@/lib/types'
 
+const LOGOUT_UNREGISTER_TIMEOUT_MS = 1500
+
 export const useAuth = () => {
   const { token, user, isLoading, setAuth, setUser, setToken, setIsLoading } = useUserStore()
 
@@ -40,10 +42,11 @@ export const useAuth = () => {
   }
 
   const logout = useCallback(() => {
-    if (token) {
-      void unregisterWebPushTokenSafe(token)
-    }
-    clearAppSession({ redirectToLogin: true })
+    // The redirect cancels requests in flight, so let the unregister finish first (but never hold
+    // up logging out on a slow network)
+    const unregistered = token ? unregisterWebPushTokenSafe(token) : Promise.resolve()
+    const giveUp = new Promise<void>((resolve) => setTimeout(resolve, LOGOUT_UNREGISTER_TIMEOUT_MS))
+    void Promise.race([unregistered, giveUp]).finally(() => clearAppSession({ redirectToLogin: true }))
   }, [token])
 
   const isSuperAdmin =
