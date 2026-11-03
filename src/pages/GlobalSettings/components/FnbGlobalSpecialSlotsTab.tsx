@@ -208,14 +208,14 @@ export default function FnbGlobalSpecialSlotsTab() {
   return (
     <div className="space-y-6">
       {/* Top Header Card */}
-      <Card className="gap-0 bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+      <Card className="gap-0 bg-white/70 backdrop-blur-xl border border-white/50 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm">
         <CardHeader className="p-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 shrink-0">
                 <Clock className="w-5 h-5" />
               </div>
-              <CardTitle className="text-xl font-bold text-gray-900">Special Meal Slots Master</CardTitle>
+              <CardTitle className="text-lg sm:text-xl font-bold text-gray-900">Special Meal Slots Master</CardTitle>
             </div>
             <CardDescription className="text-xs text-gray-500 mt-1">
               Configure special meal slot categories (e.g. Festival Specials, Chef Specials, Weekend Feasts) and assign
@@ -225,7 +225,7 @@ export default function FnbGlobalSpecialSlotsTab() {
 
           <Button
             onClick={handleOpenAddModal}
-            className="inline-flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004070] transition-colors cursor-pointer shrink-0"
+            className="w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004070] transition-colors cursor-pointer shrink-0"
           >
             <Plus className="w-4 h-4" /> Add Special Meal Slot
           </Button>
