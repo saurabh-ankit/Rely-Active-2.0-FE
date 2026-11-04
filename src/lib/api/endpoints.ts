@@ -85,6 +85,15 @@ export const API_ENDPOINTS = {
       locationId && locationId !== 'ALL'
         ? `${BASE_URL}/location/${encodeURIComponent(locationId)}/dashboard/stats`
         : `${BASE_URL}/dashboard/stats`,
+    getAnalytics: (tab: string, locationId?: string | null) =>
+      locationId && locationId !== 'ALL'
+        ? `${BASE_URL}/location/${encodeURIComponent(locationId)}/dashboard/analytics/${tab}`
+        : `${BASE_URL}/dashboard/analytics/${tab}`,
+    /** Visible tabs: one setting per company, applied to all of its properties. */
+    settings: (locationId?: string | null) =>
+      locationId && locationId !== 'ALL'
+        ? `${BASE_URL}/location/${encodeURIComponent(locationId)}/dashboard/settings`
+        : `${BASE_URL}/dashboard/settings`,
   },
 
   globalRbac: {
