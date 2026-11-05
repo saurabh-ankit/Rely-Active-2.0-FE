@@ -20,20 +20,20 @@ export function PageHeader({ title, description, icon: Icon, actions, onBack, ba
   const headerCard = (
     <div
       className={cn(
-        'flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-2xs',
+        'flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 sm:p-5 shadow-2xs w-full',
         className,
       )}
     >
-      <div className="flex min-w-0 items-start gap-2.5">
-        <div className="min-w-0">
-          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 dark:text-white">
-            {Icon && <Icon className="w-5 h-5 shrink-0 text-[#005390]" />}
-            <span className="truncate">{title}</span>
+      <div className="flex min-w-0 flex-1 items-start gap-2.5 w-full">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base sm:text-lg font-bold text-gray-900 flex items-start gap-2 dark:text-white leading-snug">
+            {Icon && <Icon className="w-5 h-5 shrink-0 text-[#005390] mt-0.5" />}
+            <span className="min-w-0 break-words">{title}</span>
           </h2>
-          {description && <p className="text-xs text-gray-500 mt-0.5">{description}</p>}
+          {description && <p className="text-xs text-gray-500 mt-1 leading-relaxed break-words">{description}</p>}
         </div>
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto shrink-0">{actions}</div>}
     </div>
   )
 

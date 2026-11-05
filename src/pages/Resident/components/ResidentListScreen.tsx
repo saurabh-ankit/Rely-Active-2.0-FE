@@ -458,41 +458,90 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                       return (
                         <li key={occ.id}>
                           <div className="flex flex-col gap-2 px-4 py-3 transition-colors hover:bg-[#005390]/[0.03] md:flex-row md:items-center">
-                            <Button
-                              variant="ghost"
-                              type="button"
-                              onClick={() => goToResident(occ.id)}
-                              className="group flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left p-0 h-auto font-normal hover:bg-transparent justify-start"
-                              title="View profile"
-                            >
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#005390]/10 text-xs font-bold text-[#005390]">
-                                {occ.photoUrl ? (
-                                  <img
-                                    src={getFileUrl(occ.photoUrl)}
-                                    alt={fullName}
-                                    className="h-full w-full object-cover"
-                                  />
-                                ) : (
-                                  occ.firstName[0]?.toUpperCase()
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-gray-900 group-hover:text-[#005390] dark:text-white">
-                                  {fullName}
-                                  <span
-                                    className={cn(
-                                      'rounded-full border px-2 py-px text-[10px] font-semibold',
-                                      isTenant
-                                        ? 'border-purple-200 bg-purple-50 text-purple-700'
-                                        : 'border-blue-200 bg-blue-50 text-blue-700',
-                                    )}
+                            <div className="flex items-center justify-between gap-2 min-w-0 md:flex-1">
+                              <Button
+                                variant="ghost"
+                                type="button"
+                                onClick={() => goToResident(occ.id)}
+                                className="group flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left p-0 h-auto font-normal hover:bg-transparent justify-start"
+                                title="View profile"
+                              >
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#005390]/10 text-xs font-bold text-[#005390]">
+                                  {occ.photoUrl ? (
+                                    <img
+                                      src={getFileUrl(occ.photoUrl)}
+                                      alt={fullName}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : (
+                                    occ.firstName[0]?.toUpperCase()
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-gray-900 group-hover:text-[#005390] dark:text-white">
+                                    {fullName}
+                                    <span
+                                      className={cn(
+                                        'rounded-full border px-2 py-px text-[10px] font-semibold',
+                                        isTenant
+                                          ? 'border-purple-200 bg-purple-50 text-purple-700'
+                                          : 'border-blue-200 bg-blue-50 text-blue-700',
+                                      )}
+                                    >
+                                      {isTenant ? 'Tenant' : 'Owner'}
+                                    </span>
+                                  </p>
+                                  {occ.email && <p className="truncate text-xs text-gray-500">{occ.email}</p>}
+                                </div>
+                              </Button>
+
+                              <div className="md:hidden shrink-0">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger
+                                    className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-[#005390] dark:hover:bg-gray-800"
+                                    title="Actions"
+                                    aria-label={`Actions for ${fullName}`}
                                   >
-                                    {isTenant ? 'Tenant' : 'Owner'}
-                                  </span>
-                                </p>
-                                {occ.email && <p className="truncate text-xs text-gray-500">{occ.email}</p>}
+                                    <MoreVertical className="h-4 w-4" />
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-44 rounded-xl p-1 shadow-xl">
+                                    {canViewResident && (
+                                      <DropdownMenuItem
+                                        onClick={() => goToResident(occ.id)}
+                                        className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold"
+                                      >
+                                        <UserCheck className="h-3.5 w-3.5 text-[#005390]" />
+                                        View Profile
+                                      </DropdownMenuItem>
+                                    )}
+                                    {canUpdateResident && (
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          navigate(
+                                            isGlobalMode
+                                              ? `/global-settings/residents/edit/${occ.id}`
+                                              : `/admin/residents/edit/${occ.id}`,
+                                          )
+                                        }
+                                        className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold"
+                                      >
+                                        <Edit className="h-3.5 w-3.5 text-[#005390]" />
+                                        Edit Profile
+                                      </DropdownMenuItem>
+                                    )}
+                                    {canDeleteResident && (
+                                      <DropdownMenuItem
+                                        onClick={() => handleDelete(occ.id, fullName)}
+                                        className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                        Remove
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
-                            </Button>
+                            </div>
 
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pl-12 text-xs md:pl-0">
                               <LivingBadge status={occ.isResiding ? 'here' : 'elsewhere'} />
@@ -511,50 +560,52 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
                                   </>
                                 ) : null}
                               </span>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger
-                                  className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-[#005390] dark:hover:bg-gray-800"
-                                  title="Actions"
-                                  aria-label={`Actions for ${fullName}`}
-                                >
-                                  <MoreVertical className="h-4 w-4" />
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-44 rounded-xl p-1 shadow-xl">
-                                  {canViewResident && (
-                                    <DropdownMenuItem
-                                      onClick={() => goToResident(occ.id)}
-                                      className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold"
-                                    >
-                                      <UserCheck className="h-3.5 w-3.5 text-[#005390]" />
-                                      View Profile
-                                    </DropdownMenuItem>
-                                  )}
-                                  {canUpdateResident && (
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        navigate(
-                                          isGlobalMode
-                                            ? `/global-settings/residents/edit/${occ.id}`
-                                            : `/admin/residents/edit/${occ.id}`,
-                                        )
-                                      }
-                                      className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold"
-                                    >
-                                      <Edit className="h-3.5 w-3.5 text-[#005390]" />
-                                      Edit Profile
-                                    </DropdownMenuItem>
-                                  )}
-                                  {canDeleteResident && (
-                                    <DropdownMenuItem
-                                      onClick={() => handleDelete(occ.id, fullName)}
-                                      className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50"
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                      Remove
-                                    </DropdownMenuItem>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                              <div className="hidden md:block shrink-0">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger
+                                    className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-[#005390] dark:hover:bg-gray-800"
+                                    title="Actions"
+                                    aria-label={`Actions for ${fullName}`}
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-44 rounded-xl p-1 shadow-xl">
+                                    {canViewResident && (
+                                      <DropdownMenuItem
+                                        onClick={() => goToResident(occ.id)}
+                                        className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold"
+                                      >
+                                        <UserCheck className="h-3.5 w-3.5 text-[#005390]" />
+                                        View Profile
+                                      </DropdownMenuItem>
+                                    )}
+                                    {canUpdateResident && (
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          navigate(
+                                            isGlobalMode
+                                              ? `/global-settings/residents/edit/${occ.id}`
+                                              : `/admin/residents/edit/${occ.id}`,
+                                          )
+                                        }
+                                        className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold"
+                                      >
+                                        <Edit className="h-3.5 w-3.5 text-[#005390]" />
+                                        Edit Profile
+                                      </DropdownMenuItem>
+                                    )}
+                                    {canDeleteResident && (
+                                      <DropdownMenuItem
+                                        onClick={() => handleDelete(occ.id, fullName)}
+                                        className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                        Remove
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
                             </div>
                           </div>
 
