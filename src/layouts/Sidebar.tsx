@@ -11,6 +11,7 @@ import {
   Settings,
   ShieldCheck,
   Dumbbell,
+  FileSpreadsheet,
   Stethoscope,
   User,
   Utensils,
@@ -20,6 +21,7 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { useLocationContext } from '@/hooks/useLocation'
 import { cn } from '@/lib/utils'
+import { REPORT_ROLES } from '@/pages/Reports/roles'
 import { Button } from '@/components/ui/button'
 
 import { getDepartmentManagerType } from '@/utils/departmentManager'
@@ -83,7 +85,7 @@ const SidebarItem: React.FC<{ item: SidebarItemData; onClick?: () => void }> = (
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
   const location = useLocation()
-  const { user, isSuperAdmin } = useAuth()
+  const { user, isSuperAdmin, roles } = useAuth()
   const { hasResourcePermission, isLoadingLocations } = useLocationContext()
 
   const managerType = getDepartmentManagerType(user)
@@ -166,6 +168,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       href: '/admin/amenities',
     },
     {
+      icon: <FileSpreadsheet className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
+      label: 'Reports',
+      href: '/admin/reports',
+    },
+    {
       icon: <Settings className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
       label: 'Settings',
       href: '/admin/settings',
@@ -173,6 +180,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
   ]
 
   const filteredItems = sidebarItems.filter((item) => {
+    if (item.href === '/admin/reports') {
+      return isSuperAdmin || roles.some((r) => REPORT_ROLES.includes(r))
+    }
     if (managerType) {
       if (item.href === '/admin/amenities') return true
       switch (managerType) {
