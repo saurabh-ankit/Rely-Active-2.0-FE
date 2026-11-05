@@ -96,6 +96,14 @@ export const API_ENDPOINTS = {
         : `${BASE_URL}/dashboard/settings`,
   },
 
+  reports: {
+    list: (locationId: string) => `${BASE_URL}/location/${encodeURIComponent(locationId)}/reports`,
+    export: (locationId: string, report: string) =>
+      `${BASE_URL}/location/${encodeURIComponent(locationId)}/reports/${report}/export`,
+    preview: (locationId: string, report: string) =>
+      `${BASE_URL}/location/${encodeURIComponent(locationId)}/reports/${report}/preview`,
+  },
+
   globalRbac: {
     getRoles: `${BASE_URL}/roles`,
     createRole: `${BASE_URL}/roles`,
