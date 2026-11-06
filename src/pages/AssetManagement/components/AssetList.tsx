@@ -1,10 +1,11 @@
-import React, { useRef, useState } from 'react'
-import { Edit, FileText, Plus, Trash2, Upload, X } from 'lucide-react'
+import React, { useMemo, useRef, useState } from 'react'
+import { Copy, Download, Edit, FileText, PackageCheck, Plus, QrCode, Trash2, Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { PermissionGuard } from '@/components/common/PermissionGuard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -19,19 +20,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import {
   useCreateAsset,
+  useCreateItemRequest,
   useDeleteAsset,
   useGetAssetCategories,
   useGetAssetItemsDropdown,
   useGetAssets,
   useGetAssetVendorsDropdown,
+  useGetEmployeesForAssignment,
+  useMakeAssetAvailable,
   useUpdateAsset,
 } from '@/hooks/react-query/assetManagement'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/ui/data-table'
 import { useLocationStore } from '@/lib/stores/locationStore'
-import type { Asset, AssetCondition, AssetStatus } from '@/lib/types'
+import type { Asset, AssetCondition, AssetItemRequest, AssetStatus } from '@/lib/types'
 import { formatDisplayDate } from '@/lib/utils'
 import { BulkUploadModal } from './BulkUploadModal'
+import AssetTimelineDialog from './AssetTimeline/AssetTimelineDialog'
+
+const getAssetOptionLabel = (asset: Asset) =>
+  [asset.item?.name, asset.serialNumber, asset.assetTag].filter((value) => value && String(value).trim()).join(' - ') ||
+  '—'
 
 interface AssetListProps {
   enabled?: boolean
@@ -44,6 +53,18 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false)
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const externalFileInputRef = useRef<HTMLInputElement>(null)
+  const [externalModalMode, setExternalModalMode] = useState<'mark' | 'generate' | null>(null)
+  const [externalSeedAsset, setExternalSeedAsset] = useState<Asset | null>(null)
+  const [externalEmployeeId, setExternalEmployeeId] = useState('')
+  const [externalEmployeeSearch, setExternalEmployeeSearch] = useState('')
+  const [externalAssetSearch, setExternalAssetSearch] = useState('')
+  const [externalAssetIds, setExternalAssetIds] = useState<string[]>([])
+  const [externalDescription, setExternalDescription] = useState('')
+  const [externalReturnDate, setExternalReturnDate] = useState('')
+  const [externalImage, setExternalImage] = useState('')
+  const [qrPreview, setQrPreview] = useState<AssetItemRequest | null>(null)
+  const [timelineAsset, setTimelineAsset] = useState<Asset | null>(null)
   const [formData, setFormData] = useState({
     categoryId: '',
     itemId: '',
@@ -82,14 +103,51 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
     enabled: isModalOpen && !!formData.categoryId,
   })
 
+  const { data: employeesData } = useGetEmployeesForAssignment({
+    enabled: !!externalModalMode,
+  })
+
+  const { data: externalUseAssetsData } = useGetAssets({
+    status: 'external_use',
+    limit: 1000,
+    enabled: externalModalMode === 'generate',
+  })
+
   const createMutation = useCreateAsset()
   const updateMutation = useUpdateAsset()
   const deleteMutation = useDeleteAsset()
+  const createGatePassMutation = useCreateItemRequest()
+  const makeAvailableMutation = useMakeAssetAvailable()
 
   const assets = assetsData?.data?.assets || []
   const categories = categoriesData?.data?.categories || []
   const items = itemsData?.data || []
   const vendors = vendorsData?.data || []
+  const employees = employeesData?.data || []
+  const externalUseAssets = externalUseAssetsData?.data?.assets || []
+
+  const filteredEmployees = useMemo(() => {
+    const q = externalEmployeeSearch.trim().toLowerCase()
+    if (!q) return employees
+    return employees.filter(
+      (emp) =>
+        emp.name.toLowerCase().includes(q) ||
+        (emp.role || '').toLowerCase().includes(q) ||
+        (emp.phone || '').includes(q),
+    )
+  }, [employees, externalEmployeeSearch])
+
+  const filteredExternalAssets = useMemo(() => {
+    const q = externalAssetSearch.trim().toLowerCase()
+    if (!q) return externalUseAssets
+    return externalUseAssets.filter((asset) => getAssetOptionLabel(asset).toLowerCase().includes(q))
+  }, [externalUseAssets, externalAssetSearch])
+
+  const selectedExternalAssets = useMemo(() => {
+    const byId = new Map(externalUseAssets.map((asset) => [asset.id, asset]))
+    if (externalSeedAsset) byId.set(externalSeedAsset.id, externalSeedAsset)
+    return externalAssetIds.map((id) => byId.get(id)).filter(Boolean) as Asset[]
+  }, [externalAssetIds, externalUseAssets, externalSeedAsset])
 
   const handleCloseModal = () => {
     setIsModalOpen(false)
@@ -172,8 +230,165 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
       maintenance: 'bg-orange-100 text-orange-800 border-orange-200',
       retired: 'bg-gray-100 text-gray-800 border-gray-200',
       disposed: 'bg-red-100 text-red-800 border-red-200',
+      scrap: 'bg-red-100 text-red-800 border-red-200',
+      repair: 'bg-amber-100 text-amber-800 border-amber-200',
+      external_use: 'bg-violet-100 text-violet-800 border-violet-200',
     }
     return statusConfig[status] || statusConfig.available
+  }
+
+  const resetExternalModal = () => {
+    setExternalModalMode(null)
+    setExternalSeedAsset(null)
+    setExternalEmployeeId('')
+    setExternalEmployeeSearch('')
+    setExternalAssetSearch('')
+    setExternalAssetIds([])
+    setExternalDescription('')
+    setExternalReturnDate('')
+    setExternalImage('')
+    if (externalFileInputRef.current) externalFileInputRef.current.value = ''
+  }
+
+  const handleOpenExternalMark = (asset: Asset) => {
+    setExternalModalMode('mark')
+    setExternalSeedAsset(asset)
+    setExternalAssetIds([asset.id])
+    setExternalEmployeeId('')
+    setExternalEmployeeSearch('')
+    setExternalDescription('')
+    setExternalReturnDate('')
+    setExternalImage('')
+  }
+
+  const handleOpenExternalGenerate = (asset: Asset) => {
+    setExternalModalMode('generate')
+    setExternalSeedAsset(asset)
+    setExternalAssetIds([asset.id])
+    setExternalEmployeeId('')
+    setExternalEmployeeSearch('')
+    setExternalAssetSearch('')
+    setExternalDescription('')
+    setExternalReturnDate('')
+    setExternalImage('')
+  }
+
+  const handleMakeAvailable = async (asset: Asset) => {
+    if (!window.confirm('Mark this asset as available again?')) return
+    try {
+      await makeAvailableMutation.mutateAsync(asset.id)
+    } catch {
+      // toast handled in mutation
+    }
+  }
+
+  const toggleExternalAsset = (assetId: string) => {
+    setExternalAssetIds((prev) =>
+      prev.includes(assetId) ? prev.filter((id) => id !== assetId) : [...prev, assetId],
+    )
+  }
+
+  const handleExternalImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file')
+      e.target.value = ''
+      return
+    }
+    const reader = new FileReader()
+    reader.onloadend = () => setExternalImage(reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const handleGenerateExternalGatePass = async () => {
+    if (!externalSeedAsset) return
+
+    const employee = employees.find((emp) => emp.id === externalEmployeeId)
+    if (!employee) {
+      toast.error('Please select an employee')
+      return
+    }
+
+    const name = employee.name.replace(/[^a-zA-Z\s]/g, ' ').replace(/\s+/g, ' ').trim()
+    if (!name || !/^[a-zA-Z\s]+$/.test(name)) {
+      toast.error('Employee name must contain alphabets only for gate pass')
+      return
+    }
+
+    const phone = (employee.phone || '').replace(/\D/g, '').slice(0, 10)
+    if (phone && phone.length !== 10) {
+      toast.error('Employee phone must be exactly 10 digits')
+      return
+    }
+
+    const assetIds =
+      externalModalMode === 'mark'
+        ? [externalSeedAsset.id]
+        : externalAssetIds.length > 0
+          ? externalAssetIds
+          : [externalSeedAsset.id]
+
+    if (assetIds.length === 0) {
+      toast.error('Select at least one asset')
+      return
+    }
+
+    try {
+      const result = await createGatePassMutation.mutateAsync({
+        name,
+        phone,
+        assetIds,
+        reason: 'external_use',
+        problem: externalDescription.trim() || undefined,
+        requestImage: externalImage || undefined,
+        expectedReturnDate: externalReturnDate || undefined,
+      })
+      resetExternalModal()
+      if (result?.data) setQrPreview(result.data)
+    } catch {
+      // toast handled in mutation
+    }
+  }
+
+  const handleCopyQrCode = async () => {
+    const code = qrPreview?.qrCode?.trim()
+    if (!code) {
+      toast.error('QR code is not available')
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(code)
+      toast.success('QR code copied')
+    } catch {
+      toast.error('Failed to copy QR code')
+    }
+  }
+
+  const handleDownloadQr = async () => {
+    const imageSrc = qrPreview?.qrCodeImage
+    const code = qrPreview?.qrCode?.trim() || 'gate-pass-qr'
+    if (!imageSrc) {
+      toast.error('QR image is not available')
+      return
+    }
+    try {
+      const response = await fetch(imageSrc)
+      if (!response.ok) throw new Error('Failed to fetch QR image')
+      const blob = await response.blob()
+      const extension = blob.type.includes('jpeg') || blob.type.includes('jpg') ? 'jpg' : 'png'
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `gate-pass-qr-${code}.${extension}`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      toast.success('QR downloaded')
+    } catch {
+      toast.error('Failed to download QR')
+    }
   }
 
   const handleOpenModal = (asset?: Asset) => {
@@ -260,7 +475,11 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: ({ row }) => <Badge className={getStatusBadge(row.original.status)}>{row.original.status}</Badge>,
+      cell: ({ row }) => (
+        <Badge className={`capitalize ${getStatusBadge(row.original.status)}`}>
+          {row.original.status === 'external_use' ? 'External use' : row.original.status.replace('_', ' ')}
+        </Badge>
+      ),
     },
     {
       accessorKey: 'condition',
@@ -277,19 +496,61 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
       header: () => <div className="text-right">Actions</div>,
       cell: ({ row }) => {
         const asset = row.original
+        const isScrap = asset.status === 'scrap'
         return (
-          <div className="flex justify-end gap-2 pr-2">
-            <PermissionGuard permission="assets:update">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleOpenModal(asset)}
-                className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
-                title="Edit asset"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-            </PermissionGuard>
+          <div className="flex justify-end items-center gap-2 pr-2">
+            {asset.status === 'available' && !isScrap && (
+              <PermissionGuard permission="assets:create">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleOpenExternalMark(asset)}
+                  className="h-8 px-2 text-xs text-violet-700 border-violet-200 hover:bg-violet-50"
+                >
+                  External use
+                </Button>
+              </PermissionGuard>
+            )}
+            {asset.status === 'external_use' && (
+              <>
+                <PermissionGuard permission="assets:create">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleOpenExternalGenerate(asset)}
+                    className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-gray-100"
+                    title="Generate gate pass"
+                  >
+                    <QrCode className="h-4 w-4" />
+                  </Button>
+                </PermissionGuard>
+                <PermissionGuard permission="assets:update">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleMakeAvailable(asset)}
+                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-gray-100"
+                    title="Make available"
+                    disabled={makeAvailableMutation.isPending}
+                  >
+                    <PackageCheck className="h-4 w-4" />
+                  </Button>
+                </PermissionGuard>
+              </>
+            )}
+            {!isScrap && (
+              <PermissionGuard permission="assets:update">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleOpenModal(asset)}
+                  className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  title="Edit asset"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </PermissionGuard>
+            )}
             <PermissionGuard permission="assets:delete">
               <Button
                 variant="ghost"
@@ -318,6 +579,7 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
             searchValue={searchTerm}
             onSearchChange={setSearchTerm}
             searchPlaceholder="Search assets..."
+            onRowClick={(asset) => setTimelineAsset(asset)}
             filterActions={
               <div className="flex gap-2">
                 <PermissionGuard permission="assets:create">
@@ -683,6 +945,9 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
                     <SelectItem value="maintenance">Maintenance</SelectItem>
                     <SelectItem value="retired">Retired</SelectItem>
                     <SelectItem value="disposed">Disposed</SelectItem>
+                    <SelectItem value="scrap">Scrap</SelectItem>
+                    <SelectItem value="repair">Repair</SelectItem>
+                    <SelectItem value="external_use">External use</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -713,7 +978,272 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
         </DialogContent>
       </Dialog>
 
+      {/* External Use / Generate Gate Pass Modal */}
+      <Dialog
+        open={!!externalModalMode}
+        onOpenChange={(open) => {
+          if (!open) resetExternalModal()
+        }}
+      >
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {externalModalMode === 'mark' ? 'External Use' : 'Generate Gate Pass'}
+            </DialogTitle>
+            <DialogDescription>
+              {externalModalMode === 'mark'
+                ? 'Create a gate pass for this asset and mark it as external use.'
+                : 'Create one QR gate pass for one or more external use assets.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 px-1 py-2">
+            {externalSeedAsset && (
+              <div className="rounded-md bg-gray-50 p-3 text-sm">
+                <span className="text-gray-600">Asset:</span>{' '}
+                <span className="font-medium">{getAssetOptionLabel(externalSeedAsset)}</span>
+              </div>
+            )}
+
+            <div>
+              <Label className="mb-2">
+                Employee <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                value={externalEmployeeSearch}
+                onChange={(e) => setExternalEmployeeSearch(e.target.value)}
+                placeholder="Search employees..."
+                className="mb-2 h-8"
+              />
+              <Select value={externalEmployeeId} onValueChange={setExternalEmployeeId}>
+                <SelectTrigger className="w-full !h-10">
+                  <SelectValue placeholder="Select employee" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredEmployees.length === 0 ? (
+                    <SelectItem value="__no_employees__" disabled>
+                      No employees found
+                    </SelectItem>
+                  ) : (
+                    filteredEmployees.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.name}
+                        {emp.role ? ` (${emp.role})` : ''}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {externalModalMode === 'generate' && (
+              <div>
+                <Label className="mb-2">
+                  Assets <span className="text-red-500">*</span>
+                </Label>
+                {selectedExternalAssets.length > 0 && (
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    {selectedExternalAssets.map((asset) => {
+                      const label = getAssetOptionLabel(asset)
+                      return (
+                        <Badge key={asset.id} variant="secondary" className="gap-1 pr-1">
+                          {label}
+                          <button
+                            type="button"
+                            className="rounded-sm p-0.5 hover:bg-black/10"
+                            onClick={() => toggleExternalAsset(asset.id)}
+                            aria-label={`Remove ${label}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      )
+                    })}
+                  </div>
+                )}
+                <div className="rounded-md border border-input overflow-hidden">
+                  <div className="border-b border-input p-2">
+                    <Input
+                      value={externalAssetSearch}
+                      onChange={(e) => setExternalAssetSearch(e.target.value)}
+                      placeholder="Search external use assets..."
+                      className="h-8"
+                    />
+                  </div>
+                  <div className="max-h-48 overflow-y-auto p-2 space-y-1">
+                    {filteredExternalAssets.length === 0 ? (
+                      <p className="px-1 py-2 text-sm text-muted-foreground">No external use assets found</p>
+                    ) : (
+                      filteredExternalAssets.map((asset) => {
+                        const checked = externalAssetIds.includes(asset.id)
+                        const label = getAssetOptionLabel(asset)
+                        return (
+                          <label
+                            key={asset.id}
+                            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/60"
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={() => toggleExternalAsset(asset.id)}
+                            />
+                            <span className="min-w-0 flex-1 truncate">{label}</span>
+                          </label>
+                        )
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <Label className="mb-2">Upload File</Label>
+              <div className="flex items-start gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => externalFileInputRef.current?.click()}
+                  className="gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  {externalImage ? 'Change Image' : 'Upload Image'}
+                </Button>
+                <input
+                  ref={externalFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleExternalImageChange}
+                />
+                {externalImage ? (
+                  <div className="relative">
+                    <img
+                      src={externalImage}
+                      alt="External use attachment"
+                      className="h-16 w-16 rounded-md object-cover border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExternalImage('')
+                        if (externalFileInputRef.current) externalFileInputRef.current.value = ''
+                      }}
+                      className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center"
+                      aria-label="Remove image"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="external-description" className="mb-2">
+                Description
+              </Label>
+              <Textarea
+                id="external-description"
+                value={externalDescription}
+                onChange={(e) => setExternalDescription(e.target.value)}
+                placeholder="Optional description"
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="external-return-date" className="mb-2">
+                Expected Return Date
+              </Label>
+              <Input
+                id="external-return-date"
+                type="date"
+                value={externalReturnDate}
+                onChange={(e) => setExternalReturnDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={resetExternalModal} disabled={createGatePassMutation.isPending}>
+              Cancel
+            </Button>
+            <Button onClick={handleGenerateExternalGatePass} disabled={createGatePassMutation.isPending}>
+              {createGatePassMutation.isPending ? 'Generating...' : 'Generate'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!qrPreview} onOpenChange={(open) => !open && setQrPreview(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>External Use Gate Pass</DialogTitle>
+            <DialogDescription>Scan this code to view the full gate pass details.</DialogDescription>
+          </DialogHeader>
+          {qrPreview && (
+            <div className="flex flex-col items-center gap-3 py-2">
+              {qrPreview.qrCodeImage ? (
+                <img
+                  src={qrPreview.qrCodeImage}
+                  alt="Gate pass QR"
+                  className="w-56 h-56 object-contain rounded border border-gray-200 bg-white"
+                />
+              ) : null}
+              <p className="text-sm font-mono font-bold text-gray-700">{qrPreview.qrCode}</p>
+              <div className="w-full rounded-lg border border-gray-100 bg-gray-50 p-3 text-sm space-y-1">
+                <p>
+                  <span className="font-semibold text-gray-700">Name:</span> {qrPreview.name}
+                </p>
+                <p>
+                  <span className="font-semibold text-gray-700">Phone:</span> {qrPreview.phone || '—'}
+                </p>
+                <p>
+                  <span className="font-semibold text-gray-700">Assets:</span>{' '}
+                  {qrPreview.assets
+                    ?.map((a) =>
+                      [a.name, a.serialNumber, a.assetTag].filter((v) => v && String(v).trim()).join(' - '),
+                    )
+                    .join(', ') || '—'}
+                </p>
+                <p>
+                  <span className="font-semibold text-gray-700">Expected return:</span>{' '}
+                  {qrPreview.expectedReturnDate
+                    ? formatDisplayDate(qrPreview.expectedReturnDate)
+                    : '—'}
+                </p>
+                <p>
+                  <span className="font-semibold text-gray-700">Description:</span>{' '}
+                  {qrPreview.problem || '—'}
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setQrPreview(null)}>
+              Close
+            </Button>
+            <Button variant="outline" onClick={handleCopyQrCode} disabled={!qrPreview?.qrCode}>
+              <Copy className="h-4 w-4 mr-2" />
+              Copy
+            </Button>
+            <Button onClick={handleDownloadQr} disabled={!qrPreview?.qrCodeImage}>
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <BulkUploadModal open={isBulkUploadModalOpen} onOpenChange={setIsBulkUploadModalOpen} />
+
+      <AssetTimelineDialog
+        asset={timelineAsset}
+        open={!!timelineAsset}
+        onOpenChange={(open) => {
+          if (!open) setTimelineAsset(null)
+        }}
+      />
     </>
   )
 }

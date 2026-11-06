@@ -1,10 +1,18 @@
-export type AssetStatus = 'available' | 'assigned' | 'maintenance' | 'retired' | 'disposed'
+export type AssetStatus =
+  | 'available'
+  | 'assigned'
+  | 'maintenance'
+  | 'retired'
+  | 'disposed'
+  | 'scrap'
+  | 'repair'
+  | 'external_use'
 
 export type AssetCondition = 'excellent' | 'good' | 'fair' | 'poor'
 
 export type AssigneeType = 'employee' | 'resident' | 'flat' | 'patient' | 'room'
 
-export type ServiceType = 'repair' | 'preventive' | 'inspection' | 'cleaning' | 'upgrade'
+export type ServiceType = 'repair' | 'preventive' | 'inspection' | 'cleaning' | 'upgrade' | 'scrap'
 
 export type WarrantyType = 'manufacturer' | 'extended' | 'service_contract'
 
@@ -17,6 +25,10 @@ export type InspectionType = 'routine' | 'safety' | 'regulatory' | 'quality'
 export type ComplianceStatus = 'valid' | 'expired' | 'expiring_soon' | 'pending_renewal'
 
 export type TrainingRequiredFor = 'all_staff' | 'clinical' | 'maintenance'
+
+export type ItemRequestReason = 'scrap' | 'repair' | 'external_use'
+
+export type ItemRequestStatus = 'pending' | 'approved' | 'declined'
 
 export interface BaseEntity {
   id: string
@@ -230,6 +242,9 @@ export interface AssetStats {
   maintenanceAssets: number
   retiredAssets: number
   disposedAssets: number
+  scrapAssets?: number
+  repairAssets?: number
+  externalUseAssets?: number
   totalValue: number
   underWarranty: number
   recentAdditions: number
@@ -380,10 +395,88 @@ export interface ComplianceStatusResponse {
   }
 }
 
+export interface ItemRequestAssetRef {
+  id: string
+  name: string
+  serialNumber?: string | null
+  assetTag?: string | null
+}
+
+export interface AssetItemRequest extends BaseEntity {
+  locId: string
+  name: string
+  phone: string
+  assetIds: string[]
+  reason: ItemRequestReason
+  problem?: string | null
+  qrCode?: string | null
+  qrCodeImage?: string | null
+  requestImage?: string | null
+  status: ItemRequestStatus
+  declineComment?: string | null
+  declineImage?: string | null
+  expectedReturnDate?: string | null
+  assets?: ItemRequestAssetRef[]
+  /** Gate & Security employee who approved/declined */
+  decidedByName?: string | null
+}
+
+export interface CreateItemRequestPayload {
+  name: string
+  phone: string
+  assetIds: string[]
+  reason: ItemRequestReason
+  problem?: string
+  requestImage?: string | null
+  expectedReturnDate?: string | null
+}
+
 export interface PaginationParams {
   page?: number
   limit?: number
   search?: string
+}
+
+export type AssetTimelineEventType =
+  | 'created'
+  | 'assigned'
+  | 'returned'
+  | 'external_use'
+  | 'repair'
+  | 'scrap'
+  | 'qr_generated'
+  | 'made_available'
+
+export interface AssetTimelineEvent {
+  id: string
+  type: AssetTimelineEventType
+  title: string
+  description: string
+  at: string
+  createdAt: string
+  createdBy: { id: string; name: string } | null
+  meta: Record<string, unknown>
+}
+
+export interface AssetTimelinePagination {
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+  hasNext: boolean
+  hasPrevious: boolean
+}
+
+export interface AssetTimelineParams {
+  page?: number
+  limit?: number
+  type?: AssetTimelineEventType
+  types?: string
+}
+
+export interface AssetTimelineResponse {
+  events: AssetTimelineEvent[]
+  pagination: AssetTimelinePagination
 }
 
 import type { ApiResponse } from './resident'

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { CheckCircle, Edit, Plus, Trash2 } from 'lucide-react'
+import { useRef, useState, type ChangeEvent } from 'react'
+import { CheckCircle, Edit, Plus, QrCode, Trash2, Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { PermissionGuard } from '@/components/common/PermissionGuard'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import {
   useCompleteServiceLog,
+  useCreateItemRequest,
   useCreateServiceLog,
   useDeleteServiceLog,
   useGetAssetCategories,
@@ -40,6 +41,10 @@ const ServiceLogs = () => {
   const [completingLog, setCompletingLog] = useState<AssetServiceLog | null>(null)
   const [completionRemarks, setCompletionRemarks] = useState('')
   const [editingLog, setEditingLog] = useState<AssetServiceLog | null>(null)
+  const [gatePassLog, setGatePassLog] = useState<AssetServiceLog | null>(null)
+  const [gatePassPhone, setGatePassPhone] = useState('')
+  const [gatePassImage, setGatePassImage] = useState('')
+  const gatePassFileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     categoryId: '',
     assetId: '',
@@ -64,6 +69,7 @@ const ServiceLogs = () => {
 
   const { data: assetsData } = useGetAssets({
     categoryId: formData.categoryId,
+    status: 'available',
     limit: 1000,
     enabled: isModalOpen && !!formData.categoryId,
   })
@@ -76,6 +82,7 @@ const ServiceLogs = () => {
   const updateMutation = useUpdateServiceLog()
   const deleteMutation = useDeleteServiceLog()
   const completeMutation = useCompleteServiceLog()
+  const createGatePassMutation = useCreateItemRequest()
 
   const serviceLogs = serviceLogsData?.data?.serviceLogs || []
   const categories = categoriesData?.data?.categories || []
@@ -122,18 +129,30 @@ const ServiceLogs = () => {
     setEditingLog(null)
   }
 
+  const isScrapType = formData.serviceType === 'scrap'
+
   const handleSubmit = async () => {
     if (!editingLog && !formData.categoryId) {
       toast.error('Category is required')
       return
     }
 
-    if (!formData.assetId || !formData.serviceDate || !formData.serviceType) {
-      toast.error('Asset, Service Date, and Service Type are required')
+    if (!formData.assetId || !formData.serviceType) {
+      toast.error('Asset and Service Type are required')
       return
     }
 
-    if (formData.nextServiceDate && formData.nextServiceDate <= formData.serviceDate) {
+    if (!isScrapType && !formData.serviceDate) {
+      toast.error('Service Date is required')
+      return
+    }
+
+    if (
+      !isScrapType &&
+      formData.nextServiceDate &&
+      formData.serviceDate &&
+      formData.nextServiceDate <= formData.serviceDate
+    ) {
       toast.error('Next Service Date must be after Service Date')
       return
     }
@@ -141,7 +160,10 @@ const ServiceLogs = () => {
     try {
       const payload: CreateServiceLogRequest = {
         assetId: formData.assetId,
-        serviceDate: formData.serviceDate,
+        // BE requires serviceDate; for scrap use today when the field is hidden
+        serviceDate: isScrapType
+          ? new Date().toISOString().split('T')[0]
+          : formData.serviceDate,
         serviceType: formData.serviceType,
       }
 
@@ -149,11 +171,11 @@ const ServiceLogs = () => {
         payload.performedBy = formData.performedBy.trim()
       }
 
-      if (formData.vendorId && formData.vendorId.trim()) {
+      if (!isScrapType && formData.vendorId && formData.vendorId.trim()) {
         payload.vendorId = formData.vendorId.trim()
       }
 
-      if (formData.cost && formData.cost.trim()) {
+      if (!isScrapType && formData.cost && formData.cost.trim()) {
         payload.cost = parseFloat(formData.cost)
       }
 
@@ -161,7 +183,7 @@ const ServiceLogs = () => {
         payload.description = formData.description.trim()
       }
 
-      if (formData.nextServiceDate && formData.nextServiceDate.trim()) {
+      if (!isScrapType && formData.nextServiceDate && formData.nextServiceDate.trim()) {
         payload.nextServiceDate = formData.nextServiceDate.trim()
       }
 
@@ -219,11 +241,97 @@ const ServiceLogs = () => {
         id: completingLog.id,
         data: { completionRemarks: completionRemarks.trim() },
       })
-      toast.success('Service log marked as completed. Asset is now available.')
+      toast.success(
+        completingLog.serviceType === 'scrap'
+          ? 'Service log marked as completed. Asset remains scrap.'
+          : completingLog.serviceType === 'repair'
+            ? 'Service log marked as completed. Asset is now available.'
+            : 'Service log marked as completed.',
+      )
       handleCloseCompletionModal()
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to complete service log'
       toast.error(errorMessage)
+    }
+  }
+
+  const handleOpenGatePassModal = (log: AssetServiceLog) => {
+    if (!log.performedBy?.trim()) {
+      toast.error('Performed By is required to generate a gate pass')
+      return
+    }
+    setGatePassLog(log)
+    setGatePassPhone('')
+    setGatePassImage('')
+    if (gatePassFileInputRef.current) gatePassFileInputRef.current.value = ''
+  }
+
+  const handleCloseGatePassModal = () => {
+    setGatePassLog(null)
+    setGatePassPhone('')
+    setGatePassImage('')
+    if (gatePassFileInputRef.current) gatePassFileInputRef.current.value = ''
+  }
+
+  const handleGatePassPhoneChange = (value: string) => {
+    setGatePassPhone(value.replace(/\D/g, '').slice(0, 10))
+  }
+
+  const handleGatePassImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file')
+      e.target.value = ''
+      return
+    }
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setGatePassImage(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const clearGatePassImage = () => {
+    setGatePassImage('')
+    if (gatePassFileInputRef.current) gatePassFileInputRef.current.value = ''
+  }
+
+  const handleGenerateGatePass = async () => {
+    if (!gatePassLog) return
+
+    const name = gatePassLog.performedBy?.trim() || ''
+    const phone = gatePassPhone.trim()
+
+    if (!name) {
+      toast.error('Performed By is required to generate a gate pass')
+      return
+    }
+    if (!/^[a-zA-Z\s]+$/.test(name)) {
+      toast.error('Performed By can only contain alphabets for gate pass name')
+      return
+    }
+    if (phone && !/^\d{10}$/.test(phone)) {
+      toast.error('Phone must be exactly 10 digits')
+      return
+    }
+    if (!gatePassLog.assetId) {
+      toast.error('Asset is required to generate a gate pass')
+      return
+    }
+
+    try {
+      await createGatePassMutation.mutateAsync({
+        name,
+        phone,
+        assetIds: [gatePassLog.assetId],
+        reason: 'repair',
+        problem: gatePassLog.description?.trim() || undefined,
+        requestImage: gatePassImage || undefined,
+      })
+      handleCloseGatePassModal()
+    } catch {
+      // toast handled in mutation
     }
   }
 
@@ -233,6 +341,7 @@ const ServiceLogs = () => {
     inspection: 'Inspection',
     cleaning: 'Cleaning',
     upgrade: 'Upgrade',
+    scrap: 'Scrap',
   }
 
   const columns: ColumnDef<AssetServiceLog>[] = [
@@ -273,37 +382,72 @@ const ServiceLogs = () => {
     {
       accessorKey: 'completionStatus',
       header: 'Status',
-      cell: ({ row }) => (
-        <div>
-          <Badge
-            className={
-              row.original.completionStatus === 'completed'
-                ? 'bg-green-100 text-green-800'
-                : 'bg-yellow-100 text-yellow-800'
-            }
-          >
-            {row.original.completionStatus === 'completed' ? 'Completed' : 'Pending'}
-          </Badge>
-          {row.original.completionStatus === 'completed' && row.original.completedDate && (
-            <p className="text-xs text-gray-500 mt-1">{formatDisplayDate(row.original.completedDate)}</p>
-          )}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const log = row.original
+
+        // Scrap is terminal — always show Scrapped.
+        if (log.serviceType === 'scrap') {
+          return <Badge className="bg-red-100 text-red-800 border-red-200">Scrapped</Badge>
+        }
+
+        // Open logs show status from the selected service type (e.g. Repair).
+        if (log.completionStatus !== 'completed') {
+          const pendingStatusClass: Partial<Record<ServiceType, string>> = {
+            repair: 'bg-amber-100 text-amber-800 border-amber-200',
+            preventive: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+            inspection: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+            cleaning: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+            upgrade: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+          }
+
+          return (
+            <Badge className={pendingStatusClass[log.serviceType] || 'bg-yellow-100 text-yellow-800 border-yellow-200'}>
+              {serviceTypeLabels[log.serviceType]}
+            </Badge>
+          )
+        }
+
+        return (
+          <div>
+            <Badge className="bg-green-100 text-green-800">Completed</Badge>
+            {log.completedDate && (
+              <p className="text-xs text-gray-500 mt-1">{formatDisplayDate(log.completedDate)}</p>
+            )}
+          </div>
+        )
+      },
     },
     {
       id: 'actions',
       header: () => <div className="text-right">Actions</div>,
       cell: ({ row }) => {
         const log = row.original
+        const isScrap = log.serviceType === 'scrap'
+        const showGatePass = isScrap || log.completionStatus === 'pending'
+        const showComplete = !isScrap && log.completionStatus === 'pending'
         return (
           <div className="flex justify-end gap-2 pr-2">
-            {log.completionStatus === 'pending' && (
+            {showGatePass && (
+              <PermissionGuard permission="assets:create">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleOpenGatePassModal(log)}
+                  className="text-blue-600 hover:text-blue-700"
+                  title="Generate gate pass"
+                >
+                  <QrCode className="h-4 w-4" />
+                </Button>
+              </PermissionGuard>
+            )}
+            {showComplete && (
               <PermissionGuard permission="assets:update">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => handleOpenCompletionModal(log)}
                   className="text-green-600 hover:text-green-700"
+                  title="Mark as completed"
                 >
                   <CheckCircle className="h-4 w-4" />
                 </Button>
@@ -314,13 +458,14 @@ const ServiceLogs = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => handleOpenModal(log)}
-                disabled={log.completionStatus === 'completed'}
+                disabled={!isScrap && log.completionStatus === 'completed'}
+                title="Edit"
               >
                 <Edit className="h-4 w-4" />
               </Button>
             </PermissionGuard>
             <PermissionGuard permission="assets:delete">
-              <Button variant="ghost" size="sm" onClick={() => handleDelete(log.id)}>
+              <Button variant="ghost" size="sm" onClick={() => handleDelete(log.id)} title="Delete">
                 <Trash2 className="h-4 w-4 text-red-500" />
               </Button>
             </PermissionGuard>
@@ -435,7 +580,7 @@ const ServiceLogs = () => {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4 items-center ">
+            <div className={`grid gap-4 items-center ${isScrapType ? 'grid-cols-1' : 'grid-cols-2'}`}>
               <div>
                 <Label htmlFor="serviceType" className="mb-2">
                   Service Type <span className="text-red-500">*</span>
@@ -446,6 +591,9 @@ const ServiceLogs = () => {
                     setFormData({
                       ...formData,
                       serviceType: value as ServiceType,
+                      ...(value === 'scrap'
+                        ? { vendorId: '', cost: '', nextServiceDate: '' }
+                        : {}),
                     })
                   }
                 >
@@ -458,35 +606,39 @@ const ServiceLogs = () => {
                     <SelectItem value="inspection">Inspection</SelectItem>
                     <SelectItem value="cleaning">Cleaning</SelectItem>
                     <SelectItem value="upgrade">Upgrade</SelectItem>
+                    <SelectItem value="scrap">Scrap</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div>
-                <Label htmlFor="serviceDate" className="mb-2">
-                  Service Date <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="serviceDate"
-                  type="date"
-                  value={formData.serviceDate}
-                  onChange={(e) =>
-                    setFormData((prev) => {
-                      const nextServiceDateValue = e.target.value
-                      const shouldResetNextDate = prev.nextServiceDate && prev.nextServiceDate <= nextServiceDateValue
+              {!isScrapType && (
+                <div>
+                  <Label htmlFor="serviceDate" className="mb-2">
+                    Service Date <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="serviceDate"
+                    type="date"
+                    value={formData.serviceDate}
+                    onChange={(e) =>
+                      setFormData((prev) => {
+                        const nextServiceDateValue = e.target.value
+                        const shouldResetNextDate =
+                          prev.nextServiceDate && prev.nextServiceDate <= nextServiceDateValue
 
-                      return {
-                        ...prev,
-                        serviceDate: nextServiceDateValue,
-                        nextServiceDate: shouldResetNextDate ? '' : prev.nextServiceDate,
-                      }
-                    })
-                  }
-                />
-              </div>
+                        return {
+                          ...prev,
+                          serviceDate: nextServiceDateValue,
+                          nextServiceDate: shouldResetNextDate ? '' : prev.nextServiceDate,
+                        }
+                      })
+                    }
+                  />
+                </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className={`grid gap-4 ${isScrapType ? 'grid-cols-1' : 'grid-cols-2'}`}>
               <div>
                 <Label htmlFor="performedBy" className="mb-2">
                   Performed By
@@ -499,68 +651,72 @@ const ServiceLogs = () => {
                 />
               </div>
 
-              <div>
-                <Label htmlFor="vendorId" className="mb-2">
-                  Service Vendor
-                </Label>
-                <Select
-                  value={formData.vendorId}
-                  onValueChange={(value: string) => setFormData({ ...formData, vendorId: value })}
-                >
-                  <SelectTrigger className="w-[100%] !h-10">
-                    <SelectValue placeholder="Select vendor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vendors.map((vendor) => (
-                      <SelectItem key={vendor.id} value={vendor.id}>
-                        {vendor.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {!isScrapType && (
+                <div>
+                  <Label htmlFor="vendorId" className="mb-2">
+                    Service Vendor
+                  </Label>
+                  <Select
+                    value={formData.vendorId}
+                    onValueChange={(value: string) => setFormData({ ...formData, vendorId: value })}
+                  >
+                    <SelectTrigger className="w-[100%] !h-10">
+                      <SelectValue placeholder="Select vendor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vendors.map((vendor) => (
+                        <SelectItem key={vendor.id} value={vendor.id}>
+                          {vendor.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="cost" className="mb-2">
-                  Service Cost
-                </Label>
-                <Input
-                  id="cost"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.cost}
-                  onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
-                  placeholder="0.00"
-                />
-              </div>
+            {!isScrapType && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="cost" className="mb-2">
+                    Service Cost
+                  </Label>
+                  <Input
+                    id="cost"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.cost}
+                    onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="nextServiceDate" className="mb-2">
-                  Next Service Date
-                </Label>
-                <Input
-                  id="nextServiceDate"
-                  type="date"
-                  value={formData.nextServiceDate}
-                  min={
-                    formData.serviceDate
-                      ? new Date(new Date(formData.serviceDate).getTime() + 24 * 60 * 60 * 1000)
-                          .toISOString()
-                          .split('T')[0]
-                      : undefined
-                  }
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      nextServiceDate: e.target.value,
-                    })
-                  }
-                />
+                <div>
+                  <Label htmlFor="nextServiceDate" className="mb-2">
+                    Next Service Date
+                  </Label>
+                  <Input
+                    id="nextServiceDate"
+                    type="date"
+                    value={formData.nextServiceDate}
+                    min={
+                      formData.serviceDate
+                        ? new Date(new Date(formData.serviceDate).getTime() + 24 * 60 * 60 * 1000)
+                            .toISOString()
+                            .split('T')[0]
+                        : undefined
+                    }
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        nextServiceDate: e.target.value,
+                      })
+                    }
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             <div>
               <Label htmlFor="description" className="mb-2">
@@ -593,7 +749,11 @@ const ServiceLogs = () => {
           <DialogHeader>
             <DialogTitle>Mark Service as Completed</DialogTitle>
             <DialogDescription>
-              Add remarks for this completed service. The asset will be marked as available once completed.
+              {completingLog?.serviceType === 'scrap'
+                ? 'Add remarks for this completed scrap service. The asset status will remain scrap.'
+                : completingLog?.serviceType === 'repair'
+                  ? 'Add remarks for this completed service. The asset will be marked as available once completed.'
+                  : 'Add remarks for this completed service.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -634,6 +794,112 @@ const ServiceLogs = () => {
             <Button onClick={handleComplete} className="bg-green-600 hover:bg-green-700">
               <CheckCircle className="h-4 w-4 mr-2" />
               Mark as Completed
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Generate Gate Pass Modal */}
+      <Dialog
+        open={!!gatePassLog}
+        onOpenChange={(open) => {
+          if (!open) handleCloseGatePassModal()
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Generate Gate Pass</DialogTitle>
+            <DialogDescription>
+              Create a gate pass for this service log. Name is taken from Performed By.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 px-1 py-2">
+            {gatePassLog && (
+              <div className="rounded-md bg-gray-50 p-3 text-sm space-y-1">
+                <p>
+                  <span className="text-gray-600">Asset:</span>{' '}
+                  <span className="font-medium">
+                    {gatePassLog.asset
+                      ? getAssetOptionLabel(gatePassLog.asset)
+                      : gatePassLog.assetId || '—'}
+                  </span>
+                </p>
+                <p>
+                  <span className="text-gray-600">Performed By:</span>{' '}
+                  <span className="font-medium">{gatePassLog.performedBy || '—'}</span>
+                </p>
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor="gate-pass-phone" className="mb-2">
+                Phone
+              </Label>
+              <Input
+                id="gate-pass-phone"
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
+                value={gatePassPhone}
+                onChange={(e) => handleGatePassPhoneChange(e.target.value)}
+                placeholder="10-digit phone number (optional)"
+              />
+            </div>
+
+            <div>
+              <Label className="mb-2">Upload File</Label>
+              <div className="flex items-start gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => gatePassFileInputRef.current?.click()}
+                  className="gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  {gatePassImage ? 'Change Image' : 'Upload Image'}
+                </Button>
+                <input
+                  ref={gatePassFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleGatePassImageChange}
+                />
+                {gatePassImage ? (
+                  <div className="relative">
+                    <img
+                      src={gatePassImage}
+                      alt="Gate pass attachment"
+                      className="h-16 w-16 rounded-md object-cover border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={clearGatePassImage}
+                      className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center"
+                      aria-label="Remove image"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Optional image shown when the QR is scanned.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCloseGatePassModal}
+              disabled={createGatePassMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleGenerateGatePass} disabled={createGatePassMutation.isPending}>
+              {createGatePassMutation.isPending ? 'Generating...' : 'Generate'}
             </Button>
           </DialogFooter>
         </DialogContent>
