@@ -65,6 +65,7 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
   const [externalImage, setExternalImage] = useState('')
   const [qrPreview, setQrPreview] = useState<AssetItemRequest | null>(null)
   const [timelineAsset, setTimelineAsset] = useState<Asset | null>(null)
+  const [serialNumberError, setSerialNumberError] = useState('')
   const [formData, setFormData] = useState({
     categoryId: '',
     itemId: '',
@@ -123,8 +124,11 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
   const categories = categoriesData?.data?.categories || []
   const items = itemsData?.data || []
   const vendors = vendorsData?.data || []
-  const employees = employeesData?.data || []
-  const externalUseAssets = externalUseAssetsData?.data?.assets || []
+  const employees = useMemo(() => employeesData?.data || [], [employeesData?.data])
+  const externalUseAssets = useMemo(
+    () => externalUseAssetsData?.data?.assets || [],
+    [externalUseAssetsData?.data?.assets],
+  )
 
   const filteredEmployees = useMemo(() => {
     const q = externalEmployeeSearch.trim().toLowerCase()
@@ -152,6 +156,7 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
   const handleCloseModal = () => {
     setIsModalOpen(false)
     setEditingAsset(null)
+    setSerialNumberError('')
   }
 
   const handleSubmit = async () => {
@@ -166,6 +171,20 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
       }
     }
 
+    const cleanedSerialNumber = formData.serialNumber.trim()
+    if (cleanedSerialNumber) {
+      const serialExists = assets.some(
+        (asset) =>
+          asset.id !== editingAsset?.id &&
+          (asset.serialNumber || '').trim().toLowerCase() === cleanedSerialNumber.toLowerCase(),
+      )
+      if (serialExists) {
+        setSerialNumberError('An asset with this serial number already exists')
+        return
+      }
+    }
+    setSerialNumberError('')
+
     try {
       const payload = new FormData()
 
@@ -177,7 +196,7 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
         payload.append('locationId', selectedLocationId || '')
       }
 
-      if (formData.serialNumber) payload.append('serialNumber', formData.serialNumber)
+      if (cleanedSerialNumber) payload.append('serialNumber', cleanedSerialNumber)
       if (formData.assetTag) payload.append('assetTag', formData.assetTag)
       if (formData.purchaseDate) payload.append('purchaseDate', formData.purchaseDate)
       if (formData.purchasePrice) {
@@ -207,7 +226,12 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
       handleCloseModal()
     } catch (error) {
       const err = error as { response?: { data?: { message?: string } } }
-      toast.error(err?.response?.data?.message || 'Failed to save asset')
+      const message = err?.response?.data?.message || 'Failed to save asset'
+      if (message.toLowerCase().includes('serial number')) {
+        setSerialNumberError(message)
+        return
+      }
+      toast.error(message)
     }
   }
 
@@ -283,9 +307,7 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
   }
 
   const toggleExternalAsset = (assetId: string) => {
-    setExternalAssetIds((prev) =>
-      prev.includes(assetId) ? prev.filter((id) => id !== assetId) : [...prev, assetId],
-    )
+    setExternalAssetIds((prev) => (prev.includes(assetId) ? prev.filter((id) => id !== assetId) : [...prev, assetId]))
   }
 
   const handleExternalImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -310,7 +332,10 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
       return
     }
 
-    const name = employee.name.replace(/[^a-zA-Z\s]/g, ' ').replace(/\s+/g, ' ').trim()
+    const name = employee.name
+      .replace(/[^a-zA-Z\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
     if (!name || !/^[a-zA-Z\s]+$/.test(name)) {
       toast.error('Employee name must contain alphabets only for gate pass')
       return
@@ -392,6 +417,7 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
   }
 
   const handleOpenModal = (asset?: Asset) => {
+    setSerialNumberError('')
     if (asset) {
       setEditingAsset(asset)
       setFormData({
@@ -713,9 +739,14 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
                 <Input
                   id="serialNumber"
                   value={formData.serialNumber}
-                  onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, serialNumber: e.target.value })
+                    if (serialNumberError) setSerialNumberError('')
+                  }}
                   placeholder="Serial number"
+                  className={serialNumberError ? 'border-red-500 focus-visible:ring-red-500' : ''}
                 />
+                {serialNumberError && <p className="mt-1 text-xs text-red-500">{serialNumberError}</p>}
               </div>
 
               <div>
@@ -987,9 +1018,7 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
       >
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {externalModalMode === 'mark' ? 'External Use' : 'Generate Gate Pass'}
-            </DialogTitle>
+            <DialogTitle>{externalModalMode === 'mark' ? 'External Use' : 'Generate Gate Pass'}</DialogTitle>
             <DialogDescription>
               {externalModalMode === 'mark'
                 ? 'Create a gate pass for this asset and mark it as external use.'
@@ -1082,10 +1111,7 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
                             key={asset.id}
                             className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/60"
                           >
-                            <Checkbox
-                              checked={checked}
-                              onCheckedChange={() => toggleExternalAsset(asset.id)}
-                            />
+                            <Checkbox checked={checked} onCheckedChange={() => toggleExternalAsset(asset.id)} />
                             <span className="min-w-0 flex-1 truncate">{label}</span>
                           </label>
                         )
@@ -1201,20 +1227,15 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
                 <p>
                   <span className="font-semibold text-gray-700">Assets:</span>{' '}
                   {qrPreview.assets
-                    ?.map((a) =>
-                      [a.name, a.serialNumber, a.assetTag].filter((v) => v && String(v).trim()).join(' - '),
-                    )
+                    ?.map((a) => [a.name, a.serialNumber, a.assetTag].filter((v) => v && String(v).trim()).join(' - '))
                     .join(', ') || '—'}
                 </p>
                 <p>
                   <span className="font-semibold text-gray-700">Expected return:</span>{' '}
-                  {qrPreview.expectedReturnDate
-                    ? formatDisplayDate(qrPreview.expectedReturnDate)
-                    : '—'}
+                  {qrPreview.expectedReturnDate ? formatDisplayDate(qrPreview.expectedReturnDate) : '—'}
                 </p>
                 <p>
-                  <span className="font-semibold text-gray-700">Description:</span>{' '}
-                  {qrPreview.problem || '—'}
+                  <span className="font-semibold text-gray-700">Description:</span> {qrPreview.problem || '—'}
                 </p>
               </div>
             </div>

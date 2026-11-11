@@ -44,6 +44,7 @@ const ServiceLogs = () => {
   const [gatePassLog, setGatePassLog] = useState<AssetServiceLog | null>(null)
   const [gatePassPhone, setGatePassPhone] = useState('')
   const [gatePassImage, setGatePassImage] = useState('')
+  const [performedByError, setPerformedByError] = useState('')
   const gatePassFileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     categoryId: '',
@@ -94,6 +95,7 @@ const ServiceLogs = () => {
   }
 
   const handleOpenModal = (log?: AssetServiceLog) => {
+    setPerformedByError('')
     if (log) {
       setEditingLog(log)
       setFormData({
@@ -127,6 +129,7 @@ const ServiceLogs = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false)
     setEditingLog(null)
+    setPerformedByError('')
   }
 
   const isScrapType = formData.serviceType === 'scrap'
@@ -141,6 +144,12 @@ const ServiceLogs = () => {
       toast.error('Asset and Service Type are required')
       return
     }
+
+    if (!formData.performedBy.trim()) {
+      setPerformedByError('Performed By is required')
+      return
+    }
+    setPerformedByError('')
 
     if (!isScrapType && !formData.serviceDate) {
       toast.error('Service Date is required')
@@ -161,14 +170,9 @@ const ServiceLogs = () => {
       const payload: CreateServiceLogRequest = {
         assetId: formData.assetId,
         // BE requires serviceDate; for scrap use today when the field is hidden
-        serviceDate: isScrapType
-          ? new Date().toISOString().split('T')[0]
-          : formData.serviceDate,
+        serviceDate: isScrapType ? new Date().toISOString().split('T')[0] : formData.serviceDate,
         serviceType: formData.serviceType,
-      }
-
-      if (formData.performedBy && formData.performedBy.trim()) {
-        payload.performedBy = formData.performedBy.trim()
+        performedBy: formData.performedBy.trim(),
       }
 
       if (!isScrapType && formData.vendorId && formData.vendorId.trim()) {
@@ -199,7 +203,12 @@ const ServiceLogs = () => {
       }
       handleCloseModal()
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save service log'
+      const err = error as { response?: { data?: { message?: string } }; message?: string }
+      const errorMessage = err?.response?.data?.message || err?.message || 'Failed to save service log'
+      if (errorMessage.toLowerCase().includes('performed by')) {
+        setPerformedByError(errorMessage)
+        return
+      }
       toast.error(errorMessage)
     }
   }
@@ -410,9 +419,7 @@ const ServiceLogs = () => {
         return (
           <div>
             <Badge className="bg-green-100 text-green-800">Completed</Badge>
-            {log.completedDate && (
-              <p className="text-xs text-gray-500 mt-1">{formatDisplayDate(log.completedDate)}</p>
-            )}
+            {log.completedDate && <p className="text-xs text-gray-500 mt-1">{formatDisplayDate(log.completedDate)}</p>}
           </div>
         )
       },
@@ -591,9 +598,7 @@ const ServiceLogs = () => {
                     setFormData({
                       ...formData,
                       serviceType: value as ServiceType,
-                      ...(value === 'scrap'
-                        ? { vendorId: '', cost: '', nextServiceDate: '' }
-                        : {}),
+                      ...(value === 'scrap' ? { vendorId: '', cost: '', nextServiceDate: '' } : {}),
                     })
                   }
                 >
@@ -623,8 +628,7 @@ const ServiceLogs = () => {
                     onChange={(e) =>
                       setFormData((prev) => {
                         const nextServiceDateValue = e.target.value
-                        const shouldResetNextDate =
-                          prev.nextServiceDate && prev.nextServiceDate <= nextServiceDateValue
+                        const shouldResetNextDate = prev.nextServiceDate && prev.nextServiceDate <= nextServiceDateValue
 
                         return {
                           ...prev,
@@ -641,14 +645,19 @@ const ServiceLogs = () => {
             <div className={`grid gap-4 ${isScrapType ? 'grid-cols-1' : 'grid-cols-2'}`}>
               <div>
                 <Label htmlFor="performedBy" className="mb-2">
-                  Performed By
+                  Performed By <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="performedBy"
                   value={formData.performedBy}
-                  onChange={(e) => setFormData({ ...formData, performedBy: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, performedBy: e.target.value })
+                    if (performedByError) setPerformedByError('')
+                  }}
                   placeholder="Technician name"
+                  className={performedByError ? 'border-red-500 focus-visible:ring-red-500' : ''}
                 />
+                {performedByError && <p className="mt-1 text-xs text-red-500">{performedByError}</p>}
               </div>
 
               {!isScrapType && (
@@ -820,9 +829,7 @@ const ServiceLogs = () => {
                 <p>
                   <span className="text-gray-600">Asset:</span>{' '}
                   <span className="font-medium">
-                    {gatePassLog.asset
-                      ? getAssetOptionLabel(gatePassLog.asset)
-                      : gatePassLog.assetId || '—'}
+                    {gatePassLog.asset ? getAssetOptionLabel(gatePassLog.asset) : gatePassLog.assetId || '—'}
                   </span>
                 </p>
                 <p>
@@ -884,18 +891,12 @@ const ServiceLogs = () => {
                   </div>
                 ) : null}
               </div>
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                Optional image shown when the QR is scanned.
-              </p>
+              <p className="mt-1.5 text-xs text-muted-foreground">Optional image shown when the QR is scanned.</p>
             </div>
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={handleCloseGatePassModal}
-              disabled={createGatePassMutation.isPending}
-            >
+            <Button variant="outline" onClick={handleCloseGatePassModal} disabled={createGatePassMutation.isPending}>
               Cancel
             </Button>
             <Button onClick={handleGenerateGatePass} disabled={createGatePassMutation.isPending}>

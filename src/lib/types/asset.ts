@@ -1,12 +1,5 @@
 export type AssetStatus =
-  | 'available'
-  | 'assigned'
-  | 'maintenance'
-  | 'retired'
-  | 'disposed'
-  | 'scrap'
-  | 'repair'
-  | 'external_use'
+  'available' | 'assigned' | 'maintenance' | 'retired' | 'disposed' | 'scrap' | 'repair' | 'external_use'
 
 export type AssetCondition = 'excellent' | 'good' | 'fair' | 'poor'
 
@@ -316,7 +309,7 @@ export interface CreateServiceLogRequest {
   assetId: string
   serviceDate: string
   serviceType: ServiceType
-  performedBy?: string
+  performedBy: string
   vendorId?: string
   cost?: number
   description?: string
@@ -438,14 +431,7 @@ export interface PaginationParams {
 }
 
 export type AssetTimelineEventType =
-  | 'created'
-  | 'assigned'
-  | 'returned'
-  | 'external_use'
-  | 'repair'
-  | 'scrap'
-  | 'qr_generated'
-  | 'made_available'
+  'created' | 'assigned' | 'returned' | 'external_use' | 'repair' | 'scrap' | 'qr_generated' | 'made_available'
 
 export interface AssetTimelineEvent {
   id: string

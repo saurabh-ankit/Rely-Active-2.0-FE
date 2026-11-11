@@ -25,8 +25,7 @@ import type {
 export const ASSET_TIMELINE_KEYS = {
   all: ['assetTimeline'] as const,
   byAsset: (assetId?: string) => ['assetTimeline', assetId] as const,
-  detail: (assetId?: string, params?: AssetTimelineParams) =>
-    ['assetTimeline', assetId, params] as const,
+  detail: (assetId?: string, params?: AssetTimelineParams) => ['assetTimeline', assetId, params] as const,
 }
 
 // Asset Categories
@@ -314,11 +313,7 @@ export const useMakeAssetAvailable = () => {
   })
 }
 
-export const useAssetTimelineQuery = (
-  assetId?: string,
-  params: AssetTimelineParams = {},
-  enabled = true,
-) => {
+export const useAssetTimelineQuery = (assetId?: string, params: AssetTimelineParams = {}, enabled = true) => {
   const { selectedLocationId } = useLocationStore()
   const locationId = selectedLocationId || 'all'
 
@@ -492,6 +487,7 @@ export const useCreateServiceLog = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['serviceLogs', locationId] })
       queryClient.invalidateQueries({ queryKey: ['assets', locationId] })
+      queryClient.invalidateQueries({ queryKey: ['assetStats'] })
       queryClient.invalidateQueries({ queryKey: ASSET_TIMELINE_KEYS.all })
     },
     onError: (error: ApiError) => {
@@ -511,6 +507,7 @@ export const useUpdateServiceLog = () => {
       assetService.updateServiceLog(locationId, id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['serviceLogs', locationId] })
+      queryClient.invalidateQueries({ queryKey: ['assetStats'] })
     },
     onError: (error: ApiError) => {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to update service log'
@@ -528,6 +525,8 @@ export const useDeleteServiceLog = () => {
     mutationFn: (id: string) => assetService.deleteServiceLog(locationId, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['serviceLogs', locationId] })
+      queryClient.invalidateQueries({ queryKey: ['assets', locationId] })
+      queryClient.invalidateQueries({ queryKey: ['assetStats'] })
     },
     onError: (error: ApiError) => {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to delete service log'
@@ -547,6 +546,7 @@ export const useCompleteServiceLog = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['serviceLogs', locationId] })
       queryClient.invalidateQueries({ queryKey: ['assets', locationId] })
+      queryClient.invalidateQueries({ queryKey: ['assetStats'] })
       queryClient.invalidateQueries({ queryKey: ASSET_TIMELINE_KEYS.all })
     },
     onError: (error: ApiError) => {
@@ -577,6 +577,7 @@ export const useCreateWarranty = () => {
     mutationFn: (data: CreateWarrantyRequest | FormData) => assetService.createWarranty(locationId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['warranties', locationId] })
+      queryClient.invalidateQueries({ queryKey: ['assetStats'] })
     },
     onError: (error: ApiError) => {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to create warranty'
@@ -595,6 +596,7 @@ export const useUpdateWarranty = () => {
       assetService.updateWarranty(locationId, id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['warranties', locationId] })
+      queryClient.invalidateQueries({ queryKey: ['assetStats'] })
     },
     onError: (error: ApiError) => {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to update warranty'
@@ -612,6 +614,7 @@ export const useDeleteWarranty = () => {
     mutationFn: (id: string) => assetService.deleteWarranty(locationId, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['warranties', locationId] })
+      queryClient.invalidateQueries({ queryKey: ['assetStats'] })
     },
     onError: (error: ApiError) => {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to delete warranty'
