@@ -644,14 +644,15 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
               ) : (
                 <Select
                   value={formData.categoryId}
-                  onValueChange={(value: string) =>
+                  onValueChange={(value) => {
+                    if (!value) return
                     setFormData({
                       ...formData,
                       categoryId: value,
                       itemId: '',
                       vendorId: '',
                     })
-                  }
+                  }}
                 >
                   <SelectTrigger className="w-[100%]">
                     <SelectValue placeholder="Select category first" />
@@ -685,7 +686,10 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
                 ) : (
                   <Select
                     value={formData.itemId}
-                    onValueChange={(value: string) => setFormData({ ...formData, itemId: value })}
+                    onValueChange={(value) => {
+                      if (!value) return
+                      setFormData({ ...formData, itemId: value })
+                    }}
                     disabled={!formData.categoryId}
                   >
                     <SelectTrigger className="w-[100%]">
@@ -711,7 +715,10 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
                 ) : (
                   <Select
                     value={formData.vendorId}
-                    onValueChange={(value: string) => setFormData({ ...formData, vendorId: value })}
+                    onValueChange={(value) => {
+                      if (!value) return
+                      setFormData({ ...formData, vendorId: value })
+                    }}
                     disabled={!formData.categoryId}
                   >
                     <SelectTrigger className="w-[100%]">
@@ -940,12 +947,13 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
                 </Label>
                 <Select
                   value={formData.condition}
-                  onValueChange={(value: string) =>
+                  onValueChange={(value) => {
+                    if (!value) return
                     setFormData({
                       ...formData,
                       condition: value as AssetCondition,
                     })
-                  }
+                  }}
                 >
                   <SelectTrigger className="w-[100%]">
                     <SelectValue placeholder="Select condition" />
@@ -965,7 +973,10 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
                 </Label>
                 <Select
                   value={formData.status}
-                  onValueChange={(value: string) => setFormData({ ...formData, status: value as AssetStatus })}
+                  onValueChange={(value) => {
+                    if (!value) return
+                    setFormData({ ...formData, status: value as AssetStatus })
+                  }}
                 >
                   <SelectTrigger className="w-[100%]">
                     <SelectValue placeholder="Select status" />
@@ -1044,7 +1055,13 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
                 placeholder="Search employees..."
                 className="mb-2 h-8"
               />
-              <Select value={externalEmployeeId} onValueChange={setExternalEmployeeId}>
+              <Select
+                value={externalEmployeeId}
+                onValueChange={(value) => {
+                  if (!value) return
+                  setExternalEmployeeId(value)
+                }}
+              >
                 <SelectTrigger className="w-full !h-10">
                   <SelectValue placeholder="Select employee" />
                 </SelectTrigger>
