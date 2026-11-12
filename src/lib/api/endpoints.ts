@@ -267,6 +267,12 @@ export const API_ENDPOINTS = {
     addComment: (id: string, locationId?: string | null) =>
       buildLocationEndpoint(`/tickets/${id}/comments`, locationId),
     delete: (id: string, locationId?: string | null) => buildLocationEndpoint(`/tickets/${id}`, locationId),
+    /** Auto-assign toggle and response time per department of the property */
+    autoAssignSettings: (locationId?: string | null) =>
+      buildLocationEndpoint('/tickets/auto-assign-settings', locationId),
+    /** Who the ticket was offered to and what each staff member answered */
+    autoAssignLog: (id: string, locationId?: string | null) =>
+      buildLocationEndpoint(`/tickets/${id}/auto-assign-log`, locationId),
   },
 
   // Gate Management Endpoints
