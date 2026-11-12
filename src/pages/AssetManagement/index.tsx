@@ -5,6 +5,7 @@ import {
   CheckCircle,
   ClipboardList,
   Package,
+  QrCode,
   Settings,
   Shield,
   Sparkles,
@@ -31,6 +32,7 @@ const AssetList = lazy(() => import('./components/AssetList'))
 const AssetAssignments = lazy(() => import('./components/AssetAssignments'))
 const AssetMaintenance = lazy(() => import('./components/AssetMaintenance'))
 const AssetCompliance = lazy(() => import('./components/AssetCompliance'))
+const AssetItemRequests = lazy(() => import('./components/AssetItemRequests'))
 
 const AssetManagementPage = () => {
   const [chosenTab, setActiveTab] = useState('overview')
@@ -43,6 +45,7 @@ const AssetManagementPage = () => {
     assignments: useResourceAccess(RESOURCE.ASSET_ASSIGNMENTS).canView,
     maintenance: useResourceAccess(RESOURCE.ASSET_MAINTENANCE).canView,
     compliance: useResourceAccess(RESOURCE.ASSET_COMPLIANCE).canView,
+    'item-requests': useResourceAccess(RESOURCE.ASSET_ITEM_REQUESTS).canView,
   }
   const firstAllowed = Object.keys(tabAccess).find((t) => tabAccess[t])
   const activeTab = tabAccess[chosenTab] ? chosenTab : (firstAllowed ?? chosenTab)
@@ -228,6 +231,17 @@ const AssetManagementPage = () => {
               content: (
                 <Suspense fallback={<PageLoader />}>
                   <AssetCompliance />
+                </Suspense>
+              ),
+            },
+            {
+              value: 'item-requests',
+              label: 'Gate Pass',
+              shortLabel: 'Request',
+              icon: QrCode,
+              content: (
+                <Suspense fallback={<PageLoader />}>
+                  <AssetItemRequests enabled={activeTab === 'item-requests'} />
                 </Suspense>
               ),
             },
