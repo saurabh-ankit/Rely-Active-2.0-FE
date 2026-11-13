@@ -1,5 +1,5 @@
 import { useRef, useState, type ChangeEvent } from 'react'
-import { CheckCircle, Edit, Plus, QrCode, Trash2, Upload, X } from 'lucide-react'
+import { CheckCircle, Copy, Download, Edit, FileText, Plus, QrCode, Trash2, Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { PermissionGuard } from '@/components/common/PermissionGuard'
 import { Badge } from '@/components/ui/badge'
@@ -31,7 +31,7 @@ import {
 import useDebounce from '@/hooks/useDebounce'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/ui/data-table'
-import type { AssetServiceLog, CreateServiceLogRequest, ServiceType } from '@/lib/types'
+import type { AssetItemRequest, AssetServiceLog, CreateServiceLogRequest, ServiceType } from '@/lib/types'
 import { formatDisplayDate } from '@/lib/utils'
 
 const ServiceLogs = () => {
@@ -39,11 +39,18 @@ const ServiceLogs = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
   const [completingLog, setCompletingLog] = useState<AssetServiceLog | null>(null)
-  const [completionRemarks, setCompletionRemarks] = useState('')
+  const [completionFormData, setCompletionFormData] = useState({
+    cost: '',
+    nextServiceDate: '',
+    completionRemarks: '',
+  })
+  const [completionDocumentFile, setCompletionDocumentFile] = useState<File | null>(null)
+  const completionFileInputRef = useRef<HTMLInputElement>(null)
   const [editingLog, setEditingLog] = useState<AssetServiceLog | null>(null)
   const [gatePassLog, setGatePassLog] = useState<AssetServiceLog | null>(null)
   const [gatePassPhone, setGatePassPhone] = useState('')
   const [gatePassImage, setGatePassImage] = useState('')
+  const [qrPreview, setQrPreview] = useState<AssetItemRequest | null>(null)
   const [performedByError, setPerformedByError] = useState('')
   const gatePassFileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
@@ -227,28 +234,61 @@ const ServiceLogs = () => {
 
   const handleOpenCompletionModal = (log: AssetServiceLog) => {
     setCompletingLog(log)
-    setCompletionRemarks('')
+    setCompletionFormData({
+      cost: log.cost?.toString() || '',
+      nextServiceDate: log.nextServiceDate ? new Date(log.nextServiceDate).toISOString().split('T')[0] : '',
+      completionRemarks: '',
+    })
+    setCompletionDocumentFile(null)
+    if (completionFileInputRef.current) completionFileInputRef.current.value = ''
     setIsCompletionModalOpen(true)
   }
 
   const handleCloseCompletionModal = () => {
     setIsCompletionModalOpen(false)
     setCompletingLog(null)
-    setCompletionRemarks('')
+    setCompletionFormData({
+      cost: '',
+      nextServiceDate: '',
+      completionRemarks: '',
+    })
+    setCompletionDocumentFile(null)
+    if (completionFileInputRef.current) completionFileInputRef.current.value = ''
   }
 
   const handleComplete = async () => {
     if (!completingLog) return
 
-    if (!completionRemarks.trim()) {
+    if (!completionFormData.completionRemarks.trim()) {
       toast.error('Please provide completion remarks')
       return
     }
 
+    const serviceDateValue = completingLog.serviceDate
+      ? new Date(completingLog.serviceDate).toISOString().split('T')[0]
+      : ''
+
+    if (
+      completionFormData.nextServiceDate &&
+      serviceDateValue &&
+      completionFormData.nextServiceDate <= serviceDateValue
+    ) {
+      toast.error('Next Service Date must be after Service Date')
+      return
+    }
+
     try {
+      const submitData = new FormData()
+      submitData.append('completionRemarks', completionFormData.completionRemarks.trim())
+      submitData.append('cost', completionFormData.cost !== '' ? completionFormData.cost : '')
+      submitData.append('nextServiceDate', completionFormData.nextServiceDate || '')
+      if (completionDocumentFile) {
+        submitData.append('document', completionDocumentFile)
+      }
+
       await completeMutation.mutateAsync({
         id: completingLog.id,
-        data: { completionRemarks: completionRemarks.trim() },
+        data: submitData,
       })
       toast.success(
         completingLog.serviceType === 'scrap'
@@ -264,7 +304,33 @@ const ServiceLogs = () => {
     }
   }
 
+  const buildGatePassPreview = (log: AssetServiceLog, gatePass: AssetItemRequest): AssetItemRequest => {
+    if (gatePass.assets?.length) return gatePass
+    return {
+      ...gatePass,
+      assets: log.asset
+        ? [
+            {
+              id: log.asset.id,
+              name: log.asset.item?.name || '—',
+              serialNumber: log.asset.serialNumber,
+              assetTag: log.asset.assetTag,
+            },
+          ]
+        : [],
+    }
+  }
+
+  const handleViewGatePass = (log: AssetServiceLog) => {
+    if (!log.gatePass) return
+    setQrPreview(buildGatePassPreview(log, log.gatePass))
+  }
+
   const handleOpenGatePassModal = (log: AssetServiceLog) => {
+    if (log.gatePass) {
+      handleViewGatePass(log)
+      return
+    }
     if (!log.performedBy?.trim()) {
       toast.error('Performed By is required to generate a gate pass')
       return
@@ -280,6 +346,46 @@ const ServiceLogs = () => {
     setGatePassPhone('')
     setGatePassImage('')
     if (gatePassFileInputRef.current) gatePassFileInputRef.current.value = ''
+  }
+
+  const handleCopyQrCode = async () => {
+    const code = qrPreview?.qrCode?.trim()
+    if (!code) {
+      toast.error('QR code is not available')
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(code)
+      toast.success('QR code copied')
+    } catch {
+      toast.error('Failed to copy QR code')
+    }
+  }
+
+  const handleDownloadQr = async () => {
+    const imageSrc = qrPreview?.qrCodeImage
+    const code = qrPreview?.qrCode?.trim() || 'gate-pass-qr'
+    if (!imageSrc) {
+      toast.error('QR image is not available')
+      return
+    }
+    try {
+      const response = await fetch(imageSrc)
+      if (!response.ok) throw new Error('Failed to fetch QR image')
+      const blob = await response.blob()
+      const extension = blob.type.includes('jpeg') || blob.type.includes('jpg') ? 'jpg' : 'png'
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `gate-pass-qr-${code}.${extension}`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      toast.success('QR downloaded')
+    } catch {
+      toast.error('Failed to download QR')
+    }
   }
 
   const handleGatePassPhoneChange = (value: string) => {
@@ -330,15 +436,19 @@ const ServiceLogs = () => {
     }
 
     try {
-      await createGatePassMutation.mutateAsync({
+      const result = await createGatePassMutation.mutateAsync({
         name,
         phone,
         assetIds: [gatePassLog.assetId],
-        reason: 'repair',
+        reason: gatePassLog.serviceType === 'scrap' ? 'scrap' : 'repair',
         problem: gatePassLog.description?.trim() || undefined,
         requestImage: gatePassImage || undefined,
+        serviceLogId: gatePassLog.id,
       })
       handleCloseGatePassModal()
+      if (result?.data) {
+        setQrPreview(buildGatePassPreview(gatePassLog, result.data))
+      }
     } catch {
       // toast handled in mutation
     }
@@ -389,6 +499,38 @@ const ServiceLogs = () => {
       cell: ({ row }) => (row.original.nextServiceDate ? formatDisplayDate(row.original.nextServiceDate) : '-'),
     },
     {
+      id: 'document',
+      header: 'Document',
+      cell: ({ row }) =>
+        row.original.documentUrl ? (
+          <a
+            href={row.original.documentUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2"
+            title="View receipt / document"
+          >
+            {row.original.documentUrl.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i) ? (
+              <img
+                src={row.original.documentUrl}
+                alt="Service document"
+                className="w-10 h-10 object-cover rounded border border-gray-200"
+                onError={(e) => {
+                  ;(e.target as HTMLImageElement).style.display = 'none'
+                }}
+              />
+            ) : (
+              <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
+                <FileText className="h-3 w-3 mr-1" />
+                View
+              </span>
+            )}
+          </a>
+        ) : (
+          '-'
+        ),
+    },
+    {
       accessorKey: 'completionStatus',
       header: 'Status',
       cell: ({ row }) => {
@@ -430,18 +572,20 @@ const ServiceLogs = () => {
       cell: ({ row }) => {
         const log = row.original
         const isScrap = log.serviceType === 'scrap'
-        const showGatePass = isScrap || log.completionStatus === 'pending'
+        const hasGatePass = !!log.gatePass
+        const canGenerateGatePass = !hasGatePass && (isScrap || log.completionStatus === 'pending')
+        const showGatePassAction = hasGatePass || canGenerateGatePass
         const showComplete = !isScrap && log.completionStatus === 'pending'
         return (
           <div className="flex justify-end gap-2 pr-2">
-            {showGatePass && (
+            {showGatePassAction && (
               <PermissionGuard permission="assets:create">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleOpenGatePassModal(log)}
+                  onClick={() => (hasGatePass ? handleViewGatePass(log) : handleOpenGatePassModal(log))}
                   className="text-blue-600 hover:text-blue-700"
-                  title="Generate gate pass"
+                  title={hasGatePass ? 'View gate pass' : 'Generate gate pass'}
                 >
                   <QrCode className="h-4 w-4" />
                 </Button>
@@ -753,54 +897,204 @@ const ServiceLogs = () => {
       </Dialog>
 
       {/* Completion Modal */}
-      <Dialog open={isCompletionModalOpen} onOpenChange={setIsCompletionModalOpen}>
-        <DialogContent className="sm:max-w-xl">
+      <Dialog
+        open={isCompletionModalOpen}
+        onOpenChange={(open) => {
+          if (!open) handleCloseCompletionModal()
+          else setIsCompletionModalOpen(true)
+        }}
+      >
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Mark Service as Completed</DialogTitle>
             <DialogDescription>
-              {completingLog?.serviceType === 'scrap'
-                ? 'Add remarks for this completed scrap service. The asset status will remain scrap.'
-                : completingLog?.serviceType === 'repair'
-                  ? 'Add remarks for this completed service. The asset will be marked as available once completed.'
-                  : 'Add remarks for this completed service.'}
+              {completingLog?.serviceType === 'repair'
+                ? 'Review service details and add cost, next service date, remarks, and receipt. The asset will be marked as available once completed.'
+                : 'Review service details and add cost, next service date, remarks, and receipt.'}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4 px-4 sm:px-6">
+          <div className="space-y-4 px-4 sm:px-6 py-4">
             {completingLog && (
-              <div className="p-4 bg-gray-50 rounded-md">
-                <p className="text-sm text-gray-600">Asset:</p>
-                <p className="font-medium">
-                  {completingLog.asset?.serialNumber} - {completingLog.asset?.assetTag}
-                </p>
-                <p className="text-sm text-gray-600 mt-2">Service Type:</p>
-                <p className="font-medium capitalize">{serviceTypeLabels[completingLog.serviceType]}</p>
-              </div>
-            )}
+              <>
+                <div>
+                  <Label className="mb-2">Category</Label>
+                  <Input value={completingLog.asset?.item?.category?.name || '-'} disabled className="bg-gray-50" />
+                </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="completionRemarks">
-                Completion Remarks <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="completionRemarks"
-                value={completionRemarks}
-                onChange={(e) => setCompletionRemarks(e.target.value)}
-                placeholder="Describe what was done and the current status..."
-                rows={4}
-                className="resize-none"
-              />
-              <p className="text-sm text-gray-500">
-                Provide details about the completed service, repairs made, or parts replaced.
-              </p>
-            </div>
+                <div>
+                  <Label className="mb-2">Asset</Label>
+                  <Input
+                    value={
+                      completingLog.asset
+                        ? [
+                            completingLog.asset.item?.name,
+                            completingLog.asset.serialNumber,
+                            completingLog.asset.assetTag,
+                          ]
+                            .filter((value) => value && String(value).trim())
+                            .join(' - ')
+                        : '-'
+                    }
+                    disabled
+                    className="bg-gray-50"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 items-center">
+                  <div>
+                    <Label className="mb-2">Service Type</Label>
+                    <Input value={serviceTypeLabels[completingLog.serviceType]} disabled className="bg-gray-50" />
+                  </div>
+                  <div>
+                    <Label className="mb-2">Service Date</Label>
+                    <Input
+                      value={
+                        completingLog.serviceDate ? new Date(completingLog.serviceDate).toISOString().split('T')[0] : ''
+                      }
+                      disabled
+                      className="bg-gray-50"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="mb-2">Performed By</Label>
+                    <Input value={completingLog.performedBy || '-'} disabled className="bg-gray-50" />
+                  </div>
+                  <div>
+                    <Label className="mb-2">Service Vendor</Label>
+                    <Input value={completingLog.vendor?.name || '-'} disabled className="bg-gray-50" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="completionCost" className="mb-2">
+                      Service Cost
+                    </Label>
+                    <Input
+                      id="completionCost"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={completionFormData.cost}
+                      onChange={(e) => setCompletionFormData((prev) => ({ ...prev, cost: e.target.value }))}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="completionNextServiceDate" className="mb-2">
+                      Next Service Date
+                    </Label>
+                    <Input
+                      id="completionNextServiceDate"
+                      type="date"
+                      value={completionFormData.nextServiceDate}
+                      min={
+                        completingLog.serviceDate
+                          ? new Date(new Date(completingLog.serviceDate).getTime() + 24 * 60 * 60 * 1000)
+                              .toISOString()
+                              .split('T')[0]
+                          : undefined
+                      }
+                      onChange={(e) =>
+                        setCompletionFormData((prev) => ({
+                          ...prev,
+                          nextServiceDate: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="completionRemarks" className="mb-2">
+                    Completion Remarks <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="completionRemarks"
+                    value={completionFormData.completionRemarks}
+                    onChange={(e) =>
+                      setCompletionFormData((prev) => ({
+                        ...prev,
+                        completionRemarks: e.target.value,
+                      }))
+                    }
+                    placeholder="Describe what was done and the current status..."
+                    rows={4}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="completionDocument" className="mb-2">
+                    Receipt / Document
+                  </Label>
+                  <div className="space-y-3">
+                    <Input
+                      ref={completionFileInputRef}
+                      id="completionDocument"
+                      type="file"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      onChange={(e) => {
+                        const selectedFile = e.target.files ? e.target.files[0] : null
+                        setCompletionDocumentFile(selectedFile)
+                      }}
+                    />
+                    {completionDocumentFile && (
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border">
+                        {completionDocumentFile.type.startsWith('image/') ? (
+                          <img
+                            src={URL.createObjectURL(completionDocumentFile)}
+                            alt="Preview"
+                            className="w-12 h-12 object-cover rounded border border-gray-200"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                            <FileText className="w-6 h-6 text-gray-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-700 truncate">{completionDocumentFile.name}</p>
+                          <p className="text-xs text-gray-500">{(completionDocumentFile.size / 1024).toFixed(1)} KB</p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setCompletionDocumentFile(null)
+                            if (completionFileInputRef.current) {
+                              completionFileInputRef.current.value = ''
+                            }
+                          }}
+                          className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                    {!completionDocumentFile && (
+                      <p className="text-xs text-gray-500">
+                        Upload receipt or supporting document (PDF, image, or DOC).
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={handleCloseCompletionModal}>
               Cancel
             </Button>
-            <Button onClick={handleComplete} className="bg-green-600 hover:bg-green-700">
+            <Button
+              onClick={handleComplete}
+              disabled={completeMutation.isPending}
+              className="bg-green-600 hover:bg-green-700"
+            >
               <CheckCircle className="h-4 w-4 mr-2" />
               Mark as Completed
             </Button>
@@ -901,6 +1195,57 @@ const ServiceLogs = () => {
             </Button>
             <Button onClick={handleGenerateGatePass} disabled={createGatePassMutation.isPending}>
               {createGatePassMutation.isPending ? 'Generating...' : 'Generate'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!qrPreview} onOpenChange={(open) => !open && setQrPreview(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Service Log Gate Pass</DialogTitle>
+            <DialogDescription>Scan this code to view the full gate pass details.</DialogDescription>
+          </DialogHeader>
+          {qrPreview && (
+            <div className="flex flex-col items-center gap-3 py-2">
+              {qrPreview.qrCodeImage ? (
+                <img
+                  src={qrPreview.qrCodeImage}
+                  alt="Gate pass QR"
+                  className="w-56 h-56 object-contain rounded border border-gray-200 bg-white"
+                />
+              ) : null}
+              <p className="text-sm font-mono font-bold text-gray-700">{qrPreview.qrCode}</p>
+              <div className="w-full rounded-lg border border-gray-100 bg-gray-50 p-3 text-sm space-y-1">
+                <p>
+                  <span className="font-semibold text-gray-700">Name:</span> {qrPreview.name}
+                </p>
+                <p>
+                  <span className="font-semibold text-gray-700">Phone:</span> {qrPreview.phone || '—'}
+                </p>
+                <p>
+                  <span className="font-semibold text-gray-700">Assets:</span>{' '}
+                  {qrPreview.assets
+                    ?.map((a) => [a.name, a.serialNumber, a.assetTag].filter((v) => v && String(v).trim()).join(' - '))
+                    .join(', ') || '—'}
+                </p>
+                <p>
+                  <span className="font-semibold text-gray-700">Description:</span> {qrPreview.problem || '—'}
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setQrPreview(null)}>
+              Close
+            </Button>
+            <Button variant="outline" onClick={handleCopyQrCode} disabled={!qrPreview?.qrCode}>
+              <Copy className="h-4 w-4 mr-2" />
+              Copy
+            </Button>
+            <Button onClick={handleDownloadQr} disabled={!qrPreview?.qrCodeImage}>
+              <Download className="h-4 w-4 mr-2" />
+              Download
             </Button>
           </DialogFooter>
         </DialogContent>

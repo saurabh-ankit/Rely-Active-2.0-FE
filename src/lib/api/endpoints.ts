@@ -188,8 +188,10 @@ export const API_ENDPOINTS = {
       update: `${BASE_URL}/location/:locationId/assets/:id`,
       delete: `${BASE_URL}/location/:locationId/assets/:id`,
       makeAvailable: `${BASE_URL}/location/:locationId/assets/:id/make-available`,
+      regenerateQr: `${BASE_URL}/location/:locationId/assets/:id/regenerate-qr`,
       timeline: `${BASE_URL}/location/:locationId/assets/:id/timeline`,
       stats: `${BASE_URL}/location/:locationId/assets/stats`,
+      publicGet: `${BASE_URL}/public/assets/:assetId`,
     },
     assignments: {
       list: `${BASE_URL}/location/:locationId/assets/assignments`,

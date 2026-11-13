@@ -144,6 +144,10 @@ const CreateVenueModal = ({ open, onOpenChange }: CreateVenueModalProps) => {
               setCoverPhotoFile(file)
               setCoverPhotoPreview(preview)
             }}
+            onRemoveCoverPhoto={() => {
+              setCoverPhotoFile(null)
+              setCoverPhotoPreview(null)
+            }}
             onAddImage={addImage}
             onRemoveImage={removeImage}
             onImageFileChange={(index, file, preview) => {

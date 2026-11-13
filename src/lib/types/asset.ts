@@ -95,6 +95,7 @@ export interface Asset extends BaseEntity {
   serialNumber?: string
   assetTag?: string
   qrCode?: string
+  qrCodeImage?: string
   purchaseDate?: string
   purchasePrice?: number
   currentValue?: number
@@ -103,6 +104,50 @@ export interface Asset extends BaseEntity {
   condition: AssetCondition
   status: AssetStatus
   notes?: string
+}
+
+/** Sanitized asset payload returned by the public QR scan API. */
+export interface PublicAssetDetails {
+  id: string
+  serialNumber?: string | null
+  assetTag?: string | null
+  qrCodeImage?: string | null
+  condition: AssetCondition
+  status: AssetStatus
+  purchaseDate?: string | null
+  purchasePrice?: number | null
+  warrantyEndDate?: string | null
+  notes?: string | null
+  item?: {
+    name: string
+    model?: string | null
+    manufacturer?: string | null
+    category?: { name: string } | null
+  } | null
+  location?: { name: string } | null
+  vendor?: {
+    name: string
+    contactPerson?: string | null
+    email?: string | null
+    phone?: string | null
+  } | null
+  assignment?: {
+    assigneeType: AssigneeType
+    assigneeName: string
+    assigneePhone?: string | null
+    assigneeEmail?: string | null
+    flatInfo?: string | null
+    assignedAt: string
+    expectedReturnDate?: string | null
+    notes?: string | null
+  } | null
+  externalUse?: {
+    holderName: string
+    holderPhone: string
+    description?: string | null
+    expectedReturnDate?: string | null
+    recordedAt: string
+  } | null
 }
 
 export interface AssetAssignment extends BaseEntity {
@@ -168,6 +213,8 @@ export interface AssetServiceLog extends BaseEntity {
   completionStatus: 'pending' | 'completed'
   completedDate?: string
   completionRemarks?: string
+  documentUrl?: string
+  gatePass?: AssetItemRequest | null
 }
 
 export interface AssetWarranty extends BaseEntity {
@@ -409,6 +456,7 @@ export interface AssetItemRequest extends BaseEntity {
   declineComment?: string | null
   declineImage?: string | null
   expectedReturnDate?: string | null
+  serviceLogId?: string | null
   assets?: ItemRequestAssetRef[]
   /** Gate & Security employee who approved/declined */
   decidedByName?: string | null
@@ -422,6 +470,7 @@ export interface CreateItemRequestPayload {
   problem?: string
   requestImage?: string | null
   expectedReturnDate?: string | null
+  serviceLogId?: string
 }
 
 export interface PaginationParams {

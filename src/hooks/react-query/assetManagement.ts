@@ -313,6 +313,23 @@ export const useMakeAssetAvailable = () => {
   })
 }
 
+export const useRegenerateAssetQr = () => {
+  const queryClient = useQueryClient()
+  const { selectedLocationId } = useLocationStore()
+  const locationId = selectedLocationId || 'all'
+
+  return useMutation({
+    mutationFn: (id: string) => assetService.regenerateAssetQr(locationId, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] })
+    },
+    onError: (error: ApiError) => {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to generate asset QR'
+      toast.error(errorMessage)
+    },
+  })
+}
+
 export const useAssetTimelineQuery = (assetId?: string, params: AssetTimelineParams = {}, enabled = true) => {
   const { selectedLocationId } = useLocationStore()
   const locationId = selectedLocationId || 'all'
@@ -541,8 +558,13 @@ export const useCompleteServiceLog = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { completionRemarks: string } }) =>
-      assetService.completeServiceLog(locationId, id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string
+      data: { completionRemarks: string; cost?: number; nextServiceDate?: string } | FormData
+    }) => assetService.completeServiceLog(locationId, id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['serviceLogs', locationId] })
       queryClient.invalidateQueries({ queryKey: ['assets', locationId] })
@@ -1016,6 +1038,7 @@ export const useCreateItemRequest = () => {
         )
       }
       await queryClient.invalidateQueries({ queryKey: ['itemRequests'], refetchType: 'all' })
+      await queryClient.invalidateQueries({ queryKey: ['serviceLogs'], refetchType: 'all' })
       await queryClient.invalidateQueries({ queryKey: ['assets'], refetchType: 'all' })
       await queryClient.invalidateQueries({ queryKey: ['assetStats'], refetchType: 'all' })
       await queryClient.invalidateQueries({ queryKey: ASSET_TIMELINE_KEYS.all })

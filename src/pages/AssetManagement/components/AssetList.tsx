@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react'
-import { Copy, Download, Edit, FileText, PackageCheck, Plus, QrCode, Trash2, Upload, X } from 'lucide-react'
+import { Copy, Download, Edit, FileText, History, PackageCheck, Plus, QrCode, Trash2, Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { PermissionGuard } from '@/components/common/PermissionGuard'
 import { Badge } from '@/components/ui/badge'
@@ -28,6 +28,7 @@ import {
   useGetAssetVendorsDropdown,
   useGetEmployeesForAssignment,
   useMakeAssetAvailable,
+  useRegenerateAssetQr,
   useUpdateAsset,
 } from '@/hooks/react-query/assetManagement'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -64,6 +65,12 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
   const [externalReturnDate, setExternalReturnDate] = useState('')
   const [externalImage, setExternalImage] = useState('')
   const [qrPreview, setQrPreview] = useState<AssetItemRequest | null>(null)
+  const [assetQrPreview, setAssetQrPreview] = useState<{
+    id: string
+    qrCode?: string | null
+    qrCodeImage?: string | null
+    label?: string
+  } | null>(null)
   const [timelineAsset, setTimelineAsset] = useState<Asset | null>(null)
   const [serialNumberError, setSerialNumberError] = useState('')
   const [formData, setFormData] = useState({
@@ -119,6 +126,9 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
   const deleteMutation = useDeleteAsset()
   const createGatePassMutation = useCreateItemRequest()
   const makeAvailableMutation = useMakeAssetAvailable()
+  const regenerateQrMutation = useRegenerateAssetQr()
+
+  const getAssetPublicUrl = (assetId: string) => `${window.location.origin}/public/assets/${assetId}`
 
   const assets = assetsData?.data?.assets || []
   const categories = categoriesData?.data?.categories || []
@@ -219,11 +229,21 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
           data: payload,
         })
         toast.success('Asset updated successfully')
+        handleCloseModal()
       } else {
-        await createMutation.mutateAsync(payload)
+        const result = await createMutation.mutateAsync(payload)
         toast.success('Asset created successfully')
+        handleCloseModal()
+        const created = result?.data
+        if (created) {
+          setAssetQrPreview({
+            id: created.id,
+            qrCode: created.qrCode || created.id,
+            qrCodeImage: created.qrCodeImage,
+            label: getAssetOptionLabel(created),
+          })
+        }
       }
-      handleCloseModal()
     } catch (error) {
       const err = error as { response?: { data?: { message?: string } } }
       const message = err?.response?.data?.message || 'Failed to save asset'
@@ -416,6 +436,69 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
     }
   }
 
+  const handleViewAssetQr = async (asset: Asset) => {
+    if (asset.qrCodeImage) {
+      setAssetQrPreview({
+        id: asset.id,
+        qrCode: asset.qrCode || asset.id,
+        qrCodeImage: asset.qrCodeImage,
+        label: getAssetOptionLabel(asset),
+      })
+      return
+    }
+    try {
+      const result = await regenerateQrMutation.mutateAsync(asset.id)
+      const data = result?.data
+      setAssetQrPreview({
+        id: asset.id,
+        qrCode: data?.qrCode || asset.id,
+        qrCodeImage: data?.qrCodeImage || null,
+        label: getAssetOptionLabel(asset),
+      })
+    } catch {
+      // toast handled in mutation
+    }
+  }
+
+  const handleCopyAssetQrLink = async () => {
+    if (!assetQrPreview?.id) {
+      toast.error('QR link is not available')
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(getAssetPublicUrl(assetQrPreview.id))
+      toast.success('Asset QR link copied')
+    } catch {
+      toast.error('Failed to copy QR link')
+    }
+  }
+
+  const handleDownloadAssetQr = async () => {
+    const imageSrc = assetQrPreview?.qrCodeImage
+    const code = assetQrPreview?.qrCode?.trim() || assetQrPreview?.id || 'asset-qr'
+    if (!imageSrc) {
+      toast.error('QR image is not available')
+      return
+    }
+    try {
+      const response = await fetch(imageSrc)
+      if (!response.ok) throw new Error('Failed to fetch QR image')
+      const blob = await response.blob()
+      const extension = blob.type.includes('jpeg') || blob.type.includes('jpg') ? 'jpg' : 'png'
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `asset-qr-${code}.${extension}`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      toast.success('QR downloaded')
+    } catch {
+      toast.error('Failed to download QR')
+    }
+  }
+
   const handleOpenModal = (asset?: Asset) => {
     setSerialNumberError('')
     if (asset) {
@@ -525,6 +608,28 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
         const isScrap = asset.status === 'scrap'
         return (
           <div className="flex justify-end items-center gap-2 pr-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setTimelineAsset(asset)}
+              className="h-8 w-8 p-0 text-[#005390] hover:text-[#005390] hover:bg-gray-100 dark:hover:bg-gray-800"
+              title="Asset history"
+            >
+              <History className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                void handleViewAssetQr(asset)
+              }}
+              className="h-8 w-8 p-0 text-slate-700 hover:text-slate-900 hover:bg-gray-100 dark:hover:bg-gray-800"
+              title="View asset QR"
+              disabled={regenerateQrMutation.isPending}
+            >
+              <QrCode className="h-4 w-4" />
+            </Button>
             {asset.status === 'available' && !isScrap && (
               <PermissionGuard permission="assets:create">
                 <Button
@@ -1202,6 +1307,7 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
                 id="external-return-date"
                 type="date"
                 value={externalReturnDate}
+                min={new Date().toISOString().split('T')[0]}
                 onChange={(e) => setExternalReturnDate(e.target.value)}
               />
             </div>
@@ -1266,6 +1372,48 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
               Copy
             </Button>
             <Button onClick={handleDownloadQr} disabled={!qrPreview?.qrCodeImage}>
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!assetQrPreview} onOpenChange={(open) => !open && setAssetQrPreview(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Asset QR Code</DialogTitle>
+            <DialogDescription>
+              Scan with Google Lens or your phone camera to view this asset&apos;s details.
+            </DialogDescription>
+          </DialogHeader>
+          {assetQrPreview && (
+            <div className="flex flex-col items-center gap-3 py-2">
+              {assetQrPreview.qrCodeImage ? (
+                <img
+                  src={assetQrPreview.qrCodeImage}
+                  alt="Asset QR"
+                  className="w-56 h-56 object-contain rounded border border-gray-200 bg-white"
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground text-center px-4">
+                  QR image is not available yet. Ensure PUBLIC_APP_URL is set on the server, then use View QR again.
+                </p>
+              )}
+              {assetQrPreview.label ? (
+                <p className="text-sm font-medium text-gray-800 text-center">{assetQrPreview.label}</p>
+              ) : null}
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setAssetQrPreview(null)}>
+              Close
+            </Button>
+            <Button variant="outline" onClick={handleCopyAssetQrLink} disabled={!assetQrPreview?.id}>
+              <Copy className="h-4 w-4 mr-2" />
+              Copy link
+            </Button>
+            <Button onClick={handleDownloadAssetQr} disabled={!assetQrPreview?.qrCodeImage}>
               <Download className="h-4 w-4 mr-2" />
               Download
             </Button>

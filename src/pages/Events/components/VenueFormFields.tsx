@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { Plus, X } from 'lucide-react'
 import type { Control, FieldErrors, UseFormRegister, UseFormSetValue, UseFormWatch } from 'react-hook-form'
 import { Controller } from 'react-hook-form'
@@ -23,6 +24,7 @@ interface VenueFormFieldsProps {
   existingCoverPhoto?: string
   imagePreviews: (string | null)[]
   onCoverPhotoChange: (file: File | null, preview: string | null) => void
+  onRemoveCoverPhoto?: () => void
   onAddImage: () => void
   onRemoveImage: (index: number) => void
   onImageFileChange: (index: number, file: File | null, preview: string | null) => void
@@ -42,11 +44,21 @@ export function VenueFormFields({
   existingCoverPhoto,
   imagePreviews,
   onCoverPhotoChange,
+  onRemoveCoverPhoto,
   onAddImage,
   onRemoveImage,
   onImageFileChange,
 }: VenueFormFieldsProps) {
   const images = watch('images') || []
+  const coverPhotoInputRef = useRef<HTMLInputElement | null>(null)
+  const shownCoverPhoto = coverPhotoPreview || existingCoverPhoto
+
+  const handleRemoveCoverPhoto = () => {
+    if (coverPhotoInputRef.current) {
+      coverPhotoInputRef.current.value = ''
+    }
+    onRemoveCoverPhoto?.()
+  }
 
   return (
     <div className="space-y-4">
@@ -109,6 +121,7 @@ export function VenueFormFields({
       <div>
         <Label className="mb-1.5">Cover Photo</Label>
         <Input
+          ref={coverPhotoInputRef}
           type="file"
           accept="image/*"
           onChange={(e) => {
@@ -120,24 +133,28 @@ export function VenueFormFields({
             }
           }}
         />
-        {coverPhotoPreview && (
-          <div className="mt-2">
+        {shownCoverPhoto && (
+          <div className="mt-2 relative inline-block">
             <img
-              src={coverPhotoPreview}
-              alt="Cover preview"
+              src={shownCoverPhoto}
+              alt={coverPhotoPreview ? 'Cover preview' : 'Current cover'}
               className="w-48 h-32 object-cover rounded-lg border border-gray-200"
             />
+            {onRemoveCoverPhoto && (
+              <button
+                type="button"
+                aria-label="Remove cover photo"
+                title="Remove cover photo"
+                onClick={handleRemoveCoverPhoto}
+                className="absolute -right-1 -top-1 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-red-500 text-white shadow hover:bg-red-600"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
             {coverPhotoFile && <p className="text-sm text-gray-500 mt-1">New cover photo (will replace current)</p>}
-          </div>
-        )}
-        {!coverPhotoPreview && existingCoverPhoto && (
-          <div className="mt-2">
-            <img
-              src={existingCoverPhoto}
-              alt="Current cover"
-              className="w-48 h-32 object-cover rounded-lg border border-gray-200"
-            />
-            <p className="text-sm text-gray-500 mt-1">Current cover photo</p>
+            {!coverPhotoPreview && existingCoverPhoto && (
+              <p className="text-sm text-gray-500 mt-1">Current cover photo</p>
+            )}
           </div>
         )}
       </div>
