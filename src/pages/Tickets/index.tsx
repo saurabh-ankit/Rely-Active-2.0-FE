@@ -407,6 +407,10 @@ export default function TicketsPage() {
   const [isAssignDrawerOpen, setIsAssignDrawerOpen] = useState(false)
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
   const [isTatModalOpen, setIsTatModalOpen] = useState(false)
+  // Custom TAT: the date-time picker dialog and its value (yyyy-MM-ddTHH:mm, local time)
+  const [isCustomTatOpen, setIsCustomTatOpen] = useState(false)
+  const [customTatValue, setCustomTatValue] = useState('')
+  const [savingCustomTat, setSavingCustomTat] = useState(false)
   const [previewMediaUrl, setPreviewMediaUrl] = useState<string | null>(null)
   const [verifying, setVerifying] = useState(false)
   // Status picked in the dropdown, waiting for the admin to confirm it.
@@ -555,6 +559,7 @@ export default function TicketsPage() {
     departmentId?: string
     jobCategoryId?: string | null
     tatOption?: string
+    customTatDeadline?: string
     priority?: TicketPriority
     status?: TicketStatus
   }): Promise<boolean> => {
@@ -573,6 +578,7 @@ export default function TicketsPage() {
               ...(updated.title ? { title: updated.title } : {}),
               ...(updated.category ? { category: updated.category } : {}),
               ...('jobCategoryId' in updated ? { jobCategoryId: updated.jobCategoryId } : {}),
+              ...('customTatDeadline' in updated ? { customTatDeadline: updated.customTatDeadline } : {}),
             }
           : null,
       )
@@ -581,6 +587,43 @@ export default function TicketsPage() {
     } catch (err) {
       console.error('Failed to update ticket option:', err)
       return false
+    }
+  }
+
+  /** Local yyyy-MM-ddTHH:mm string, the format a datetime-local input uses. */
+  const toDateTimeLocal = (d: Date) => {
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+
+  /** Opens the custom TAT picker, prefilled with the current deadline or 3 hours from now. */
+  const openCustomTat = () => {
+    const current = selectedTicket?.customTatDeadline ? new Date(selectedTicket.customTatDeadline) : null
+    const now = new Date()
+    const initial = current && current > now ? current : new Date(now.getTime() + 3 * 60 * 60 * 1000)
+    setCustomTatValue(toDateTimeLocal(initial))
+    setIsTatModalOpen(false)
+    setIsCustomTatOpen(true)
+  }
+
+  const handleSaveCustomTat = async () => {
+    const deadline = customTatValue ? new Date(customTatValue) : null
+    if (!deadline || Number.isNaN(deadline.getTime())) {
+      notifyError('Pick a date and time')
+      return
+    }
+    if (deadline.getTime() <= Date.now()) {
+      notifyError('The custom TAT must be in the future')
+      return
+    }
+    setSavingCustomTat(true)
+    const ok = await handleUpdateOption({ tatOption: 'Custom', customTatDeadline: deadline.toISOString() })
+    setSavingCustomTat(false)
+    if (ok) {
+      notifySuccess('Custom TAT set')
+      setIsCustomTatOpen(false)
+    } else {
+      notifyError('Could not set the custom TAT')
     }
   }
 
@@ -2543,7 +2586,11 @@ export default function TicketsPage() {
                           type="button"
                           variant="ghost"
                           disabled={!canUpdateTicket}
-                          onClick={() => canUpdateTicket && handleUpdateOption({ tatOption: tat })}
+                          onClick={() => {
+                            if (!canUpdateTicket) return
+                            if (tat === 'Custom') openCustomTat()
+                            else handleUpdateOption({ tatOption: tat })
+                          }}
                           className={cn(
                             'px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all',
                             canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed',
@@ -2552,7 +2599,14 @@ export default function TicketsPage() {
                               : 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100',
                           )}
                         >
-                          {tat}
+                          {tat === 'Custom' && isSelected && selectedTicket.customTatDeadline
+                            ? `Custom · ${new Date(selectedTicket.customTatDeadline).toLocaleString([], {
+                                day: 'numeric',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}`
+                            : tat}
                         </Button>
                       )
                     })}
@@ -2646,6 +2700,10 @@ export default function TicketsPage() {
                   type="button"
                   variant="outline"
                   onClick={() => {
+                    if (option === 'Custom') {
+                      openCustomTat()
+                      return
+                    }
                     handleUpdateOption({ tatOption: option })
                     setIsTatModalOpen(false)
                   }}
@@ -2659,6 +2717,57 @@ export default function TicketsPage() {
                   {option}
                 </Button>
               ))}
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
+
+      {/* Custom TAT date-time picker */}
+      <Dialog
+        open={Boolean(isCustomTatOpen && selectedTicket)}
+        onOpenChange={(open) => {
+          if (!open && !savingCustomTat) setIsCustomTatOpen(false)
+        }}
+      >
+        {isCustomTatOpen && selectedTicket && (
+          <DialogContent className="sm:max-w-sm p-5 space-y-4">
+            <DialogHeader className="border-b pb-3 pr-8">
+              <DialogTitle className="text-sm font-bold text-gray-900">Custom TAT</DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                When should ticket #{selectedTicket.ticketNumber} be resolved by?
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1.5">
+              <label htmlFor="custom-tat-deadline" className="text-xs font-bold text-gray-700">
+                Resolve by
+              </label>
+              <input
+                id="custom-tat-deadline"
+                type="datetime-local"
+                value={customTatValue}
+                min={toDateTimeLocal(new Date())}
+                onChange={(e) => setCustomTatValue(e.target.value)}
+                className="w-full h-10 rounded-xl border border-gray-200 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#005390]/30"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={savingCustomTat}
+                onClick={() => setIsCustomTatOpen(false)}
+                className="rounded-xl text-xs font-bold"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={savingCustomTat || !customTatValue}
+                onClick={handleSaveCustomTat}
+                className="rounded-xl text-xs font-bold bg-[#005390] hover:bg-[#00457a] text-white"
+              >
+                {savingCustomTat ? 'Saving…' : 'Set TAT'}
+              </Button>
             </div>
           </DialogContent>
         )}
