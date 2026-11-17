@@ -186,6 +186,37 @@ export default function GateManagementPage() {
   const [visitorTypeFilter, setVisitorTypeFilter] = useState('')
   const [photoViewerData, setPhotoViewerData] = useState<{ photos: string[]; currentIndex: number } | null>(null)
 
+  // Photos column: up to 3 thumbnails (+N for the rest); clicking opens the photo viewer.
+  const renderVisitorPhotos = (photos: string[] | undefined, visitorName: string) => {
+    if (!photos || photos.length === 0) return <span className="text-xs text-gray-400">No photos</span>
+    return (
+      <div
+        className="flex items-center gap-1.5 cursor-pointer group"
+        onClick={() => setPhotoViewerData({ photos, currentIndex: 0 })}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') setPhotoViewerData({ photos, currentIndex: 0 })
+        }}
+        role="button"
+        tabIndex={0}
+        title="View photos"
+      >
+        {photos.slice(0, 3).map((photo, idx) => (
+          <img
+            key={idx}
+            src={photo}
+            alt={`${visitorName} ${idx + 1}`}
+            className="w-12 h-12 rounded-md object-cover border border-gray-200 shrink-0 group-hover:opacity-80 transition-opacity"
+          />
+        ))}
+        {photos.length > 3 && (
+          <div className="w-12 h-12 rounded-md bg-gray-100 flex items-center justify-center border border-gray-200 text-gray-500 font-bold shrink-0 text-xs">
+            +{photos.length - 3}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   const [isItemModalOpen, setIsItemModalOpen] = useState(false)
   const [selectedEntry, setSelectedEntry] = useState<any | null>(null)
   const [items, setItems] = useState<{ itemName: string; quantity: number }[]>([])
@@ -438,6 +469,7 @@ export default function GateManagementPage() {
               <TableHeader>
                 <TableRow className="border-b border-gray-200 text-xs text-gray-500 uppercase">
                   <TableHead className="pb-3 px-2 font-semibold">Visitor</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Photos</TableHead>
                   <TableHead className="pb-3 px-2 font-semibold">Details</TableHead>
                   <TableHead className="pb-3 px-2 font-semibold">Type</TableHead>
                   <TableHead className="pb-3 px-2 font-semibold">Source</TableHead>
@@ -451,7 +483,7 @@ export default function GateManagementPage() {
               <TableBody className="divide-y divide-gray-100">
                 {filteredEntries.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="py-8 text-center text-sm text-gray-500 font-medium">
+                    <TableCell colSpan={10} className="py-8 text-center text-sm text-gray-500 font-medium">
                       No entries found
                     </TableCell>
                   </TableRow>
@@ -459,42 +491,11 @@ export default function GateManagementPage() {
                   filteredEntries.map((entry) => (
                     <TableRow key={entry.id} className="hover:bg-gray-50 transition-colors">
                       <TableCell className="py-4 px-2">
-                        <div className="flex items-center gap-3">
-                          {entry.visitorPhotos && entry.visitorPhotos.length > 0 ? (
-                            <div
-                              className="flex -space-x-2 relative cursor-pointer group"
-                              onClick={() => setPhotoViewerData({ photos: entry.visitorPhotos, currentIndex: 0 })}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ')
-                                  setPhotoViewerData({ photos: entry.visitorPhotos, currentIndex: 0 })
-                              }}
-                              role="button"
-                              tabIndex={0}
-                            >
-                              {entry.visitorPhotos.slice(0, 3).map((photo: string, idx: number) => (
-                                <img
-                                  key={idx}
-                                  src={photo}
-                                  alt={entry.visitorName}
-                                  className="w-10 h-10 rounded-full object-cover border-2 border-white shrink-0 group-hover:opacity-80 transition-opacity"
-                                />
-                              ))}
-                              {entry.visitorPhotos.length > 3 && (
-                                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center border-2 border-white text-gray-500 font-bold shrink-0 text-xs">
-                                  +{entry.visitorPhotos.length - 3}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200 text-gray-500 font-bold shrink-0">
-                              {entry.visitorName.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <div>
-                            <p className="font-bold text-sm text-gray-900">{entry.visitorName}</p>
-                            <p className="text-xs text-gray-500">{entry.visitorPhone || 'N/A'}</p>
-                          </div>
-                        </div>
+                        <p className="font-bold text-sm text-gray-900">{entry.visitorName}</p>
+                        <p className="text-xs text-gray-500">{entry.visitorPhone || 'N/A'}</p>
+                      </TableCell>
+                      <TableCell className="py-4 px-2">
+                        {renderVisitorPhotos(entry.visitorPhotos, entry.visitorName)}
                       </TableCell>
                       <TableCell className="py-4 px-2 text-xs text-gray-600 space-y-0.5">
                         {entry.unit?.unit_number && (
@@ -688,6 +689,7 @@ export default function GateManagementPage() {
               <TableHeader>
                 <TableRow className="border-b border-gray-200 text-xs text-gray-500 uppercase">
                   <TableHead className="pb-3 px-2 font-semibold">Visitor</TableHead>
+                  <TableHead className="pb-3 px-2 font-semibold">Photos</TableHead>
                   <TableHead className="pb-3 px-2 font-semibold">Details</TableHead>
                   <TableHead className="pb-3 px-2 font-semibold">Type</TableHead>
                   <TableHead className="pb-3 px-2 font-semibold">Pre-Approved By</TableHead>
@@ -699,7 +701,7 @@ export default function GateManagementPage() {
               <TableBody className="divide-y divide-gray-100">
                 {filteredPreapproved.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-8 text-center text-sm text-gray-500 font-medium">
+                    <TableCell colSpan={8} className="py-8 text-center text-sm text-gray-500 font-medium">
                       No preapproved found
                     </TableCell>
                   </TableRow>
@@ -707,42 +709,11 @@ export default function GateManagementPage() {
                   filteredPreapproved.map((preapproved) => (
                     <TableRow key={preapproved.id} className="hover:bg-gray-50 transition-colors">
                       <TableCell className="py-4 px-2">
-                        <div className="flex items-center gap-3">
-                          {preapproved.visitorPhotos && preapproved.visitorPhotos.length > 0 ? (
-                            <div
-                              className="flex -space-x-2 relative cursor-pointer group"
-                              onClick={() => setPhotoViewerData({ photos: preapproved.visitorPhotos, currentIndex: 0 })}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ')
-                                  setPhotoViewerData({ photos: preapproved.visitorPhotos, currentIndex: 0 })
-                              }}
-                              role="button"
-                              tabIndex={0}
-                            >
-                              {preapproved.visitorPhotos.slice(0, 3).map((photo: string, idx: number) => (
-                                <img
-                                  key={idx}
-                                  src={photo}
-                                  alt={preapproved.visitorName}
-                                  className="w-10 h-10 rounded-full object-cover border-2 border-white shrink-0 group-hover:opacity-80 transition-opacity"
-                                />
-                              ))}
-                              {preapproved.visitorPhotos.length > 3 && (
-                                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center border-2 border-white text-gray-500 font-bold shrink-0 text-xs">
-                                  +{preapproved.visitorPhotos.length - 3}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200 text-gray-500 font-bold shrink-0">
-                              {preapproved.visitorName.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <div>
-                            <p className="font-bold text-sm text-gray-900">{preapproved.visitorName}</p>
-                            <p className="text-xs text-gray-500">{preapproved.visitorPhone || 'N/A'}</p>
-                          </div>
-                        </div>
+                        <p className="font-bold text-sm text-gray-900">{preapproved.visitorName}</p>
+                        <p className="text-xs text-gray-500">{preapproved.visitorPhone || 'N/A'}</p>
+                      </TableCell>
+                      <TableCell className="py-4 px-2">
+                        {renderVisitorPhotos(preapproved.visitorPhotos, preapproved.visitorName)}
                       </TableCell>
                       <TableCell className="py-4 px-2 text-xs text-gray-600 space-y-0.5">
                         {preapproved.unit?.unit_number && (

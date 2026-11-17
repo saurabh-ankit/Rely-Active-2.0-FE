@@ -256,7 +256,8 @@ export const ResidentListScreen: React.FC<ResidentListScreenProps> = ({ isGlobal
 
   // Pagination Calculations — a page holds whole flats so a unit never splits
   const totalGroups = orderedFlats.length
-  const totalRows = residents.length
+  // Every person listed: each resident plus the family members shown under them
+  const totalRows = residents.reduce((n, r) => n + 1 + (r.familyMembers?.length || 0), 0)
   const pageCount = Math.ceil(totalGroups / pageSize) || 1
   /** Deleting or filtering can shrink the list past the current page. */
   const activePage = Math.min(currentPage, pageCount - 1)
