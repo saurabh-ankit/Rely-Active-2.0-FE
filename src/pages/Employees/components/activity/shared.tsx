@@ -156,7 +156,7 @@ export const FilterChips = ({
   onChange: (value: string) => void
 }) => (
   <div
-    className="flex w-full items-center gap-1 overflow-x-auto p-1 rounded-full bg-slate-200/70 border border-slate-300/70 shadow-2xs dark:bg-slate-800/80 dark:border-slate-700/80"
+    className="flex w-full items-center gap-1 overflow-x-auto no-scrollbar shadow-[inset_0_-1px_0_0_#e2e8f0] dark:shadow-[inset_0_-1px_0_0_#334155]"
     role="tablist"
   >
     {options.map((o) => {
@@ -170,10 +170,10 @@ export const FilterChips = ({
           aria-selected={active}
           onClick={() => onChange(o.value)}
           className={cn(
-            'flex-1 h-7.5 sm:h-8 inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-transparent px-3.5 sm:px-4 text-xs font-semibold transition-all',
+            'h-10 inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-none border-0 border-b-2 px-3 text-sm font-medium transition-colors hover:bg-transparent',
             active
-              ? '!bg-[#005390] !text-white shadow-xs hover:!bg-[#005390] hover:!text-white'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10',
+              ? 'border-[#005390] text-[#005390] hover:text-[#005390] dark:border-sky-400 dark:text-sky-300'
+              : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100',
           )}
         >
           {o.label}
@@ -181,7 +181,9 @@ export const FilterChips = ({
             <span
               className={cn(
                 'rounded-full px-1.5 text-[10px] font-bold',
-                active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+                active
+                  ? 'bg-[#005390]/10 text-[#005390]'
+                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
               )}
             >
               {o.count}

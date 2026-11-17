@@ -74,7 +74,7 @@ export default function Layout() {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-[#DEDDE1] font-sans text-slate-800">
+    <div className="h-screen flex flex-col overflow-hidden bg-[radial-gradient(ellipse_at_bottom_right,#F6EEF2_0%,transparent_45%),linear-gradient(135deg,#EEF1F8_0%,#ECEEF6_55%,#F1EEF5_100%)] font-sans text-slate-800">
       <Header onMenuClick={toggleSidebar} showMenuButton={true} />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
