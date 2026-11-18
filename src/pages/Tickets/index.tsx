@@ -396,6 +396,7 @@ export default function TicketsPage() {
   const { user } = useAuth()
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [categories, setCategories] = useState<TicketCategoryMaster[]>([])
+  const [changingRouting, setChangingRouting] = useState(false)
   const [activeTab, setActiveTab] = useState<'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED'>('OPEN')
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -406,6 +407,10 @@ export default function TicketsPage() {
   const [isAssignDrawerOpen, setIsAssignDrawerOpen] = useState(false)
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
   const [isTatModalOpen, setIsTatModalOpen] = useState(false)
+  // Custom TAT: the date-time picker dialog and its value (yyyy-MM-ddTHH:mm, local time)
+  const [isCustomTatOpen, setIsCustomTatOpen] = useState(false)
+  const [customTatValue, setCustomTatValue] = useState('')
+  const [savingCustomTat, setSavingCustomTat] = useState(false)
   const [previewMediaUrl, setPreviewMediaUrl] = useState<string | null>(null)
   const [verifying, setVerifying] = useState(false)
   // Status picked in the dropdown, waiting for the admin to confirm it.
@@ -551,23 +556,103 @@ export default function TicketsPage() {
   const handleUpdateOption = async (payload: {
     categoryId?: string
     subCategoryId?: string
+    departmentId?: string
+    jobCategoryId?: string | null
     tatOption?: string
+    customTatDeadline?: string
     priority?: TicketPriority
     status?: TicketStatus
   }): Promise<boolean> => {
     if (!selectedTicket) return false
     try {
       const url = API_ENDPOINTS.tickets.updateOptions(selectedTicket.id, selectedLocationId)
-      await apiClient.patch(url, payload)
+      const response = await apiClient.patch(url, payload)
+      const updated = (response.data?.data || {}) as Partial<Ticket>
 
-      // Optimistic update
-      setSelectedTicket((prev) => (prev ? { ...prev, ...payload } : null))
+      // Optimistic update, then whatever the server changed alongside (title, category on re-route)
+      setSelectedTicket((prev) =>
+        prev
+          ? {
+              ...prev,
+              ...payload,
+              ...(updated.title ? { title: updated.title } : {}),
+              ...(updated.category ? { category: updated.category } : {}),
+              ...('jobCategoryId' in updated ? { jobCategoryId: updated.jobCategoryId } : {}),
+              ...('customTatDeadline' in updated ? { customTatDeadline: updated.customTatDeadline } : {}),
+            }
+          : null,
+      )
       fetchTickets(true)
       return true
     } catch (err) {
       console.error('Failed to update ticket option:', err)
       return false
     }
+  }
+
+  /** Local yyyy-MM-ddTHH:mm string, the format a datetime-local input uses. */
+  const toDateTimeLocal = (d: Date) => {
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+
+  /** Opens the custom TAT picker, prefilled with the current deadline or 3 hours from now. */
+  const openCustomTat = () => {
+    const current = selectedTicket?.customTatDeadline ? new Date(selectedTicket.customTatDeadline) : null
+    const now = new Date()
+    const initial = current && current > now ? current : new Date(now.getTime() + 3 * 60 * 60 * 1000)
+    setCustomTatValue(toDateTimeLocal(initial))
+    setIsTatModalOpen(false)
+    setIsCustomTatOpen(true)
+  }
+
+  const handleSaveCustomTat = async () => {
+    const deadline = customTatValue ? new Date(customTatValue) : null
+    if (!deadline || Number.isNaN(deadline.getTime())) {
+      notifyError('Pick a date and time')
+      return
+    }
+    if (deadline.getTime() <= Date.now()) {
+      notifyError('The custom TAT must be in the future')
+      return
+    }
+    setSavingCustomTat(true)
+    const ok = await handleUpdateOption({ tatOption: 'Custom', customTatDeadline: deadline.toISOString() })
+    setSavingCustomTat(false)
+    if (ok) {
+      notifySuccess('Custom TAT set')
+      setIsCustomTatOpen(false)
+    } else {
+      notifyError('Could not set the custom TAT')
+    }
+  }
+
+  /** Moves a ticket raised under the wrong department / job category. */
+  const handleChangeRouting = async (change: { departmentId?: string; jobCategoryId?: string }) => {
+    if (!selectedTicket || changingRouting) return
+    setChangingRouting(true)
+    const ok = await handleUpdateOption(change)
+    setChangingRouting(false)
+    if (!ok) {
+      notifyError(change.departmentId ? 'Could not change the department' : 'Could not change the job category')
+      return
+    }
+    const dept = change.departmentId ? departments.find((d) => d.id === change.departmentId) : undefined
+    const jobCat = change.jobCategoryId
+      ? ticketDepartment?.jobCategories?.find((jc) => jc.id === change.jobCategoryId)
+      : undefined
+    setSelectedTicket((prev) =>
+      prev
+        ? {
+            ...prev,
+            ...(dept ? { department: { id: dept.id, name: dept.name }, jobCategory: null } : {}),
+            ...(jobCat ? { jobCategory: { id: jobCat.id, name: jobCat.name } } : {}),
+          }
+        : prev,
+    )
+    notifySuccess(
+      dept ? `Moved to ${dept.name}. Pick the job category.` : `Job category set to ${jobCat?.name || 'new category'}`,
+    )
   }
 
   /** Runs the status change the admin confirmed in the dialog. */
@@ -672,6 +757,13 @@ export default function TicketsPage() {
           id: `fallback-${name}`,
           name,
         }))
+
+  // Admins can move a ticket raised in the wrong department / job category while it is still being worked on.
+  const canChangeRouting =
+    canUpdateTicket &&
+    !changingRouting &&
+    !!selectedTicket &&
+    !['RESOLVED', 'CLOSED', 'CANCELLED'].includes(selectedTicket.status)
 
   const activeCategoryObj = categories.find(
     (c) => c.id === selectedTicket?.categoryId || c.name === selectedTicket?.category,
@@ -2358,21 +2450,27 @@ export default function TicketsPage() {
                           { id: 'CON', name: 'Concierge', code: 'CON' },
                         ]
                     ).map((dept) => {
-                      const isSelected =
-                        (selectedTicket.departmentId && selectedTicket.departmentId === dept.id) ||
-                        dept.code === ticketDepartmentCode
+                      const isSelected = selectedTicket.departmentId
+                        ? selectedTicket.departmentId === dept.id
+                        : dept.code === ticketDepartmentCode
+                      // Only real departments (not the placeholder chips) can be picked.
+                      const canPick = canChangeRouting && departmentChips.length > 0 && !isSelected
 
                       return (
                         <Button
                           key={dept.id}
                           type="button"
                           variant="ghost"
-                          disabled
+                          disabled={!canPick}
+                          onClick={() => canPick && handleChangeRouting({ departmentId: dept.id })}
                           className={cn(
-                            'px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all cursor-not-allowed',
+                            'px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all disabled:opacity-100',
+                            canPick ? 'cursor-pointer' : isSelected ? 'cursor-default' : 'cursor-not-allowed',
                             isSelected
                               ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
-                              : 'bg-gray-100/70 text-gray-400 opacity-60 hover:bg-gray-100/70',
+                              : canChangeRouting
+                                ? 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100'
+                                : 'bg-gray-100/70 text-gray-400 opacity-60 hover:bg-gray-100/70',
                           )}
                         >
                           {dept.name}
@@ -2398,27 +2496,36 @@ export default function TicketsPage() {
                         activeSubCategoryName ||
                         ''
 
-                      // Prefer the stored id; fall back to the name for older tickets.
-                      const isSelected =
-                        selectedTicket.jobCategoryId === sub.id ||
-                        selectedTicket.subCategoryId === sub.id ||
-                        (Boolean(jobCatName) && jobCatName.toLowerCase() === sub.name.toLowerCase()) ||
-                        (Boolean(jobCatName) && jobCatName.toLowerCase().includes(sub.name.toLowerCase())) ||
-                        Boolean(
-                          selectedTicket.title && selectedTicket.title.toLowerCase().includes(sub.name.toLowerCase()),
-                        )
+                      // Prefer the stored id; fall back to the name only for older tickets without one.
+                      const isSelected = selectedTicket.jobCategoryId
+                        ? selectedTicket.jobCategoryId === sub.id
+                        : selectedTicket.departmentId
+                          ? false
+                          : selectedTicket.subCategoryId === sub.id ||
+                            (Boolean(jobCatName) && jobCatName.toLowerCase() === sub.name.toLowerCase()) ||
+                            (Boolean(jobCatName) && jobCatName.toLowerCase().includes(sub.name.toLowerCase())) ||
+                            Boolean(
+                              selectedTicket.title &&
+                              selectedTicket.title.toLowerCase().includes(sub.name.toLowerCase()),
+                            )
+                      // Placeholder chips (no real department loaded) cannot be picked.
+                      const canPick = canChangeRouting && !sub.id.startsWith('fallback-') && !isSelected
 
                       return (
                         <Button
                           key={sub.id}
                           type="button"
                           variant="ghost"
-                          disabled
+                          disabled={!canPick}
+                          onClick={() => canPick && handleChangeRouting({ jobCategoryId: sub.id })}
                           className={cn(
-                            'px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all cursor-not-allowed',
+                            'px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all disabled:opacity-100',
+                            canPick ? 'cursor-pointer' : isSelected ? 'cursor-default' : 'cursor-not-allowed',
                             isSelected
                               ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
-                              : 'bg-gray-100/70 text-gray-400 opacity-60 hover:bg-gray-100/70',
+                              : canChangeRouting
+                                ? 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100'
+                                : 'bg-gray-100/70 text-gray-400 opacity-60 hover:bg-gray-100/70',
                           )}
                         >
                           {sub.name}
@@ -2479,7 +2586,11 @@ export default function TicketsPage() {
                           type="button"
                           variant="ghost"
                           disabled={!canUpdateTicket}
-                          onClick={() => canUpdateTicket && handleUpdateOption({ tatOption: tat })}
+                          onClick={() => {
+                            if (!canUpdateTicket) return
+                            if (tat === 'Custom') openCustomTat()
+                            else handleUpdateOption({ tatOption: tat })
+                          }}
                           className={cn(
                             'px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all',
                             canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed',
@@ -2488,7 +2599,14 @@ export default function TicketsPage() {
                               : 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100',
                           )}
                         >
-                          {tat}
+                          {tat === 'Custom' && isSelected && selectedTicket.customTatDeadline
+                            ? `Custom · ${new Date(selectedTicket.customTatDeadline).toLocaleString([], {
+                                day: 'numeric',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}`
+                            : tat}
                         </Button>
                       )
                     })}
@@ -2582,6 +2700,10 @@ export default function TicketsPage() {
                   type="button"
                   variant="outline"
                   onClick={() => {
+                    if (option === 'Custom') {
+                      openCustomTat()
+                      return
+                    }
                     handleUpdateOption({ tatOption: option })
                     setIsTatModalOpen(false)
                   }}
@@ -2595,6 +2717,57 @@ export default function TicketsPage() {
                   {option}
                 </Button>
               ))}
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
+
+      {/* Custom TAT date-time picker */}
+      <Dialog
+        open={Boolean(isCustomTatOpen && selectedTicket)}
+        onOpenChange={(open) => {
+          if (!open && !savingCustomTat) setIsCustomTatOpen(false)
+        }}
+      >
+        {isCustomTatOpen && selectedTicket && (
+          <DialogContent className="sm:max-w-sm p-5 space-y-4">
+            <DialogHeader className="border-b pb-3 pr-8">
+              <DialogTitle className="text-sm font-bold text-gray-900">Custom TAT</DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                When should ticket #{selectedTicket.ticketNumber} be resolved by?
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1.5">
+              <label htmlFor="custom-tat-deadline" className="text-xs font-bold text-gray-700">
+                Resolve by
+              </label>
+              <input
+                id="custom-tat-deadline"
+                type="datetime-local"
+                value={customTatValue}
+                min={toDateTimeLocal(new Date())}
+                onChange={(e) => setCustomTatValue(e.target.value)}
+                className="w-full h-10 rounded-xl border border-gray-200 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#005390]/30"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={savingCustomTat}
+                onClick={() => setIsCustomTatOpen(false)}
+                className="rounded-xl text-xs font-bold"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={savingCustomTat || !customTatValue}
+                onClick={handleSaveCustomTat}
+                className="rounded-xl text-xs font-bold bg-[#005390] hover:bg-[#00457a] text-white"
+              >
+                {savingCustomTat ? 'Saving…' : 'Set TAT'}
+              </Button>
             </div>
           </DialogContent>
         )}
