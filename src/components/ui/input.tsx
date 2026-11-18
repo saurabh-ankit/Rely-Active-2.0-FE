@@ -196,6 +196,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input(
             className,
           )}
           {...(props as unknown as React.ComponentProps<'textarea'>)}
+          ref={ref as unknown as React.Ref<HTMLTextAreaElement>}
         />
       )
     }
@@ -238,6 +239,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input(
               className,
             )}
             {...(props as unknown as React.ComponentProps<'textarea'>)}
+            ref={ref as unknown as React.Ref<HTMLTextAreaElement>}
           />
         ) : (
           <InputPrimitive
