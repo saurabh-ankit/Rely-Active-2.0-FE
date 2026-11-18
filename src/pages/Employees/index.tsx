@@ -526,11 +526,13 @@ export default function EmployeeDirectoryPage({ initialView = 'list' }: Employee
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All roles</SelectItem>
-                {roles.map((role) => (
-                  <SelectItem key={role.id} value={role.code || role.name}>
-                    {role.name}
-                  </SelectItem>
-                ))}
+                {roles
+                  .filter((role) => (role.code || '').toUpperCase() !== 'SUPER_ADMIN')
+                  .map((role) => (
+                    <SelectItem key={role.id} value={role.code || role.name}>
+                      {role.name}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
 

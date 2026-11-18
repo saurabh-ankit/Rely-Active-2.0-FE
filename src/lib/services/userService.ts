@@ -8,7 +8,11 @@ import type {
   WorkLogPage,
 } from '@/lib/types/employeeActivity'
 
-export const getUsersAPI = async (locationId?: string | null, search?: string): Promise<UserItem[]> => {
+export const getUsersAPI = async (
+  locationId?: string | null,
+  search?: string,
+  includeSuperAdmins = false,
+): Promise<UserItem[]> => {
   const params: Record<string, string> = {}
   const headers: Record<string, string> = {}
 
@@ -21,6 +25,8 @@ export const getUsersAPI = async (locationId?: string | null, search?: string): 
   }
 
   if (search && search.trim()) params.search = search.trim()
+  // Super admins are returned only for the global settings employee list (and only to super admins).
+  if (includeSuperAdmins && locationId === null) params.includeSuperAdmins = 'true'
 
   const response = await api.get(API_ENDPOINTS.user.getUsers, {
     params: Object.keys(params).length > 0 ? params : undefined,

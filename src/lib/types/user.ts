@@ -15,6 +15,10 @@ export interface UserRoleItem {
 
 export interface UserItem {
   id: string
+  /** Set by the users list: holds the SUPER_ADMIN role (all properties). */
+  isSuperAdmin?: boolean
+  /** The seeded superadmin account, whose role cannot be changed. */
+  isSeededSuperAdmin?: boolean
   username?: string | null
   email?: string | null
   phone?: string | null
