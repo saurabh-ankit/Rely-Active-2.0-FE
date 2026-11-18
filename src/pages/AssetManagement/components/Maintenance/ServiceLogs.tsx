@@ -1,10 +1,11 @@
-import { useRef, useState, type ChangeEvent } from 'react'
+import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { CheckCircle, Copy, Download, Edit, FileText, Plus, QrCode, Trash2, Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { PermissionGuard } from '@/components/common/PermissionGuard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -53,9 +54,10 @@ const ServiceLogs = () => {
   const [qrPreview, setQrPreview] = useState<AssetItemRequest | null>(null)
   const [performedByError, setPerformedByError] = useState('')
   const gatePassFileInputRef = useRef<HTMLInputElement>(null)
+  const [assetSearch, setAssetSearch] = useState('')
   const [formData, setFormData] = useState({
     categoryId: '',
-    assetId: '',
+    assetIds: [] as string[],
     serviceDate: new Date().toISOString().split('T')[0],
     serviceType: 'repair' as ServiceType,
     performedBy: '',
@@ -94,11 +96,46 @@ const ServiceLogs = () => {
 
   const serviceLogs = serviceLogsData?.data?.serviceLogs || []
   const categories = categoriesData?.data?.categories || []
-  const assets = assetsData?.data?.assets || []
+  const assets = useMemo(() => assetsData?.data?.assets || [], [assetsData?.data?.assets])
   const vendors = vendorsData?.data || []
 
-  const getAssetOptionLabel = (asset: (typeof assets)[number]) => {
+  const getAssetOptionLabel = (asset: {
+    item?: { name?: string }
+    serialNumber?: string | null
+    assetTag?: string | null
+  }) => {
     return [asset.item?.name, asset.serialNumber, asset.assetTag].filter((value) => value && value.trim()).join(' - ')
+  }
+
+  const getLogAssetLabels = (log: AssetServiceLog) => {
+    if (log.assets?.length) {
+      return log.assets
+        .map((a) => [a.name, a.serialNumber, a.assetTag].filter((v) => v && String(v).trim()).join(' - '))
+        .filter(Boolean)
+    }
+    if (log.asset) return [getAssetOptionLabel(log.asset)]
+    return []
+  }
+
+  const getLogAssetIds = (log: AssetServiceLog): string[] => {
+    if (log.assetIds?.length) return log.assetIds
+    if (log.assets?.length) return log.assets.map((a) => a.id)
+    return log.assetId ? [log.assetId] : []
+  }
+
+  const filteredAssetOptions = useMemo(() => {
+    const term = assetSearch.trim().toLowerCase()
+    if (!term) return assets
+    return assets.filter((asset) => getAssetOptionLabel(asset).toLowerCase().includes(term))
+  }, [assets, assetSearch])
+
+  const toggleAsset = (assetId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      assetIds: prev.assetIds.includes(assetId)
+        ? prev.assetIds.filter((id) => id !== assetId)
+        : [...prev.assetIds, assetId],
+    }))
   }
 
   const handleOpenModal = (log?: AssetServiceLog) => {
@@ -107,7 +144,7 @@ const ServiceLogs = () => {
       setEditingLog(log)
       setFormData({
         categoryId: log.asset?.item?.category?.id || log.asset?.item?.categoryId || '',
-        assetId: log.assetId,
+        assetIds: getLogAssetIds(log),
         serviceDate: new Date(log.serviceDate).toISOString().split('T')[0],
         serviceType: log.serviceType,
         performedBy: log.performedBy || '',
@@ -118,9 +155,10 @@ const ServiceLogs = () => {
       })
     } else {
       setEditingLog(null)
+      setAssetSearch('')
       setFormData({
         categoryId: '',
-        assetId: '',
+        assetIds: [],
         serviceDate: new Date().toISOString().split('T')[0],
         serviceType: 'repair',
         performedBy: '',
@@ -147,8 +185,12 @@ const ServiceLogs = () => {
       return
     }
 
-    if (!formData.assetId || !formData.serviceType) {
-      toast.error('Asset and Service Type are required')
+    if (!editingLog && formData.assetIds.length === 0) {
+      toast.error('Select at least one asset')
+      return
+    }
+    if (!formData.serviceType) {
+      toast.error('Service Type is required')
       return
     }
 
@@ -164,6 +206,7 @@ const ServiceLogs = () => {
     }
 
     if (
+      editingLog &&
       !isScrapType &&
       formData.nextServiceDate &&
       formData.serviceDate &&
@@ -175,18 +218,21 @@ const ServiceLogs = () => {
 
     try {
       const payload: CreateServiceLogRequest = {
-        assetId: formData.assetId,
         // BE requires serviceDate; for scrap use today when the field is hidden
         serviceDate: isScrapType ? new Date().toISOString().split('T')[0] : formData.serviceDate,
         serviceType: formData.serviceType,
         performedBy: formData.performedBy.trim(),
       }
 
+      if (!editingLog) {
+        payload.assetIds = formData.assetIds
+      }
+
       if (!isScrapType && formData.vendorId && formData.vendorId.trim()) {
         payload.vendorId = formData.vendorId.trim()
       }
 
-      if (!isScrapType && formData.cost && formData.cost.trim()) {
+      if (editingLog && !isScrapType && formData.cost && formData.cost.trim()) {
         payload.cost = parseFloat(formData.cost)
       }
 
@@ -194,7 +240,7 @@ const ServiceLogs = () => {
         payload.description = formData.description.trim()
       }
 
-      if (!isScrapType && formData.nextServiceDate && formData.nextServiceDate.trim()) {
+      if (editingLog && !isScrapType && formData.nextServiceDate && formData.nextServiceDate.trim()) {
         payload.nextServiceDate = formData.nextServiceDate.trim()
       }
 
@@ -205,8 +251,9 @@ const ServiceLogs = () => {
         })
         toast.success('Service log updated successfully')
       } else {
+        const count = formData.assetIds.length
         await createMutation.mutateAsync(payload)
-        toast.success('Service log created successfully')
+        toast.success(count > 1 ? `${count} service logs created successfully` : 'Service log created successfully')
       }
       handleCloseModal()
     } catch (error) {
@@ -306,9 +353,14 @@ const ServiceLogs = () => {
 
   const buildGatePassPreview = (log: AssetServiceLog, gatePass: AssetItemRequest): AssetItemRequest => {
     if (gatePass.assets?.length) return gatePass
-    return {
-      ...gatePass,
-      assets: log.asset
+    const fromLog =
+      log.assets?.map((a) => ({
+        id: a.id,
+        name: a.name,
+        serialNumber: a.serialNumber,
+        assetTag: a.assetTag,
+      })) ||
+      (log.asset
         ? [
             {
               id: log.asset.id,
@@ -317,8 +369,8 @@ const ServiceLogs = () => {
               assetTag: log.asset.assetTag,
             },
           ]
-        : [],
-    }
+        : [])
+    return { ...gatePass, assets: fromLog }
   }
 
   const handleViewGatePass = (log: AssetServiceLog) => {
@@ -430,7 +482,9 @@ const ServiceLogs = () => {
       toast.error('Phone must be exactly 10 digits')
       return
     }
-    if (!gatePassLog.assetId) {
+    const gateAssetIds = getLogAssetIds(gatePassLog)
+    const gateAssetId = gatePassLog.assetId || gateAssetIds[0]
+    if (!gateAssetId) {
       toast.error('Asset is required to generate a gate pass')
       return
     }
@@ -439,7 +493,7 @@ const ServiceLogs = () => {
       const result = await createGatePassMutation.mutateAsync({
         name,
         phone,
-        assetIds: [gatePassLog.assetId],
+        assetIds: [gateAssetId],
         reason: gatePassLog.serviceType === 'scrap' ? 'scrap' : 'repair',
         problem: gatePassLog.description?.trim() || undefined,
         requestImage: gatePassImage || undefined,
@@ -467,11 +521,11 @@ const ServiceLogs = () => {
     {
       accessorKey: 'asset',
       header: 'Asset',
-      cell: ({ row }) => (
-        <div>
-          <p className="font-medium">{row.original.asset?.serialNumber || row.original.asset?.assetTag || '-'}</p>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const labels = getLogAssetLabels(row.original)
+        const label = labels[0] || '—'
+        return <p className="font-medium max-w-[240px] truncate">{label}</p>
+      },
     },
     {
       accessorKey: 'serviceType',
@@ -669,13 +723,14 @@ const ServiceLogs = () => {
               ) : (
                 <Select
                   value={formData.categoryId}
-                  onValueChange={(value: string) =>
+                  onValueChange={(value: string) => {
+                    setAssetSearch('')
                     setFormData({
                       ...formData,
                       categoryId: value,
-                      assetId: '',
+                      assetIds: [],
                     })
-                  }
+                  }}
                 >
                   <SelectTrigger className="w-[100%] !h-10">
                     <SelectValue placeholder="Select category first" />
@@ -692,42 +747,57 @@ const ServiceLogs = () => {
             </div>
 
             <div>
-              <Label htmlFor="assetId" className="mb-2">
-                Asset <span className="text-red-500">*</span>
+              <Label className="mb-2">
+                Assets <span className="text-red-500">*</span>
               </Label>
               {editingLog ? (
-                <Input
-                  value={editingLog.asset ? getAssetOptionLabel(editingLog.asset) : ''}
-                  disabled
-                  className="bg-gray-50"
-                />
+                <div className="rounded-md border border-input bg-gray-50 p-3 text-sm space-y-1">
+                  {getLogAssetLabels(editingLog).map((label) => (
+                    <p key={label} className="font-medium">
+                      {label}
+                    </p>
+                  ))}
+                </div>
               ) : (
-                <Select
-                  value={formData.assetId}
-                  onValueChange={(value: string) => setFormData({ ...formData, assetId: value })}
-                  disabled={!formData.categoryId}
-                >
-                  <SelectTrigger className="w-[100%] !h-10">
-                    <SelectValue
-                      placeholder={
-                        formData.categoryId ? 'item name - serial number - asset tag' : 'Select category first'
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {assets.length === 0 ? (
-                      <SelectItem value="__no_assets__" disabled>
-                        No Asset Found
-                      </SelectItem>
-                    ) : (
-                      assets.map((asset) => (
-                        <SelectItem key={asset.id} value={asset.id}>
-                          {getAssetOptionLabel(asset)}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                <>
+                  {formData.assetIds.length > 0 && (
+                    <p className="text-xs text-muted-foreground mb-2">
+                      {formData.assetIds.length} selected — each asset gets its own service log and gate pass.
+                    </p>
+                  )}
+                  <div className="rounded-md border border-input overflow-hidden">
+                    <div className="border-b border-input p-2">
+                      <Input
+                        value={assetSearch}
+                        onChange={(e) => setAssetSearch(e.target.value)}
+                        placeholder="Search assets..."
+                        className="h-8"
+                        disabled={!formData.categoryId}
+                      />
+                    </div>
+                    <div className="max-h-48 overflow-y-auto p-2 space-y-1">
+                      {!formData.categoryId ? (
+                        <p className="px-1 py-2 text-sm text-muted-foreground">Select category first</p>
+                      ) : filteredAssetOptions.length === 0 ? (
+                        <p className="px-1 py-2 text-sm text-muted-foreground">No available assets found</p>
+                      ) : (
+                        filteredAssetOptions.map((asset) => {
+                          const checked = formData.assetIds.includes(asset.id)
+                          const label = getAssetOptionLabel(asset)
+                          return (
+                            <label
+                              key={asset.id}
+                              className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/60"
+                            >
+                              <Checkbox checked={checked} onCheckedChange={() => toggleAsset(asset.id)} />
+                              <span className="min-w-0 flex-1 truncate">{label}</span>
+                            </label>
+                          )
+                        })
+                      )}
+                    </div>
+                  </div>
+                </>
               )}
             </div>
 
@@ -828,7 +898,7 @@ const ServiceLogs = () => {
               )}
             </div>
 
-            {!isScrapType && (
+            {editingLog && !isScrapType && (
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="cost" className="mb-2">
@@ -1122,9 +1192,7 @@ const ServiceLogs = () => {
               <div className="rounded-md bg-gray-50 p-3 text-sm space-y-1">
                 <p>
                   <span className="text-gray-600">Asset:</span>{' '}
-                  <span className="font-medium">
-                    {gatePassLog.asset ? getAssetOptionLabel(gatePassLog.asset) : gatePassLog.assetId || '—'}
-                  </span>
+                  <span className="font-medium">{getLogAssetLabels(gatePassLog)[0] || '—'}</span>
                 </p>
                 <p>
                   <span className="text-gray-600">Performed By:</span>{' '}

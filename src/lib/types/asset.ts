@@ -1,5 +1,17 @@
 export type AssetStatus =
-  'available' | 'assigned' | 'maintenance' | 'retired' | 'disposed' | 'scrap' | 'repair' | 'external_use'
+  | 'available'
+  | 'assigned'
+  | 'maintenance'
+  | 'retired'
+  | 'disposed'
+  | 'scrap'
+  | 'repair'
+  | 'external_use'
+  | 'pending_inspection'
+  | 'inter_center_outbound_pending'
+  | 'inter_center_incoming'
+  | 'pending_transfer_acceptance'
+  | 'transfer_rejected'
 
 export type AssetCondition = 'excellent' | 'good' | 'fair' | 'poor'
 
@@ -19,9 +31,13 @@ export type ComplianceStatus = 'valid' | 'expired' | 'expiring_soon' | 'pending_
 
 export type TrainingRequiredFor = 'all_staff' | 'clinical' | 'maintenance'
 
-export type ItemRequestReason = 'scrap' | 'repair' | 'external_use'
+export type ItemRequestReason = 'scrap' | 'repair' | 'external_use' | 'inter_center_transfer'
 
-export type ItemRequestStatus = 'pending' | 'approved' | 'declined'
+export type TransferSendCondition = 'new' | 'good' | 'bad' | 'partially_damage'
+
+export type ItemRequestStatus = 'pending' | 'approved' | 'declined' | 'returned' | 'return_declined' | 'cancelled'
+
+export type ItemRequestScanPhase = 'outbound' | 'return' | 'readonly'
 
 export interface BaseEntity {
   id: string
@@ -104,6 +120,11 @@ export interface Asset extends BaseEntity {
   condition: AssetCondition
   status: AssetStatus
   notes?: string
+  transferOriginLocationId?: string | null
+  transferFromCenterName?: string | null
+  transferToCenterName?: string | null
+  /** Origin-center registry row after a completed transfer (read-only in UI). */
+  showAtOriginAsTransferred?: boolean
 }
 
 /** Sanitized asset payload returned by the public QR scan API. */
@@ -199,8 +220,18 @@ export interface AssetAssignment extends BaseEntity {
       }
 }
 
+export interface ServiceLogAssetRef {
+  id: string
+  name: string
+  serialNumber?: string | null
+  assetTag?: string | null
+  status?: string | null
+}
+
 export interface AssetServiceLog extends BaseEntity {
   assetId: string
+  assetIds?: string[]
+  assets?: ServiceLogAssetRef[]
   asset?: Asset
   serviceDate: string
   serviceType: ServiceType
@@ -281,13 +312,42 @@ export interface AssetStats {
   assignedAssets: number
   maintenanceAssets: number
   retiredAssets: number
+  /** Assets transferred out to another center (origin registry) */
+  transferredAssets?: number
   disposedAssets: number
   scrapAssets?: number
   repairAssets?: number
   externalUseAssets?: number
   totalValue: number
   underWarranty: number
+  /** Assets whose warranty ends within the next 10 days */
+  warrantyExpiringSoon?: number
   recentAdditions: number
+}
+
+/** Asset row returned by GET /stats/warranties-expiring */
+export interface ExpiringWarrantyAsset {
+  id: string
+  serialNumber?: string | null
+  assetTag?: string | null
+  status?: string
+  condition?: string
+  warrantyEndDate: string
+  daysRemaining: number
+  item?: { id: string; name: string; model?: string | null } | null
+  location?: { id: string; property_name: string } | null
+}
+
+/** Asset row returned by GET /stats/transferred */
+export interface TransferredAssetSummary {
+  id: string
+  serialNumber?: string | null
+  assetTag?: string | null
+  status?: string
+  condition?: string
+  transferToCenterName?: string | null
+  item?: { id: string; name: string; model?: string | null } | null
+  location?: { id?: string; property_name?: string } | null
 }
 
 export interface CreateAssetCategoryRequest {
@@ -353,7 +413,8 @@ export interface ReturnAssetRequest {
 }
 
 export interface CreateServiceLogRequest {
-  assetId: string
+  assetId?: string
+  assetIds?: string[]
   serviceDate: string
   serviceType: ServiceType
   performedBy: string
@@ -435,11 +496,20 @@ export interface ComplianceStatusResponse {
   }
 }
 
+export type ItemRequestAssetGateStatus = 'pending' | 'approved' | 'declined'
+
 export interface ItemRequestAssetRef {
   id: string
   name: string
   serialNumber?: string | null
   assetTag?: string | null
+  status?: string | null
+  outboundStatus?: ItemRequestAssetGateStatus
+  returnStatus?: ItemRequestAssetGateStatus
+  outboundDecidedByName?: string | null
+  returnDecidedByName?: string | null
+  outboundDecidedAt?: string | null
+  returnDecidedAt?: string | null
 }
 
 export interface AssetItemRequest extends BaseEntity {
@@ -455,11 +525,25 @@ export interface AssetItemRequest extends BaseEntity {
   status: ItemRequestStatus
   declineComment?: string | null
   declineImage?: string | null
+  returnDeclineComment?: string | null
+  returnDeclineImage?: string | null
   expectedReturnDate?: string | null
   serviceLogId?: string | null
   assets?: ItemRequestAssetRef[]
+  scanPhase?: ItemRequestScanPhase
+  scannerCanAct?: boolean
+  scannerRole?: 'outbound' | 'inward' | null
   /** Gate & Security employee who approved/declined */
   decidedByName?: string | null
+  toLocId?: string | null
+  transferSendCondition?: TransferSendCondition | null
+  transferReceiveCondition?: TransferSendCondition | null
+  transferReceiveDescription?: string | null
+  transferReceiveImage?: string | null
+  transferRejectDescription?: string | null
+  transferRejectImage?: string | null
+  fromCenterName?: string | null
+  toCenterName?: string | null
 }
 
 export interface CreateItemRequestPayload {
@@ -471,6 +555,20 @@ export interface CreateItemRequestPayload {
   requestImage?: string | null
   expectedReturnDate?: string | null
   serviceLogId?: string
+  toLocId?: string
+  transferSendCondition?: TransferSendCondition
+}
+
+export interface AcceptTransferPayload {
+  receiveCondition: TransferSendCondition
+  description?: string
+  image?: string | null
+  availability: 'available' | 'not_available'
+}
+
+export interface RejectTransferPayload {
+  description: string
+  image?: string | null
 }
 
 export interface PaginationParams {
@@ -480,7 +578,20 @@ export interface PaginationParams {
 }
 
 export type AssetTimelineEventType =
-  'created' | 'assigned' | 'returned' | 'external_use' | 'repair' | 'scrap' | 'qr_generated' | 'made_available'
+  | 'created'
+  | 'assigned'
+  | 'returned'
+  | 'external_use'
+  | 'repair'
+  | 'scrap'
+  | 'qr_generated'
+  | 'made_available'
+  | 'transfer'
+  | 'gate_pass_approved'
+  | 'gate_pass_declined'
+  | 'gate_pass_cancelled'
+  | 'gate_return_approved'
+  | 'gate_return_declined'
 
 export interface AssetTimelineEvent {
   id: string
@@ -490,7 +601,14 @@ export interface AssetTimelineEvent {
   at: string
   createdAt: string
   createdBy: { id: string; name: string } | null
+  centerId: string
+  centerName?: string
   meta: Record<string, unknown>
+}
+
+export interface AssetTimelineCenter {
+  id: string
+  name: string
 }
 
 export interface AssetTimelinePagination {
@@ -507,11 +625,16 @@ export interface AssetTimelineParams {
   limit?: number
   type?: AssetTimelineEventType
   types?: string
+  /** Super admin: load activity for the selected center tab. */
+  centerScopeId?: string
 }
 
 export interface AssetTimelineResponse {
   events: AssetTimelineEvent[]
   pagination: AssetTimelinePagination
+  centers?: AssetTimelineCenter[]
+  viewMode?: 'single_center' | 'all_centers'
+  activeCenterId?: string
 }
 
 import type { ApiResponse } from './resident'

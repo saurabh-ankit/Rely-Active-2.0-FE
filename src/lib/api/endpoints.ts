@@ -191,6 +191,8 @@ export const API_ENDPOINTS = {
       regenerateQr: `${BASE_URL}/location/:locationId/assets/:id/regenerate-qr`,
       timeline: `${BASE_URL}/location/:locationId/assets/:id/timeline`,
       stats: `${BASE_URL}/location/:locationId/assets/stats`,
+      warrantiesExpiring: `${BASE_URL}/location/:locationId/assets/stats/warranties-expiring`,
+      transferred: `${BASE_URL}/location/:locationId/assets/stats/transferred`,
       publicGet: `${BASE_URL}/public/assets/:assetId`,
     },
     assignments: {
@@ -257,6 +259,10 @@ export const API_ENDPOINTS = {
     },
     complianceStatus: {
       get: `${BASE_URL}/location/:locationId/assets/compliance/status`,
+    },
+    transfer: {
+      accept: `${BASE_URL}/location/:locationId/assets/:id/transfer/accept`,
+      reject: `${BASE_URL}/location/:locationId/assets/:id/transfer/reject`,
     },
     itemRequests: {
       list: `${BASE_URL}/location/:locationId/assets/item-requests`,

@@ -1,11 +1,12 @@
 import { lazy, Suspense, useState } from 'react'
 import {
-  AlertCircle,
+  ArrowLeftRight,
   Box,
   CheckCircle,
   ClipboardList,
   Package,
   QrCode,
+  RotateCcw,
   Settings,
   Shield,
   Sparkles,
@@ -20,6 +21,8 @@ import { Badge } from '@/components/ui/badge'
 import { useGetAssetStats } from '@/hooks/react-query/assetManagement'
 import StatCard from './components/StatCard'
 import StatsGrid from './components/StatsGrid'
+import TransferredAssetsDialog from './components/TransferredAssetsDialog'
+import WarrantyExpiringDialog from './components/WarrantyExpiringDialog'
 import { PageHeader } from '@/components/common/PageHeader'
 import { useResourceAccess } from '@/hooks/useResourceAccess'
 import { RESOURCE } from '@/lib/permissions/resourceKeys'
@@ -36,6 +39,8 @@ const AssetItemRequests = lazy(() => import('./components/AssetItemRequests'))
 
 const AssetManagementPage = () => {
   const [chosenTab, setActiveTab] = useState('overview')
+  const [warrantyExpiringOpen, setWarrantyExpiringOpen] = useState(false)
+  const [transferredAssetsOpen, setTransferredAssetsOpen] = useState(false)
   // Each tab is an Asset sub-module; users only see the tabs they can view.
   const tabAccess: Record<string, boolean> = {
     overview: useResourceAccess(RESOURCE.ASSET_ASSETS).canView,
@@ -57,11 +62,17 @@ const AssetManagementPage = () => {
     assignedAssets: 0,
     maintenanceAssets: 0,
     retiredAssets: 0,
+    transferredAssets: 0,
     disposedAssets: 0,
+    externalUseAssets: 0,
     totalValue: 0,
     underWarranty: 0,
+    warrantyExpiringSoon: 0,
     recentAdditions: 0,
   }
+  const warrantyExpiringSoon = stats.warrantyExpiringSoon ?? 0
+  const transferredAssets = stats.transferredAssets ?? 0
+  const externalUseAssets = stats.externalUseAssets ?? 0
 
   return (
     <div className="space-y-6">
@@ -85,11 +96,11 @@ const AssetManagementPage = () => {
       {/* Stats Overview */}
       <StatsGrid>
         <StatCard
-          title="Total Assets"
-          value={statsLoading ? '...' : stats.totalAssets.toString()}
-          description="All registered assets"
-          icon={Box}
-          color="blue"
+          title="Recent Additions"
+          value={statsLoading ? '...' : stats.recentAdditions.toString()}
+          description="Added in last 30 days"
+          icon={Sparkles}
+          color="yellow"
           isLoading={statsLoading}
         />
         <StatCard
@@ -109,6 +120,14 @@ const AssetManagementPage = () => {
           isLoading={statsLoading}
         />
         <StatCard
+          title="External use"
+          value={statsLoading ? '...' : externalUseAssets.toString()}
+          description="Out on external use"
+          icon={RotateCcw}
+          color="blue"
+          isLoading={statsLoading}
+        />
+        <StatCard
           title="In Maintenance"
           value={statsLoading ? '...' : stats.maintenanceAssets.toString()}
           description="Under repair/service"
@@ -117,28 +136,24 @@ const AssetManagementPage = () => {
           isLoading={statsLoading}
         />
         <StatCard
-          title="Retired Assets"
-          value={statsLoading ? '...' : stats.retiredAssets.toString()}
-          description="No longer in use"
-          icon={AlertCircle}
+          title="Asset Transfer"
+          value={statsLoading ? '...' : transferredAssets.toString()}
+          description="Transferred to other centers"
+          icon={ArrowLeftRight}
           color="red"
           isLoading={statsLoading}
+          onClick={() => setTransferredAssetsOpen(true)}
         />
         <StatCard
           title="Under Warranty"
           value={statsLoading ? '...' : stats.underWarranty.toString()}
           description="Active warranties"
+          secondaryValue={statsLoading ? '...' : warrantyExpiringSoon.toString()}
+          secondaryDescription="Expiring in 10 days"
           icon={Shield}
           color="pink"
           isLoading={statsLoading}
-        />
-        <StatCard
-          title="Recent Additions"
-          value={statsLoading ? '...' : stats.recentAdditions.toString()}
-          description="Added this month"
-          icon={Sparkles}
-          color="yellow"
-          isLoading={statsLoading}
+          onClick={() => setWarrantyExpiringOpen(true)}
         />
         <StatCard
           title="Disposed"
@@ -256,6 +271,9 @@ const AssetManagementPage = () => {
           </div>
         )}
       </PermissionGuard>
+
+      <WarrantyExpiringDialog open={warrantyExpiringOpen} onOpenChange={setWarrantyExpiringOpen} />
+      <TransferredAssetsDialog open={transferredAssetsOpen} onOpenChange={setTransferredAssetsOpen} />
     </div>
   )
 }
