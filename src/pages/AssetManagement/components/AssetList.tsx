@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react'
-import { Copy, Download, Edit, FileText, PackageCheck, Plus, QrCode, Trash2, Upload, X } from 'lucide-react'
+import { Copy, Download, Edit, FileText, History, PackageCheck, Plus, QrCode, Trash2, Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { PermissionGuard } from '@/components/common/PermissionGuard'
 import { Badge } from '@/components/ui/badge'
@@ -27,44 +27,104 @@ import {
   useGetAssets,
   useGetAssetVendorsDropdown,
   useGetEmployeesForAssignment,
+  useGetItemRequests,
+  useGetServiceLogs,
   useMakeAssetAvailable,
+  useRegenerateAssetQr,
   useUpdateAsset,
 } from '@/hooks/react-query/assetManagement'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/ui/data-table'
 import { useLocationStore } from '@/lib/stores/locationStore'
-import type { Asset, AssetCondition, AssetItemRequest, AssetStatus } from '@/lib/types'
+import type {
+  Asset,
+  AssetCondition,
+  AssetItemRequest,
+  AssetStatus,
+  ItemRequestReason,
+  ServiceType,
+  TransferSendCondition,
+} from '@/lib/types'
 import { formatDisplayDate } from '@/lib/utils'
 import { BulkUploadModal } from './BulkUploadModal'
+import AssetDetailDialog from './AssetDetailDialog'
 import AssetTimelineDialog from './AssetTimeline/AssetTimelineDialog'
+import MakeAvailableDialog, { type MakeAvailableInspectionResult } from './MakeAvailableDialog'
+import InspectionServiceLogDialog from './InspectionServiceLogDialog'
+import { AcceptTransferDialog } from './AcceptTransferDialog'
+import { RejectTransferDialog } from './RejectTransferDialog'
 
 const getAssetOptionLabel = (asset: Asset) =>
   [asset.item?.name, asset.serialNumber, asset.assetTag].filter((value) => value && String(value).trim()).join(' - ') ||
   '—'
+
+const isAssetInTransferFlow = (status: AssetStatus) =>
+  status === 'inter_center_outbound_pending' ||
+  status === 'inter_center_incoming' ||
+  status === 'pending_transfer_acceptance' ||
+  status === 'transfer_rejected'
+
+const isTransferredRegistryAtOrigin = (asset: Asset) => Boolean(asset.showAtOriginAsTransferred)
+
+const ASSET_STATUS_FILTER_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: 'all', label: 'All Statuses' },
+  { value: 'available', label: 'Available' },
+  { value: 'assigned', label: 'Assigned' },
+  { value: 'maintenance', label: 'Maintenance' },
+  { value: 'repair', label: 'Repair' },
+  { value: 'external_use', label: 'External use' },
+  { value: 'pending_inspection', label: 'Pending inspection' },
+  { value: 'inter_center_outbound_pending', label: 'Transfer — outbound pending' },
+  { value: 'inter_center_incoming', label: 'Transfer — incoming' },
+  { value: 'pending_transfer_acceptance', label: 'Transfer — awaiting acceptance' },
+  { value: 'transfer_rejected', label: 'Transfer rejected' },
+  { value: 'transferred', label: 'Transferred' },
+  { value: 'scrap', label: 'Scrap' },
+  { value: 'retired', label: 'Retired' },
+]
 
 interface AssetListProps {
   enabled?: boolean
 }
 
 const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
-  const { selectedLocationId } = useLocationStore()
+  const { selectedLocationId, selectedLocationName, accessibleLocations } = useLocationStore()
   const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false)
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const externalFileInputRef = useRef<HTMLInputElement>(null)
-  const [externalModalMode, setExternalModalMode] = useState<'mark' | 'generate' | null>(null)
-  const [externalSeedAsset, setExternalSeedAsset] = useState<Asset | null>(null)
+  const [externalModalMode, setExternalModalMode] = useState<'bulk' | null>(null)
+  const [tableSelectedAssetIds, setTableSelectedAssetIds] = useState<string[]>([])
+  const [gatePassReason, setGatePassReason] = useState<ItemRequestReason | ''>('external_use')
   const [externalEmployeeId, setExternalEmployeeId] = useState('')
   const [externalEmployeeSearch, setExternalEmployeeSearch] = useState('')
-  const [externalAssetSearch, setExternalAssetSearch] = useState('')
-  const [externalAssetIds, setExternalAssetIds] = useState<string[]>([])
   const [externalDescription, setExternalDescription] = useState('')
   const [externalReturnDate, setExternalReturnDate] = useState('')
   const [externalImage, setExternalImage] = useState('')
+  const [transferToLocId, setTransferToLocId] = useState('')
+  const [transferContactName, setTransferContactName] = useState('')
+  const [transferSendCondition, setTransferSendCondition] = useState<TransferSendCondition>('good')
+  const [acceptTransferAsset, setAcceptTransferAsset] = useState<Asset | null>(null)
+  const [rejectTransferAsset, setRejectTransferAsset] = useState<Asset | null>(null)
   const [qrPreview, setQrPreview] = useState<AssetItemRequest | null>(null)
+  const [assetQrPreview, setAssetQrPreview] = useState<{
+    id: string
+    qrCode?: string | null
+    qrCodeImage?: string | null
+    label?: string
+  } | null>(null)
+  const [detailAsset, setDetailAsset] = useState<Asset | null>(null)
   const [timelineAsset, setTimelineAsset] = useState<Asset | null>(null)
+  const [makeAvailableAsset, setMakeAvailableAsset] = useState<Asset | null>(null)
+  const [inspectionServiceAsset, setInspectionServiceAsset] = useState<Asset | null>(null)
+  const [inspectionServiceType, setInspectionServiceType] = useState<Extract<ServiceType, 'repair' | 'scrap'> | null>(
+    null,
+  )
+  const [inspectionDescription, setInspectionDescription] = useState('')
+  const [inspectionDocument, setInspectionDocument] = useState('')
   const [serialNumberError, setSerialNumberError] = useState('')
   const [formData, setFormData] = useState({
     categoryId: '',
@@ -85,6 +145,17 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
 
   const { data: assetsData, isLoading } = useGetAssets({
     search: searchTerm,
+    limit: 1000,
+    ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
+    enabled,
+  })
+
+  const { data: serviceLogsData } = useGetServiceLogs({
+    limit: 1000,
+    enabled,
+  })
+
+  const { data: itemRequestsData } = useGetItemRequests({
     limit: 1000,
     enabled,
   })
@@ -108,27 +179,103 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
     enabled: !!externalModalMode,
   })
 
-  const { data: externalUseAssetsData } = useGetAssets({
-    status: 'external_use',
-    limit: 1000,
-    enabled: externalModalMode === 'generate',
-  })
-
   const createMutation = useCreateAsset()
   const updateMutation = useUpdateAsset()
   const deleteMutation = useDeleteAsset()
   const createGatePassMutation = useCreateItemRequest()
   const makeAvailableMutation = useMakeAssetAvailable()
+  const regenerateQrMutation = useRegenerateAssetQr()
 
-  const assets = assetsData?.data?.assets || []
+  const getAssetPublicUrl = (assetId: string) => `${window.location.origin}/public/assets/${assetId}`
+
+  const assets = useMemo(() => assetsData?.data?.assets || [], [assetsData?.data?.assets])
+
+  const gatePassEligibleAssets = useMemo(() => assets.filter((asset) => asset.status === 'available'), [assets])
+
+  const bulkSelectedAssets = useMemo(
+    () => assets.filter((asset) => tableSelectedAssetIds.includes(asset.id)),
+    [assets, tableSelectedAssetIds],
+  )
+
+  const allEligibleTableSelected =
+    gatePassEligibleAssets.length > 0 &&
+    gatePassEligibleAssets.every((asset) => tableSelectedAssetIds.includes(asset.id))
+  const repairPendingAssetIds = useMemo(() => {
+    const ids = new Set<string>()
+    const logs = serviceLogsData?.data?.serviceLogs || []
+    for (const log of logs) {
+      if (log.serviceType !== 'repair' || log.completionStatus !== 'pending') continue
+      const linked = log.assetIds?.length
+        ? log.assetIds
+        : log.assets?.map((a) => a.id) || (log.assetId ? [log.assetId] : [])
+      for (const id of linked) ids.add(id)
+    }
+    return ids
+  }, [serviceLogsData?.data?.serviceLogs])
+
+  /** Assets with outbound gate approved by L3 and not yet inwarded (return still pending). */
+  const outboundApprovedAwaitingReturnIds = useMemo(() => {
+    const ids = new Set<string>()
+    const requests = itemRequestsData?.data?.itemRequests || []
+    for (const request of requests) {
+      if (request.reason !== 'external_use') continue
+      const assetsOnPass = request.assets || []
+      const hasPerAssetOutbound = assetsOnPass.some((a) => !!a.outboundStatus)
+
+      if (hasPerAssetOutbound) {
+        for (const linked of assetsOnPass) {
+          const outbound = linked.outboundStatus || 'pending'
+          const returnStatus = linked.returnStatus || 'pending'
+          if (outbound === 'approved' && returnStatus === 'pending') {
+            ids.add(linked.id)
+          }
+        }
+        continue
+      }
+
+      // Legacy gate passes without per-asset outbound/return fields.
+      if (request.status === 'approved') {
+        for (const linked of assetsOnPass) ids.add(linked.id)
+        for (const id of request.assetIds || []) ids.add(id)
+      }
+    }
+    return ids
+  }, [itemRequestsData?.data?.itemRequests])
+
+  const destinationCenters = useMemo(
+    () => accessibleLocations.filter((loc) => loc.id && loc.id !== selectedLocationId),
+    [accessibleLocations, selectedLocationId],
+  )
+
+  const transferSendConditionForAsset = useMemo(() => {
+    if (!acceptTransferAsset) return null
+    const requests = itemRequestsData?.data?.itemRequests || []
+    const open = requests.find(
+      (req) =>
+        req.reason === 'inter_center_transfer' &&
+        req.status === 'returned' &&
+        (req.assetIds?.includes(acceptTransferAsset.id) || req.assets?.some((a) => a.id === acceptTransferAsset.id)),
+    )
+    return open?.transferSendCondition ?? null
+  }, [acceptTransferAsset, itemRequestsData?.data?.itemRequests])
+
+  const canShowMakeAvailableOnAsset = (asset: Asset) => {
+    // Origin-center transferred registry is read-only — destination owns availability.
+    if (isTransferredRegistryAtOrigin(asset)) return false
+    if (asset.status === 'external_use') {
+      // Hide after L3 outbound approval until inward (return) completes.
+      // Keep visible while gate pass exists but is still pending approval.
+      return !outboundApprovedAwaitingReturnIds.has(asset.id)
+    }
+    if (asset.status === 'pending_inspection') {
+      return !repairPendingAssetIds.has(asset.id)
+    }
+    return false
+  }
   const categories = categoriesData?.data?.categories || []
   const items = itemsData?.data || []
   const vendors = vendorsData?.data || []
   const employees = useMemo(() => employeesData?.data || [], [employeesData?.data])
-  const externalUseAssets = useMemo(
-    () => externalUseAssetsData?.data?.assets || [],
-    [externalUseAssetsData?.data?.assets],
-  )
 
   const filteredEmployees = useMemo(() => {
     const q = externalEmployeeSearch.trim().toLowerCase()
@@ -140,18 +287,6 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
         (emp.phone || '').includes(q),
     )
   }, [employees, externalEmployeeSearch])
-
-  const filteredExternalAssets = useMemo(() => {
-    const q = externalAssetSearch.trim().toLowerCase()
-    if (!q) return externalUseAssets
-    return externalUseAssets.filter((asset) => getAssetOptionLabel(asset).toLowerCase().includes(q))
-  }, [externalUseAssets, externalAssetSearch])
-
-  const selectedExternalAssets = useMemo(() => {
-    const byId = new Map(externalUseAssets.map((asset) => [asset.id, asset]))
-    if (externalSeedAsset) byId.set(externalSeedAsset.id, externalSeedAsset)
-    return externalAssetIds.map((id) => byId.get(id)).filter(Boolean) as Asset[]
-  }, [externalAssetIds, externalUseAssets, externalSeedAsset])
 
   const handleCloseModal = () => {
     setIsModalOpen(false)
@@ -219,11 +354,21 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
           data: payload,
         })
         toast.success('Asset updated successfully')
+        handleCloseModal()
       } else {
-        await createMutation.mutateAsync(payload)
+        const result = await createMutation.mutateAsync(payload)
         toast.success('Asset created successfully')
+        handleCloseModal()
+        const created = result?.data
+        if (created) {
+          setAssetQrPreview({
+            id: created.id,
+            qrCode: created.qrCode || created.id,
+            qrCodeImage: created.qrCodeImage,
+            label: getAssetOptionLabel(created),
+          })
+        }
       }
-      handleCloseModal()
     } catch (error) {
       const err = error as { response?: { data?: { message?: string } } }
       const message = err?.response?.data?.message || 'Failed to save asset'
@@ -247,7 +392,7 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
     }
   }
 
-  const getStatusBadge = (status: AssetStatus) => {
+  const getStatusBadge = (status: AssetStatus | string) => {
     const statusConfig: Record<string, string> = {
       available: 'bg-green-100 text-green-800 border-green-200',
       assigned: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -257,27 +402,51 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
       scrap: 'bg-red-100 text-red-800 border-red-200',
       repair: 'bg-amber-100 text-amber-800 border-amber-200',
       external_use: 'bg-violet-100 text-violet-800 border-violet-200',
+      pending_inspection: 'bg-cyan-100 text-cyan-900 border-cyan-200',
+      inter_center_outbound_pending: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+      inter_center_incoming: 'bg-sky-100 text-sky-900 border-sky-200',
+      transferred_registry: 'bg-violet-100 text-violet-900 border-violet-200',
+      pending_transfer_acceptance: 'bg-amber-100 text-amber-900 border-amber-200',
+      transfer_rejected: 'bg-red-100 text-red-800 border-red-200',
     }
     return statusConfig[status] || statusConfig.available
   }
 
   const resetExternalModal = () => {
     setExternalModalMode(null)
-    setExternalSeedAsset(null)
+    setGatePassReason('external_use')
     setExternalEmployeeId('')
     setExternalEmployeeSearch('')
-    setExternalAssetSearch('')
-    setExternalAssetIds([])
     setExternalDescription('')
     setExternalReturnDate('')
     setExternalImage('')
+    setTransferToLocId('')
+    setTransferContactName('')
+    setTransferSendCondition('good')
     if (externalFileInputRef.current) externalFileInputRef.current.value = ''
   }
 
-  const handleOpenExternalMark = (asset: Asset) => {
-    setExternalModalMode('mark')
-    setExternalSeedAsset(asset)
-    setExternalAssetIds([asset.id])
+  const toggleTableAssetSelection = (assetId: string) => {
+    setTableSelectedAssetIds((prev) =>
+      prev.includes(assetId) ? prev.filter((id) => id !== assetId) : [...prev, assetId],
+    )
+  }
+
+  const toggleSelectAllEligibleAssets = () => {
+    if (allEligibleTableSelected) {
+      setTableSelectedAssetIds([])
+      return
+    }
+    setTableSelectedAssetIds(gatePassEligibleAssets.map((asset) => asset.id))
+  }
+
+  const handleOpenBulkGatePass = () => {
+    if (tableSelectedAssetIds.length === 0) {
+      toast.error('Select at least one available asset')
+      return
+    }
+    setExternalModalMode('bulk')
+    setGatePassReason('external_use')
     setExternalEmployeeId('')
     setExternalEmployeeSearch('')
     setExternalDescription('')
@@ -285,29 +454,35 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
     setExternalImage('')
   }
 
-  const handleOpenExternalGenerate = (asset: Asset) => {
-    setExternalModalMode('generate')
-    setExternalSeedAsset(asset)
-    setExternalAssetIds([asset.id])
-    setExternalEmployeeId('')
-    setExternalEmployeeSearch('')
-    setExternalAssetSearch('')
-    setExternalDescription('')
-    setExternalReturnDate('')
-    setExternalImage('')
+  const handleOpenMakeAvailable = (asset: Asset) => {
+    setMakeAvailableAsset(asset)
   }
 
-  const handleMakeAvailable = async (asset: Asset) => {
-    if (!window.confirm('Mark this asset as available again?')) return
+  const handleMakeAvailableConfirm = async (result: MakeAvailableInspectionResult) => {
+    if (!makeAvailableAsset) return
+
+    if (result.nextAction === 'repair' || result.nextAction === 'scrap') {
+      setInspectionServiceAsset(makeAvailableAsset)
+      setInspectionServiceType(result.nextAction)
+      setInspectionDescription(result.description || '')
+      setInspectionDocument(result.document || '')
+      setMakeAvailableAsset(null)
+      return
+    }
+
     try {
-      await makeAvailableMutation.mutateAsync(asset.id)
+      await makeAvailableMutation.mutateAsync({
+        id: makeAvailableAsset.id,
+        data: {
+          condition: result.condition,
+          description: result.description,
+          document: result.document,
+        },
+      })
+      setMakeAvailableAsset(null)
     } catch {
       // toast handled in mutation
     }
-  }
-
-  const toggleExternalAsset = (assetId: string) => {
-    setExternalAssetIds((prev) => (prev.includes(assetId) ? prev.filter((id) => id !== assetId) : [...prev, assetId]))
   }
 
   const handleExternalImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -323,8 +498,52 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
     reader.readAsDataURL(file)
   }
 
-  const handleGenerateExternalGatePass = async () => {
-    if (!externalSeedAsset) return
+  const handleGenerateGatePass = async () => {
+    if (externalModalMode !== 'bulk') return
+
+    const assetIds = tableSelectedAssetIds
+    if (assetIds.length === 0) {
+      toast.error('Select at least one asset')
+      return
+    }
+
+    if (gatePassReason === 'inter_center_transfer') {
+      if (!transferToLocId) {
+        toast.error('Select destination center')
+        return
+      }
+      const name = transferContactName
+        .replace(/[^a-zA-Z\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+      if (!name || !/^[a-zA-Z\s]+$/.test(name)) {
+        toast.error('Name must contain alphabets only')
+        return
+      }
+      try {
+        const result = await createGatePassMutation.mutateAsync({
+          name,
+          phone: '',
+          assetIds,
+          reason: 'inter_center_transfer',
+          problem: externalDescription.trim() || undefined,
+          requestImage: externalImage || undefined,
+          toLocId: transferToLocId,
+          transferSendCondition,
+        })
+        resetExternalModal()
+        setTableSelectedAssetIds([])
+        if (result?.data) setQrPreview(result.data)
+      } catch {
+        // toast in mutation
+      }
+      return
+    }
+
+    if (gatePassReason !== 'external_use') {
+      toast.error('Select a valid reason')
+      return
+    }
 
     const employee = employees.find((emp) => emp.id === externalEmployeeId)
     if (!employee) {
@@ -347,18 +566,6 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
       return
     }
 
-    const assetIds =
-      externalModalMode === 'mark'
-        ? [externalSeedAsset.id]
-        : externalAssetIds.length > 0
-          ? externalAssetIds
-          : [externalSeedAsset.id]
-
-    if (assetIds.length === 0) {
-      toast.error('Select at least one asset')
-      return
-    }
-
     try {
       const result = await createGatePassMutation.mutateAsync({
         name,
@@ -370,6 +577,7 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
         expectedReturnDate: externalReturnDate || undefined,
       })
       resetExternalModal()
+      setTableSelectedAssetIds([])
       if (result?.data) setQrPreview(result.data)
     } catch {
       // toast handled in mutation
@@ -406,6 +614,69 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
       const link = document.createElement('a')
       link.href = url
       link.download = `gate-pass-qr-${code}.${extension}`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      toast.success('QR downloaded')
+    } catch {
+      toast.error('Failed to download QR')
+    }
+  }
+
+  const handleViewAssetQr = async (asset: Asset) => {
+    if (asset.qrCodeImage) {
+      setAssetQrPreview({
+        id: asset.id,
+        qrCode: asset.qrCode || asset.id,
+        qrCodeImage: asset.qrCodeImage,
+        label: getAssetOptionLabel(asset),
+      })
+      return
+    }
+    try {
+      const result = await regenerateQrMutation.mutateAsync(asset.id)
+      const data = result?.data
+      setAssetQrPreview({
+        id: asset.id,
+        qrCode: data?.qrCode || asset.id,
+        qrCodeImage: data?.qrCodeImage || null,
+        label: getAssetOptionLabel(asset),
+      })
+    } catch {
+      // toast handled in mutation
+    }
+  }
+
+  const handleCopyAssetQrLink = async () => {
+    if (!assetQrPreview?.id) {
+      toast.error('QR link is not available')
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(getAssetPublicUrl(assetQrPreview.id))
+      toast.success('Asset QR link copied')
+    } catch {
+      toast.error('Failed to copy QR link')
+    }
+  }
+
+  const handleDownloadAssetQr = async () => {
+    const imageSrc = assetQrPreview?.qrCodeImage
+    const code = assetQrPreview?.qrCode?.trim() || assetQrPreview?.id || 'asset-qr'
+    if (!imageSrc) {
+      toast.error('QR image is not available')
+      return
+    }
+    try {
+      const response = await fetch(imageSrc)
+      if (!response.ok) throw new Error('Failed to fetch QR image')
+      const blob = await response.blob()
+      const extension = blob.type.includes('jpeg') || blob.type.includes('jpg') ? 'jpg' : 'png'
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `asset-qr-${code}.${extension}`
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -460,6 +731,31 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
 
   const columns: ColumnDef<Asset>[] = [
     {
+      id: 'select',
+      header: () => (
+        <Checkbox
+          checked={allEligibleTableSelected}
+          onCheckedChange={toggleSelectAllEligibleAssets}
+          aria-label="Select all available assets"
+          disabled={gatePassEligibleAssets.length === 0}
+        />
+      ),
+      cell: ({ row }) => {
+        const canSelect = row.original.status === 'available' && !isTransferredRegistryAtOrigin(row.original)
+        return (
+          <Checkbox
+            checked={tableSelectedAssetIds.includes(row.original.id)}
+            disabled={!canSelect}
+            onCheckedChange={() => toggleTableAssetSelection(row.original.id)}
+            onClick={(e) => e.stopPropagation()}
+            aria-label={canSelect ? 'Select asset for gate pass' : 'Asset not available for gate pass'}
+          />
+        )
+      },
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
       accessorKey: 'item',
       header: 'Item',
       cell: ({ row }) => (
@@ -501,11 +797,41 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: ({ row }) => (
-        <Badge className={`capitalize ${getStatusBadge(row.original.status)}`}>
-          {row.original.status === 'external_use' ? 'External use' : row.original.status.replace('_', ' ')}
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        const asset = row.original
+        const transferredRegistry = isTransferredRegistryAtOrigin(asset)
+        const outboundTransferAtFrom =
+          asset.transferOriginLocationId &&
+          selectedLocationId &&
+          asset.transferOriginLocationId === selectedLocationId &&
+          asset.locationId !== selectedLocationId &&
+          isAssetInTransferFlow(asset.status)
+        let label: string
+        let badgeKey: AssetStatus | 'transferred_registry' = asset.status
+        if (transferredRegistry) {
+          label = `Transferred to ${asset.transferToCenterName || asset.location?.property_name || 'destination center'}`
+          badgeKey = 'transferred_registry'
+        } else if (asset.status === 'external_use') {
+          label = 'External use'
+        } else if (asset.status === 'pending_inspection') {
+          label = 'Pending inspection'
+        } else if (asset.status === 'inter_center_outbound_pending') {
+          label = 'Transfer — outbound pending'
+        } else if (outboundTransferAtFrom) {
+          label = `Transfer to ${asset.transferToCenterName || asset.location?.property_name || 'destination center'}`
+        } else if (asset.status === 'inter_center_incoming' && asset.transferFromCenterName) {
+          label = `Transfer from ${asset.transferFromCenterName}`
+        } else if (asset.status === 'pending_transfer_acceptance') {
+          label = asset.transferFromCenterName
+            ? `Transfer from ${asset.transferFromCenterName} — awaiting acceptance`
+            : 'Transfer — awaiting acceptance'
+        } else if (asset.status === 'transfer_rejected') {
+          label = 'Transfer rejected'
+        } else {
+          label = asset.status.replace(/_/g, ' ')
+        }
+        return <Badge className={`capitalize ${getStatusBadge(badgeKey)}`}>{label}</Badge>
+      },
     },
     {
       accessorKey: 'condition',
@@ -518,53 +844,98 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
       cell: ({ row }) => (row.original.currentValue ? `₹${row.original.currentValue.toLocaleString('en-IN')}` : '-'),
     },
     {
+      id: 'qr',
+      header: 'QR',
+      cell: ({ row }) => {
+        const asset = row.original
+        if (isTransferredRegistryAtOrigin(asset)) {
+          return <span className="text-xs text-gray-400">—</span>
+        }
+        if (!asset.qrCodeImage) {
+          return (
+            <button
+              type="button"
+              className="inline-flex items-center cursor-pointer group"
+              onClick={(e) => {
+                e.stopPropagation()
+                void handleViewAssetQr(asset)
+              }}
+              title="Generate / view asset QR"
+              disabled={regenerateQrMutation.isPending}
+            >
+              <span className="text-xs text-gray-500">—</span>
+            </button>
+          )
+        }
+        return (
+          <button
+            type="button"
+            className="inline-flex items-center cursor-pointer group"
+            onClick={(e) => {
+              e.stopPropagation()
+              void handleViewAssetQr(asset)
+            }}
+            title="View asset QR"
+          >
+            <img
+              src={asset.qrCodeImage}
+              alt="Asset QR"
+              className="w-12 h-12 object-contain rounded border border-gray-200 group-hover:opacity-80 transition-opacity bg-white"
+            />
+          </button>
+        )
+      },
+    },
+    {
       id: 'actions',
       header: () => <div className="text-right">Actions</div>,
       cell: ({ row }) => {
         const asset = row.original
+        const transferredRegistry = isTransferredRegistryAtOrigin(asset)
         const isScrap = asset.status === 'scrap'
+        const inTransfer = isAssetInTransferFlow(asset.status)
+        const pendingTransferAcceptance = asset.status === 'pending_transfer_acceptance'
+        /* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stop row click only */
         return (
-          <div className="flex justify-end items-center gap-2 pr-2">
-            {asset.status === 'available' && !isScrap && (
-              <PermissionGuard permission="assets:create">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleOpenExternalMark(asset)}
-                  className="h-8 px-2 text-xs text-violet-700 border-violet-200 hover:bg-violet-50"
-                >
-                  External use
-                </Button>
-              </PermissionGuard>
-            )}
-            {asset.status === 'external_use' && (
+          <div className="flex justify-end items-center gap-2 pr-2" onClick={(e) => e.stopPropagation()}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setTimelineAsset(asset)}
+              className="h-8 w-8 p-0 text-[#005390] hover:text-[#005390] hover:bg-gray-100 dark:hover:bg-gray-800"
+              title="Asset history"
+            >
+              <History className="h-4 w-4" />
+            </Button>
+            {pendingTransferAcceptance && (
               <>
-                <PermissionGuard permission="assets:create">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleOpenExternalGenerate(asset)}
-                    className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-gray-100"
-                    title="Generate gate pass"
-                  >
-                    <QrCode className="h-4 w-4" />
+                <PermissionGuard permission="assets:update">
+                  <Button size="sm" variant="outline" onClick={() => setAcceptTransferAsset(asset)}>
+                    Accept
                   </Button>
                 </PermissionGuard>
                 <PermissionGuard permission="assets:update">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleMakeAvailable(asset)}
-                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-gray-100"
-                    title="Make available"
-                    disabled={makeAvailableMutation.isPending}
-                  >
-                    <PackageCheck className="h-4 w-4" />
+                  <Button size="sm" variant="destructive" onClick={() => setRejectTransferAsset(asset)}>
+                    Reject
                   </Button>
                 </PermissionGuard>
               </>
             )}
-            {!isScrap && (
+            {canShowMakeAvailableOnAsset(asset) && (
+              <PermissionGuard permission="assets:update">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleOpenMakeAvailable(asset)}
+                  className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-gray-100"
+                  title="Make available"
+                  disabled={makeAvailableMutation.isPending}
+                >
+                  <PackageCheck className="h-4 w-4" />
+                </Button>
+              </PermissionGuard>
+            )}
+            {!isScrap && !inTransfer && !transferredRegistry && (
               <PermissionGuard permission="assets:update">
                 <Button
                   variant="ghost"
@@ -577,17 +948,19 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
                 </Button>
               </PermissionGuard>
             )}
-            <PermissionGuard permission="assets:delete">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDelete(asset.id)}
-                className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
-                title="Delete asset"
-              >
-                <Trash2 className="h-4 w-4 text-red-600" />
-              </Button>
-            </PermissionGuard>
+            {!inTransfer && !transferredRegistry && (
+              <PermissionGuard permission="assets:delete">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDelete(asset.id)}
+                  className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  title="Delete asset"
+                >
+                  <Trash2 className="h-4 w-4 text-red-600" />
+                </Button>
+              </PermissionGuard>
+            )}
           </div>
         )
       },
@@ -605,9 +978,39 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
             searchValue={searchTerm}
             onSearchChange={setSearchTerm}
             searchPlaceholder="Search assets..."
-            onRowClick={(asset) => setTimelineAsset(asset)}
+            onRowClick={(asset) => setDetailAsset(asset)}
             filterActions={
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) => {
+                    if (!value) return
+                    setStatusFilter(String(value))
+                    setTableSelectedAssetIds([])
+                  }}
+                >
+                  <SelectTrigger
+                    aria-label="Filter assets by status"
+                    className="w-auto min-w-[180px] h-9 text-xs font-semibold rounded-xl bg-white dark:bg-slate-800 border-gray-200 dark:border-gray-700"
+                  >
+                    <SelectValue placeholder="All Statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ASSET_STATUS_FILTER_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {tableSelectedAssetIds.length > 0 && (
+                  <PermissionGuard permission="assets:create">
+                    <Button variant="default" onClick={handleOpenBulkGatePass}>
+                      <QrCode className="h-4 w-4 mr-2" />
+                      Generate Gate Pass ({tableSelectedAssetIds.length})
+                    </Button>
+                  </PermissionGuard>
+                )}
                 <PermissionGuard permission="assets:create">
                   <Button variant="outline" onClick={() => setIsBulkUploadModalOpen(true)}>
                     <Upload className="h-4 w-4 mr-2" />
@@ -990,6 +1393,7 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
                     <SelectItem value="scrap">Scrap</SelectItem>
                     <SelectItem value="repair">Repair</SelectItem>
                     <SelectItem value="external_use">External use</SelectItem>
+                    <SelectItem value="pending_inspection">Pending inspection</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1029,189 +1433,271 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
       >
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{externalModalMode === 'mark' ? 'External Use' : 'Generate Gate Pass'}</DialogTitle>
-            <DialogDescription>
-              {externalModalMode === 'mark'
-                ? 'Create a gate pass for this asset and mark it as external use.'
-                : 'Create one QR gate pass for one or more external use assets.'}
-            </DialogDescription>
+            <DialogTitle>Generate Gate Pass</DialogTitle>
+            <DialogDescription>Create one QR gate pass for the selected assets.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 px-1 py-2">
-            {externalSeedAsset && (
-              <div className="rounded-md bg-gray-50 p-3 text-sm">
-                <span className="text-gray-600">Asset:</span>{' '}
-                <span className="font-medium">{getAssetOptionLabel(externalSeedAsset)}</span>
-              </div>
-            )}
-
-            <div>
-              <Label className="mb-2">
-                Employee <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                value={externalEmployeeSearch}
-                onChange={(e) => setExternalEmployeeSearch(e.target.value)}
-                placeholder="Search employees..."
-                className="mb-2 h-8"
-              />
-              <Select
-                value={externalEmployeeId}
-                onValueChange={(value) => {
-                  if (!value) return
-                  setExternalEmployeeId(value)
-                }}
-              >
-                <SelectTrigger className="w-full !h-10">
-                  <SelectValue placeholder="Select employee" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredEmployees.length === 0 ? (
-                    <SelectItem value="__no_employees__" disabled>
-                      No employees found
-                    </SelectItem>
-                  ) : (
-                    filteredEmployees.map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id}>
-                        {emp.name}
-                        {emp.role ? ` (${emp.role})` : ''}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {externalModalMode === 'generate' && (
+            {bulkSelectedAssets.length > 0 && (
               <div>
-                <Label className="mb-2">
-                  Assets <span className="text-red-500">*</span>
-                </Label>
-                {selectedExternalAssets.length > 0 && (
-                  <div className="mb-2 flex flex-wrap gap-1.5">
-                    {selectedExternalAssets.map((asset) => {
-                      const label = getAssetOptionLabel(asset)
-                      return (
-                        <Badge key={asset.id} variant="secondary" className="gap-1 pr-1">
-                          {label}
-                          <button
-                            type="button"
-                            className="rounded-sm p-0.5 hover:bg-black/10"
-                            onClick={() => toggleExternalAsset(asset.id)}
-                            aria-label={`Remove ${label}`}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      )
-                    })}
-                  </div>
-                )}
-                <div className="rounded-md border border-input overflow-hidden">
-                  <div className="border-b border-input p-2">
-                    <Input
-                      value={externalAssetSearch}
-                      onChange={(e) => setExternalAssetSearch(e.target.value)}
-                      placeholder="Search external use assets..."
-                      className="h-8"
-                    />
-                  </div>
-                  <div className="max-h-48 overflow-y-auto p-2 space-y-1">
-                    {filteredExternalAssets.length === 0 ? (
-                      <p className="px-1 py-2 text-sm text-muted-foreground">No external use assets found</p>
-                    ) : (
-                      filteredExternalAssets.map((asset) => {
-                        const checked = externalAssetIds.includes(asset.id)
-                        const label = getAssetOptionLabel(asset)
-                        return (
-                          <label
-                            key={asset.id}
-                            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/60"
-                          >
-                            <Checkbox checked={checked} onCheckedChange={() => toggleExternalAsset(asset.id)} />
-                            <span className="min-w-0 flex-1 truncate">{label}</span>
-                          </label>
-                        )
-                      })
-                    )}
-                  </div>
+                <Label className="mb-2">Selected assets</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {bulkSelectedAssets.map((asset) => (
+                    <Badge key={asset.id} variant="secondary">
+                      {getAssetOptionLabel(asset)}
+                    </Badge>
+                  ))}
                 </div>
               </div>
             )}
 
             <div>
-              <Label className="mb-2">Upload File</Label>
-              <div className="flex items-start gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => externalFileInputRef.current?.click()}
-                  className="gap-2"
-                >
-                  <Upload className="h-4 w-4" />
-                  {externalImage ? 'Change Image' : 'Upload Image'}
-                </Button>
-                <input
-                  ref={externalFileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleExternalImageChange}
-                />
-                {externalImage ? (
-                  <div className="relative">
-                    <img
-                      src={externalImage}
-                      alt="External use attachment"
-                      className="h-16 w-16 rounded-md object-cover border border-gray-200"
-                    />
-                    <button
+              <Label className="mb-2">
+                Reason <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={gatePassReason || undefined}
+                onValueChange={(value) => {
+                  if (!value) return
+                  setGatePassReason(value as ItemRequestReason)
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="external_use">External use</SelectItem>
+                  <SelectItem value="inter_center_transfer">Inter-Center transfer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {gatePassReason === 'inter_center_transfer' && (
+              <>
+                <div>
+                  <Label className="mb-2">From Center</Label>
+                  <Input value={selectedLocationName || '—'} readOnly disabled className="bg-gray-50" />
+                </div>
+                <div>
+                  <Label className="mb-2">
+                    To Center <span className="text-red-500">*</span>
+                  </Label>
+                  <Select value={transferToLocId || undefined} onValueChange={setTransferToLocId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select center" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {destinationCenters.length === 0 ? (
+                        <SelectItem value="__none__" disabled>
+                          No other centers available
+                        </SelectItem>
+                      ) : (
+                        destinationCenters.map((loc) => (
+                          <SelectItem key={loc.id} value={loc.id}>
+                            {loc.property_name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="mb-2">
+                    Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    value={transferContactName}
+                    onChange={(e) => setTransferContactName(e.target.value)}
+                    placeholder="Contact name"
+                  />
+                </div>
+                <div>
+                  <Label className="mb-2">
+                    Asset Send Condition <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
+                    value={transferSendCondition}
+                    onValueChange={(v) => setTransferSendCondition(v as TransferSendCondition)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new">New</SelectItem>
+                      <SelectItem value="good">Good</SelectItem>
+                      <SelectItem value="bad">Bad</SelectItem>
+                      <SelectItem value="partially_damage">Partially damage</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="mb-2">Description</Label>
+                  <Textarea
+                    value={externalDescription}
+                    onChange={(e) => setExternalDescription(e.target.value)}
+                    placeholder="Optional description"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label className="mb-2">Upload File</Label>
+                  <div className="flex items-start gap-3">
+                    <Button
                       type="button"
-                      onClick={() => {
-                        setExternalImage('')
-                        if (externalFileInputRef.current) externalFileInputRef.current.value = ''
-                      }}
-                      className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center"
-                      aria-label="Remove image"
+                      variant="outline"
+                      onClick={() => externalFileInputRef.current?.click()}
+                      className="gap-2"
                     >
-                      <X className="h-3 w-3" />
-                    </button>
+                      <Upload className="h-4 w-4" />
+                      {externalImage ? 'Change Image' : 'Upload Image'}
+                    </Button>
+                    <input
+                      ref={externalFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleExternalImageChange}
+                    />
+                    {externalImage ? (
+                      <div className="relative">
+                        <img
+                          src={externalImage}
+                          alt="Transfer attachment"
+                          className="h-16 w-16 rounded-md object-cover border border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setExternalImage('')
+                            if (externalFileInputRef.current) externalFileInputRef.current.value = ''
+                          }}
+                          className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center"
+                          aria-label="Remove image"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-              </div>
-            </div>
+                </div>
+              </>
+            )}
 
-            <div>
-              <Label htmlFor="external-description" className="mb-2">
-                Description
-              </Label>
-              <Textarea
-                id="external-description"
-                value={externalDescription}
-                onChange={(e) => setExternalDescription(e.target.value)}
-                placeholder="Optional description"
-                rows={3}
-              />
-            </div>
+            {gatePassReason === 'external_use' && (
+              <>
+                <div>
+                  <Label className="mb-2">
+                    Employee <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    value={externalEmployeeSearch}
+                    onChange={(e) => setExternalEmployeeSearch(e.target.value)}
+                    placeholder="Search employees..."
+                    className="mb-2 h-8"
+                  />
+                  <Select
+                    value={externalEmployeeId}
+                    onValueChange={(value) => {
+                      if (!value) return
+                      setExternalEmployeeId(value)
+                    }}
+                  >
+                    <SelectTrigger className="w-full !h-10">
+                      <SelectValue placeholder="Select employee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredEmployees.length === 0 ? (
+                        <SelectItem value="__no_employees__" disabled>
+                          No employees found
+                        </SelectItem>
+                      ) : (
+                        filteredEmployees.map((emp) => (
+                          <SelectItem key={emp.id} value={emp.id}>
+                            {emp.name}
+                            {emp.role ? ` (${emp.role})` : ''}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div>
-              <Label htmlFor="external-return-date" className="mb-2">
-                Expected Return Date
-              </Label>
-              <Input
-                id="external-return-date"
-                type="date"
-                value={externalReturnDate}
-                onChange={(e) => setExternalReturnDate(e.target.value)}
-              />
-            </div>
+                <div>
+                  <Label className="mb-2">Upload File</Label>
+                  <div className="flex items-start gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => externalFileInputRef.current?.click()}
+                      className="gap-2"
+                    >
+                      <Upload className="h-4 w-4" />
+                      {externalImage ? 'Change Image' : 'Upload Image'}
+                    </Button>
+                    <input
+                      ref={externalFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleExternalImageChange}
+                    />
+                    {externalImage ? (
+                      <div className="relative">
+                        <img
+                          src={externalImage}
+                          alt="External use attachment"
+                          className="h-16 w-16 rounded-md object-cover border border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setExternalImage('')
+                            if (externalFileInputRef.current) externalFileInputRef.current.value = ''
+                          }}
+                          className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center"
+                          aria-label="Remove image"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="external-description" className="mb-2">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="external-description"
+                    value={externalDescription}
+                    onChange={(e) => setExternalDescription(e.target.value)}
+                    placeholder="Optional description"
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="external-return-date" className="mb-2">
+                    Expected Return Date
+                  </Label>
+                  <Input
+                    id="external-return-date"
+                    type="date"
+                    value={externalReturnDate}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setExternalReturnDate(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={resetExternalModal} disabled={createGatePassMutation.isPending}>
               Cancel
             </Button>
-            <Button onClick={handleGenerateExternalGatePass} disabled={createGatePassMutation.isPending}>
+            <Button onClick={handleGenerateGatePass} disabled={createGatePassMutation.isPending}>
               {createGatePassMutation.isPending ? 'Generating...' : 'Generate'}
             </Button>
           </DialogFooter>
@@ -1221,7 +1707,9 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
       <Dialog open={!!qrPreview} onOpenChange={(open) => !open && setQrPreview(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>External Use Gate Pass</DialogTitle>
+            <DialogTitle>
+              {qrPreview?.reason === 'inter_center_transfer' ? 'Inter-Center Transfer Gate Pass' : 'Gate Pass'}
+            </DialogTitle>
             <DialogDescription>Scan this code to view the full gate pass details.</DialogDescription>
           </DialogHeader>
           {qrPreview && (
@@ -1273,13 +1761,107 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!assetQrPreview} onOpenChange={(open) => !open && setAssetQrPreview(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Asset QR Code</DialogTitle>
+            <DialogDescription>
+              Scan with Google Lens or your phone camera to view this asset&apos;s details.
+            </DialogDescription>
+          </DialogHeader>
+          {assetQrPreview && (
+            <div className="flex flex-col items-center gap-3 py-2">
+              {assetQrPreview.qrCodeImage ? (
+                <img
+                  src={assetQrPreview.qrCodeImage}
+                  alt="Asset QR"
+                  className="w-56 h-56 object-contain rounded border border-gray-200 bg-white"
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground text-center px-4">
+                  QR image is not available yet. Ensure PUBLIC_APP_URL is set on the server, then use View QR again.
+                </p>
+              )}
+              {assetQrPreview.label ? (
+                <p className="text-sm font-medium text-gray-800 text-center">{assetQrPreview.label}</p>
+              ) : null}
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setAssetQrPreview(null)}>
+              Close
+            </Button>
+            <Button variant="outline" onClick={handleCopyAssetQrLink} disabled={!assetQrPreview?.id}>
+              <Copy className="h-4 w-4 mr-2" />
+              Copy link
+            </Button>
+            <Button onClick={handleDownloadAssetQr} disabled={!assetQrPreview?.qrCodeImage}>
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <BulkUploadModal open={isBulkUploadModalOpen} onOpenChange={setIsBulkUploadModalOpen} />
+
+      <AssetDetailDialog
+        asset={detailAsset}
+        open={!!detailAsset}
+        onOpenChange={(open) => {
+          if (!open) setDetailAsset(null)
+        }}
+      />
 
       <AssetTimelineDialog
         asset={timelineAsset}
         open={!!timelineAsset}
         onOpenChange={(open) => {
           if (!open) setTimelineAsset(null)
+        }}
+      />
+
+      <MakeAvailableDialog
+        asset={makeAvailableAsset}
+        open={!!makeAvailableAsset}
+        isPending={makeAvailableMutation.isPending}
+        onOpenChange={(open) => {
+          if (!open) setMakeAvailableAsset(null)
+        }}
+        onConfirm={handleMakeAvailableConfirm}
+      />
+
+      <AcceptTransferDialog
+        asset={acceptTransferAsset}
+        defaultSendCondition={transferSendConditionForAsset}
+        open={!!acceptTransferAsset}
+        onOpenChange={(open) => !open && setAcceptTransferAsset(null)}
+      />
+      <RejectTransferDialog
+        asset={rejectTransferAsset}
+        open={!!rejectTransferAsset}
+        onOpenChange={(open) => !open && setRejectTransferAsset(null)}
+      />
+
+      <InspectionServiceLogDialog
+        asset={inspectionServiceAsset}
+        open={!!inspectionServiceAsset && !!inspectionServiceType}
+        serviceType={inspectionServiceType}
+        inspectionDescription={inspectionDescription}
+        inspectionDocument={inspectionDocument}
+        onOpenChange={(open) => {
+          if (!open) {
+            setInspectionServiceAsset(null)
+            setInspectionServiceType(null)
+            setInspectionDescription('')
+            setInspectionDocument('')
+          }
+        }}
+        onCompleted={() => {
+          setInspectionServiceAsset(null)
+          setInspectionServiceType(null)
+          setInspectionDescription('')
+          setInspectionDocument('')
         }}
       />
     </>

@@ -30,6 +30,7 @@ import useDebounce from '@/hooks/useDebounce'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { Asset, AssetItemRequest, ItemRequestAssetRef, ItemRequestReason } from '@/lib/types'
 import { formatDisplayDate } from '@/lib/utils'
+import GatePassDetailDialog from './GatePassDetailDialog'
 
 const getAssetOptionLabel = (asset: Pick<Asset, 'serialNumber' | 'assetTag'> & { item?: { name?: string } | null }) =>
   [asset.item?.name, asset.serialNumber, asset.assetTag].filter((value) => value && String(value).trim()).join(' - ') ||
@@ -42,15 +43,28 @@ const REASON_OPTIONS: { value: ItemRequestReason; label: string }[] = [
   { value: 'scrap', label: 'Scrap' },
   { value: 'repair', label: 'Repair' },
   { value: 'external_use', label: 'External use' },
+  { value: 'inter_center_transfer', label: 'Inter-Center transfer' },
 ]
 
-const reasonLabel = (reason: ItemRequestReason) =>
-  REASON_OPTIONS.find((opt) => opt.value === reason)?.label || reason
+const reasonLabel = (reason: ItemRequestReason) => REASON_OPTIONS.find((opt) => opt.value === reason)?.label || reason
 
 const statusBadgeClass = (status: string) => {
-  if (status === 'approved') return 'bg-green-100 text-green-800 border-green-200'
-  if (status === 'declined') return 'bg-red-100 text-red-800 border-red-200'
+  if (status === 'approved' || status === 'returned') return 'bg-green-100 text-green-800 border-green-200'
+  if (status === 'declined' || status === 'return_declined') return 'bg-red-100 text-red-800 border-red-200'
+  if (status === 'cancelled') return 'bg-gray-100 text-gray-700 border-gray-200'
   return 'bg-amber-100 text-amber-800 border-amber-200'
+}
+
+const statusLabel = (status: string) => status.replace(/_/g, ' ')
+
+/** Edit only while outbound is still pending (no L3 approve/decline yet). */
+const canEditGatePass = (request: AssetItemRequest) => {
+  if (request.status !== 'pending') return false
+  const assets = request.assets || []
+  const anyOutboundDecided = assets.some(
+    (asset) => asset.outboundStatus === 'approved' || asset.outboundStatus === 'declined',
+  )
+  return !anyOutboundDecided
 }
 
 interface AssetItemRequestsProps {
@@ -63,6 +77,7 @@ const AssetItemRequests = ({ enabled = true }: AssetItemRequestsProps) => {
   const [editingRequest, setEditingRequest] = useState<AssetItemRequest | null>(null)
   const [qrPreview, setQrPreview] = useState<AssetItemRequest | null>(null)
   const [declineImagePreview, setDeclineImagePreview] = useState<AssetItemRequest | null>(null)
+  const [detailRequest, setDetailRequest] = useState<AssetItemRequest | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -76,7 +91,11 @@ const AssetItemRequests = ({ enabled = true }: AssetItemRequestsProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const debouncedSearch = useDebounce(searchTerm, 500)
 
-  const { data: requestsData, isLoading, refetch: refetchItemRequests } = useGetItemRequests({
+  const {
+    data: requestsData,
+    isLoading,
+    refetch: refetchItemRequests,
+  } = useGetItemRequests({
     search: debouncedSearch || undefined,
     limit: 1000,
     enabled,
@@ -92,7 +111,7 @@ const AssetItemRequests = ({ enabled = true }: AssetItemRequestsProps) => {
   const deleteMutation = useDeleteItemRequest()
 
   const itemRequests = requestsData?.data?.itemRequests || []
-  const assetOptions: Asset[] = assetsData?.data?.assets || []
+  const assetOptions = useMemo(() => (assetsData?.data?.assets || []) as Asset[], [assetsData?.data?.assets])
   const selectedAssets = assetOptions.filter((asset) => formData.assetIds.includes(asset.id))
   const filteredAssetOptions = useMemo(() => {
     const q = assetSearch.trim().toLowerCase()
@@ -182,8 +201,7 @@ const AssetItemRequests = ({ enabled = true }: AssetItemRequestsProps) => {
   }
 
   const previewRequestImage =
-    formData.requestImage ||
-    (!imageCleared && editingRequest?.requestImage ? editingRequest.requestImage : '')
+    formData.requestImage || (!imageCleared && editingRequest?.requestImage ? editingRequest.requestImage : '')
 
   const handleNameChange = (value: string) => {
     // Alphabets and spaces only
@@ -336,8 +354,7 @@ const AssetItemRequests = ({ enabled = true }: AssetItemRequestsProps) => {
       id: 'assets',
       header: 'ASSETS',
       cell: ({ row }) => {
-        const labels =
-          row.original.assets?.map((asset) => getEnrichedAssetLabel(asset)).filter(Boolean) || []
+        const labels = row.original.assets?.map((asset) => getEnrichedAssetLabel(asset)).filter(Boolean) || []
         return <span className="text-gray-700">{labels.length ? labels.join(', ') : '—'}</span>
       },
     },
@@ -364,9 +381,7 @@ const AssetItemRequests = ({ enabled = true }: AssetItemRequestsProps) => {
       header: 'EXPECTED RETURN',
       cell: ({ row }) => (
         <span className="text-gray-700">
-          {row.original.expectedReturnDate
-            ? formatDisplayDate(row.original.expectedReturnDate)
-            : '—'}
+          {row.original.expectedReturnDate ? formatDisplayDate(row.original.expectedReturnDate) : '—'}
         </span>
       ),
     },
@@ -383,15 +398,14 @@ const AssetItemRequests = ({ enabled = true }: AssetItemRequestsProps) => {
       cell: ({ row }) => {
         const { status, decidedByName } = row.original
         const showDecidedBy =
-          (status === 'approved' || status === 'declined') && !!decidedByName
+          (status === 'approved' || status === 'declined' || status === 'returned' || status === 'return_declined') &&
+          !!decidedByName
         return (
           <div className="flex flex-col gap-0.5">
             <Badge variant="outline" className={`w-fit capitalize ${statusBadgeClass(status)}`}>
-              {status}
+              {statusLabel(status)}
             </Badge>
-            {showDecidedBy ? (
-              <span className="text-[11px] text-gray-500 leading-tight">by {decidedByName}</span>
-            ) : null}
+            {showDecidedBy ? <span className="text-[11px] text-gray-500 leading-tight">by {decidedByName}</span> : null}
           </div>
         )
       },
@@ -400,11 +414,12 @@ const AssetItemRequests = ({ enabled = true }: AssetItemRequestsProps) => {
       id: 'declineComment',
       header: 'DECLINE COMMENT',
       cell: ({ row }) => {
-        const { declineComment, decidedByName, status } = row.original
+        const { declineComment, returnDeclineComment, decidedByName, status } = row.original
+        const comment = status === 'return_declined' ? returnDeclineComment || declineComment : declineComment
         return (
           <div className="flex flex-col gap-0.5 max-w-[220px]">
-            <span className="text-gray-700 line-clamp-2">{declineComment || '—'}</span>
-            {status === 'declined' && decidedByName ? (
+            <span className="text-gray-700 line-clamp-2">{comment || '—'}</span>
+            {(status === 'declined' || status === 'return_declined') && decidedByName ? (
               <span className="text-[11px] text-gray-500 leading-tight">By {decidedByName}</span>
             ) : null}
           </div>
@@ -416,27 +431,30 @@ const AssetItemRequests = ({ enabled = true }: AssetItemRequestsProps) => {
       header: 'DECLINE IMAGE',
       cell: ({ row }) => {
         const request = row.original
-        if (!request.declineImage) {
+        const evidenceImage =
+          request.status === 'return_declined'
+            ? request.returnDeclineImage || request.declineImage
+            : request.declineImage
+        if (!evidenceImage) {
           return <span className="text-gray-500">—</span>
         }
+        /* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stop row click only */
         return (
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-0.5" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
               className="inline-flex cursor-pointer group w-fit"
-              onClick={() => setDeclineImagePreview(request)}
+              onClick={() => setDeclineImagePreview({ ...request, declineImage: evidenceImage })}
               title="View decline image"
             >
               <img
-                src={request.declineImage}
+                src={evidenceImage}
                 alt="Decline evidence"
                 className="w-12 h-12 object-cover rounded border border-gray-200 group-hover:opacity-80 transition-opacity bg-white"
               />
             </button>
             {request.status === 'declined' && request.decidedByName ? (
-              <span className="text-[11px] text-gray-500 leading-tight">
-                By {request.decidedByName}
-              </span>
+              <span className="text-[11px] text-gray-500 leading-tight">By {request.decidedByName}</span>
             ) : null}
           </div>
         )
@@ -454,7 +472,10 @@ const AssetItemRequests = ({ enabled = true }: AssetItemRequestsProps) => {
           <button
             type="button"
             className="inline-flex flex-col items-center gap-1 cursor-pointer group"
-            onClick={() => setQrPreview(request)}
+            onClick={(e) => {
+              e.stopPropagation()
+              setQrPreview(request)
+            }}
             title="View QR code"
           >
             <img
@@ -470,32 +491,39 @@ const AssetItemRequests = ({ enabled = true }: AssetItemRequestsProps) => {
     {
       id: 'actions',
       header: 'ACTIONS',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <PermissionGuard permission="assets:update">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleOpenModal(row.original)}
-              className="h-8 w-8 p-0 hover:bg-gray-100"
-              title="Edit item request"
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-          </PermissionGuard>
-          <PermissionGuard permission="assets:delete">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleDelete(row.original.id)}
-              className="h-8 w-8 p-0 hover:bg-gray-100"
-              title="Delete item request"
-            >
-              <Trash2 className="h-4 w-4 text-red-600" />
-            </Button>
-          </PermissionGuard>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const request = row.original
+        const showEdit = canEditGatePass(request)
+        /* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stop row click only */
+        return (
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            {showEdit && (
+              <PermissionGuard permission="assets:update">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleOpenModal(request)}
+                  className="h-8 w-8 p-0 hover:bg-gray-100"
+                  title="Edit item request"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </PermissionGuard>
+            )}
+            <PermissionGuard permission="assets:delete">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDelete(request.id)}
+                className="h-8 w-8 p-0 hover:bg-gray-100"
+                title="Delete item request"
+              >
+                <Trash2 className="h-4 w-4 text-red-600" />
+              </Button>
+            </PermissionGuard>
+          </div>
+        )
+      },
     },
   ]
 
@@ -510,9 +538,18 @@ const AssetItemRequests = ({ enabled = true }: AssetItemRequestsProps) => {
             searchValue={searchTerm}
             onSearchChange={setSearchTerm}
             searchPlaceholder="Search item requests..."
+            onRowClick={(request) => setDetailRequest(request)}
           />
         </CardContent>
       </Card>
+
+      <GatePassDetailDialog
+        request={detailRequest}
+        open={!!detailRequest}
+        onOpenChange={(open) => {
+          if (!open) setDetailRequest(null)
+        }}
+      />
 
       <Dialog open={isModalOpen} onOpenChange={(open) => (open ? setIsModalOpen(true) : handleCloseModal())}>
         <DialogContent className="sm:max-w-lg">
@@ -615,9 +652,7 @@ const AssetItemRequests = ({ enabled = true }: AssetItemRequestsProps) => {
               </Label>
               <Select
                 value={formData.reason}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, reason: value as ItemRequestReason }))
-                }
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, reason: value as ItemRequestReason }))}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select reason" />
@@ -648,12 +683,7 @@ const AssetItemRequests = ({ enabled = true }: AssetItemRequestsProps) => {
             <div>
               <Label className="mb-2">Upload File</Label>
               <div className="flex items-start gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="gap-2"
-                >
+                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="gap-2">
                   <Upload className="h-4 w-4" />
                   {previewRequestImage ? 'Change Image' : 'Upload Image'}
                 </Button>
@@ -701,9 +731,7 @@ const AssetItemRequests = ({ enabled = true }: AssetItemRequestsProps) => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Item Request QR</DialogTitle>
-            <DialogDescription>
-              Scan this code to view the full item request details.
-            </DialogDescription>
+            <DialogDescription>Scan this code to view the full item request details.</DialogDescription>
           </DialogHeader>
           {qrPreview && (
             <div className="flex flex-col items-center gap-3 py-2">
@@ -761,16 +789,11 @@ const AssetItemRequests = ({ enabled = true }: AssetItemRequestsProps) => {
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={!!declineImagePreview}
-        onOpenChange={(open) => !open && setDeclineImagePreview(null)}
-      >
+      <Dialog open={!!declineImagePreview} onOpenChange={(open) => !open && setDeclineImagePreview(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Decline Evidence</DialogTitle>
-            <DialogDescription>
-              Photo attached when this item request was declined at the gate.
-            </DialogDescription>
+            <DialogDescription>Photo attached when this item request was declined at the gate.</DialogDescription>
           </DialogHeader>
           {declineImagePreview?.declineImage && (
             <div className="flex flex-col items-center gap-3 py-2">

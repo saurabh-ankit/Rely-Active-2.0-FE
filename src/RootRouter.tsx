@@ -38,11 +38,13 @@ const AdvertisementsPage = lazy(() => import('@/pages/Feedback/AdvertisementsPag
 const FeedbackFormBuilder = lazy(() => import('@/pages/Feedback/FormBuilder'))
 const FeedbackFormResponses = lazy(() => import('@/pages/Feedback/FormResponses'))
 const InventorySettings = lazy(() => import('@/pages/GlobalSettings/Inventory'))
+const AssetQrDetailsPage = lazy(() => import('@/pages/Public/AssetQrDetails'))
 
 export default function RootRouter() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/public/assets/:assetId" element={<AssetQrDetailsPage />} />
       <Route
         path="/setup"
         element={

@@ -55,6 +55,7 @@ const VenuesListPage = ({ embedded = false, enabled = true }: VenuesListPageProp
 
   const [coverPhotoFile, setCoverPhotoFile] = useState<File | null>(null)
   const [coverPhotoPreview, setCoverPhotoPreview] = useState<string | null>(null)
+  const [removeCoverPhoto, setRemoveCoverPhoto] = useState(false)
   const [imageFiles, setImageFiles] = useState<(File | null)[]>([])
   const [imagePreviews, setImagePreviews] = useState<(string | null)[]>([])
 
@@ -95,6 +96,8 @@ const VenuesListPage = ({ embedded = false, enabled = true }: VenuesListPageProp
 
     if (coverPhotoFile) {
       formData.append('coverPhoto', coverPhotoFile)
+    } else if (removeCoverPhoto) {
+      formData.append('removeCoverPhoto', 'true')
     }
 
     imageFiles.forEach((file) => {
@@ -103,17 +106,15 @@ const VenuesListPage = ({ embedded = false, enabled = true }: VenuesListPageProp
       }
     })
 
-    if (values.images && values.images.length > 0) {
-      formData.append(
-        'images',
-        JSON.stringify(
-          values.images.map((img) => ({
-            url: img.url || '',
-            caption: img.caption || '',
-          })),
-        ),
-      )
-    }
+    formData.append(
+      'images',
+      JSON.stringify(
+        (values.images ?? []).map((img) => ({
+          url: img.url || '',
+          caption: img.caption || '',
+        })),
+      ),
+    )
 
     const mappedServices = mapSelectedServicesToAddOns(locationServices, values.selectedServices || [])
     formData.append('addOnServices', JSON.stringify(mappedServices.length > 0 ? mappedServices : []))
@@ -146,6 +147,7 @@ const VenuesListPage = ({ embedded = false, enabled = true }: VenuesListPageProp
     reset(venueFormDefaultValues)
     setCoverPhotoFile(null)
     setCoverPhotoPreview(null)
+    setRemoveCoverPhoto(false)
     setImageFiles([])
     setImagePreviews([])
     setEditingAllocations({})
@@ -174,6 +176,7 @@ const VenuesListPage = ({ embedded = false, enabled = true }: VenuesListPageProp
     })
     setCoverPhotoFile(null)
     setCoverPhotoPreview(null)
+    setRemoveCoverPhoto(false)
     setImageFiles(new Array(images.length).fill(null))
     setImagePreviews(new Array(images.length).fill(null))
     setIsEditOpen(true)
@@ -427,11 +430,17 @@ const VenuesListPage = ({ embedded = false, enabled = true }: VenuesListPageProp
               editingAllocations={editingAllocations}
               coverPhotoFile={coverPhotoFile}
               coverPhotoPreview={coverPhotoPreview}
-              existingCoverPhoto={selectedVenue?.coverPhoto}
+              existingCoverPhoto={removeCoverPhoto ? undefined : selectedVenue?.coverPhoto || undefined}
               imagePreviews={imagePreviews}
               onCoverPhotoChange={(file, preview) => {
                 setCoverPhotoFile(file)
                 setCoverPhotoPreview(preview)
+                setRemoveCoverPhoto(false)
+              }}
+              onRemoveCoverPhoto={() => {
+                setCoverPhotoFile(null)
+                setCoverPhotoPreview(null)
+                setRemoveCoverPhoto(true)
               }}
               onAddImage={addImage}
               onRemoveImage={removeImage}

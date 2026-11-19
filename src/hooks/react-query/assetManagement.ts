@@ -15,6 +15,8 @@ import type {
   CreateAssetRequest,
   CreateAssetVendorRequest,
   CreateItemRequestPayload,
+  AcceptTransferPayload,
+  RejectTransferPayload,
   CreateServiceLogRequest,
   CreateTrainingRequest,
   CreateWarrantyRequest,
@@ -299,15 +301,36 @@ export const useMakeAssetAvailable = () => {
   const locationId = selectedLocationId || 'all'
 
   return useMutation({
-    mutationFn: (id: string) => assetService.makeAssetAvailable(locationId, id),
-    onSuccess: (_data, id) => {
+    mutationFn: ({ id, data }: { id: string; data: assetService.MakeAssetAvailablePayload; silent?: boolean }) =>
+      assetService.makeAssetAvailable(locationId, id, data),
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['assets'] })
       queryClient.invalidateQueries({ queryKey: ['assetStats'] })
-      queryClient.invalidateQueries({ queryKey: ASSET_TIMELINE_KEYS.byAsset(id) })
-      toast.success('Asset marked as available')
+      queryClient.invalidateQueries({ queryKey: ['itemRequests'] })
+      queryClient.invalidateQueries({ queryKey: ASSET_TIMELINE_KEYS.byAsset(variables.id) })
+      if (!variables.silent) {
+        toast.success('Asset marked as available')
+      }
     },
     onError: (error: ApiError) => {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to make asset available'
+      toast.error(errorMessage)
+    },
+  })
+}
+
+export const useRegenerateAssetQr = () => {
+  const queryClient = useQueryClient()
+  const { selectedLocationId } = useLocationStore()
+  const locationId = selectedLocationId || 'all'
+
+  return useMutation({
+    mutationFn: (id: string) => assetService.regenerateAssetQr(locationId, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] })
+    },
+    onError: (error: ApiError) => {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to generate asset QR'
       toast.error(errorMessage)
     },
   })
@@ -466,14 +489,15 @@ export const useGetBedsForRoom = (roomId: string, options?: { enabled?: boolean 
 }
 
 // Maintenance Hooks
-export const useGetServiceLogs = (params?: PaginationParams) => {
+export const useGetServiceLogs = (params?: PaginationParams & { enabled?: boolean }) => {
   const { selectedLocationId } = useLocationStore()
   const locationId = selectedLocationId || 'all'
+  const { enabled = true, ...queryParams } = params || {}
 
   return useQuery({
-    queryKey: ['serviceLogs', locationId, params],
-    queryFn: () => assetService.getServiceLogs(locationId, params),
-    enabled: !!locationId,
+    queryKey: ['serviceLogs', locationId, queryParams],
+    queryFn: () => assetService.getServiceLogs(locationId, queryParams),
+    enabled: !!locationId && enabled,
   })
 }
 
@@ -541,8 +565,13 @@ export const useCompleteServiceLog = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { completionRemarks: string } }) =>
-      assetService.completeServiceLog(locationId, id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string
+      data: { completionRemarks: string; cost?: number; nextServiceDate?: string } | FormData
+    }) => assetService.completeServiceLog(locationId, id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['serviceLogs', locationId] })
       queryClient.invalidateQueries({ queryKey: ['assets', locationId] })
@@ -620,6 +649,30 @@ export const useDeleteWarranty = () => {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to delete warranty'
       toast.error(errorMessage)
     },
+  })
+}
+
+export const useGetExpiringWarranties = (days = 10, options?: { enabled?: boolean }) => {
+  const { selectedLocationId } = useLocationStore()
+  const locationId = selectedLocationId || 'all'
+  const { enabled = true } = options || {}
+
+  return useQuery({
+    queryKey: ['expiringWarranties', locationId, days],
+    queryFn: () => assetService.getExpiringWarranties(locationId, days),
+    enabled: enabled && !!locationId,
+  })
+}
+
+export const useGetTransferredAssets = (options?: { enabled?: boolean }) => {
+  const { selectedLocationId } = useLocationStore()
+  const locationId = selectedLocationId || 'all'
+  const { enabled = true } = options || {}
+
+  return useQuery({
+    queryKey: ['transferredAssets', locationId],
+    queryFn: () => assetService.getTransferredAssets(locationId),
+    enabled: enabled && !!locationId,
   })
 }
 
@@ -1016,6 +1069,7 @@ export const useCreateItemRequest = () => {
         )
       }
       await queryClient.invalidateQueries({ queryKey: ['itemRequests'], refetchType: 'all' })
+      await queryClient.invalidateQueries({ queryKey: ['serviceLogs'], refetchType: 'all' })
       await queryClient.invalidateQueries({ queryKey: ['assets'], refetchType: 'all' })
       await queryClient.invalidateQueries({ queryKey: ['assetStats'], refetchType: 'all' })
       await queryClient.invalidateQueries({ queryKey: ASSET_TIMELINE_KEYS.all })
@@ -1065,6 +1119,48 @@ export const useDeleteItemRequest = () => {
   })
 }
 
+export const useAcceptAssetTransfer = () => {
+  const queryClient = useQueryClient()
+  const { selectedLocationId } = useLocationStore()
+  const locationId = selectedLocationId || 'all'
+
+  return useMutation({
+    mutationFn: ({ assetId, data }: { assetId: string; data: AcceptTransferPayload }) =>
+      assetService.acceptAssetTransfer(locationId, assetId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] })
+      queryClient.invalidateQueries({ queryKey: ['assetStats'] })
+      queryClient.invalidateQueries({ queryKey: ['itemRequests'] })
+      toast.success('Transfer accepted successfully')
+    },
+    onError: (error: ApiError) => {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to accept transfer'
+      toast.error(errorMessage)
+    },
+  })
+}
+
+export const useRejectAssetTransfer = () => {
+  const queryClient = useQueryClient()
+  const { selectedLocationId } = useLocationStore()
+  const locationId = selectedLocationId || 'all'
+
+  return useMutation({
+    mutationFn: ({ assetId, data }: { assetId: string; data: RejectTransferPayload }) =>
+      assetService.rejectAssetTransfer(locationId, assetId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] })
+      queryClient.invalidateQueries({ queryKey: ['assetStats'] })
+      queryClient.invalidateQueries({ queryKey: ['itemRequests'] })
+      toast.success('Transfer rejected')
+    },
+    onError: (error: ApiError) => {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to reject transfer'
+      toast.error(errorMessage)
+    },
+  })
+}
+
 export const useScanItemRequest = () => {
   const { selectedLocationId } = useLocationStore()
   const locationId = selectedLocationId || 'all'
@@ -1084,7 +1180,8 @@ export const useApproveItemRequest = () => {
   const locationId = selectedLocationId || 'all'
 
   return useMutation({
-    mutationFn: (id: string) => assetService.approveItemRequest(locationId, id),
+    mutationFn: ({ id, assetIds }: { id: string; assetIds?: string[] }) =>
+      assetService.approveItemRequest(locationId, id, assetIds),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['itemRequests'], refetchType: 'all' })
       toast.success('Item request approved successfully')
@@ -1102,8 +1199,17 @@ export const useDeclineItemRequest = () => {
   const locationId = selectedLocationId || 'all'
 
   return useMutation({
-    mutationFn: ({ id, comment, image }: { id: string; comment: string; image?: string }) =>
-      assetService.declineItemRequest(locationId, id, { comment, image }),
+    mutationFn: ({
+      id,
+      comment,
+      image,
+      assetIds,
+    }: {
+      id: string
+      comment: string
+      image?: string
+      assetIds?: string[]
+    }) => assetService.declineItemRequest(locationId, id, { comment, image, assetIds }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['itemRequests'], refetchType: 'all' })
       toast.success('Item request declined successfully')
