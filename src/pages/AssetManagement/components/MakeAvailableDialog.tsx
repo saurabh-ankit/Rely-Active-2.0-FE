@@ -108,7 +108,11 @@ const MakeAvailableDialog = ({ asset, open, isPending = false, onOpenChange, onC
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Mark as Available</DialogTitle>
-          <DialogDescription>Review the asset condition before marking it available again.</DialogDescription>
+          <DialogDescription>
+            {asset.status === 'pending_inspection'
+              ? 'Inspect the asset after return (or declined transfer) before marking it available again.'
+              : 'Review the asset condition before marking it available again.'}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-1">
