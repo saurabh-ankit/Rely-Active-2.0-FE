@@ -183,8 +183,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
     if (item.href === '/admin/reports') {
       return isSuperAdmin || roles.some((r) => REPORT_ROLES.includes(r))
     }
+    // Department managers see only their department's module (not Amenities).
     if (managerType) {
-      if (item.href === '/admin/amenities') return true
       switch (managerType) {
         case 'RNM':
         case 'CON':
