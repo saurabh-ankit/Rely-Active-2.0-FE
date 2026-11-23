@@ -130,15 +130,11 @@ export default function DashboardPage() {
       )}
 
       <Tabs value={currentTab} onValueChange={(val) => setActiveTab(val as DashboardTabKey)} className="w-full gap-0">
-        <div className="w-full rounded-[20px] bg-slate-200/70 dark:bg-slate-800/80 border border-slate-300/70 dark:border-slate-700/80 p-1 shadow-2xs">
+        <div className="w-full">
           {/* Up to 12 tabs share the row; on narrow screens they wrap onto a second row instead of scrolling. */}
-          <TabsList className="flex w-full h-auto flex-wrap justify-center gap-1 items-center bg-transparent p-0">
+          <TabsList className="flex w-full">
             {visibleTabs.map(({ value, label, icon: Icon }) => (
-              <TabsTrigger
-                key={value}
-                value={value}
-                className="flex h-8 w-auto flex-auto items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-xs focus-visible:!ring-0 transition-all cursor-pointer"
-              >
+              <TabsTrigger key={value} value={value} className="gap-1.5">
                 <Icon className="size-4 shrink-0" />
                 <span>{label}</span>
               </TabsTrigger>

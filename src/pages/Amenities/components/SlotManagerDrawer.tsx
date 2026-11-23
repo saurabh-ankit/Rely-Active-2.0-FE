@@ -1073,18 +1073,12 @@ export function SlotManagerDrawer({
             }}
             className="mt-2"
           >
-            <div className="rounded-full bg-slate-200/70 dark:bg-slate-800/80 border border-slate-300/70 dark:border-slate-700/80 p-1 shadow-2xs w-full">
-              <TabsList className="grid grid-cols-2 w-full items-center gap-1 bg-transparent p-0 h-auto">
-                <TabsTrigger
-                  value="bookings"
-                  className="flex h-8 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-xs focus-visible:!ring-0 transition-all cursor-pointer"
-                >
+            <div className="w-full">
+              <TabsList className="flex w-full">
+                <TabsTrigger value="bookings" className="gap-1.5">
                   Bookings
                 </TabsTrigger>
-                <TabsTrigger
-                  value="setup"
-                  className="flex h-8 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-xs focus-visible:!ring-0 transition-all cursor-pointer"
-                >
+                <TabsTrigger value="setup" className="gap-1.5">
                   Slot setup
                 </TabsTrigger>
               </TabsList>

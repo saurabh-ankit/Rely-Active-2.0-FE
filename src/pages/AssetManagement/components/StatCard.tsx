@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 type ColorVariant = 'blue' | 'green' | 'orange' | 'purple' | 'pink' | 'cyan' | 'red' | 'yellow'
 
@@ -10,6 +11,10 @@ interface StatCardProps {
   icon: LucideIcon
   isLoading?: boolean
   color?: ColorVariant
+  /** Optional right-side metric shown in the same row as value/description. */
+  secondaryValue?: string | number
+  secondaryDescription?: string
+  onClick?: () => void
 }
 
 const colorClasses: Record<ColorVariant, { bg: string; border: string; icon: string; text: string }> = {
@@ -63,7 +68,17 @@ const colorClasses: Record<ColorVariant, { bg: string; border: string; icon: str
   },
 }
 
-export const StatCard = ({ title, value, description, icon: Icon, isLoading = false, color }: StatCardProps) => {
+export const StatCard = ({
+  title,
+  value,
+  description,
+  icon: Icon,
+  isLoading = false,
+  color,
+  secondaryValue,
+  secondaryDescription,
+  onClick,
+}: StatCardProps) => {
   const colors = color
     ? colorClasses[color]
     : {
@@ -72,18 +87,50 @@ export const StatCard = ({ title, value, description, icon: Icon, isLoading = fa
         icon: 'text-gray-700',
         text: 'text-gray-900',
       }
+  const hasSecondary = secondaryValue !== undefined || secondaryDescription !== undefined
 
   return (
     <Card
-      className={`backdrop-blur-xl ${colors.bg} border ${colors.border} shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105`}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onClick()
+              }
+            }
+          : undefined
+      }
+      className={cn(
+        `backdrop-blur-xl ${colors.bg} border ${colors.border} shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105`,
+        onClick && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-300',
+      )}
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className={`text-sm font-medium ${colors.text}`}>{title}</CardTitle>
         <Icon className={`h-5 w-5 ${colors.icon}`} />
       </CardHeader>
       <CardContent>
-        <div className={`text-2xl font-bold ${colors.text}`}>{isLoading ? '...' : value}</div>
-        <p className="text-xs text-gray-600">{description}</p>
+        {hasSecondary ? (
+          <div className="flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <div className={`text-2xl font-bold ${colors.text}`}>{isLoading ? '...' : value}</div>
+              <p className="text-xs text-gray-600">{description}</p>
+            </div>
+            <div className="min-w-0 text-right">
+              <div className={`text-2xl font-bold ${colors.text}`}>{isLoading ? '...' : (secondaryValue ?? '—')}</div>
+              {secondaryDescription ? <p className="text-xs text-gray-600">{secondaryDescription}</p> : null}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className={`text-2xl font-bold ${colors.text}`}>{isLoading ? '...' : value}</div>
+            <p className="text-xs text-gray-600">{description}</p>
+          </>
+        )}
       </CardContent>
     </Card>
   )

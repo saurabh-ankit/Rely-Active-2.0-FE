@@ -1,4 +1,4 @@
-import api from '@/lib/api/axios'
+import api, { authApi } from '@/lib/api/axios'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import type {
   ApiResponse,
@@ -15,6 +15,8 @@ import type {
   AssetVendor,
   AssetWarranty,
   ComplianceStatusResponse,
+  ExpiringWarrantyAsset,
+  TransferredAssetSummary,
   AssetItemRequest,
   AssetTimelineParams,
   AssetTimelineResponse,
@@ -24,11 +26,14 @@ import type {
   CreateAssetRequest,
   CreateAssetVendorRequest,
   CreateItemRequestPayload,
+  AcceptTransferPayload,
+  RejectTransferPayload,
   CreateServiceLogRequest,
   CreateTrainingRequest,
   CreateWarrantyRequest,
   IdNamePair,
   PaginationParams,
+  PublicAssetDetails,
   ReturnAssetRequest,
   UpcomingMaintenanceResponse,
 } from '@/lib/types'
@@ -219,6 +224,22 @@ export const deleteAsset = async (locationId: string, id: string) => {
   return response.data
 }
 
+export const regenerateAssetQr = async (locationId: string, id: string) => {
+  const url = formatUrl(API_ENDPOINTS.assetManagement.assets.regenerateQr, locationId, id)
+  const response =
+    await api.post<ApiResponse<{ id: string; qrCode: string; qrCodeImage: string | null; publicUrl: string | null }>>(
+      url,
+    )
+  return response.data
+}
+
+/** Unauthenticated public asset details for camera / Lens QR scans. */
+export const getPublicAsset = async (assetId: string) => {
+  const url = API_ENDPOINTS.assetManagement.assets.publicGet.replace(':assetId', assetId)
+  const response = await authApi.get<ApiResponse<PublicAssetDetails>>(url)
+  return response.data
+}
+
 export const getAssetStats = async (locationId: string) => {
   const url = formatUrl(API_ENDPOINTS.assetManagement.assets.stats, locationId)
   const response = await api.get<ApiResponse<AssetStats>>(url)
@@ -260,15 +281,20 @@ export const returnAsset = async (locationId: string, id: string, data: ReturnAs
 // Assignee Dropdowns
 export const getEmployeesForAssignment = async (locationId: string) => {
   const url = formatUrl(API_ENDPOINTS.assetManagement.assignees.employees, locationId)
-  const response = await api.get<
-    ApiResponse<Array<{ id: string; name: string; email?: string; phone?: string; role?: string }>>
-  >(url)
+  const response =
+    await api.get<ApiResponse<Array<{ id: string; name: string; email?: string; phone?: string; role?: string }>>>(url)
   return response.data
 }
 
-export const makeAssetAvailable = async (locationId: string, id: string) => {
+export type MakeAssetAvailablePayload = {
+  condition: 'good' | 'poor'
+  description?: string
+  document?: string
+}
+
+export const makeAssetAvailable = async (locationId: string, id: string, data: MakeAssetAvailablePayload) => {
   const url = formatUrl(API_ENDPOINTS.assetManagement.assets.makeAvailable, locationId, id)
-  const response = await api.put<ApiResponse<Asset>>(url)
+  const response = await api.put<ApiResponse<Asset>>(url, data)
   return response.data
 }
 
@@ -336,9 +362,15 @@ export const deleteServiceLog = async (locationId: string, id: string) => {
   return response.data
 }
 
-export const completeServiceLog = async (locationId: string, id: string, data: { completionRemarks: string }) => {
+export const completeServiceLog = async (
+  locationId: string,
+  id: string,
+  data: { completionRemarks: string; cost?: number; nextServiceDate?: string } | FormData,
+) => {
   const url = formatUrl(API_ENDPOINTS.assetManagement.maintenance.serviceLogs.complete, locationId, id)
-  const response = await api.put<ApiResponse<AssetServiceLog>>(url, data)
+  const response = await api.put<ApiResponse<AssetServiceLog>>(url, data, {
+    headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {},
+  })
   return response.data
 }
 
@@ -371,6 +403,20 @@ export const updateWarranty = async (
 export const deleteWarranty = async (locationId: string, id: string) => {
   const url = formatUrl(API_ENDPOINTS.assetManagement.maintenance.warranties.delete, locationId, id)
   const response = await api.delete<ApiResponse<null>>(url)
+  return response.data
+}
+
+export const getExpiringWarranties = async (locationId: string, days?: number) => {
+  const url = formatUrl(API_ENDPOINTS.assetManagement.assets.warrantiesExpiring, locationId)
+  const response = await api.get<ApiResponse<ExpiringWarrantyAsset[]>>(url, {
+    params: { days },
+  })
+  return response.data
+}
+
+export const getTransferredAssets = async (locationId: string) => {
+  const url = formatUrl(API_ENDPOINTS.assetManagement.assets.transferred, locationId)
+  const response = await api.get<ApiResponse<TransferredAssetSummary[]>>(url)
   return response.data
 }
 
@@ -562,9 +608,9 @@ export const uploadBulkAssets = async (locationId: string, file: File) => {
 // Item Requests
 export const getItemRequests = async (locationId: string, params?: PaginationParams) => {
   const url = formatUrl(API_ENDPOINTS.assetManagement.itemRequests.list, locationId)
-  const response = await api.get<
-    ApiResponse<{ itemRequests: AssetItemRequest[]; pagination: unknown }>
-  >(url, { params })
+  const response = await api.get<ApiResponse<{ itemRequests: AssetItemRequest[]; pagination: unknown }>>(url, {
+    params,
+  })
   return response.data
 }
 
@@ -580,11 +626,7 @@ export const getItemRequestById = async (locationId: string, id: string) => {
   return response.data
 }
 
-export const updateItemRequest = async (
-  locationId: string,
-  id: string,
-  data: Partial<CreateItemRequestPayload>,
-) => {
+export const updateItemRequest = async (locationId: string, id: string, data: Partial<CreateItemRequestPayload>) => {
   const url = formatUrl(API_ENDPOINTS.assetManagement.itemRequests.update, locationId, id)
   const response = await api.put<ApiResponse<AssetItemRequest>>(url, data)
   return response.data
@@ -602,18 +644,30 @@ export const scanItemRequest = async (locationId: string, qrCode: string) => {
   return response.data
 }
 
-export const approveItemRequest = async (locationId: string, id: string) => {
+export const approveItemRequest = async (locationId: string, id: string, assetIds?: string[]) => {
   const url = formatUrl(API_ENDPOINTS.assetManagement.itemRequests.approve, locationId, id)
-  const response = await api.post<ApiResponse<AssetItemRequest>>(url)
+  const response = await api.post<ApiResponse<AssetItemRequest>>(url, assetIds?.length ? { assetIds } : {})
   return response.data
 }
 
 export const declineItemRequest = async (
   locationId: string,
   id: string,
-  data: { comment: string; image?: string },
+  data: { comment: string; image?: string; assetIds?: string[] },
 ) => {
   const url = formatUrl(API_ENDPOINTS.assetManagement.itemRequests.decline, locationId, id)
   const response = await api.post<ApiResponse<AssetItemRequest>>(url, data)
+  return response.data
+}
+
+export const acceptAssetTransfer = async (locationId: string, assetId: string, data: AcceptTransferPayload) => {
+  const url = formatUrl(API_ENDPOINTS.assetManagement.transfer.accept, locationId, assetId)
+  const response = await api.post<ApiResponse<Asset>>(url, data)
+  return response.data
+}
+
+export const rejectAssetTransfer = async (locationId: string, assetId: string, data: RejectTransferPayload) => {
+  const url = formatUrl(API_ENDPOINTS.assetManagement.transfer.reject, locationId, assetId)
+  const response = await api.post<ApiResponse<Asset>>(url, data)
   return response.data
 }

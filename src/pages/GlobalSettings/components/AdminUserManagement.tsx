@@ -46,6 +46,7 @@ import {
   useUsersQuery,
 } from '@/hooks/react-query/user'
 import { useLocationStore } from '@/lib/stores/locationStore'
+import { useAuth } from '@/hooks/useAuth'
 import type { RoleItem, UserItem } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -272,12 +273,19 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
   const selectedLocationId = useLocationStore((state) => state.selectedLocationId)
   const selectedLocationName = useLocationStore((state) => state.selectedLocationName)
 
+  // Super admins are created and listed only from the global settings screen, and only by super admins.
+  const { isSuperAdmin: isCallerSuperAdmin } = useAuth()
+  const canManageSuperAdmins = !isLocationScoped && isCallerSuperAdmin
+
   // React Query Hooks
   const { data: users = [], isLoading: isLoadingUsers } = useUsersQuery(
     debouncedSearch,
     isLocationScoped ? selectedLocationId : null,
+    canManageSuperAdmins,
   )
   const { data: fetchedUser, isLoading: isLoadingUser } = useUserByIdQuery(paramId)
+  const isEditingSeededSuperAdmin =
+    !!paramId && (fetchedUser?.isSeededSuperAdmin || fetchedUser?.username === 'superadmin')
   const { data: rawRoles = [] } = useRolesQuery()
   const { data: departments = [] } = useDepartmentsQuery()
   const { data: availableProperties = [] } = usePropertiesQuery()
@@ -356,6 +364,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
   const selectedRoleCode = useWatch({ control, name: 'selectedRoleCode' })
   const roleUpper = (selectedRoleCode || '').toUpperCase()
   const isAdminRole = ['SUPER_ADMIN', 'ADMIN'].includes(roleUpper)
+  const isSuperAdminRole = roleUpper === 'SUPER_ADMIN'
   const isMedicalRole = ['DOCTOR', 'NURSE', 'CARETAKER'].includes(roleUpper)
   const isDoctorRole = roleUpper === 'DOCTOR'
   const isNurseOrCaretakerRole = ['NURSE', 'CARETAKER'].includes(roleUpper)
@@ -653,8 +662,18 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
 
     const propertyIdsToSave = Array.from(selectedPropertyIds)
     const isMultiRole = ['SUPER_ADMIN', 'ADMIN'].includes((values.selectedRoleCode || '').toUpperCase())
+    const isSuperAdminSubmission = (values.selectedRoleCode || '').toUpperCase() === 'SUPER_ADMIN'
+    const isEditSubmission = initialMode === 'edit' || !!editingUserId || !!paramId
 
-    if (propertyIdsToSave.length === 0) {
+    if (isSuperAdminSubmission && !isEditSubmission && !values.password) {
+      const msg = 'Set a password so the Super Admin can log in.'
+      setError('password', { type: 'manual', message: msg })
+      setErrorMsg(msg)
+      notifyError('Validation Error', msg)
+      return
+    }
+
+    if (!isSuperAdminSubmission && propertyIdsToSave.length === 0) {
       const msg = 'At least one property location is mandatory.'
       setErrorMsg(msg)
       setPropertySelectionError(msg)
@@ -723,8 +742,9 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
         jobCategoryId: !['SUPER_ADMIN', 'ADMIN'].includes((values.selectedRoleCode || '').toUpperCase())
           ? values.selectedJobCategoryId || undefined
           : undefined,
-        managerId: values.selectedManagerId || undefined,
-        propertyIds: propertyIdsToSave,
+        managerId: isSuperAdminSubmission ? undefined : values.selectedManagerId || undefined,
+        // Super admins always get every property (the server assigns them).
+        propertyIds: isSuperAdminSubmission ? undefined : propertyIdsToSave,
         consultantFee: isVisitingSubmission ? parsedConsultantFee : null,
         // Doctors carry their specializations in the same request.
         ...(isDoctorSubmission
@@ -1107,7 +1127,11 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                   control={control}
                   name="selectedRoleCode"
                   render={({ field }) => (
-                    <Select value={field.value || undefined} onValueChange={(val) => field.onChange(val || '')}>
+                    <Select
+                      value={field.value || undefined}
+                      onValueChange={(val) => field.onChange(val || '')}
+                      disabled={isEditingSeededSuperAdmin}
+                    >
                       <SelectTrigger
                         id="role-select-page"
                         className={`w-full rounded-xl border ${errors.selectedRoleCode?.message ? 'border-red-500' : 'border-gray-200'} bg-white py-2.5 px-3.5 text-xs text-gray-900 font-medium shadow-2xs h-auto`}
@@ -1116,7 +1140,13 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                       </SelectTrigger>
                       <SelectContent>
                         {roles
-                          .filter((r) => !['SUPER_ADMIN', 'RESIDENT'].includes((r.code || '').toUpperCase()))
+                          .filter((r) => {
+                            const code = (r.code || '').toUpperCase()
+                            if (code === 'RESIDENT') return false
+                            // Only super admins, from global settings, can give the Super Admin role.
+                            if (code === 'SUPER_ADMIN') return canManageSuperAdmins || field.value === 'SUPER_ADMIN'
+                            return true
+                          })
                           .map((r) => (
                             <SelectItem key={r.id} value={r.code}>
                               {r.name} ({r.code})
@@ -1330,10 +1360,13 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                   {...register('password')}
                   error={errors.password?.message}
                   helperText="Password cannot be viewed for security reasons, but you can enter a new password here to update it."
+                  required={isSuperAdminRole && !isEditMode}
                   placeholder={
                     isEditMode
                       ? 'Leave blank to keep existing password'
-                      : 'Set custom password (defaults to Password@123)'
+                      : isSuperAdminRole
+                        ? 'Set the Super Admin login password'
+                        : 'Set custom password (defaults to Password@123)'
                   }
                   icon={<Lock className="h-4 w-4 text-gray-400" />}
                   autoComplete="new-password"
@@ -1343,7 +1376,18 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
           </Card>
 
           {/* Section 4: Property Location Scopes (user_locations mapping) */}
-          {!isLocationScoped && (
+          {!isLocationScoped && isSuperAdminRole && (
+            <Card className="gap-0 rounded-3xl border border-rose-100 bg-rose-50/60 p-6 shadow-lg space-y-1">
+              <CardTitle className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-rose-600" />
+                All Properties
+              </CardTitle>
+              <CardDescription className="text-xs text-gray-600">
+                Super Admins have access to every property, including properties added later.
+              </CardDescription>
+            </Card>
+          )}
+          {!isLocationScoped && !isSuperAdminRole && (
             <Card className="gap-0 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-lg backdrop-blur-xl space-y-4">
               <CardHeader className="p-0">
                 <CardTitle className="text-base font-bold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
@@ -1452,14 +1496,16 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
       : departments.flatMap((d) => d.jobCategories || [])
 
   const displayUsers = users.filter((u) => {
-    if (u.username === 'superadmin') return false
     const uRecord = u as unknown as Record<string, unknown>
     const uRoleObj = uRecord.role as { code?: string } | undefined
-    if (uRoleObj?.code === 'SUPER_ADMIN') return false
     const isSa =
+      u.isSuperAdmin ||
+      u.username === 'superadmin' ||
+      uRoleObj?.code === 'SUPER_ADMIN' ||
       u.userLocations?.some((ul) => ul.role?.code === 'SUPER_ADMIN') ||
       u.userRoles?.some((ur) => ur.role?.code === 'SUPER_ADMIN')
-    if (isSa) return false
+    // Super admins appear only in the global settings list, for super admins.
+    if (isSa && !canManageSuperAdmins) return false
 
     if (selectedDepartmentFilter !== 'ALL') {
       const hasDept = u.userLocations?.some((ul) => {
@@ -1608,7 +1654,10 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
       header: 'Properties',
       cell: ({ row }) => {
         const u = row.original
-        const isSa = u.userRoles?.some((ur) => ur.role?.code === 'SUPER_ADMIN')
+        const isSa =
+          u.isSuperAdmin ||
+          u.userRoles?.some((ur) => ur.role?.code === 'SUPER_ADMIN') ||
+          u.userLocations?.some((ul) => ul.role?.code === 'SUPER_ADMIN')
         const propNames = u.assignedProperties?.map((p) => p.property_name) || []
         const userLocNames =
           u.userLocations

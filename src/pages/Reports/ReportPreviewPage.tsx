@@ -166,7 +166,11 @@ export default function ReportPreviewPage() {
       <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-2xs dark:border-gray-800 dark:bg-slate-900">
         {tabs.length > 0 && active && (
           <div className="mb-4 border-b border-gray-100 pb-4 dark:border-slate-800">
-            <div role="tablist" aria-label={`${title} tabs`} className="flex flex-wrap gap-1.5">
+            <div
+              role="tablist"
+              aria-label={`${title} tabs`}
+              className="flex gap-1 overflow-x-auto no-scrollbar shadow-[inset_0_-1px_0_0_#e2e8f0] dark:shadow-[inset_0_-1px_0_0_#334155]"
+            >
               {tabs.map((tab) => (
                 <button
                   key={tab.key}
@@ -181,10 +185,10 @@ export default function ReportPreviewPage() {
                     })
                   }
                   className={cn(
-                    'h-8 rounded-lg border px-3 text-xs font-semibold transition-colors',
+                    'h-10 shrink-0 whitespace-nowrap border-b-2 px-3 text-sm font-medium transition-colors cursor-pointer',
                     tab.key === active.key
-                      ? 'border-[#005390]/30 bg-sky-50 text-[#005390] dark:bg-sky-950/40 dark:text-sky-300'
-                      : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-800 dark:text-slate-400 dark:hover:bg-slate-800',
+                      ? 'border-[#005390] text-[#005390] dark:border-sky-400 dark:text-sky-300'
+                      : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100',
                   )}
                 >
                   {tab.title}

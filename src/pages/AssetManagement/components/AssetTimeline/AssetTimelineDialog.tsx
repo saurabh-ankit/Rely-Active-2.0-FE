@@ -1,6 +1,8 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import {
+  ArrowLeftRight,
+  Ban,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -9,6 +11,10 @@ import {
   PackageCheck,
   QrCode,
   RotateCcw,
+  Shield,
+  ShieldAlert,
+  ShieldCheck,
+  ShieldX,
   Trash2,
   UserMinus,
   UserPlus,
@@ -18,22 +24,16 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAssetTimelineQuery } from '@/hooks/react-query/assetManagement'
+import { useAuth } from '@/hooks/useAuth'
+import { useLocationStore } from '@/lib/stores/locationStore'
 import type { Asset, AssetTimelineEvent, AssetTimelineEventType } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
-const TYPE_STYLES: Record<
-  AssetTimelineEventType,
-  { label: string; icon: LucideIcon; dot: string; badge: string }
-> = {
+const TYPE_STYLES: Record<AssetTimelineEventType, { label: string; icon: LucideIcon; dot: string; badge: string }> = {
   created: {
     label: 'Created',
     icon: Package,
@@ -82,6 +82,42 @@ const TYPE_STYLES: Record<
     dot: 'bg-emerald-600',
     badge: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   },
+  transfer: {
+    label: 'Transfer',
+    icon: ArrowLeftRight,
+    dot: 'bg-indigo-700',
+    badge: 'border-indigo-200 bg-indigo-50 text-indigo-800',
+  },
+  gate_pass_approved: {
+    label: 'Gate approved',
+    icon: ShieldCheck,
+    dot: 'bg-teal-600',
+    badge: 'border-teal-200 bg-teal-50 text-teal-800',
+  },
+  gate_pass_declined: {
+    label: 'Gate declined',
+    icon: ShieldX,
+    dot: 'bg-rose-600',
+    badge: 'border-rose-200 bg-rose-50 text-rose-800',
+  },
+  gate_pass_cancelled: {
+    label: 'Gate cancelled',
+    icon: Ban,
+    dot: 'bg-gray-600',
+    badge: 'border-gray-200 bg-gray-50 text-gray-700',
+  },
+  gate_return_approved: {
+    label: 'Return approved',
+    icon: Shield,
+    dot: 'bg-cyan-600',
+    badge: 'border-cyan-200 bg-cyan-50 text-cyan-800',
+  },
+  gate_return_declined: {
+    label: 'Return declined',
+    icon: ShieldAlert,
+    dot: 'bg-orange-600',
+    badge: 'border-orange-200 bg-orange-50 text-orange-800',
+  },
 }
 
 const TYPE_FILTERS: Array<{ value: AssetTimelineEventType; label: string }> = [
@@ -93,6 +129,12 @@ const TYPE_FILTERS: Array<{ value: AssetTimelineEventType; label: string }> = [
   { value: 'scrap', label: 'Scrap' },
   { value: 'qr_generated', label: 'QR generated' },
   { value: 'made_available', label: 'Made available' },
+  { value: 'transfer', label: 'Transfer' },
+  { value: 'gate_pass_approved', label: 'Gate approved' },
+  { value: 'gate_pass_declined', label: 'Gate declined' },
+  { value: 'gate_pass_cancelled', label: 'Gate cancelled' },
+  { value: 'gate_return_approved', label: 'Return approved' },
+  { value: 'gate_return_declined', label: 'Return declined' },
 ]
 
 const PAGE_SIZE = 25
@@ -141,8 +183,22 @@ const TimelineEntry: React.FC<{ event: AssetTimelineEvent; isLast: boolean }> = 
             {event.description}
           </p>
         )}
-        {(event.createdBy?.name ||
-          (typeof event.meta?.decidedByName === 'string' && event.meta.decidedByName)) && (
+        {typeof event.meta?.documentUrl === 'string' && event.meta.documentUrl ? (
+          <a
+            href={event.meta.documentUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-flex"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={event.meta.documentUrl}
+              alt="Evidence"
+              className="h-16 w-16 rounded-md border border-gray-200 object-cover bg-white"
+            />
+          </a>
+        ) : null}
+        {(event.createdBy?.name || (typeof event.meta?.decidedByName === 'string' && event.meta.decidedByName)) && (
           <div className="mt-3 flex flex-col gap-1 border-t border-gray-100 pt-2 dark:border-gray-800">
             {event.createdBy?.name && (
               <span className="text-[11px] text-gray-500">
@@ -172,16 +228,29 @@ interface AssetTimelineDialogProps {
 }
 
 const AssetTimelineDialog: React.FC<AssetTimelineDialogProps> = ({ asset, open, onOpenChange }) => {
+  const { isSuperAdmin } = useAuth()
+  const { selectedLocationId, selectedLocationName } = useLocationStore()
   const [types, setTypes] = useState<AssetTimelineEventType[]>([])
   const [page, setPage] = useState(1)
+  const [activeCenterId, setActiveCenterId] = useState(selectedLocationId || '')
+
+  /* eslint-disable react-hooks/set-state-in-effect -- sync center scope when dialog opens */
+  useEffect(() => {
+    if (open && selectedLocationId) {
+      setActiveCenterId(selectedLocationId)
+      setPage(1)
+    }
+  }, [open, asset?.id, selectedLocationId])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const params = useMemo(
     () => ({
       page,
       limit: PAGE_SIZE,
       types: types.length ? types.join(',') : undefined,
+      ...(isSuperAdmin && activeCenterId ? { centerScopeId: activeCenterId } : {}),
     }),
-    [page, types],
+    [page, types, isSuperAdmin, activeCenterId],
   )
 
   const { data, isLoading, isError, isFetching } = useAssetTimelineQuery(asset?.id, params, open && !!asset?.id)
@@ -191,6 +260,22 @@ const AssetTimelineDialog: React.FC<AssetTimelineDialogProps> = ({ asset, open, 
   const total = pagination?.total ?? 0
   const totalPages = pagination?.totalPages ?? 1
   const title = asset ? getAssetOptionLabel(asset) : 'Asset history'
+  const centerTabs = useMemo(() => {
+    const list = data?.centers ?? []
+    if (list.length <= 1) return list
+    return [...list].sort((a, b) => {
+      if (a.id === selectedLocationId) return -1
+      if (b.id === selectedLocationId) return 1
+      return a.name.localeCompare(b.name)
+    })
+  }, [data?.centers, selectedLocationId])
+
+  const showCenterTabs = isSuperAdmin && centerTabs.length > 1
+  const activeCenterName =
+    centerTabs.find((c) => c.id === activeCenterId)?.name ||
+    events[0]?.centerName ||
+    selectedLocationName ||
+    'this center'
 
   const toggleType = (value: AssetTimelineEventType, checked: boolean) => {
     setTypes((prev) => (checked ? [...prev, value] : prev.filter((t) => t !== value)))
@@ -201,8 +286,14 @@ const AssetTimelineDialog: React.FC<AssetTimelineDialogProps> = ({ asset, open, 
     if (!next) {
       setTypes([])
       setPage(1)
+      if (selectedLocationId) setActiveCenterId(selectedLocationId)
     }
     onOpenChange(next)
+  }
+
+  const handleCenterTabChange = (centerId: string) => {
+    setActiveCenterId(centerId)
+    setPage(1)
   }
 
   return (
@@ -214,7 +305,9 @@ const AssetTimelineDialog: React.FC<AssetTimelineDialogProps> = ({ asset, open, 
             Asset history
           </DialogTitle>
           <DialogDescription>
-            Complete lifecycle log for <span className="font-semibold text-gray-700">{title}</span>
+            {showCenterTabs ? `Activity at ${activeCenterName}` : `Lifecycle log for this center`}
+            {' · '}
+            <span className="font-semibold text-gray-700">{title}</span>
             {!isLoading ? ` · ${total} event${total === 1 ? '' : 's'}` : ''}
           </DialogDescription>
         </DialogHeader>
@@ -254,6 +347,31 @@ const AssetTimelineDialog: React.FC<AssetTimelineDialogProps> = ({ asset, open, 
           </aside>
 
           <section className="flex min-h-0 min-w-0 flex-col">
+            {showCenterTabs && (
+              <Tabs
+                value={activeCenterId}
+                onValueChange={(value) => handleCenterTabChange(String(value))}
+                className="mb-3 w-full gap-0"
+              >
+                <div className="rounded-full border border-slate-300/70 bg-slate-200/70 p-1 shadow-2xs dark:border-slate-700/80 dark:bg-slate-800/80">
+                  <TabsList
+                    className="grid w-full h-auto gap-1 bg-transparent p-0"
+                    style={{ gridTemplateColumns: `repeat(${centerTabs.length}, minmax(0, 1fr))` }}
+                  >
+                    {centerTabs.map((center) => (
+                      <TabsTrigger
+                        key={center.id}
+                        value={center.id}
+                        className="flex h-8 items-center justify-center rounded-full px-2 text-xs font-semibold"
+                      >
+                        {center.name}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </div>
+              </Tabs>
+            )}
+
             {isError && (
               <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
                 Failed to load the timeline for this asset.
