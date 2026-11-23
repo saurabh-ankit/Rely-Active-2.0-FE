@@ -7,13 +7,15 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/sonner'
 import './index.css'
 import App from './App'
+import { isChunkLoadError, reloadForNewVersion } from '@/lib/chunkReload'
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } })
-window.addEventListener('error', (e) => {
-  if (e.message?.includes('Failed to fetch dynamically imported module')) {
-    console.log('Chunk load failed → Reloading...')
-    window.location.reload()
-  }
+// Vite fires this when a lazy chunk (or its CSS) from an older deploy can't be loaded.
+window.addEventListener('vite:preloadError', (e) => {
+  if (reloadForNewVersion()) e.preventDefault()
+})
+window.addEventListener('unhandledrejection', (e) => {
+  if (isChunkLoadError(e.reason)) reloadForNewVersion()
 })
 
 createRoot(document.getElementById('root')!).render(

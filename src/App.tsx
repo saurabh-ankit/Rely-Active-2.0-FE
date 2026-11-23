@@ -6,6 +6,7 @@ import { LocationSelectionModal } from './components/common/LocationSelectionMod
 import { GlobalLoadingIndicator } from './components/common/GlobalLoadingIndicator'
 import SuspenseLoader from './components/shared/SuspenseLoader'
 import RootRouter from './RootRouter'
+import { isChunkLoadError, reloadForNewVersion } from './lib/chunkReload'
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean; error?: Error }> {
   state: { failed: boolean; error?: Error } = { failed: false }
@@ -13,9 +14,24 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { failed: bool
     return { failed: true, error }
   }
   componentDidCatch(error: Error, info: ErrorInfo) {
+    // A page chunk from an older deploy: reload once to get the new version instead of erroring.
+    if (isChunkLoadError(error) && reloadForNewVersion()) return
     console.error('Rely Active web error', error, info)
   }
   render() {
+    if (this.state.failed && isChunkLoadError(this.state.error)) {
+      return (
+        <main className="grid min-h-screen place-items-center p-6">
+          <div className="text-center max-w-md w-full">
+            <h1 className="text-xl font-semibold">A new version of Rely is available</h1>
+            <p className="mt-2 text-muted-foreground">Reload to continue with the latest version.</p>
+            <Button className="mt-4" onClick={() => window.location.reload()}>
+              Reload
+            </Button>
+          </div>
+        </main>
+      )
+    }
     return this.state.failed ? (
       <main className="grid min-h-screen place-items-center p-6">
         <div className="text-center max-w-2xl w-full">

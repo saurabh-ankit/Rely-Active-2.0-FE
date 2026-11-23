@@ -16,19 +16,31 @@ import type { EmployeeActivityParams } from '@/lib/types/employeeActivity'
 import { useLocationStore } from '@/lib/stores/locationStore'
 
 export const USER_KEYS = {
-  all: (locationId?: string | null, search?: string, includeSuperAdmins = false) =>
-    ['users', locationId || 'all', search || '', includeSuperAdmins ? 'with-super-admins' : ''] as const,
+  all: (locationId?: string | null, search?: string, includeSuperAdmins = false, limit?: number) =>
+    [
+      'users',
+      locationId || 'all',
+      search || '',
+      includeSuperAdmins ? 'with-super-admins' : '',
+      limit ?? 'all',
+    ] as const,
   byId: (id?: string) => ['users', id] as const,
   accessibleProperties: ['users', 'accessible-properties'] as const,
   byRole: (roleCodes: string[], locationId?: string | null) => ['users', 'by-role', roleCodes, locationId] as const,
 }
 
-export const useUsersQuery = (search?: string, overrideLocationId?: string | null, includeSuperAdmins = false) => {
+/** `limit` returns only the first N matches (newest first); search on the server to reach the rest. */
+export const useUsersQuery = (
+  search?: string,
+  overrideLocationId?: string | null,
+  includeSuperAdmins = false,
+  limit?: number,
+) => {
   const storeLocationId = useLocationStore((state) => state.selectedLocationId)
   const locationId = overrideLocationId !== undefined ? overrideLocationId : storeLocationId
   return useQuery({
-    queryKey: USER_KEYS.all(locationId, search, includeSuperAdmins),
-    queryFn: () => getUsersAPI(locationId, search, includeSuperAdmins),
+    queryKey: USER_KEYS.all(locationId, search, includeSuperAdmins, limit),
+    queryFn: () => getUsersAPI(locationId, search, includeSuperAdmins, limit),
   })
 }
 

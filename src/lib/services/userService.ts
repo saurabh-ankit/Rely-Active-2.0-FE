@@ -12,6 +12,7 @@ export const getUsersAPI = async (
   locationId?: string | null,
   search?: string,
   includeSuperAdmins = false,
+  limit?: number,
 ): Promise<UserItem[]> => {
   const params: Record<string, string> = {}
   const headers: Record<string, string> = {}
@@ -25,6 +26,7 @@ export const getUsersAPI = async (
   }
 
   if (search && search.trim()) params.search = search.trim()
+  if (limit) params.limit = String(limit)
   // Super admins are returned only for the global settings employee list (and only to super admins).
   if (includeSuperAdmins && locationId === null) params.includeSuperAdmins = 'true'
 

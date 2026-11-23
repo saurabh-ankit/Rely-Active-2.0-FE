@@ -419,6 +419,7 @@ export const API_ENDPOINTS = {
     slotConfig: `${BASE_URL}/location/:locationId/amenities/:amenityId/slot-config`,
     slots: `${BASE_URL}/location/:locationId/amenities/:amenityId/slots`,
     bookings: `${BASE_URL}/location/:locationId/amenities/:amenityId/bookings`,
+    bookablePeople: `${BASE_URL}/location/:locationId/amenities/:amenityId/bookable-people`,
     booking: `${BASE_URL}/location/:locationId/amenities/:amenityId/bookings/:bookingId`,
     blocks: `${BASE_URL}/location/:locationId/amenities/:amenityId/blocks`,
     block: `${BASE_URL}/location/:locationId/amenities/:amenityId/blocks/:blockId`,

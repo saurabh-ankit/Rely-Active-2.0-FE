@@ -33,8 +33,16 @@ export interface AmenitySlotBookingItem {
   id: string
   date: string
   startMinutes: number
-  residentId: string
+  /** The household's resident (the booker, or the family member's resident). */
+  residentId: string | null
+  /** Set when the booking is for a family member. */
+  familyMemberId?: string | null
+  bookedBy?: 'RESIDENT' | 'FAMILY_MEMBER'
+  /** Name of the person the booking is for. */
   residentName: string
+  relation?: string | null
+  /** For a family member's booking: the resident they belong to. */
+  householdResidentName?: string | null
   floorNumber: number | null
   unitNumber: string | null
   status: 'BOOKED' | 'CANCELLED'
@@ -149,13 +157,38 @@ export const createAmenitySlotBookingAPI = async (
     endDate?: string
     /** Overnight stay: the check-out date. */
     checkOutDate?: string
-    residentId: string
+    /** Exactly one: the resident, or the residing family member the booking is for. */
+    residentId?: string
+    familyMemberId?: string
     notes?: string
   },
 ) => {
   const url = formatUrl(API_ENDPOINTS.amenitySlots.bookings, locationId, amenityId)
   const response = await api.post(url, payload)
   return response.data
+}
+
+/** A resident, or a residing family member, who can be booked for. */
+export interface AmenityBookablePerson {
+  type: 'RESIDENT' | 'FAMILY_MEMBER'
+  residentId: string
+  familyMemberId: string | null
+  name: string
+  relation: string | null
+  householdResidentName: string | null
+  phone: string | null
+  floorNumber: number | null
+  unitNumber: string | null
+}
+
+export const getAmenityBookablePeopleAPI = async (
+  locationId: string,
+  amenityId: string,
+  search?: string,
+): Promise<AmenityBookablePerson[]> => {
+  const url = formatUrl(API_ENDPOINTS.amenitySlots.bookablePeople, locationId, amenityId)
+  const response = await api.get(url, { params: search ? { search } : {} })
+  return response.data?.data?.people ?? []
 }
 
 export const cancelAmenitySlotBookingAPI = async (locationId: string, amenityId: string, bookingId: string) => {

@@ -285,10 +285,7 @@ const familyMemberSchema = z.object({
     .trim()
     .optional()
     .or(z.literal(''))
-    .refine(
-      (val) => !val || /^[a-zA-Z0-9_]{3,30}$/.test(val),
-      'Username handle must be 3-30 characters (letters, numbers, underscores only)',
-    ),
+    .refine((val) => !val || /^\S{3,30}$/.test(val), 'Username handle must be 3-30 characters with no spaces'),
   password: z
     .string()
     .optional()
@@ -296,6 +293,14 @@ const familyMemberSchema = z.object({
     .refine((val) => !val || val.length >= 6, 'Password must be at least 6 characters long'),
   isResiding: z.boolean().optional(),
 })
+
+/** Latest date of birth (local time) for someone who is 18 today. */
+const latestAdultDob = (): string => {
+  const now = new Date()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${now.getFullYear() - 18}-${m}-${d}`
+}
 
 const residentFormSchema = z.object({
   unitId: z.string().min(1, 'Property Flat / Unit is required'),
@@ -318,16 +323,17 @@ const residentFormSchema = z.object({
     .or(z.literal(''))
     .refine((val) => !val || !/\d/.test(val), 'Last name cannot contain numbers'),
   gender: z.enum(['MALE', 'FEMALE', 'OTHER']),
-  dob: z.string().trim().min(1, 'Date of birth is required'),
+  dob: z
+    .string()
+    .trim()
+    .min(1, 'Date of birth is required')
+    .refine((val) => val <= latestAdultDob(), 'Resident must be 18 years or above'),
   username: z
     .string()
     .trim()
     .optional()
     .or(z.literal(''))
-    .refine(
-      (val) => !val || /^[a-zA-Z0-9_]{3,30}$/.test(val),
-      'Username handle must be 3-30 characters (letters, numbers, underscores only)',
-    ),
+    .refine((val) => !val || /^\S{3,30}$/.test(val), 'Username handle must be 3-30 characters with no spaces'),
   password: z
     .string()
     .optional()
