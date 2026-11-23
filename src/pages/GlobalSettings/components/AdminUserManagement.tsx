@@ -95,6 +95,12 @@ const todayYmdLocal = (): string => {
   return `${y}-${m}-${d}`
 }
 
+/** Latest date of birth for someone who is 18 today. */
+const latestAdultDobLocal = (): string => {
+  const today = todayYmdLocal()
+  return `${Number(today.slice(0, 4)) - 18}${today.slice(4)}`
+}
+
 /** Reject incomplete/invalid/future date values from native date inputs. */
 const sanitizePastDateOrEmpty = (
   el: HTMLInputElement,
@@ -199,6 +205,9 @@ const userFormSchema = z
       })
       .refine((val) => !val || val <= todayYmdLocal(), {
         message: 'Date of birth cannot be a future date',
+      })
+      .refine((val) => !val || val <= latestAdultDobLocal(), {
+        message: 'Employee must be 18 years or above',
       }),
     emergencyContact: z
       .string()
