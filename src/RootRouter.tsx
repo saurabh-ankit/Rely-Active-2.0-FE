@@ -7,6 +7,8 @@ import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 const CompanyPage = lazy(() => import('@/pages/Company'))
 const ComponentShowcase = lazy(() => import('@/pages/ComponentShowcase'))
 const DashboardPage = lazy(() => import('@/pages/Dashboard'))
+const ReportsPage = lazy(() => import('@/pages/Reports'))
+const ReportPreviewPage = lazy(() => import('@/pages/Reports/ReportPreviewPage'))
 const EmployeeDirectoryPage = lazy(() => import('@/pages/Employees'))
 const GlobalSettingsPage = lazy(() => import('@/pages/GlobalSettings'))
 const PropertyPage = lazy(() => import('@/pages/Property'))
@@ -307,6 +309,22 @@ export default function RootRouter() {
           element={
             <ProtectedRoute resourceKey="RESIDENT" action="view">
               <ResidentBillingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/reports"
+          element={
+            <ProtectedRoute>
+              <ReportsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/reports/:reportKey"
+          element={
+            <ProtectedRoute>
+              <ReportPreviewPage />
             </ProtectedRoute>
           }
         />

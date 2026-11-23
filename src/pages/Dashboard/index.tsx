@@ -1,25 +1,24 @@
-import { IndianRupee, LayoutDashboard, Package, RefreshCw, Users } from 'lucide-react'
+import { useIsFetching, useQueryClient } from '@tanstack/react-query'
+import { LayoutDashboard, RefreshCw, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useDashboardStatsQuery } from '@/hooks/react-query/dashboard'
+import { DASHBOARD_KEYS, useDashboardSettingsQuery, useDashboardStatsQuery } from '@/hooks/react-query/dashboard'
 import { useLocation } from '@/hooks/useLocation'
+import type { AnalyticsTabKey, DashboardTabKey } from '@/lib/types/dashboard'
 import { cn } from '@/lib/utils'
+import { AnalyticsTabView } from './components/AnalyticsTabView'
 import { BillingTab } from './components/BillingTab'
 import { InventoryTab } from './components/InventoryTab'
 import { OccupancyTab } from './components/OccupancyTab'
+import { CustomizeTabsDialog } from './components/CustomizeTabsDialog'
 import { OverviewTab } from './components/OverviewTab'
+import { DASHBOARD_TABS } from './tabs'
 
-type Tab = 'dashboard' | 'occupancy' | 'billing' | 'inventory'
-
-const TABS: { value: Tab; label: string; icon: typeof LayoutDashboard }[] = [
-  { value: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { value: 'occupancy', label: 'Occupancy', icon: Users },
-  { value: 'billing', label: 'Billing', icon: IndianRupee },
-  { value: 'inventory', label: 'Inventory', icon: Package },
-]
+/** Tabs served by `/dashboard/stats`; every other tab loads its own analytics. */
+const STATS_TABS: DashboardTabKey[] = ['dashboard', 'occupancy', 'billing', 'inventory']
 
 function LoadingState() {
   return (
@@ -44,7 +43,9 @@ function LoadingState() {
 
 export default function DashboardPage() {
   const { selectedLocationId } = useLocation()
-  const [activeTab, setActiveTab] = useState<Tab>('dashboard')
+  const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState<DashboardTabKey>('dashboard')
+  const [customizing, setCustomizing] = useState(false)
   const [criticalPage, setCriticalPage] = useState(1)
   const [prevLocationId, setPrevLocationId] = useState(selectedLocationId)
 
@@ -54,13 +55,22 @@ export default function DashboardPage() {
     setCriticalPage(1)
   }
 
+  const { data: settings } = useDashboardSettingsQuery(selectedLocationId)
+  // Until the company's choice loads, show every tab rather than flash a shorter list.
+  const visibleTabs = DASHBOARD_TABS.filter(
+    (t) => t.value === 'dashboard' || !settings || settings.visibleTabs.includes(t.value),
+  )
+  // A tab hidden by an admin falls back to the overview.
+  const currentTab = visibleTabs.some((t) => t.value === activeTab) ? activeTab : 'dashboard'
+  const isStatsTab = STATS_TABS.includes(currentTab)
+
   const {
     data: stats,
     isLoading,
     isError,
-    isFetching,
     refetch,
   } = useDashboardStatsQuery(selectedLocationId, { page: criticalPage, limit: 6 })
+  const isFetching = useIsFetching({ queryKey: DASHBOARD_KEYS.all }) > 0
 
   const updatedAt = stats?.generatedAt
     ? new Date(stats.generatedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
@@ -71,22 +81,41 @@ export default function DashboardPage() {
       <PageHeader
         icon={LayoutDashboard}
         title="Dashboard"
-        description="Live property overview: residents, tickets, visitors, occupancy, billing and inventory."
+        description={`Live property overview: ${
+          visibleTabs
+            .filter((t) => t.value !== 'dashboard')
+            .map((t) => t.label.toLowerCase())
+            .join(', ')
+            .replace(/, ([^,]*)$/, ' and $1') || 'residents, tickets and visitors'
+        }.`}
         actions={
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="h-auto flex shrink-0 items-center justify-center gap-2 rounded-full border border-slate-300/70 bg-white dark:bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-600 shadow-2xs hover:text-[#005390] hover:bg-gray-50 disabled:opacity-60"
-          >
-            <RefreshCw className={cn('h-3.5 w-3.5', isFetching && 'animate-spin')} />
-            {updatedAt ? `Updated ${updatedAt}` : 'Refresh'}
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            {settings?.canEdit && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCustomizing(true)}
+                className="h-auto flex shrink-0 items-center justify-center gap-2 rounded-full border border-slate-300/70 bg-white dark:bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-600 shadow-2xs hover:text-[#005390] hover:bg-gray-50"
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                Customise tabs
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => queryClient.invalidateQueries({ queryKey: DASHBOARD_KEYS.all })}
+              disabled={isFetching}
+              className="h-auto flex shrink-0 items-center justify-center gap-2 rounded-full border border-slate-300/70 bg-white dark:bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-600 shadow-2xs hover:text-[#005390] hover:bg-gray-50 disabled:opacity-60"
+            >
+              <RefreshCw className={cn('h-3.5 w-3.5', isFetching && 'animate-spin')} />
+              {updatedAt ? `Updated ${updatedAt}` : 'Refresh'}
+            </Button>
+          </div>
         }
       />
 
-      {isError && (
+      {isError && isStatsTab && (
         <div className="flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700">
           <span>Failed to load dashboard statistics.</span>
           <Button
@@ -100,14 +129,15 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as Tab)} className="w-full gap-0">
-        <div className="w-full rounded-full bg-slate-200/70 dark:bg-slate-800/80 border border-slate-300/70 dark:border-slate-700/80 p-1 shadow-2xs">
-          <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full h-auto gap-1 items-center bg-transparent p-0">
-            {TABS.map(({ value, label, icon: Icon }) => (
+      <Tabs value={currentTab} onValueChange={(val) => setActiveTab(val as DashboardTabKey)} className="w-full gap-0">
+        <div className="w-full rounded-[20px] bg-slate-200/70 dark:bg-slate-800/80 border border-slate-300/70 dark:border-slate-700/80 p-1 shadow-2xs">
+          {/* Up to 12 tabs share the row; on narrow screens they wrap onto a second row instead of scrolling. */}
+          <TabsList className="flex w-full h-auto flex-wrap justify-center gap-1 items-center bg-transparent p-0">
+            {visibleTabs.map(({ value, label, icon: Icon }) => (
               <TabsTrigger
                 key={value}
                 value={value}
-                className="flex h-8 w-full items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-xs focus-visible:!ring-0 transition-all cursor-pointer"
+                className="flex h-8 w-auto flex-auto items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-xs focus-visible:!ring-0 transition-all cursor-pointer"
               >
                 <Icon className="size-4 shrink-0" />
                 <span>{label}</span>
@@ -117,19 +147,35 @@ export default function DashboardPage() {
         </div>
       </Tabs>
 
-      {isLoading || !stats ? (
+      {!isStatsTab ? (
+        <AnalyticsTabView
+          key={currentTab}
+          tab={currentTab as AnalyticsTabKey}
+          label={visibleTabs.find((t) => t.value === currentTab)?.label ?? ''}
+          locationId={selectedLocationId}
+        />
+      ) : isLoading || !stats ? (
         isError ? null : (
           <LoadingState />
         )
       ) : (
         <>
-          {activeTab === 'dashboard' && (
+          {currentTab === 'dashboard' && (
             <OverviewTab data={stats.overview} criticalPage={criticalPage} onCriticalPage={setCriticalPage} />
           )}
-          {activeTab === 'occupancy' && <OccupancyTab data={stats.occupancy} />}
-          {activeTab === 'billing' && <BillingTab data={stats.billing} />}
-          {activeTab === 'inventory' && <InventoryTab data={stats.inventory} />}
+          {currentTab === 'occupancy' && <OccupancyTab data={stats.occupancy} />}
+          {currentTab === 'billing' && <BillingTab data={stats.billing} />}
+          {currentTab === 'inventory' && <InventoryTab data={stats.inventory} />}
         </>
+      )}
+
+      {settings?.canEdit && (
+        <CustomizeTabsDialog
+          open={customizing}
+          onOpenChange={setCustomizing}
+          settings={settings}
+          locationId={selectedLocationId}
+        />
       )}
     </div>
   )

@@ -32,3 +32,8 @@ export const timeAgo = (iso: string) => {
   if (days < 30) return `${days} d ago`
   return new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
+/** "SOME_KEY" / "some_key" → "Some key". */
+export const humanize = (key: string) => {
+  const s = key.replace(/[_-]+/g, ' ').trim().toLowerCase()
+  return s ? s[0]!.toUpperCase() + s.slice(1) : key
+}

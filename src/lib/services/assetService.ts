@@ -15,11 +15,15 @@ import type {
   AssetVendor,
   AssetWarranty,
   ComplianceStatusResponse,
+  AssetItemRequest,
+  AssetTimelineParams,
+  AssetTimelineResponse,
   CreateAssetAssignmentRequest,
   CreateAssetCategoryRequest,
   CreateAssetItemRequest,
   CreateAssetRequest,
   CreateAssetVendorRequest,
+  CreateItemRequestPayload,
   CreateServiceLogRequest,
   CreateTrainingRequest,
   CreateWarrantyRequest,
@@ -256,8 +260,26 @@ export const returnAsset = async (locationId: string, id: string, data: ReturnAs
 // Assignee Dropdowns
 export const getEmployeesForAssignment = async (locationId: string) => {
   const url = formatUrl(API_ENDPOINTS.assetManagement.assignees.employees, locationId)
-  const response = await api.get<ApiResponse<Array<{ id: string; name: string; role?: string }>>>(url)
+  const response = await api.get<
+    ApiResponse<Array<{ id: string; name: string; email?: string; phone?: string; role?: string }>>
+  >(url)
   return response.data
+}
+
+export const makeAssetAvailable = async (locationId: string, id: string) => {
+  const url = formatUrl(API_ENDPOINTS.assetManagement.assets.makeAvailable, locationId, id)
+  const response = await api.put<ApiResponse<Asset>>(url)
+  return response.data
+}
+
+export const getAssetTimeline = async (
+  locationId: string,
+  id: string,
+  params: AssetTimelineParams = {},
+): Promise<AssetTimelineResponse> => {
+  const url = formatUrl(API_ENDPOINTS.assetManagement.assets.timeline, locationId, id)
+  const response = await api.get<ApiResponse<AssetTimelineResponse>>(url, { params })
+  return response.data.data
 }
 
 export const getResidentsForAssignment = async (locationId: string) => {
@@ -534,5 +556,64 @@ export const uploadBulkAssets = async (locationId: string, file: File) => {
       'Content-Type': 'multipart/form-data',
     },
   })
+  return response.data
+}
+
+// Item Requests
+export const getItemRequests = async (locationId: string, params?: PaginationParams) => {
+  const url = formatUrl(API_ENDPOINTS.assetManagement.itemRequests.list, locationId)
+  const response = await api.get<
+    ApiResponse<{ itemRequests: AssetItemRequest[]; pagination: unknown }>
+  >(url, { params })
+  return response.data
+}
+
+export const createItemRequest = async (locationId: string, data: CreateItemRequestPayload) => {
+  const url = formatUrl(API_ENDPOINTS.assetManagement.itemRequests.create, locationId)
+  const response = await api.post<ApiResponse<AssetItemRequest>>(url, data)
+  return response.data
+}
+
+export const getItemRequestById = async (locationId: string, id: string) => {
+  const url = formatUrl(API_ENDPOINTS.assetManagement.itemRequests.get, locationId, id)
+  const response = await api.get<ApiResponse<AssetItemRequest>>(url)
+  return response.data
+}
+
+export const updateItemRequest = async (
+  locationId: string,
+  id: string,
+  data: Partial<CreateItemRequestPayload>,
+) => {
+  const url = formatUrl(API_ENDPOINTS.assetManagement.itemRequests.update, locationId, id)
+  const response = await api.put<ApiResponse<AssetItemRequest>>(url, data)
+  return response.data
+}
+
+export const deleteItemRequest = async (locationId: string, id: string) => {
+  const url = formatUrl(API_ENDPOINTS.assetManagement.itemRequests.delete, locationId, id)
+  const response = await api.delete<ApiResponse<null>>(url)
+  return response.data
+}
+
+export const scanItemRequest = async (locationId: string, qrCode: string) => {
+  const url = formatUrl(API_ENDPOINTS.assetManagement.itemRequests.scan, locationId)
+  const response = await api.post<ApiResponse<AssetItemRequest>>(url, { qrCode })
+  return response.data
+}
+
+export const approveItemRequest = async (locationId: string, id: string) => {
+  const url = formatUrl(API_ENDPOINTS.assetManagement.itemRequests.approve, locationId, id)
+  const response = await api.post<ApiResponse<AssetItemRequest>>(url)
+  return response.data
+}
+
+export const declineItemRequest = async (
+  locationId: string,
+  id: string,
+  data: { comment: string; image?: string },
+) => {
+  const url = formatUrl(API_ENDPOINTS.assetManagement.itemRequests.decline, locationId, id)
+  const response = await api.post<ApiResponse<AssetItemRequest>>(url, data)
   return response.data
 }

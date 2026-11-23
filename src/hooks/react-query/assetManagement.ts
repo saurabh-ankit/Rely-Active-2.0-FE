@@ -2,22 +2,31 @@ interface ApiError {
   response?: { data?: { message?: string } }
   message?: string
 }
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import * as assetService from '@/lib/services/assetService'
 import { useLocationStore } from '@/lib/stores/locationStore'
 import type {
+  AssetTimelineParams,
+  AssetTimelineResponse,
   CreateAssetAssignmentRequest,
   CreateAssetCategoryRequest,
   CreateAssetItemRequest,
   CreateAssetRequest,
   CreateAssetVendorRequest,
+  CreateItemRequestPayload,
   CreateServiceLogRequest,
   CreateTrainingRequest,
   CreateWarrantyRequest,
   PaginationParams,
   ReturnAssetRequest,
 } from '@/lib/types'
+
+export const ASSET_TIMELINE_KEYS = {
+  all: ['assetTimeline'] as const,
+  byAsset: (assetId?: string) => ['assetTimeline', assetId] as const,
+  detail: (assetId?: string, params?: AssetTimelineParams) => ['assetTimeline', assetId, params] as const,
+}
 
 // Asset Categories
 export const useGetAssetCategories = (params?: PaginationParams & { enabled?: boolean }) => {
@@ -284,6 +293,38 @@ export const useDeleteAsset = () => {
   })
 }
 
+export const useMakeAssetAvailable = () => {
+  const queryClient = useQueryClient()
+  const { selectedLocationId } = useLocationStore()
+  const locationId = selectedLocationId || 'all'
+
+  return useMutation({
+    mutationFn: (id: string) => assetService.makeAssetAvailable(locationId, id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] })
+      queryClient.invalidateQueries({ queryKey: ['assetStats'] })
+      queryClient.invalidateQueries({ queryKey: ASSET_TIMELINE_KEYS.byAsset(id) })
+      toast.success('Asset marked as available')
+    },
+    onError: (error: ApiError) => {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to make asset available'
+      toast.error(errorMessage)
+    },
+  })
+}
+
+export const useAssetTimelineQuery = (assetId?: string, params: AssetTimelineParams = {}, enabled = true) => {
+  const { selectedLocationId } = useLocationStore()
+  const locationId = selectedLocationId || 'all'
+
+  return useQuery<AssetTimelineResponse>({
+    queryKey: ASSET_TIMELINE_KEYS.detail(assetId, params),
+    queryFn: () => assetService.getAssetTimeline(locationId, assetId!, params),
+    enabled: enabled && !!assetId && !!locationId,
+    placeholderData: keepPreviousData,
+  })
+}
+
 export const useGetAssetStats = (options?: { enabled?: boolean }) => {
   const { selectedLocationId } = useLocationStore()
   const locationId = selectedLocationId || 'all'
@@ -340,6 +381,7 @@ export const useCreateAssetAssignment = () => {
       queryClient.invalidateQueries({ queryKey: ['activeAssignments'] })
       queryClient.invalidateQueries({ queryKey: ['assets'] })
       queryClient.invalidateQueries({ queryKey: ['assetStats'] })
+      queryClient.invalidateQueries({ queryKey: ASSET_TIMELINE_KEYS.all })
     },
   })
 }
@@ -357,6 +399,7 @@ export const useReturnAsset = () => {
       queryClient.invalidateQueries({ queryKey: ['activeAssignments'] })
       queryClient.invalidateQueries({ queryKey: ['assets'] })
       queryClient.invalidateQueries({ queryKey: ['assetStats'] })
+      queryClient.invalidateQueries({ queryKey: ASSET_TIMELINE_KEYS.all })
     },
   })
 }
@@ -444,6 +487,8 @@ export const useCreateServiceLog = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['serviceLogs', locationId] })
       queryClient.invalidateQueries({ queryKey: ['assets', locationId] })
+      queryClient.invalidateQueries({ queryKey: ['assetStats'] })
+      queryClient.invalidateQueries({ queryKey: ASSET_TIMELINE_KEYS.all })
     },
     onError: (error: ApiError) => {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to create service log'
@@ -462,6 +507,7 @@ export const useUpdateServiceLog = () => {
       assetService.updateServiceLog(locationId, id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['serviceLogs', locationId] })
+      queryClient.invalidateQueries({ queryKey: ['assetStats'] })
     },
     onError: (error: ApiError) => {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to update service log'
@@ -479,6 +525,8 @@ export const useDeleteServiceLog = () => {
     mutationFn: (id: string) => assetService.deleteServiceLog(locationId, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['serviceLogs', locationId] })
+      queryClient.invalidateQueries({ queryKey: ['assets', locationId] })
+      queryClient.invalidateQueries({ queryKey: ['assetStats'] })
     },
     onError: (error: ApiError) => {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to delete service log'
@@ -498,6 +546,8 @@ export const useCompleteServiceLog = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['serviceLogs', locationId] })
       queryClient.invalidateQueries({ queryKey: ['assets', locationId] })
+      queryClient.invalidateQueries({ queryKey: ['assetStats'] })
+      queryClient.invalidateQueries({ queryKey: ASSET_TIMELINE_KEYS.all })
     },
     onError: (error: ApiError) => {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to complete service log'
@@ -527,6 +577,7 @@ export const useCreateWarranty = () => {
     mutationFn: (data: CreateWarrantyRequest | FormData) => assetService.createWarranty(locationId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['warranties', locationId] })
+      queryClient.invalidateQueries({ queryKey: ['assetStats'] })
     },
     onError: (error: ApiError) => {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to create warranty'
@@ -545,6 +596,7 @@ export const useUpdateWarranty = () => {
       assetService.updateWarranty(locationId, id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['warranties', locationId] })
+      queryClient.invalidateQueries({ queryKey: ['assetStats'] })
     },
     onError: (error: ApiError) => {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to update warranty'
@@ -562,6 +614,7 @@ export const useDeleteWarranty = () => {
     mutationFn: (id: string) => assetService.deleteWarranty(locationId, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['warranties', locationId] })
+      queryClient.invalidateQueries({ queryKey: ['assetStats'] })
     },
     onError: (error: ApiError) => {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to delete warranty'
@@ -908,6 +961,155 @@ export const useUploadBulkAssets = () => {
     },
     onError: (error: ApiError) => {
       const errorMessage = error.response?.data?.message || 'Failed to upload assets'
+      toast.error(errorMessage)
+    },
+  })
+}
+
+// Item Requests
+export const useGetItemRequests = (params?: PaginationParams & { enabled?: boolean }) => {
+  const { selectedLocationId } = useLocationStore()
+  const locationId = selectedLocationId || 'all'
+  const { enabled = true, ...queryParams } = params || {}
+
+  return useQuery({
+    queryKey: ['itemRequests', locationId, queryParams],
+    queryFn: () => assetService.getItemRequests(locationId, queryParams),
+    enabled: enabled && !!locationId,
+  })
+}
+
+export const useCreateItemRequest = () => {
+  const queryClient = useQueryClient()
+  const { selectedLocationId } = useLocationStore()
+  const locationId = selectedLocationId || 'all'
+
+  return useMutation({
+    mutationFn: (data: CreateItemRequestPayload) => assetService.createItemRequest(locationId, data),
+    onSuccess: async (response) => {
+      const created = response?.data
+      if (created) {
+        queryClient.setQueriesData(
+          { queryKey: ['itemRequests', locationId] },
+          (old: { data?: { itemRequests?: unknown[]; pagination?: { total?: number } } } | undefined) => {
+            if (!old?.data) {
+              return {
+                success: true,
+                message: 'Item requests retrieved successfully',
+                data: { itemRequests: [created], pagination: { total: 1, page: 1, limit: 1000, totalPages: 1 } },
+              }
+            }
+            const existing = old.data.itemRequests || []
+            const withoutDup = existing.filter((row) => (row as { id?: string }).id !== created.id)
+            return {
+              ...old,
+              data: {
+                ...old.data,
+                itemRequests: [created, ...withoutDup],
+                pagination: {
+                  ...old.data.pagination,
+                  total: (old.data.pagination?.total || withoutDup.length) + 1,
+                },
+              },
+            }
+          },
+        )
+      }
+      await queryClient.invalidateQueries({ queryKey: ['itemRequests'], refetchType: 'all' })
+      await queryClient.invalidateQueries({ queryKey: ['assets'], refetchType: 'all' })
+      await queryClient.invalidateQueries({ queryKey: ['assetStats'], refetchType: 'all' })
+      await queryClient.invalidateQueries({ queryKey: ASSET_TIMELINE_KEYS.all })
+      toast.success('Item request created successfully')
+    },
+    onError: (error: ApiError) => {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to create item request'
+      toast.error(errorMessage)
+    },
+  })
+}
+
+export const useUpdateItemRequest = () => {
+  const queryClient = useQueryClient()
+  const { selectedLocationId } = useLocationStore()
+  const locationId = selectedLocationId || 'all'
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateItemRequestPayload> }) =>
+      assetService.updateItemRequest(locationId, id, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['itemRequests'], refetchType: 'all' })
+      toast.success('Item request updated successfully')
+    },
+    onError: (error: ApiError) => {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to update item request'
+      toast.error(errorMessage)
+    },
+  })
+}
+
+export const useDeleteItemRequest = () => {
+  const queryClient = useQueryClient()
+  const { selectedLocationId } = useLocationStore()
+  const locationId = selectedLocationId || 'all'
+
+  return useMutation({
+    mutationFn: (id: string) => assetService.deleteItemRequest(locationId, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['itemRequests'] })
+      toast.success('Item request deleted successfully')
+    },
+    onError: (error: ApiError) => {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to delete item request'
+      toast.error(errorMessage)
+    },
+  })
+}
+
+export const useScanItemRequest = () => {
+  const { selectedLocationId } = useLocationStore()
+  const locationId = selectedLocationId || 'all'
+
+  return useMutation({
+    mutationFn: (qrCode: string) => assetService.scanItemRequest(locationId, qrCode),
+    onError: (error: ApiError) => {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to scan item request'
+      toast.error(errorMessage)
+    },
+  })
+}
+
+export const useApproveItemRequest = () => {
+  const queryClient = useQueryClient()
+  const { selectedLocationId } = useLocationStore()
+  const locationId = selectedLocationId || 'all'
+
+  return useMutation({
+    mutationFn: (id: string) => assetService.approveItemRequest(locationId, id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['itemRequests'], refetchType: 'all' })
+      toast.success('Item request approved successfully')
+    },
+    onError: (error: ApiError) => {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to approve item request'
+      toast.error(errorMessage)
+    },
+  })
+}
+
+export const useDeclineItemRequest = () => {
+  const queryClient = useQueryClient()
+  const { selectedLocationId } = useLocationStore()
+  const locationId = selectedLocationId || 'all'
+
+  return useMutation({
+    mutationFn: ({ id, comment, image }: { id: string; comment: string; image?: string }) =>
+      assetService.declineItemRequest(locationId, id, { comment, image }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['itemRequests'], refetchType: 'all' })
+      toast.success('Item request declined successfully')
+    },
+    onError: (error: ApiError) => {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to decline item request'
       toast.error(errorMessage)
     },
   })

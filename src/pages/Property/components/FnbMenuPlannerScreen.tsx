@@ -694,7 +694,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
       ) : (
         <div className="space-y-8">
           {/* SECTION 1: RECURRING WEEKLY BASE TEMPLATE (ALL MONDAYS - SUNDAYS) */}
-          <Card className="gap-0 overflow-visible bg-white rounded-2xl border-gray-200/80 shadow-xs p-6 space-y-6">
+          <Card className="gap-0 overflow-visible bg-white rounded-2xl border-gray-200/80 shadow-xs p-4 sm:p-6 space-y-4 sm:space-y-6">
             <div className="space-y-5 border-b border-gray-100 pb-5">
               {/* Header Title + Action Controls inside Card */}
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">

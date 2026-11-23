@@ -17,8 +17,14 @@ const dateTime = (value: string) =>
     minute: '2-digit',
   })
 
+/** Marked after the event ended (attendance staff can mark up to 3 days late). */
+const isLateMark = (markedAt: string | null | undefined, eventEnd: string | null | undefined) =>
+  !!markedAt && !!eventEnd && new Date(markedAt).getTime() > new Date(eventEnd).getTime()
+
 interface ReservationAccordionProps {
   registrations: EventRegistration[]
+  /** The event's end: marks after it are tagged late. */
+  eventEnd?: string | null | undefined
   statusBadge: (status: EventRegistration['status']) => ReactNode
   onCancel: (registration: EventRegistration) => void
   pageIndex: number
@@ -33,6 +39,7 @@ interface ReservationAccordionProps {
  */
 export function ReservationAccordion({
   registrations,
+  eventEnd,
   statusBadge,
   onCancel,
   pageIndex,
@@ -155,6 +162,11 @@ export function ReservationAccordion({
                           </TableCell>
                           <TableCell className="px-3 py-2.5 text-gray-700">
                             {p.markedAt ? dateTime(p.markedAt) : '-'}
+                            {isLateMark(p.markedAt, eventEnd) && (
+                              <span className="ml-1.5 rounded bg-orange-100 px-1 text-[9px] font-bold tracking-wide text-orange-800 uppercase">
+                                Late
+                              </span>
+                            )}
                           </TableCell>
                           <TableCell className="px-3 py-2.5 text-gray-700">{p.markedBy || '-'}</TableCell>
                         </TableRow>

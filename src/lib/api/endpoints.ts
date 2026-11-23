@@ -85,6 +85,23 @@ export const API_ENDPOINTS = {
       locationId && locationId !== 'ALL'
         ? `${BASE_URL}/location/${encodeURIComponent(locationId)}/dashboard/stats`
         : `${BASE_URL}/dashboard/stats`,
+    getAnalytics: (tab: string, locationId?: string | null) =>
+      locationId && locationId !== 'ALL'
+        ? `${BASE_URL}/location/${encodeURIComponent(locationId)}/dashboard/analytics/${tab}`
+        : `${BASE_URL}/dashboard/analytics/${tab}`,
+    /** Visible tabs: one setting per company, applied to all of its properties. */
+    settings: (locationId?: string | null) =>
+      locationId && locationId !== 'ALL'
+        ? `${BASE_URL}/location/${encodeURIComponent(locationId)}/dashboard/settings`
+        : `${BASE_URL}/dashboard/settings`,
+  },
+
+  reports: {
+    list: (locationId: string) => `${BASE_URL}/location/${encodeURIComponent(locationId)}/reports`,
+    export: (locationId: string, report: string) =>
+      `${BASE_URL}/location/${encodeURIComponent(locationId)}/reports/${report}/export`,
+    preview: (locationId: string, report: string) =>
+      `${BASE_URL}/location/${encodeURIComponent(locationId)}/reports/${report}/preview`,
   },
 
   globalRbac: {
@@ -170,6 +187,8 @@ export const API_ENDPOINTS = {
       get: `${BASE_URL}/location/:locationId/assets/:id`,
       update: `${BASE_URL}/location/:locationId/assets/:id`,
       delete: `${BASE_URL}/location/:locationId/assets/:id`,
+      makeAvailable: `${BASE_URL}/location/:locationId/assets/:id/make-available`,
+      timeline: `${BASE_URL}/location/:locationId/assets/:id/timeline`,
       stats: `${BASE_URL}/location/:locationId/assets/stats`,
     },
     assignments: {
@@ -236,6 +255,16 @@ export const API_ENDPOINTS = {
     },
     complianceStatus: {
       get: `${BASE_URL}/location/:locationId/assets/compliance/status`,
+    },
+    itemRequests: {
+      list: `${BASE_URL}/location/:locationId/assets/item-requests`,
+      create: `${BASE_URL}/location/:locationId/assets/item-requests`,
+      get: `${BASE_URL}/location/:locationId/assets/item-requests/:id`,
+      update: `${BASE_URL}/location/:locationId/assets/item-requests/:id`,
+      delete: `${BASE_URL}/location/:locationId/assets/item-requests/:id`,
+      scan: `${BASE_URL}/location/:locationId/assets/item-requests/scan`,
+      approve: `${BASE_URL}/location/:locationId/assets/item-requests/:id/approve`,
+      decline: `${BASE_URL}/location/:locationId/assets/item-requests/:id/decline`,
     },
   },
 

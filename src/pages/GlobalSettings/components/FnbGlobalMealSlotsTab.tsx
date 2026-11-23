@@ -287,30 +287,34 @@ export default function FnbGlobalMealSlotsTab() {
   return (
     <div className="space-y-6">
       {/* Top Navigation Sub-Tabs */}
-      <div className="flex items-center gap-2 border-b border-gray-200 dark:border-neutral-800 pb-3">
+      <div className="flex items-center gap-2 border-b border-gray-200 dark:border-neutral-800 pb-3 w-full">
         <Button
           type="button"
           variant="ghost"
           onClick={() => setActiveSubTab('regular')}
-          className={`flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl text-sm font-bold transition-all cursor-pointer ${
+          className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 h-auto rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
             activeSubTab === 'regular'
               ? 'bg-[#005390] text-white shadow-sm hover:bg-[#005390] hover:text-white'
               : 'bg-white dark:bg-neutral-900 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800'
           }`}
         >
-          <Utensils className="w-4 h-4" /> Regular Meal Slots
+          <Utensils className="w-4 h-4 shrink-0" />
+          <span className="hidden sm:inline">Regular Meal Slots</span>
+          <span className="sm:hidden">Regular Slots</span>
         </Button>
         <Button
           type="button"
           variant="ghost"
           onClick={() => setActiveSubTab('special')}
-          className={`flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl text-sm font-bold transition-all cursor-pointer ${
+          className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 h-auto rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
             activeSubTab === 'special'
               ? 'bg-[#005390] text-white shadow-sm hover:bg-[#005390] hover:text-white'
               : 'bg-white dark:bg-neutral-900 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800'
           }`}
         >
-          <Sparkles className="w-4 h-4 text-amber-400" /> Special Meal Slots
+          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+          <span className="hidden sm:inline">Special Meal Slots</span>
+          <span className="sm:hidden">Special Slots</span>
         </Button>
       </div>
 
@@ -321,14 +325,16 @@ export default function FnbGlobalMealSlotsTab() {
         /* Regular Meal Slots View Master */
         <div className="space-y-6">
           {/* Top Header Card */}
-          <Card className="gap-0 bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
+          <Card className="gap-0 bg-white/70 backdrop-blur-xl border border-white/50 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm">
             <CardHeader className="p-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2.5">
                   <div className="p-2 rounded-xl bg-[#005390]/10 text-[#005390] shrink-0">
                     <Clock className="w-5 h-5" />
                   </div>
-                  <CardTitle className="text-xl font-bold text-gray-900">Regular Meal Slots Master</CardTitle>
+                  <CardTitle className="text-lg sm:text-xl font-bold text-gray-900">
+                    Regular Meal Slots Master
+                  </CardTitle>
                 </div>
                 <CardDescription className="text-xs text-gray-500 mt-1">
                   Define regular meal slot categories (Breakfast, Lunch, Snacks, Dinner, Midnight Snacks), default
@@ -338,7 +344,7 @@ export default function FnbGlobalMealSlotsTab() {
 
               <Button
                 onClick={handleOpenAddModal}
-                className="inline-flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004070] transition-colors cursor-pointer shrink-0"
+                className="w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004070] transition-colors cursor-pointer shrink-0"
               >
                 <Plus className="w-4 h-4" /> Add Regular Meal Slot
               </Button>

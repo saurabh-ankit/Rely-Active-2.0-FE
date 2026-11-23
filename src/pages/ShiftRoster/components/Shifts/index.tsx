@@ -222,10 +222,16 @@ const ShiftsPage = () => {
       return true
     }).length
   }, [datesData])
+  // BE returns summary.totalAreas / pagination.totalItems (full list count), not pagination.total
+  const areasPayload = areasData?.data as
+    | {
+        areas?: unknown[]
+        summary?: { totalAreas?: number }
+        pagination?: { totalItems?: number }
+      }
+    | undefined
   const areasTotal =
-    (areasData?.data as { pagination?: { total?: number }; areas?: unknown[] })?.pagination?.total ??
-    (areasData?.data as { areas?: unknown[] })?.areas?.length ??
-    0
+    areasPayload?.summary?.totalAreas ?? areasPayload?.pagination?.totalItems ?? areasPayload?.areas?.length ?? 0
 
   const setActiveTab = (tab: string) => {
     setSearchParams((prev) => {

@@ -604,6 +604,48 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
     return null
   }
 
+  const hasActiveFilters = !!searchQuery.trim() || selectedStatus !== 'all' || selectedType !== 'all' || !!selectedDate
+
+  const countOrders = (match: (order: ResidentOrder) => boolean) => orders.filter(match).length
+  const orderTypeOf = (order: ResidentOrder) => (order.orderType || 'personal').toLowerCase()
+  const orderCounts = [
+    {
+      label: hasActiveFilters ? 'Matching orders' : 'Total orders',
+      count: orders.length,
+      className: 'border-[#005390]/20 bg-[#005390]/5 text-[#005390]',
+    },
+    {
+      label: 'Dine In',
+      count: countOrders((order) => order.serviceType !== 'room_service'),
+      className: 'border-blue-200 bg-blue-50 text-blue-900',
+    },
+    {
+      label: 'Room Service',
+      count: countOrders((order) => order.serviceType === 'room_service'),
+      className: 'border-amber-200 bg-amber-50 text-amber-800',
+    },
+    {
+      label: 'Personal',
+      count: countOrders((order) => !['guest', 'special', 'custom'].includes(orderTypeOf(order))),
+      className: 'border-gray-200 bg-white text-gray-800',
+    },
+    {
+      label: 'Guest',
+      count: countOrders((order) => orderTypeOf(order) === 'guest'),
+      className: 'border-purple-200 bg-purple-50 text-purple-900',
+    },
+    {
+      label: 'Special',
+      count: countOrders((order) => orderTypeOf(order) === 'special'),
+      className: 'border-amber-200 bg-amber-50 text-amber-900',
+    },
+    {
+      label: 'Custom',
+      count: countOrders((order) => orderTypeOf(order) === 'custom'),
+      className: 'border-indigo-200 bg-indigo-50 text-indigo-900',
+    },
+  ]
+
   return (
     <div className="space-y-5 select-none font-sans">
       {/* Top Filter Card */}
@@ -618,6 +660,16 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
               View and manage all real-time meal orders placed by residents and guests for this location.
             </p>
           </div>
+        </div>
+
+        {/* Order counts follow the filters below, so they always match the table. */}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+          {orderCounts.map(({ label, count, className }) => (
+            <div key={label} className={`rounded-xl border px-3 py-2 ${className}`}>
+              <p className="text-[10px] font-bold uppercase tracking-wider opacity-75">{label}</p>
+              <p className="text-lg font-extrabold leading-tight">{loading ? '–' : count}</p>
+            </div>
+          ))}
         </div>
 
         {/* Filter Controls Bar */}

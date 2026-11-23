@@ -5,9 +5,13 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   CheckCircle2,
   Clock,
+  Coffee,
   Home,
   Loader2,
+  Moon,
   Search,
+  Sun,
+  Sunrise,
   User,
   UserPlus,
   Users,
@@ -51,6 +55,8 @@ interface SlotResult {
   time?: string | undefined
   /** Attendance staff member who marked it. */
   by?: string | undefined
+  /** Marked after the meal slot had ended. */
+  late?: boolean | undefined
 }
 
 /** Name of the staff member who marked an attendance record (from the members API). */
@@ -80,7 +86,7 @@ const STATUS_META: Record<SlotStatus, { label: string; chip: string; icon: typeo
     iconClass: 'text-emerald-600',
   },
   missed: {
-    label: 'Missed',
+    label: 'Absent',
     chip: 'border-rose-200 bg-rose-50 text-rose-700',
     icon: XCircle,
     iconClass: 'text-rose-500',
@@ -96,10 +102,94 @@ const STATUS_META: Record<SlotStatus, { label: string; chip: string; icon: typeo
 const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: 'Everyone' },
   { value: 'attended', label: 'Attended' },
-  { value: 'missed', label: 'Missed' },
+  { value: 'missed', label: 'Absent' },
   { value: 'upcoming', label: 'Upcoming' },
   { value: 'extra', label: 'Extra meals' },
 ]
+
+const SlotIcon = ({ label }: { label: string }) => {
+  const l = label.toLowerCase()
+  const className = 'h-4 w-4'
+  if (l.includes('break') || l.includes('morning')) return <Sunrise className={className} />
+  if (l.includes('lunch')) return <Sun className={className} />
+  if (l.includes('snack') || l.includes('even') || l.includes('tea')) return <Coffee className={className} />
+  if (l.includes('dinner') || l.includes('night')) return <Moon className={className} />
+  return <UtensilsCrossed className={className} />
+}
+
+const SLOT_CARD_STYLE: Record<SlotStatus, { card: string; icon: string; badge: string; note: string }> = {
+  attended: {
+    card: 'border-emerald-300 bg-gradient-to-br from-emerald-50 to-teal-50/70',
+    icon: 'bg-emerald-600 text-white',
+    badge: 'bg-emerald-600 text-white',
+    note: 'text-emerald-700',
+  },
+  missed: {
+    card: 'border-amber-300 bg-amber-50/60',
+    icon: 'bg-amber-100 text-amber-700',
+    badge: 'border border-amber-300 bg-amber-100 text-amber-800',
+    note: 'text-amber-700',
+  },
+  upcoming: {
+    card: 'border-gray-200 bg-white',
+    icon: 'bg-gray-100 text-gray-500',
+    badge: 'bg-gray-100 text-gray-500',
+    note: 'text-gray-500',
+  },
+}
+
+/** One meal slot for a member, as a card like the L3 attendance app: Attended, Absent or Upcoming. */
+const SlotCard = ({ result }: { result: SlotResult }) => {
+  const meta = STATUS_META[result.status]
+  const style = SLOT_CARD_STYLE[result.status]
+  const StatusIcon = meta.icon
+  const note =
+    result.status === 'attended'
+      ? [result.late ? 'Recorded late' : 'Meal recorded', result.time, result.by && `by ${result.by}`]
+          .filter(Boolean)
+          .join(' · ')
+      : result.status === 'missed'
+        ? 'Slot over · not marked'
+        : result.slot.time || 'Not yet'
+  return (
+    <div className={cn('flex min-h-[92px] flex-col justify-between rounded-2xl border p-3', style.card)}>
+      <div className="flex items-center justify-between gap-2">
+        <span className={cn('flex h-8 w-8 items-center justify-center rounded-xl', style.icon)}>
+          <SlotIcon label={result.slot.label} />
+        </span>
+        <span
+          className={cn('inline-flex items-center gap-1 rounded-xl px-2 py-0.5 text-[11px] font-bold', style.badge)}
+        >
+          <StatusIcon className="h-3.5 w-3.5" />
+          {meta.label}
+        </span>
+      </div>
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-xs font-bold text-gray-900">{result.slot.label}</p>
+          <p className={cn('truncate text-[10px] font-medium', style.note)}>{note}</p>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          {result.late && (
+            <span className="rounded-full bg-orange-100 px-1.5 text-[9px] font-bold uppercase text-orange-800">
+              Late
+            </span>
+          )}
+          <span
+            className={cn(
+              'rounded-full border px-2 py-px text-[9px] font-bold',
+              result.covered
+                ? 'border-emerald-200 bg-emerald-100/80 text-emerald-700'
+                : 'border-amber-200 bg-amber-100/80 text-amber-800',
+            )}
+          >
+            {result.covered ? 'Covered in package' : 'Extra meal'}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 /** One meal slot's result for a member: status, time and whether the package covers it. */
 const SlotChip = ({ result, showLabel }: { result: SlotResult; showLabel: boolean }) => {
@@ -111,7 +201,7 @@ const SlotChip = ({ result, showLabel }: { result: SlotResult; showLabel: boolea
         'inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] font-semibold whitespace-nowrap',
         meta.chip,
       )}
-      title={`${result.slot.label}: ${meta.label}${result.time ? ` at ${result.time}` : ''}${result.by ? ` by ${result.by}` : ''} · ${
+      title={`${result.slot.label}: ${meta.label}${result.time ? ` at ${result.time}` : ''}${result.by ? ` by ${result.by}` : ''}${result.late ? ' (marked late)' : ''} · ${
         result.covered ? 'Covered by package' : 'Extra meal (not in package)'
       }`}
     >
@@ -119,6 +209,11 @@ const SlotChip = ({ result, showLabel }: { result: SlotResult; showLabel: boolea
       {showLabel ? result.slot.label : meta.label}
       {result.time && <span className="font-medium opacity-70">{result.time}</span>}
       {result.by && <span className="font-medium opacity-70">· by {result.by}</span>}
+      {result.late && (
+        <span className="rounded bg-orange-100 px-1 text-[9px] font-bold uppercase tracking-wide text-orange-800">
+          Late
+        </span>
+      )}
       {!result.covered && (
         <span className="rounded bg-amber-100 px-1 text-[9px] font-bold uppercase tracking-wide text-amber-800">
           Extra
@@ -353,7 +448,7 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
     (
       member: FnbFoodAttendanceMember,
       slotKey: string,
-    ): { attended: boolean; isCrossed: boolean; time?: string; by?: string } => {
+    ): { attended: boolean; isCrossed: boolean; time?: string; by?: string; late?: boolean } => {
       const normTarget = slotKey.toLowerCase().replace(/\s+/g, '_')
       const isCrossed = isSlotTimeCrossed(slotKey)
       const list = member.attendances || []
@@ -392,7 +487,7 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
           const timeStr = timeVal
             ? new Date(timeVal).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             : undefined
-          return { attended: true, isCrossed, time: timeStr, by: markerName(matched) }
+          return { attended: true, isCrossed, time: timeStr, by: markerName(matched), late: !!matched.markedLate }
         }
       }
       if (member.attendance) {
@@ -428,7 +523,13 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
             const timeStr = timeVal
               ? new Date(timeVal).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
               : undefined
-            return { attended: true, isCrossed, time: timeStr, by: markerName(member.attendance) }
+            return {
+              attended: true,
+              isCrossed,
+              time: timeStr,
+              by: markerName(member.attendance),
+              late: !!member.attendance.markedLate,
+            }
           }
         }
       }
@@ -458,13 +559,14 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
   const getSlotResults = useCallback(
     (member: FnbFoodAttendanceMember): SlotResult[] =>
       slotsInScope.map((slot) => {
-        const { attended, isCrossed, time, by } = isSlotAttendedForMember(member, slot.key)
+        const { attended, isCrossed, time, by, late } = isSlotAttendedForMember(member, slot.key)
         return {
           slot,
           status: attended ? 'attended' : isCrossed ? 'missed' : 'upcoming',
           covered: isSlotCoveredInPackage(member, slot.key),
           time,
           by,
+          late,
         }
       }),
     [slotsInScope, isSlotAttendedForMember, isSlotCoveredInPackage],
@@ -656,8 +758,8 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
                 className={cn(
                   'h-7 cursor-pointer rounded-full border px-3 text-[11px] font-semibold transition-colors',
                   statusFilter === f.value
-                    ? 'border-gray-900 bg-gray-900 text-white hover:bg-gray-900 hover:text-white'
-                    : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50',
+                    ? 'border-[#005390] bg-[#005390] text-white shadow-sm shadow-blue-900/10 hover:bg-[#005390] hover:text-white'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-[#005390]/40 hover:bg-white hover:text-[#005390]',
                 )}
               >
                 {f.label}
@@ -677,6 +779,10 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
             <span className="flex items-center gap-1">
               <span className="rounded bg-amber-100 px-1 text-[9px] font-bold uppercase text-amber-800">Extra</span>
               Not in package
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="rounded bg-orange-100 px-1 text-[9px] font-bold uppercase text-orange-800">Late</span>
+              Marked after the slot ended
             </span>
           </div>
         </div>
@@ -700,9 +806,9 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
         />
         <StatTile
           icon={XCircle}
-          label="Missed"
+          label="Absent"
           value={stats.missed}
-          hint={`${mealUnit} · slot already over`}
+          hint={`${mealUnit} · slot over, not marked`}
           tone="bg-rose-50 text-rose-500"
         />
         <StatTile
@@ -766,10 +872,7 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
 
                   <div className="divide-y divide-gray-100">
                     {flatMembers.map((member) => (
-                      <div
-                        key={member.memberId}
-                        className="flex flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:justify-between"
-                      >
+                      <div key={member.memberId} className="space-y-3 px-4 py-3">
                         <div className="flex min-w-0 items-center gap-3">
                           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-bold uppercase text-[#005390]">
                             {member.fullName.charAt(0)}
@@ -798,7 +901,11 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
                             </p>
                           </div>
                         </div>
-                        <div className="lg:max-w-[60%]">{renderStatus(getSlotResults(member))}</div>
+                        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
+                          {getSlotResults(member).map((r) => (
+                            <SlotCard key={r.slot.key} result={r} />
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>

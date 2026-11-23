@@ -654,10 +654,10 @@ export function FnbPropertySettingsScreen({
       {!hideSubHeader && (
         <>
           {/* Header Stat Cards */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-xs">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Utensils className="w-6 h-6 text-[#005390]" />
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Utensils className="w-5 h-5 sm:w-6 sm:h-6 text-[#005390] shrink-0" />
                 Property F&B Settings
               </h2>
               <p className="text-xs text-gray-500 mt-1">
@@ -666,44 +666,54 @@ export function FnbPropertySettingsScreen({
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-50 px-3.5 py-2 rounded-xl border border-blue-100 text-xs">
-                <span className="text-blue-700/70 font-semibold uppercase block text-[10px]">Subscribed Flats</span>
-                <span className="font-bold text-[#005390]">{totalSubscribedUnits} Units</span>
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:items-center sm:gap-3 w-full sm:w-auto">
+              <div className="bg-blue-50 px-2.5 sm:px-3.5 py-2 rounded-xl border border-blue-100 text-xs text-center sm:text-left">
+                <span className="text-blue-700/70 font-semibold uppercase block text-[9px] sm:text-[10px] truncate">
+                  Subscribed Flats
+                </span>
+                <span className="font-bold text-[#005390] text-xs sm:text-sm">{totalSubscribedUnits} Units</span>
               </div>
-              <div className="bg-gray-50 px-3.5 py-2 rounded-xl border border-gray-200 text-xs">
-                <span className="text-gray-400 font-semibold uppercase block text-[10px]">Total Packages</span>
-                <span className="font-bold text-gray-800">{totalGlobalCount} Templates</span>
+              <div className="bg-gray-50 px-2.5 sm:px-3.5 py-2 rounded-xl border border-gray-200 text-xs text-center sm:text-left">
+                <span className="text-gray-400 font-semibold uppercase block text-[9px] sm:text-[10px] truncate">
+                  Total Packages
+                </span>
+                <span className="font-bold text-gray-800 text-xs sm:text-sm">{totalGlobalCount} Templates</span>
               </div>
-              <div className="bg-emerald-50 px-3.5 py-2 rounded-xl border border-emerald-100 text-xs">
-                <span className="text-emerald-700/70 font-semibold uppercase block text-[10px]">Opted Residents</span>
-                <span className="font-bold text-emerald-800">{totalOptedCount} Subscribed</span>
+              <div className="bg-emerald-50 px-2.5 sm:px-3.5 py-2 rounded-xl border border-emerald-100 text-xs text-center sm:text-left">
+                <span className="text-emerald-700/70 font-semibold uppercase block text-[9px] sm:text-[10px] truncate">
+                  Opted Residents
+                </span>
+                <span className="font-bold text-emerald-800 text-xs sm:text-sm">{totalOptedCount} Subscribed</span>
               </div>
             </div>
           </div>
 
-          {/* View Switcher & Debounced Backend Search Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-xs">
+          {/* View Switcher & Backend Search Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-100 shadow-xs">
             <div className="flex items-center gap-1.5 bg-gray-100/80 p-1 rounded-xl w-full sm:w-auto">
               <Button
                 type="button"
                 variant="ghost"
                 onClick={() => setViewMode('unit')}
-                className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 h-auto rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 h-auto rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                   viewMode === 'unit' ? 'bg-white text-[#005390] shadow-xs' : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
-                <Home className="w-4 h-4" /> By Property Unit / Flat
+                <Home className="w-4 h-4 shrink-0" />
+                <span className="hidden md:inline">By Property Unit / Flat</span>
+                <span className="md:hidden">By Flat / Unit</span>
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 onClick={() => setViewMode('package')}
-                className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 h-auto rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 h-auto rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                   viewMode === 'package' ? 'bg-white text-[#005390] shadow-xs' : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
-                <Package className="w-4 h-4" /> By Package Template
+                <Package className="w-4 h-4 shrink-0" />
+                <span className="hidden md:inline">By Package Template</span>
+                <span className="md:hidden">By Package</span>
               </Button>
             </div>
 
@@ -711,7 +721,7 @@ export function FnbPropertySettingsScreen({
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <Input
                 type="text"
-                placeholder="Search flat number, resident, or package (debounced)..."
+                placeholder="Search flat number, resident, or package..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005390] bg-white shadow-2xs"
@@ -732,8 +742,8 @@ export function FnbPropertySettingsScreen({
             </div>
           ) : (
             <>
-              <div className="overflow-hidden">
-                <Table className="w-full text-left text-xs border-collapse">
+              <div className="overflow-x-auto">
+                <Table className="w-full min-w-[620px] text-left text-xs border-collapse">
                   <TableHeader>
                     <TableRow className="bg-gray-50/80 border-b border-gray-100 text-gray-400 uppercase tracking-wider font-bold text-[11px]">
                       <TableHead className="py-3.5 px-4 w-10"></TableHead>
@@ -1100,8 +1110,8 @@ export function FnbPropertySettingsScreen({
             <div className="p-12 text-center text-gray-400">No global package templates available.</div>
           ) : (
             <>
-              <div className="overflow-hidden">
-                <Table className="w-full text-left text-xs border-collapse">
+              <div className="overflow-x-auto">
+                <Table className="w-full min-w-[680px] text-left text-xs border-collapse">
                   <TableHeader>
                     <TableRow className="bg-gray-50/80 border-b border-gray-100 text-gray-400 uppercase tracking-wider font-bold text-[11px]">
                       <TableHead className="py-3.5 px-4 w-10"></TableHead>
@@ -1521,15 +1531,19 @@ export function FnbPropertySettingsScreen({
                 <TabsList className="grid grid-cols-2 w-full items-center gap-1 bg-transparent p-0 h-auto">
                   <TabsTrigger
                     value="regular"
-                    className="flex h-8 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-xs focus-visible:!ring-0 transition-all cursor-pointer"
+                    className="flex h-8 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2 sm:px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-xs focus-visible:!ring-0 transition-all cursor-pointer"
                   >
-                    <Utensils className="w-3.5 h-3.5 shrink-0" /> Regular Meal Slots
+                    <Utensils className="w-3.5 h-3.5 shrink-0" />
+                    <span className="hidden sm:inline">Regular Meal Slots</span>
+                    <span className="sm:hidden">Regular</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="special"
-                    className="flex h-8 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-xs focus-visible:!ring-0 transition-all cursor-pointer"
+                    className="flex h-8 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2 sm:px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 [&[data-active]]:!bg-[#005390] [&[data-active]]:!text-white [&[data-active]:hover]:!bg-[#005390] [&[data-active]:hover]:!text-white data-active:shadow-xs focus-visible:!ring-0 transition-all cursor-pointer"
                   >
-                    <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-400" /> Special Meal Slots
+                    <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                    <span className="hidden sm:inline">Special Meal Slots</span>
+                    <span className="sm:hidden">Special</span>
                   </TabsTrigger>
                 </TabsList>
               </div>

@@ -396,6 +396,7 @@ export default function TicketsPage() {
   const { user } = useAuth()
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [categories, setCategories] = useState<TicketCategoryMaster[]>([])
+  const [changingRouting, setChangingRouting] = useState(false)
   const [activeTab, setActiveTab] = useState<'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED'>('OPEN')
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -405,6 +406,10 @@ export default function TicketsPage() {
   const [isAssignDrawerOpen, setIsAssignDrawerOpen] = useState(false)
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
   const [isTatModalOpen, setIsTatModalOpen] = useState(false)
+  // Custom TAT: the date-time picker dialog and its value (yyyy-MM-ddTHH:mm, local time)
+  const [isCustomTatOpen, setIsCustomTatOpen] = useState(false)
+  const [customTatValue, setCustomTatValue] = useState('')
+  const [savingCustomTat, setSavingCustomTat] = useState(false)
   const [previewMediaUrl, setPreviewMediaUrl] = useState<string | null>(null)
   const [verifying, setVerifying] = useState(false)
   // Status picked in the dropdown, waiting for the admin to confirm it.
@@ -550,23 +555,103 @@ export default function TicketsPage() {
   const handleUpdateOption = async (payload: {
     categoryId?: string
     subCategoryId?: string
+    departmentId?: string
+    jobCategoryId?: string | null
     tatOption?: string
+    customTatDeadline?: string
     priority?: TicketPriority
     status?: TicketStatus
   }): Promise<boolean> => {
     if (!selectedTicket) return false
     try {
       const url = API_ENDPOINTS.tickets.updateOptions(selectedTicket.id, selectedLocationId)
-      await apiClient.patch(url, payload)
+      const response = await apiClient.patch(url, payload)
+      const updated = (response.data?.data || {}) as Partial<Ticket>
 
-      // Optimistic update
-      setSelectedTicket((prev) => (prev ? { ...prev, ...payload } : null))
+      // Optimistic update, then whatever the server changed alongside (title, category on re-route)
+      setSelectedTicket((prev) =>
+        prev
+          ? {
+              ...prev,
+              ...payload,
+              ...(updated.title ? { title: updated.title } : {}),
+              ...(updated.category ? { category: updated.category } : {}),
+              ...('jobCategoryId' in updated ? { jobCategoryId: updated.jobCategoryId } : {}),
+              ...('customTatDeadline' in updated ? { customTatDeadline: updated.customTatDeadline } : {}),
+            }
+          : null,
+      )
       fetchTickets(true)
       return true
     } catch (err) {
       console.error('Failed to update ticket option:', err)
       return false
     }
+  }
+
+  /** Local yyyy-MM-ddTHH:mm string, the format a datetime-local input uses. */
+  const toDateTimeLocal = (d: Date) => {
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+
+  /** Opens the custom TAT picker, prefilled with the current deadline or 3 hours from now. */
+  const openCustomTat = () => {
+    const current = selectedTicket?.customTatDeadline ? new Date(selectedTicket.customTatDeadline) : null
+    const now = new Date()
+    const initial = current && current > now ? current : new Date(now.getTime() + 3 * 60 * 60 * 1000)
+    setCustomTatValue(toDateTimeLocal(initial))
+    setIsTatModalOpen(false)
+    setIsCustomTatOpen(true)
+  }
+
+  const handleSaveCustomTat = async () => {
+    const deadline = customTatValue ? new Date(customTatValue) : null
+    if (!deadline || Number.isNaN(deadline.getTime())) {
+      notifyError('Pick a date and time')
+      return
+    }
+    if (deadline.getTime() <= Date.now()) {
+      notifyError('The custom TAT must be in the future')
+      return
+    }
+    setSavingCustomTat(true)
+    const ok = await handleUpdateOption({ tatOption: 'Custom', customTatDeadline: deadline.toISOString() })
+    setSavingCustomTat(false)
+    if (ok) {
+      notifySuccess('Custom TAT set')
+      setIsCustomTatOpen(false)
+    } else {
+      notifyError('Could not set the custom TAT')
+    }
+  }
+
+  /** Moves a ticket raised under the wrong department / job category. */
+  const handleChangeRouting = async (change: { departmentId?: string; jobCategoryId?: string }) => {
+    if (!selectedTicket || changingRouting) return
+    setChangingRouting(true)
+    const ok = await handleUpdateOption(change)
+    setChangingRouting(false)
+    if (!ok) {
+      notifyError(change.departmentId ? 'Could not change the department' : 'Could not change the job category')
+      return
+    }
+    const dept = change.departmentId ? departments.find((d) => d.id === change.departmentId) : undefined
+    const jobCat = change.jobCategoryId
+      ? ticketDepartment?.jobCategories?.find((jc) => jc.id === change.jobCategoryId)
+      : undefined
+    setSelectedTicket((prev) =>
+      prev
+        ? {
+            ...prev,
+            ...(dept ? { department: { id: dept.id, name: dept.name }, jobCategory: null } : {}),
+            ...(jobCat ? { jobCategory: { id: jobCat.id, name: jobCat.name } } : {}),
+          }
+        : prev,
+    )
+    notifySuccess(
+      dept ? `Moved to ${dept.name}. Pick the job category.` : `Job category set to ${jobCat?.name || 'new category'}`,
+    )
   }
 
   /** Runs the status change the admin confirmed in the dialog. */
@@ -671,6 +756,13 @@ export default function TicketsPage() {
           id: `fallback-${name}`,
           name,
         }))
+
+  // Admins can move a ticket raised in the wrong department / job category while it is still being worked on.
+  const canChangeRouting =
+    canUpdateTicket &&
+    !changingRouting &&
+    !!selectedTicket &&
+    !['RESOLVED', 'CLOSED', 'CANCELLED'].includes(selectedTicket.status)
 
   const activeCategoryObj = categories.find(
     (c) => c.id === selectedTicket?.categoryId || c.name === selectedTicket?.category,
@@ -1048,7 +1140,7 @@ export default function TicketsPage() {
         </Card>
 
         {/* Right Column: Ticket Workspace Detail (8 cols) */}
-        <Card className="gap-0 lg:col-span-8 bg-white rounded-2xl border-gray-200 shadow-sm p-6 h-[calc(100vh-13rem)] min-h-[520px] relative flex flex-col overflow-y-auto">
+        <Card className="gap-0 lg:col-span-8 bg-white rounded-2xl border-gray-200 shadow-sm p-4 sm:p-6 h-[calc(100vh-13rem)] min-h-[520px] relative flex flex-col overflow-y-auto">
           {isLoading || isTicketSwitching ? (
             <TicketScreenLoader
               title={isLoading ? 'Loading ticket details...' : 'Switching ticket...'}
@@ -1059,23 +1151,23 @@ export default function TicketsPage() {
               /* CLOSED TICKET VIEW MATCHING SCREENSHOT */
               <div className="space-y-6 flex-1">
                 {/* Header Bar */}
-                <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-blue-50 text-[#005390]">
+                <div className="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-3 pb-4 border-b border-gray-100">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
+                    <div className="p-2 rounded-xl bg-blue-50 text-[#005390] shrink-0">
                       <TicketIcon className="w-5 h-5 text-[#005390]" />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl font-mono font-extrabold text-gray-900">
+                    <div className="flex flex-wrap items-center gap-2 min-w-0">
+                      <span className="text-lg sm:text-xl font-mono font-extrabold text-gray-900 whitespace-nowrap">
                         {selectedTicket.ticketNumber}
                       </span>
                       {isCommonAreaTicket(selectedTicket) && (
-                        <span className="px-2.5 py-0.5 bg-purple-100 text-purple-800 border border-purple-200 rounded-lg text-xs font-black flex items-center gap-1 shadow-2xs">
+                        <span className="px-2.5 py-0.5 bg-purple-100 text-purple-800 border border-purple-200 rounded-lg text-xs font-black flex items-center gap-1 shadow-2xs shrink-0">
                           <Building2 className="w-3.5 h-3.5 text-purple-600" />
                           Common Area
                         </span>
                       )}
                       {isSelectedEscalated && (
-                        <span className="px-2.5 py-0.5 bg-red-100 text-red-700 border border-red-200 rounded-lg text-xs font-black flex items-center gap-1 shadow-2xs">
+                        <span className="px-2.5 py-0.5 bg-red-100 text-red-700 border border-red-200 rounded-lg text-xs font-black flex items-center gap-1 shadow-2xs shrink-0">
                           <ArrowUpCircle className="w-3.5 h-3.5 text-red-600" />
                           Escalated
                         </span>
@@ -1084,7 +1176,7 @@ export default function TicketsPage() {
                   </div>
 
                   <span
-                    className={`px-3 py-1 rounded-lg text-xs font-extrabold ${
+                    className={`px-3 py-1 rounded-lg text-xs font-extrabold shrink-0 self-start sm:self-auto ${
                       isTicketVerified ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
                     }`}
                   >
@@ -1093,8 +1185,9 @@ export default function TicketsPage() {
                 </div>
 
                 {/* Progress Stepper Box matching screenshot */}
-                <div className="border border-dashed border-gray-300 rounded-2xl p-6 bg-white shadow-2xs space-y-4">
-                  <div className="grid grid-cols-6 relative">
+                <div className="border border-dashed border-gray-300 rounded-2xl p-4 sm:p-6 bg-white shadow-2xs space-y-4">
+                  {/* Desktop / Tablet Horizontal Stepper */}
+                  <div className="hidden sm:grid sm:grid-cols-6 relative">
                     {/* Progress Bar Line — six steps, so the line runs between the 1st and 6th centres */}
                     <div className="absolute top-4 -translate-y-1/2 left-[8.333%] right-[8.333%] h-0.5 bg-gray-200 z-0" />
                     <div
@@ -1139,7 +1232,7 @@ export default function TicketsPage() {
                       </span>
                     </div>
 
-                    {/* Step 3: Task Completed */}
+                    {/* Step 4: Task Completed */}
                     <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
                       <div className="w-8 h-8 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs shadow-2xs">
                         <Check className="w-4.5 h-4.5" />
@@ -1152,7 +1245,7 @@ export default function TicketsPage() {
                       </span>
                     </div>
 
-                    {/* Step 4: Verified */}
+                    {/* Step 5: Verified */}
                     <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
                       <div
                         className={`w-8 h-8 rounded-full font-bold flex items-center justify-center text-xs shadow-2xs ${
@@ -1175,7 +1268,7 @@ export default function TicketsPage() {
                       </span>
                     </div>
 
-                    {/* Step 5: Feedback */}
+                    {/* Step 6: Feedback */}
                     <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
                       <div
                         className={`w-8 h-8 rounded-full font-bold flex items-center justify-center text-xs shadow-2xs ${
@@ -1203,6 +1296,107 @@ export default function TicketsPage() {
                           : 'Awaiting resident feedback'}
                       </span>
                     </div>
+                  </div>
+
+                  {/* Mobile Vertical Stepper (< sm) */}
+                  <div className="sm:hidden space-y-0 relative pl-1">
+                    {[
+                      {
+                        title: 'Request Raised',
+                        desc: `Request raised at ${formatStepperDate(selectedTicket.createdAt)}`,
+                        done: true,
+                        icon: <Check className="w-4 h-4" />,
+                      },
+                      {
+                        title: 'Assigned Task',
+                        desc: 'Task assigned to staff',
+                        done: true,
+                        icon: <Check className="w-4 h-4" />,
+                      },
+                      {
+                        title: 'Work Started',
+                        desc: selectedTicket.workStartedAt
+                          ? `Started${getWorkStartedByName(selectedTicket) ? ` by ${getWorkStartedByName(selectedTicket)}` : ''} at ${formatStepperDate(selectedTicket.workStartedAt)}`
+                          : 'Work started by staff',
+                        done: true,
+                        icon: <Check className="w-4 h-4" />,
+                      },
+                      {
+                        title: 'Task Completed',
+                        desc: completion?.completedAt
+                          ? `Work completed ${formatStepperDate(completion.completedAt)}`
+                          : 'Work completed by staff',
+                        done: true,
+                        icon: <Check className="w-4 h-4" />,
+                      },
+                      {
+                        title: 'Verified',
+                        desc: isTicketVerified
+                          ? `Verified${verifiedByName ? ` by ${verifiedByName}` : ''}${
+                              selectedTicket.verifiedAt ? ` at ${formatStepperDate(selectedTicket.verifiedAt)}` : ''
+                            }`
+                          : 'Awaiting admin verification',
+                        done: isTicketVerified,
+                        icon: isTicketVerified ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                        ),
+                      },
+                      {
+                        title: 'Feedback',
+                        desc:
+                          isTicketFeedbackDone && selectedTicket.feedback
+                            ? `${FEEDBACK_RATING_LABELS[selectedTicket.feedback.rating] || selectedTicket.feedback.rating} rating${
+                                selectedTicket.feedback.createdAt
+                                  ? ` at ${formatStepperDate(selectedTicket.feedback.createdAt)}`
+                                  : ''
+                              }`
+                            : 'Awaiting resident feedback',
+                        done: isTicketFeedbackDone,
+                        icon: isTicketFeedbackDone ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <MessageSquare className="w-3.5 h-3.5" />
+                        ),
+                      },
+                    ].map((step, idx, arr) => {
+                      const isLast = idx === arr.length - 1
+                      return (
+                        <div key={step.title} className="flex items-start gap-3 relative">
+                          <div className="flex flex-col items-center shrink-0">
+                            <div
+                              className={cn(
+                                'w-7 h-7 rounded-full flex items-center justify-center text-xs shadow-2xs font-bold shrink-0',
+                                step.done
+                                  ? 'bg-emerald-500 text-white'
+                                  : 'border-2 border-gray-300 bg-white text-gray-400',
+                              )}
+                            >
+                              {step.icon}
+                            </div>
+                            {!isLast && (
+                              <div
+                                className={cn(
+                                  'w-0.5 min-h-[22px] my-1',
+                                  arr[idx + 1].done ? 'bg-emerald-500' : 'bg-gray-200',
+                                )}
+                              />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1 pt-0.5 pb-2">
+                            <span
+                              className={cn('text-xs font-bold block', step.done ? 'text-gray-900' : 'text-gray-400')}
+                            >
+                              {step.title}
+                            </span>
+                            <span className="text-[11px] font-medium text-gray-500 leading-snug block mt-0.5">
+                              {step.desc}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
 
                   {/* Verify action / verified confirmation */}
@@ -1253,43 +1447,43 @@ export default function TicketsPage() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <List className="w-4 h-4 text-gray-700" />
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <List className="w-4 h-4 text-gray-700 shrink-0" />
                     <span className="text-gray-500 font-semibold">Department :</span>
                     <span className="font-bold text-gray-900">
                       {selectedTicket.department?.name || selectedTicket.category || 'General Service'}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <List className="w-4 h-4 text-gray-700" />
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <List className="w-4 h-4 text-gray-700 shrink-0" />
                     <span className="text-gray-500 font-semibold">Category :</span>
                     <span className="font-bold text-gray-900">
                       {selectedTicket.category || 'Rely Advantage Service'}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <List className="w-4 h-4 text-gray-700" />
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <List className="w-4 h-4 text-gray-700 shrink-0" />
                     <span className="text-gray-500 font-semibold">Sub Category :</span>
                     <span className="font-bold text-gray-900">{activeSubCategoryName}</span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-gray-700" />
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <User className="w-4 h-4 text-gray-700 shrink-0" />
                     <span className="text-gray-500 font-semibold">Raised By :</span>
                     <RaisedBy ticket={selectedTicket} />
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span className="text-gray-500 font-semibold">Completed By :</span>
                     <span className="font-bold text-emerald-700">{getCompletedByName(selectedTicket)}</span>
                   </div>
 
                   {selectedTicket.tatUpdatedBy && (
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-blue-600" />
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                      <Clock className="w-4 h-4 text-blue-600 shrink-0" />
                       <span className="text-gray-500 font-semibold">TAT Updated By :</span>
                       <span className="font-bold text-blue-900">{selectedTicket.tatUpdatedBy}</span>
                     </div>
@@ -1568,23 +1762,23 @@ export default function TicketsPage() {
               /* IN PROGRESS EXECUTION VIEW MATCHING DESIGN SYSTEM */
               <div className="space-y-6 flex-1">
                 {/* Header Bar */}
-                <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-blue-50 text-[#005390]">
+                <div className="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-3 pb-4 border-b border-gray-100">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
+                    <div className="p-2 rounded-xl bg-blue-50 text-[#005390] shrink-0">
                       <TicketIcon className="w-5 h-5 text-[#005390]" />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl font-mono font-extrabold text-gray-900">
+                    <div className="flex flex-wrap items-center gap-2 min-w-0">
+                      <span className="text-lg sm:text-xl font-mono font-extrabold text-gray-900 whitespace-nowrap">
                         {selectedTicket.ticketNumber}
                       </span>
                       {isCommonAreaTicket(selectedTicket) && (
-                        <span className="px-2.5 py-0.5 bg-purple-100 text-purple-800 border border-purple-200 rounded-lg text-xs font-black flex items-center gap-1 shadow-2xs">
+                        <span className="px-2.5 py-0.5 bg-purple-100 text-purple-800 border border-purple-200 rounded-lg text-xs font-black flex items-center gap-1 shadow-2xs shrink-0">
                           <Building2 className="w-3.5 h-3.5 text-purple-600" />
                           Common Area
                         </span>
                       )}
                       {isSelectedEscalated && (
-                        <span className="px-2.5 py-0.5 bg-red-100 text-red-700 border border-red-200 rounded-lg text-xs font-black flex items-center gap-1 shadow-2xs">
+                        <span className="px-2.5 py-0.5 bg-red-100 text-red-700 border border-red-200 rounded-lg text-xs font-black flex items-center gap-1 shadow-2xs shrink-0">
                           <ArrowUpCircle className="w-3.5 h-3.5 text-red-600" />
                           Escalated
                         </span>
@@ -1594,7 +1788,7 @@ export default function TicketsPage() {
 
                   {/* Status Badge Dropdown */}
                   <Select value={selectedTicket.status} onValueChange={(val) => setPendingStatus(val as TicketStatus)}>
-                    <SelectTrigger className="px-3 py-1.5 bg-amber-50/90 text-amber-800 border border-amber-200 rounded-xl text-xs font-extrabold shadow-2xs h-auto w-auto">
+                    <SelectTrigger className="px-3 py-1.5 bg-amber-50/90 text-amber-800 border border-amber-200 rounded-xl text-xs font-extrabold shadow-2xs h-auto w-auto shrink-0 self-start sm:self-auto">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1607,7 +1801,7 @@ export default function TicketsPage() {
                 </div>
 
                 {/* Progress Stepper Tracker Box styled with primary brand blue */}
-                <div className="border border-dashed border-gray-300 rounded-2xl p-6 bg-white shadow-2xs space-y-4">
+                <div className="border border-dashed border-gray-300 rounded-2xl p-4 sm:p-6 bg-white shadow-2xs space-y-4">
                   {(() => {
                     const ticketAny = selectedTicket as unknown as { assignedTo?: unknown }
                     const hasAssignedStaff = Boolean(
@@ -1648,134 +1842,246 @@ export default function TicketsPage() {
                                 : 0
                     const activeWidthPercent = (stepIndex / 5) * 83.333
 
+                    const activeSteps = [
+                      {
+                        title: 'Request Raised',
+                        desc: `Raised at ${formatStepperDate(selectedTicket.createdAt)}`,
+                        done: true,
+                        icon: <Check className="w-4 h-4" />,
+                      },
+                      {
+                        title: 'Assigned Task',
+                        desc: hasAssignedStaff ? 'Task assigned to staff' : 'Awaiting assignment',
+                        done: isStep2Done,
+                        icon: isStep2Done ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <div className="w-2 h-2 rounded-full bg-gray-300" />
+                        ),
+                      },
+                      {
+                        title: 'Work Started',
+                        desc: selectedTicket.workStartedAt
+                          ? `${workStartedBy ? `By ${workStartedBy}, ` : ''}${formatStepperDate(selectedTicket.workStartedAt)}`
+                          : isStep2Done && !isStep3Done
+                            ? 'Waiting for staff to start'
+                            : 'Work started by staff',
+                        done: isWorkStarted,
+                        icon: isWorkStarted ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <div className="w-2 h-2 rounded-full bg-gray-300" />
+                        ),
+                      },
+                      {
+                        title: 'Task Completed',
+                        desc: isStep3Done ? 'Task completed by staff' : 'Awaiting task completion',
+                        done: isStep3Done,
+                        icon: isStep3Done ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <div className="w-2 h-2 rounded-full bg-gray-300" />
+                        ),
+                      },
+                      {
+                        title: 'Verified',
+                        desc: isStep4Done ? 'Verified by admin' : 'Awaiting admin verification',
+                        done: isStep4Done,
+                        icon: isStep4Done ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <div className="w-2 h-2 rounded-full bg-gray-300" />
+                        ),
+                      },
+                      {
+                        title: 'Feedback',
+                        desc: isStep5Done ? 'Feedback submitted' : 'Awaiting resident feedback',
+                        done: isStep5Done,
+                        icon: isStep5Done ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <div className="w-2 h-2 rounded-full bg-gray-300" />
+                        ),
+                      },
+                    ]
+
                     return (
-                      <div className="grid grid-cols-6 relative">
-                        {/* Background Progress Line */}
-                        <div className="absolute top-4 -translate-y-1/2 left-[8.333%] right-[8.333%] h-0.5 bg-gray-200 z-0" />
-                        {/* Active Progress Line */}
-                        <div
-                          className="absolute top-4 -translate-y-1/2 left-[8.333%] h-0.5 bg-[#005390] transition-all duration-300 z-0"
-                          style={{ width: `${activeWidthPercent}%` }}
-                        />
-
-                        {/* Step 1: Request Raised */}
-                        <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
-                          <div className="w-8 h-8 rounded-full border-2 border-[#005390] bg-[#005390] text-white font-bold flex items-center justify-center text-xs shadow-2xs">
-                            <Check className="w-4.5 h-4.5" />
-                          </div>
-                          <span className="text-xs font-bold text-gray-900">Request Raised</span>
-                        </div>
-
-                        {/* Step 2: Assigned Task */}
-                        <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
+                      <>
+                        {/* Desktop Horizontal Stepper */}
+                        <div className="hidden sm:grid sm:grid-cols-6 relative">
+                          {/* Background Progress Line */}
+                          <div className="absolute top-4 -translate-y-1/2 left-[8.333%] right-[8.333%] h-0.5 bg-gray-200 z-0" />
+                          {/* Active Progress Line */}
                           <div
-                            className={`w-8 h-8 rounded-full border-2 ${
-                              isStep2Done
-                                ? 'border-[#005390] bg-[#005390] text-white'
-                                : 'border-gray-300 bg-white text-gray-400'
-                            } font-bold flex items-center justify-center text-xs shadow-2xs`}
-                          >
-                            {isStep2Done ? (
-                              <Check className="w-4.5 h-4.5" />
-                            ) : (
-                              <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
-                            )}
-                          </div>
-                          <span className={`text-xs font-bold ${isStep2Done ? 'text-gray-900' : 'text-gray-400'}`}>
-                            Assigned Task
-                          </span>
-                        </div>
+                            className="absolute top-4 -translate-y-1/2 left-[8.333%] h-0.5 bg-[#005390] transition-all duration-300 z-0"
+                            style={{ width: `${activeWidthPercent}%` }}
+                          />
 
-                        {/* Step 3: Work Started */}
-                        <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
-                          <div
-                            className={`w-8 h-8 rounded-full border-2 ${
-                              isWorkStarted
-                                ? 'border-[#005390] bg-[#005390] text-white'
-                                : 'border-gray-300 bg-white text-gray-400'
-                            } font-bold flex items-center justify-center text-xs shadow-2xs`}
-                          >
-                            {isWorkStarted ? (
+                          {/* Step 1: Request Raised */}
+                          <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
+                            <div className="w-8 h-8 rounded-full border-2 border-[#005390] bg-[#005390] text-white font-bold flex items-center justify-center text-xs shadow-2xs">
                               <Check className="w-4.5 h-4.5" />
-                            ) : (
-                              <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
-                            )}
+                            </div>
+                            <span className="text-xs font-bold text-gray-900">Request Raised</span>
                           </div>
-                          <span className={`text-xs font-bold ${isWorkStarted ? 'text-gray-900' : 'text-gray-400'}`}>
-                            Work Started
-                          </span>
-                          {selectedTicket.workStartedAt ? (
-                            <span className="text-[10px] font-medium text-gray-500 leading-tight">
-                              {workStartedBy ? `By ${workStartedBy}, ` : ''}
-                              {formatStepperDate(selectedTicket.workStartedAt)}
+
+                          {/* Step 2: Assigned Task */}
+                          <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
+                            <div
+                              className={`w-8 h-8 rounded-full border-2 ${
+                                isStep2Done
+                                  ? 'border-[#005390] bg-[#005390] text-white'
+                                  : 'border-gray-300 bg-white text-gray-400'
+                              } font-bold flex items-center justify-center text-xs shadow-2xs`}
+                            >
+                              {isStep2Done ? (
+                                <Check className="w-4.5 h-4.5" />
+                              ) : (
+                                <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
+                              )}
+                            </div>
+                            <span className={`text-xs font-bold ${isStep2Done ? 'text-gray-900' : 'text-gray-400'}`}>
+                              Assigned Task
                             </span>
-                          ) : isStep2Done && !isStep3Done ? (
-                            <span className="text-[10px] font-medium text-amber-600 leading-tight">
-                              Waiting for staff to start
+                          </div>
+
+                          {/* Step 3: Work Started */}
+                          <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
+                            <div
+                              className={`w-8 h-8 rounded-full border-2 ${
+                                isWorkStarted
+                                  ? 'border-[#005390] bg-[#005390] text-white'
+                                  : 'border-gray-300 bg-white text-gray-400'
+                              } font-bold flex items-center justify-center text-xs shadow-2xs`}
+                            >
+                              {isWorkStarted ? (
+                                <Check className="w-4.5 h-4.5" />
+                              ) : (
+                                <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
+                              )}
+                            </div>
+                            <span className={`text-xs font-bold ${isWorkStarted ? 'text-gray-900' : 'text-gray-400'}`}>
+                              Work Started
                             </span>
-                          ) : null}
+                            {selectedTicket.workStartedAt ? (
+                              <span className="text-[10px] font-medium text-gray-500 leading-tight">
+                                {workStartedBy ? `By ${workStartedBy}, ` : ''}
+                                {formatStepperDate(selectedTicket.workStartedAt)}
+                              </span>
+                            ) : isStep2Done && !isStep3Done ? (
+                              <span className="text-[10px] font-medium text-amber-600 leading-tight">
+                                Waiting for staff to start
+                              </span>
+                            ) : null}
+                          </div>
+
+                          {/* Step 4: Task Completed */}
+                          <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
+                            <div
+                              className={`w-8 h-8 rounded-full border-2 ${
+                                isStep3Done
+                                  ? 'border-[#005390] bg-[#005390] text-white'
+                                  : 'border-gray-300 bg-white text-gray-400'
+                              } font-bold flex items-center justify-center text-xs shadow-2xs`}
+                            >
+                              {isStep3Done ? (
+                                <Check className="w-4.5 h-4.5" />
+                              ) : (
+                                <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
+                              )}
+                            </div>
+                            <span className={`text-xs font-bold ${isStep3Done ? 'text-gray-900' : 'text-gray-400'}`}>
+                              Task Completed
+                            </span>
+                          </div>
+
+                          {/* Step 5: Verified */}
+                          <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
+                            <div
+                              className={`w-8 h-8 rounded-full border-2 ${
+                                isStep4Done
+                                  ? 'border-[#005390] bg-[#005390] text-white'
+                                  : 'border-gray-300 bg-white text-gray-400'
+                              } font-bold flex items-center justify-center text-xs shadow-2xs`}
+                            >
+                              {isStep4Done ? (
+                                <Check className="w-4.5 h-4.5" />
+                              ) : (
+                                <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
+                              )}
+                            </div>
+                            <span className={`text-xs font-bold ${isStep4Done ? 'text-gray-900' : 'text-gray-400'}`}>
+                              Verified
+                            </span>
+                          </div>
+
+                          {/* Step 6: Feedback */}
+                          <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
+                            <div
+                              className={`w-8 h-8 rounded-full border-2 ${
+                                isStep5Done
+                                  ? 'border-[#005390] bg-[#005390] text-white'
+                                  : 'border-gray-300 bg-white text-gray-400'
+                              } font-bold flex items-center justify-center text-xs shadow-2xs`}
+                            >
+                              {isStep5Done ? (
+                                <Check className="w-4.5 h-4.5" />
+                              ) : (
+                                <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
+                              )}
+                            </div>
+                            <span className={`text-xs font-bold ${isStep5Done ? 'text-gray-900' : 'text-gray-400'}`}>
+                              Feedback
+                            </span>
+                          </div>
                         </div>
 
-                        {/* Step 3: Task Completed */}
-                        <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
-                          <div
-                            className={`w-8 h-8 rounded-full border-2 ${
-                              isStep3Done
-                                ? 'border-[#005390] bg-[#005390] text-white'
-                                : 'border-gray-300 bg-white text-gray-400'
-                            } font-bold flex items-center justify-center text-xs shadow-2xs`}
-                          >
-                            {isStep3Done ? (
-                              <Check className="w-4.5 h-4.5" />
-                            ) : (
-                              <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
-                            )}
-                          </div>
-                          <span className={`text-xs font-bold ${isStep3Done ? 'text-gray-900' : 'text-gray-400'}`}>
-                            Task Completed
-                          </span>
+                        {/* Mobile Vertical Stepper (< sm) */}
+                        <div className="sm:hidden space-y-0 relative pl-1">
+                          {activeSteps.map((step, idx, arr) => {
+                            const isLast = idx === arr.length - 1
+                            return (
+                              <div key={step.title} className="flex items-start gap-3 relative">
+                                <div className="flex flex-col items-center shrink-0">
+                                  <div
+                                    className={cn(
+                                      'w-7 h-7 rounded-full flex items-center justify-center text-xs shadow-2xs font-bold shrink-0',
+                                      step.done
+                                        ? 'border-2 border-[#005390] bg-[#005390] text-white'
+                                        : 'border-2 border-gray-300 bg-white text-gray-400',
+                                    )}
+                                  >
+                                    {step.icon}
+                                  </div>
+                                  {!isLast && (
+                                    <div
+                                      className={cn(
+                                        'w-0.5 min-h-[22px] my-1',
+                                        arr[idx + 1].done ? 'bg-[#005390]' : 'bg-gray-200',
+                                      )}
+                                    />
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1 pt-0.5 pb-2">
+                                  <span
+                                    className={cn(
+                                      'text-xs font-bold block',
+                                      step.done ? 'text-gray-900' : 'text-gray-400',
+                                    )}
+                                  >
+                                    {step.title}
+                                  </span>
+                                  {step.desc && (
+                                    <span className="text-[11px] font-medium text-gray-500 leading-snug block mt-0.5">
+                                      {step.desc}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
                         </div>
-
-                        {/* Step 4: Verified */}
-                        <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
-                          <div
-                            className={`w-8 h-8 rounded-full border-2 ${
-                              isStep4Done
-                                ? 'border-[#005390] bg-[#005390] text-white'
-                                : 'border-gray-300 bg-white text-gray-400'
-                            } font-bold flex items-center justify-center text-xs shadow-2xs`}
-                          >
-                            {isStep4Done ? (
-                              <Check className="w-4.5 h-4.5" />
-                            ) : (
-                              <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
-                            )}
-                          </div>
-                          <span className={`text-xs font-bold ${isStep4Done ? 'text-gray-900' : 'text-gray-400'}`}>
-                            Verified
-                          </span>
-                        </div>
-
-                        {/* Step 5: Feedback */}
-                        <div className="flex flex-col items-center z-10 space-y-2 text-center px-1">
-                          <div
-                            className={`w-8 h-8 rounded-full border-2 ${
-                              isStep5Done
-                                ? 'border-[#005390] bg-[#005390] text-white'
-                                : 'border-gray-300 bg-white text-gray-400'
-                            } font-bold flex items-center justify-center text-xs shadow-2xs`}
-                          >
-                            {isStep5Done ? (
-                              <Check className="w-4.5 h-4.5" />
-                            ) : (
-                              <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
-                            )}
-                          </div>
-                          <span className={`text-xs font-bold ${isStep5Done ? 'text-gray-900' : 'text-gray-400'}`}>
-                            Feedback
-                          </span>
-                        </div>
-                      </div>
+                      </>
                     )
                   })()}
                 </div>
@@ -1883,34 +2189,34 @@ export default function TicketsPage() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <List className="w-4 h-4 text-gray-700" />
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <List className="w-4 h-4 text-gray-700 shrink-0" />
                     <span className="text-gray-500 font-semibold">Department :</span>
                     <span className="font-bold text-gray-900">
                       {selectedTicket.department?.name || selectedTicket.category || 'General Service'}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <List className="w-4 h-4 text-gray-700" />
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <List className="w-4 h-4 text-gray-700 shrink-0" />
                     <span className="text-gray-500 font-semibold">Category :</span>
                     <span className="font-bold text-gray-900">{selectedTicket.category || 'R&M (Repair)'}</span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <List className="w-4 h-4 text-gray-700" />
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <List className="w-4 h-4 text-gray-700 shrink-0" />
                     <span className="text-gray-500 font-semibold">Sub Category :</span>
                     <span className="font-bold text-gray-900">{activeSubCategoryName}</span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-gray-700" />
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <User className="w-4 h-4 text-gray-700 shrink-0" />
                     <span className="text-gray-500 font-semibold">Raised By :</span>
                     <RaisedBy ticket={selectedTicket} />
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-gray-700" />
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <Clock className="w-4 h-4 text-gray-700 shrink-0" />
                     <span className="text-gray-500 font-semibold">TAT :</span>
                     <span className="font-bold text-gray-900">{selectedTicket.tatOption || '1-2 hour'}</span>
                     {canUpdateTicket && (
@@ -1926,8 +2232,8 @@ export default function TicketsPage() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-gray-700" />
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <User className="w-4 h-4 text-gray-700 shrink-0" />
                     <span className="text-gray-500 font-semibold">Assigned :</span>
                     <span className="font-bold text-gray-900">{assignedName}</span>
                     {canUpdateTicket && (
@@ -2132,21 +2438,27 @@ export default function TicketsPage() {
                           { id: 'CON', name: 'Concierge', code: 'CON' },
                         ]
                     ).map((dept) => {
-                      const isSelected =
-                        (selectedTicket.departmentId && selectedTicket.departmentId === dept.id) ||
-                        dept.code === ticketDepartmentCode
+                      const isSelected = selectedTicket.departmentId
+                        ? selectedTicket.departmentId === dept.id
+                        : dept.code === ticketDepartmentCode
+                      // Only real departments (not the placeholder chips) can be picked.
+                      const canPick = canChangeRouting && departmentChips.length > 0 && !isSelected
 
                       return (
                         <Button
                           key={dept.id}
                           type="button"
                           variant="ghost"
-                          disabled
+                          disabled={!canPick}
+                          onClick={() => canPick && handleChangeRouting({ departmentId: dept.id })}
                           className={cn(
-                            'px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all cursor-not-allowed',
+                            'px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all disabled:opacity-100',
+                            canPick ? 'cursor-pointer' : isSelected ? 'cursor-default' : 'cursor-not-allowed',
                             isSelected
                               ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
-                              : 'bg-gray-100/70 text-gray-400 opacity-60 hover:bg-gray-100/70',
+                              : canChangeRouting
+                                ? 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100'
+                                : 'bg-gray-100/70 text-gray-400 opacity-60 hover:bg-gray-100/70',
                           )}
                         >
                           {dept.name}
@@ -2172,27 +2484,36 @@ export default function TicketsPage() {
                         activeSubCategoryName ||
                         ''
 
-                      // Prefer the stored id; fall back to the name for older tickets.
-                      const isSelected =
-                        selectedTicket.jobCategoryId === sub.id ||
-                        selectedTicket.subCategoryId === sub.id ||
-                        (Boolean(jobCatName) && jobCatName.toLowerCase() === sub.name.toLowerCase()) ||
-                        (Boolean(jobCatName) && jobCatName.toLowerCase().includes(sub.name.toLowerCase())) ||
-                        Boolean(
-                          selectedTicket.title && selectedTicket.title.toLowerCase().includes(sub.name.toLowerCase()),
-                        )
+                      // Prefer the stored id; fall back to the name only for older tickets without one.
+                      const isSelected = selectedTicket.jobCategoryId
+                        ? selectedTicket.jobCategoryId === sub.id
+                        : selectedTicket.departmentId
+                          ? false
+                          : selectedTicket.subCategoryId === sub.id ||
+                            (Boolean(jobCatName) && jobCatName.toLowerCase() === sub.name.toLowerCase()) ||
+                            (Boolean(jobCatName) && jobCatName.toLowerCase().includes(sub.name.toLowerCase())) ||
+                            Boolean(
+                              selectedTicket.title &&
+                              selectedTicket.title.toLowerCase().includes(sub.name.toLowerCase()),
+                            )
+                      // Placeholder chips (no real department loaded) cannot be picked.
+                      const canPick = canChangeRouting && !sub.id.startsWith('fallback-') && !isSelected
 
                       return (
                         <Button
                           key={sub.id}
                           type="button"
                           variant="ghost"
-                          disabled
+                          disabled={!canPick}
+                          onClick={() => canPick && handleChangeRouting({ jobCategoryId: sub.id })}
                           className={cn(
-                            'px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all cursor-not-allowed',
+                            'px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all disabled:opacity-100',
+                            canPick ? 'cursor-pointer' : isSelected ? 'cursor-default' : 'cursor-not-allowed',
                             isSelected
                               ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
-                              : 'bg-gray-100/70 text-gray-400 opacity-60 hover:bg-gray-100/70',
+                              : canChangeRouting
+                                ? 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100'
+                                : 'bg-gray-100/70 text-gray-400 opacity-60 hover:bg-gray-100/70',
                           )}
                         >
                           {sub.name}
@@ -2253,7 +2574,11 @@ export default function TicketsPage() {
                           type="button"
                           variant="ghost"
                           disabled={!canUpdateTicket}
-                          onClick={() => canUpdateTicket && handleUpdateOption({ tatOption: tat })}
+                          onClick={() => {
+                            if (!canUpdateTicket) return
+                            if (tat === 'Custom') openCustomTat()
+                            else handleUpdateOption({ tatOption: tat })
+                          }}
                           className={cn(
                             'px-4 py-2 h-auto rounded-xl text-xs font-bold transition-all',
                             canUpdateTicket ? 'cursor-pointer' : 'cursor-not-allowed',
@@ -2262,7 +2587,14 @@ export default function TicketsPage() {
                               : 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100',
                           )}
                         >
-                          {tat}
+                          {tat === 'Custom' && isSelected && selectedTicket.customTatDeadline
+                            ? `Custom · ${new Date(selectedTicket.customTatDeadline).toLocaleString([], {
+                                day: 'numeric',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}`
+                            : tat}
                         </Button>
                       )
                     })}
@@ -2356,6 +2688,10 @@ export default function TicketsPage() {
                   type="button"
                   variant="outline"
                   onClick={() => {
+                    if (option === 'Custom') {
+                      openCustomTat()
+                      return
+                    }
                     handleUpdateOption({ tatOption: option })
                     setIsTatModalOpen(false)
                   }}
@@ -2369,6 +2705,57 @@ export default function TicketsPage() {
                   {option}
                 </Button>
               ))}
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
+
+      {/* Custom TAT date-time picker */}
+      <Dialog
+        open={Boolean(isCustomTatOpen && selectedTicket)}
+        onOpenChange={(open) => {
+          if (!open && !savingCustomTat) setIsCustomTatOpen(false)
+        }}
+      >
+        {isCustomTatOpen && selectedTicket && (
+          <DialogContent className="sm:max-w-sm p-5 space-y-4">
+            <DialogHeader className="border-b pb-3 pr-8">
+              <DialogTitle className="text-sm font-bold text-gray-900">Custom TAT</DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                When should ticket #{selectedTicket.ticketNumber} be resolved by?
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1.5">
+              <label htmlFor="custom-tat-deadline" className="text-xs font-bold text-gray-700">
+                Resolve by
+              </label>
+              <input
+                id="custom-tat-deadline"
+                type="datetime-local"
+                value={customTatValue}
+                min={toDateTimeLocal(new Date())}
+                onChange={(e) => setCustomTatValue(e.target.value)}
+                className="w-full h-10 rounded-xl border border-gray-200 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#005390]/30"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={savingCustomTat}
+                onClick={() => setIsCustomTatOpen(false)}
+                className="rounded-xl text-xs font-bold"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={savingCustomTat || !customTatValue}
+                onClick={handleSaveCustomTat}
+                className="rounded-xl text-xs font-bold bg-[#005390] hover:bg-[#00457a] text-white"
+              >
+                {savingCustomTat ? 'Saving…' : 'Set TAT'}
+              </Button>
             </div>
           </DialogContent>
         )}
