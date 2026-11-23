@@ -7,13 +7,14 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { getResidentsAPI } from '@/lib/services/residentService'
 import {
   blockAmenitySlotAPI,
   cancelAmenitySlotBookingAPI,
   createAmenitySlotBookingAPI,
+  getAmenityBookablePeopleAPI,
   getAmenitySlotConfigAPI,
   getAmenitySlotsForDateAPI,
+  type AmenityBookablePerson,
   type AmenitySlotConfigResponse,
   type AmenitySlotBookingItem,
   type AmenitySlotItem,
@@ -22,7 +23,6 @@ import {
   unblockAmenitySlotAPI,
   updateAmenitySlotConfigAPI,
 } from '@/lib/services/amenitySlotService'
-import type { ResidentItem } from '@/lib/types'
 import { notifyError, notifySuccess } from '@/utils/toast'
 
 const formatRupees = (amount: number) => amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })
@@ -37,6 +37,14 @@ const daysBetweenYmd = (from: string, to: string): number =>
 
 const shortDate = (ymd: string) =>
   new Date(`${ymd}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+
+/** One key per person: a resident and their family member can each hold a place in a slot. */
+const personKey = (p: { residentId: string | null; familyMemberId?: string | null }) =>
+  p.familyMemberId ? `F:${p.familyMemberId}` : `R:${p.residentId}`
+
+/** "Daughter of Rahul" under a family member's name. */
+const familyLabel = (relation?: string | null, householdName?: string | null): string =>
+  ['Family', [relation, householdName].filter(Boolean).join(' of ')].filter(Boolean).join(' · ')
 
 const UNIT_TITLE = { SLOT: 'Timed slots', FULL_DAY: 'Full day', NIGHT: 'Overnight stay' } as const
 
@@ -208,9 +216,10 @@ export function SlotManagerDrawer({
 
   const [activeSlot, setActiveSlot] = useState<AmenitySlotItem | null>(null)
   const [residentQuery, setResidentQuery] = useState('')
-  const [residentResults, setResidentResults] = useState<ResidentItem[]>([])
+  const [residentResults, setResidentResults] = useState<AmenityBookablePerson[]>([])
   const [residentLoading, setResidentLoading] = useState(false)
-  const [selectedResidentId, setSelectedResidentId] = useState<string | null>(null)
+  /** personKey of the resident or family member chosen. */
+  const [selectedPersonKey, setSelectedPersonKey] = useState<string | null>(null)
   const [bookingPending, setBookingPending] = useState(false)
   /** Full day: last day; overnight stay: check-out date. */
   const [rangeEnd, setRangeEnd] = useState('')
@@ -306,8 +315,9 @@ export function SlotManagerDrawer({
     const handle = window.setTimeout(async () => {
       setResidentLoading(true)
       try {
-        const residents = await getResidentsAPI({ locId: locationId, search: residentQuery || undefined })
-        setResidentResults(Array.isArray(residents) ? residents.slice(0, 30) : [])
+        // Residents and their residing family members.
+        const people = await getAmenityBookablePeopleAPI(locationId, amenity?.id ?? '', residentQuery || undefined)
+        setResidentResults(people.slice(0, 50))
       } catch {
         setResidentResults([])
       } finally {
@@ -316,7 +326,7 @@ export function SlotManagerDrawer({
     }, 280)
 
     return () => window.clearTimeout(handle)
-  }, [residentQuery, activeSlot, open, locationId])
+  }, [residentQuery, activeSlot, open, locationId, amenity?.id])
 
   useEffect(() => {
     if (!open || !activeSlot) return
@@ -370,9 +380,10 @@ export function SlotManagerDrawer({
     return 'Available'
   }
 
-  // A resident can hold only one place in a slot, so those already booked aren't offered again.
-  const bookedResidentIds = new Set(activeSlot?.bookings.map((booking) => booking.residentId) ?? [])
-  const availableResidents = residentResults.filter((resident) => !bookedResidentIds.has(resident.id))
+  // A person can hold only one place in a slot, so those already booked aren't offered again.
+  const bookedPersonKeys = new Set(activeSlot?.bookings.map(personKey) ?? [])
+  const availableResidents = residentResults.filter((person) => !bookedPersonKeys.has(personKey(person)))
+  const selectedPerson = residentResults.find((person) => personKey(person) === selectedPersonKey) || null
 
   const residentLocationLabel = (floorNumber: number | null, unitNumber: string | null): string => {
     const parts = [floorNumber !== null ? String(floorNumber) : null, unitNumber || null].filter(Boolean)
@@ -383,7 +394,7 @@ export function SlotManagerDrawer({
     if (slot.status === 'PAST') return
     setActiveSlot(slot)
     setRangeEnd(unit === 'NIGHT' ? addDaysYmd(selectedDateYmd, 1) : unit === 'FULL_DAY' ? selectedDateYmd : '')
-    setSelectedResidentId(null)
+    setSelectedPersonKey(null)
     setResidentQuery('')
   }
 
@@ -393,12 +404,15 @@ export function SlotManagerDrawer({
   }
 
   const handleBook = async () => {
-    if (!amenity || !activeSlot || !selectedResidentId) return
+    if (!amenity || !activeSlot || !selectedPerson) return
     try {
       setBookingPending(true)
       const response = await createAmenitySlotBookingAPI(locationId, amenity.id, {
         date: selectedDateYmd,
-        residentId: selectedResidentId,
+        // A family member's booking is sent with their id only (the resident's id stays empty).
+        ...(selectedPerson.familyMemberId
+          ? { familyMemberId: selectedPerson.familyMemberId }
+          : { residentId: selectedPerson.residentId }),
         ...(unit === 'SLOT'
           ? { startMinutes: activeSlot.startMinutes }
           : unit === 'NIGHT'
@@ -892,6 +906,11 @@ export function SlotManagerDrawer({
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-gray-900">{booking.residentName}</p>
+                      {booking.familyMemberId ? (
+                        <p className="truncate text-[11px] font-medium text-violet-700">
+                          {familyLabel(booking.relation, booking.householdResidentName)}
+                        </p>
+                      ) : null}
                       <p className="truncate text-xs text-gray-500">
                         from {residentLocationLabel(booking.floorNumber, booking.unitNumber)}
                       </p>
@@ -927,7 +946,7 @@ export function SlotManagerDrawer({
                 <>
                   {activeSlot.bookings.length > 0 ? (
                     <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Book for another resident ({activeSlot.remainingCount} left)
+                      Book for another resident or family member ({activeSlot.remainingCount} left)
                     </p>
                   ) : null}
                   <div className="relative">
@@ -947,19 +966,17 @@ export function SlotManagerDrawer({
                         <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Loading residents...
                       </div>
                     ) : availableResidents.length === 0 ? (
-                      <div className="py-3 text-center text-xs text-gray-500">No resident found</div>
+                      <div className="py-3 text-center text-xs text-gray-500">No resident or family member found</div>
                     ) : (
-                      availableResidents.map((resident) => {
-                        const name = `${resident.firstName || ''} ${resident.lastName || ''}`.trim() || 'Resident'
-                        const floorNumber = resident.unit?.floor?.floor_number ?? null
-                        const unitNumber = resident.unit?.unit_number || null
-                        const selected = selectedResidentId === resident.id
+                      availableResidents.map((person) => {
+                        const key = personKey(person)
+                        const selected = selectedPersonKey === key
                         return (
                           <Button
                             variant="ghost"
-                            key={resident.id}
+                            key={key}
                             type="button"
-                            onClick={() => setSelectedResidentId(resident.id)}
+                            onClick={() => setSelectedPersonKey(key)}
                             className={`flex w-full h-auto items-center justify-between rounded-md px-2 py-1.5 text-left text-sm font-normal whitespace-normal ${
                               selected
                                 ? 'bg-[#005390]/10 text-[#005390] hover:bg-[#005390]/10 hover:text-[#005390]'
@@ -970,10 +987,17 @@ export function SlotManagerDrawer({
                               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#005390]/10 text-[11px] font-bold text-[#005390]">
                                 <UserRound className="h-3.5 w-3.5" />
                               </span>
-                              <span className="truncate">{name}</span>
+                              <span className="min-w-0">
+                                <span className="block truncate">{person.name}</span>
+                                {person.familyMemberId ? (
+                                  <span className="block truncate text-[11px] font-medium text-violet-700">
+                                    {familyLabel(person.relation, person.householdResidentName)}
+                                  </span>
+                                ) : null}
+                              </span>
                             </span>
-                            <span className="text-[11px] text-gray-500">
-                              {residentLocationLabel(floorNumber, unitNumber)}
+                            <span className="shrink-0 text-[11px] text-gray-500">
+                              {residentLocationLabel(person.floorNumber, person.unitNumber)}
                             </span>
                           </Button>
                         )
@@ -1025,7 +1049,7 @@ export function SlotManagerDrawer({
                 <Button
                   type="button"
                   onClick={handleBook}
-                  disabled={!selectedResidentId || bookingPending || rangeUnits <= 0}
+                  disabled={!selectedPerson || bookingPending || rangeUnits <= 0}
                   className="flex-1 rounded-lg bg-[#005390] px-3 py-2 text-sm font-semibold text-white hover:bg-[#005390]/90 disabled:opacity-50"
                 >
                   {bookingPending ? 'Booking...' : 'Confirm booking'}
