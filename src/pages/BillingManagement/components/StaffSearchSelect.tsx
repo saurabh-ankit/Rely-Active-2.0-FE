@@ -4,6 +4,7 @@ import { Check, ChevronsUpDown, Loader2, Search, UserRound, X } from 'lucide-rea
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useUsersQuery } from '@/hooks/react-query/user'
+import { useAuth } from '@/hooks/useAuth'
 import { useDebounce } from '@/hooks/useDebounce'
 import type { UserItem } from '@/lib/types/user'
 import { cn } from '@/lib/utils'
@@ -12,6 +13,8 @@ export interface StaffOption {
   id: string
   name: string
   detail: string | null
+  /** The logged-in user ("Self"). */
+  isSelf?: boolean
 }
 
 const toOption = (u: UserItem): StaffOption => ({
@@ -23,6 +26,8 @@ const toOption = (u: UserItem): StaffOption => ({
     'User',
   detail: u.email || u.phone || null,
 })
+
+const STAFF_PAGE_SIZE = 10
 
 const initials = (name: string) =>
   name
@@ -43,8 +48,32 @@ export function StaffSearchSelect({ value, onChange, placeholder = 'Search staff
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const debounced = useDebounce(search.trim(), 400)
-  const { data, isFetching } = useUsersQuery(debounced || undefined)
-  const options = (data ?? []).filter((u) => u.isActive !== false).map(toOption)
+  // Only the first few staff are shown; typing searches everyone on the server.
+  const { data, isFetching } = useUsersQuery(debounced || undefined, undefined, false, STAFF_PAGE_SIZE)
+  const { user } = useAuth()
+
+  // The logged-in user is always offered first as "Self". Super admins aren't in property staff
+  // lists, so this is how they pick themselves.
+  const selfName =
+    `${user?.profile?.firstName ?? user?.profile?.first_name ?? ''} ${user?.profile?.lastName ?? user?.profile?.last_name ?? ''}`.trim() ||
+    user?.username ||
+    user?.email ||
+    'Me'
+  const selfOption: StaffOption | null = user?.id
+    ? { id: user.id, name: `Self (${selfName})`, detail: user.email || null, isSelf: true }
+    : null
+  const query = debounced.toLowerCase()
+  const selfMatches =
+    !!selfOption &&
+    (!query ||
+      'self'.includes(query) ||
+      selfName.toLowerCase().includes(query) ||
+      (user?.email || '').toLowerCase().includes(query))
+
+  const options = [
+    ...(selfOption && selfMatches ? [selfOption] : []),
+    ...(data ?? []).filter((u) => u.isActive !== false && u.id !== user?.id).map(toOption),
+  ]
   const typing = search.trim() !== debounced
 
   const pick = (staff: StaffOption | null) => {
@@ -124,8 +153,13 @@ export function StaffSearchSelect({ value, onChange, placeholder = 'Search staff
                   value?.id === o.id && 'bg-[#2b4f7e]/5',
                 )}
               >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 text-[11px] font-semibold text-gray-600">
-                  {initials(o.name)}
+                <span
+                  className={cn(
+                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold',
+                    o.isSelf ? 'bg-[#2b4f7e]/10 text-[#2b4f7e]' : 'bg-gray-100 text-gray-600',
+                  )}
+                >
+                  {o.isSelf ? <UserRound className="h-3.5 w-3.5" /> : initials(o.name)}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium text-gray-900">{o.name}</span>
