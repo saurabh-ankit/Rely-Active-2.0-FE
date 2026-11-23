@@ -25,6 +25,32 @@ function formatTimeTo12h(time24: string): string {
   return `${String(hours).padStart(2, '0')}:${minutes} ${meridiem}`
 }
 
+function todayYmdLocal(now = new Date()): string {
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+function time24ToMinutes(time24: string): number | null {
+  const match = time24.trim().match(/^(\d{1,2}):(\d{2})$/)
+  if (!match) return null
+  const hours = parseInt(match[1], 10)
+  const minutes = parseInt(match[2], 10)
+  if (isNaN(hours) || isNaN(minutes)) return null
+  return hours * 60 + minutes
+}
+
+function hasScheduledTimePassed(dateYmd: string, time24: string, now = new Date()): boolean {
+  const today = todayYmdLocal(now)
+  if (dateYmd < today) return true
+  if (dateYmd > today) return false
+  const mins = time24ToMinutes(time24)
+  if (mins === null) return false
+  const nowMins = now.getHours() * 60 + now.getMinutes()
+  return mins <= nowMins
+}
+
 export interface AssignCareTaskDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -59,8 +85,10 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
   const [taskSearchQuery, setTaskSearchQuery] = useState<string>('')
   const [frequency, setFrequency] = useState<number>(1)
   const [times, setTimes] = useState<string[]>(['10:00'])
-  const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().split('T')[0])
+  const todayYmd = todayYmdLocal()
+  const [startDate, setStartDate] = useState<string>(() => todayYmdLocal())
   const [endDate, setEndDate] = useState<string>('')
+  const [durationMinutes, setDurationMinutes] = useState<string>('')
   const [instructions, setInstructions] = useState<string>('')
 
   const handleFrequencyChange = (newFreq: number) => {
@@ -170,8 +198,24 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
       return
     }
 
-    if (endDate && startDate && new Date(endDate) < new Date(startDate)) {
+    if (startDate < todayYmd) {
+      notifyError('Start date cannot be in the past')
+      return
+    }
+
+    if (endDate && startDate && endDate < startDate) {
       notifyError('End date cannot be earlier than start date')
+      return
+    }
+
+    const parsedDuration = Number(durationMinutes)
+    if (!durationMinutes.trim() || !Number.isInteger(parsedDuration) || parsedDuration < 1) {
+      notifyError('Task duration is required')
+      return
+    }
+
+    if (times.some((t) => hasScheduledTimePassed(startDate, t))) {
+      notifyError('Scheduled time has already passed for the start date')
       return
     }
 
@@ -184,6 +228,7 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
         taskId: effectiveTaskId,
         startDate,
         endDate: endDate ? endDate : null,
+        durationMinutes: parsedDuration,
         time: formattedTimes[0] || '12:00 PM',
         times: formattedTimes,
         frequency,
@@ -543,6 +588,7 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
               <Input
                 id="assign-start-date-input"
                 type="date"
+                min={todayYmd}
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs text-gray-900 transition-colors focus:border-[#005390] focus:outline-none dark:border-gray-800 dark:bg-slate-800 dark:text-white sm:text-sm"
@@ -561,6 +607,24 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs text-gray-900 transition-colors focus:border-[#005390] focus:outline-none dark:border-gray-800 dark:bg-slate-800 dark:text-white sm:text-sm"
+              />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="assign-duration-input" className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                Task Duration <span className="text-rose-500">*</span>{' '}
+                <span className="text-gray-400 font-normal">(minutes)</span>
+              </Label>
+              <Input
+                id="assign-duration-input"
+                type="number"
+                min={1}
+                step={1}
+                value={durationMinutes}
+                onChange={(e) => setDurationMinutes(e.target.value)}
+                placeholder="e.g. 15"
+                className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs text-gray-900 transition-colors focus:border-[#005390] focus:outline-none dark:border-gray-800 dark:bg-slate-800 dark:text-white sm:text-sm"
+                required
               />
             </div>
 

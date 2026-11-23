@@ -23,12 +23,25 @@ import {
 import type { CareTaskAssignment, GroupedCareTaskAssignment, ResidentCareTaskCompletion } from '@/lib/types/medical'
 import { AssignCareTaskDialog } from '@/components/common/AssignCareTaskDialog'
 import { CompleteCareTaskDialog } from '@/components/common/CompleteCareTaskDialog'
+import ConfirmDialog from '@/components/common/ConfirmDialog'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
 import { cn, formatDisplayDate, formatDisplayDateTime } from '@/lib/utils'
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50] as const
+const DEFAULT_PAGE_SIZE = 10
+const DEFAULT_DURATION_MINUTES = 15
 
 const getBillingLabel = (type?: string) => {
   if (!type) return 'Session Wise'
@@ -38,7 +51,53 @@ const getBillingLabel = (type?: string) => {
   return type
 }
 
-export type AssignedTasksTabType = 'PENDING' | 'COMPLETED'
+const parseSlotTimeToMinutes = (t?: string | null): number => {
+  if (!t) return 0
+  const m = t.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i)
+  if (!m || !m[1] || !m[2]) return 0
+  let hrs = parseInt(m[1], 10)
+  const mins = parseInt(m[2], 10)
+  const mer = m[3]?.toUpperCase()
+  if (mer === 'PM' && hrs < 12) hrs += 12
+  if (mer === 'AM' && hrs === 12) hrs = 0
+  return hrs * 60 + mins
+}
+
+const getSlotDurationMinutes = (slot: {
+  durationMinutes?: number | null
+  rawAssignment?: CareTaskAssignment | null
+}): number => {
+  const value = Number(slot.durationMinutes ?? slot.rawAssignment?.durationMinutes ?? DEFAULT_DURATION_MINUTES)
+  return Number.isFinite(value) && value > 0 ? value : DEFAULT_DURATION_MINUTES
+}
+
+/** Pending slot is overdue when now is past scheduled time + durationMinutes. */
+const isSlotOverdue = (
+  slot: { time?: string | null; durationMinutes?: number | null; rawAssignment?: CareTaskAssignment | null },
+  now = new Date(),
+): boolean => {
+  const scheduledMins = parseSlotTimeToMinutes(slot.time)
+  const deadlineMins = scheduledMins + getSlotDurationMinutes(slot)
+  const nowMins = now.getHours() * 60 + now.getMinutes()
+  // Pending API already scopes to today; compare against local now on that day.
+  return nowMins > deadlineMins
+}
+
+const partitionGroupsByOverdue = (
+  groups: GroupedCareTaskAssignment[],
+  overdue: boolean,
+  now = new Date(),
+): GroupedCareTaskAssignment[] => {
+  return groups
+    .map((group) => {
+      const slots = (group.slots || []).filter((slot) => isSlotOverdue(slot, now) === overdue)
+      if (slots.length === 0) return null
+      return { ...group, slots, totalSlots: slots.length }
+    })
+    .filter((g): g is GroupedCareTaskAssignment => g !== null)
+}
+
+export type AssignedTasksTabType = 'PENDING' | 'COMPLETED' | 'OVERDUE'
 
 export interface AssignedTasksTabProps {
   forcedPropertyId?: string | null
@@ -64,9 +123,16 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
   const [sourceFilter, setSourceFilter] = useState<string>('ALL')
   const [completedStatusFilter, setCompletedStatusFilter] = useState<string>('ALL')
 
+  // Pagination (separate page per tab; shared page size)
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE)
+  const [pendingPage, setPendingPage] = useState(1)
+  const [completedPage, setCompletedPage] = useState(1)
+  const [overduePage, setOverduePage] = useState(1)
+
   // Modals
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [completingAssignment, setCompletingAssignment] = useState<CareTaskAssignment | null>(null)
+  const [deletingAssignmentId, setDeletingAssignmentId] = useState<string | null>(null)
 
   // Query for Assignments (Filtered on BE for pending tasks)
   const assignmentsQueryParams = useMemo(() => {
@@ -110,18 +176,6 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
       return assignmentsData.grouped
     }
     // Fallback: If BE grouped isn't present, group client-side
-    const timeToMinutes = (t?: string | null): number => {
-      if (!t) return 0
-      const m = t.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i)
-      if (!m || !m[1] || !m[2]) return 0
-      let hrs = parseInt(m[1], 10)
-      const mins = parseInt(m[2], 10)
-      const mer = m[3]?.toUpperCase()
-      if (mer === 'PM' && hrs < 12) hrs += 12
-      if (mer === 'AM' && hrs === 12) hrs = 0
-      return hrs * 60 + mins
-    }
-
     const map = new Map<string, GroupedCareTaskAssignment>()
     for (const a of assignments) {
       const key = `${a.residentId}_${a.taskId}`
@@ -177,52 +231,37 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
 
       const slotTime = a.time || '12:00 PM'
       const existingSlotIndex = g.slots.findIndex((s) => s.time === slotTime)
+      const slotPayload = {
+        id: a.id,
+        time: slotTime,
+        frequency: a.frequency || 1,
+        startDate: a.startDate,
+        endDate: a.endDate,
+        durationMinutes: a.durationMinutes ?? DEFAULT_DURATION_MINUTES,
+        status: a.status,
+        isStopped: a.isStopped,
+        completionCount: a.completionCount || 0,
+        completedAt: a.completedAt,
+        completedBy: a.completedBy,
+        nurseId: a.nurseId,
+        nurse: a.nurse,
+        completedByUser: a.completedByUser,
+        customInstructions: a.customInstructions,
+        source: a.source,
+        rawAssignment: a,
+      }
 
       if (existingSlotIndex >= 0) {
         const existingSlot = g.slots[existingSlotIndex]
         if (a.source === 'PACKAGE' && existingSlot?.source !== 'PACKAGE') {
-          g.slots[existingSlotIndex] = {
-            id: a.id,
-            time: slotTime,
-            frequency: a.frequency || 1,
-            startDate: a.startDate,
-            endDate: a.endDate,
-            status: a.status,
-            isStopped: a.isStopped,
-            completionCount: a.completionCount || 0,
-            completedAt: a.completedAt,
-            completedBy: a.completedBy,
-            nurseId: a.nurseId,
-            nurse: a.nurse,
-            completedByUser: a.completedByUser,
-            customInstructions: a.customInstructions,
-            source: a.source,
-            rawAssignment: a,
-          }
+          g.slots[existingSlotIndex] = slotPayload
         }
       } else {
-        g.slots.push({
-          id: a.id,
-          time: slotTime,
-          frequency: a.frequency || 1,
-          startDate: a.startDate,
-          endDate: a.endDate,
-          status: a.status,
-          isStopped: a.isStopped,
-          completionCount: a.completionCount || 0,
-          completedAt: a.completedAt,
-          completedBy: a.completedBy,
-          nurseId: a.nurseId,
-          nurse: a.nurse,
-          completedByUser: a.completedByUser,
-          customInstructions: a.customInstructions,
-          source: a.source,
-          rawAssignment: a,
-        })
+        g.slots.push(slotPayload)
       }
     }
     return Array.from(map.values()).map((g) => {
-      g.slots.sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time))
+      g.slots.sort((a, b) => parseSlotTimeToMinutes(a.time) - parseSlotTimeToMinutes(b.time))
       g.totalSlots = g.slots.length
       return g
     })
@@ -288,11 +327,19 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
       .filter((g): g is GroupedCareTaskAssignment => g !== null)
   }, [rawGroupedAssignments, sourceFilter, searchTerm])
 
-  const totalPendingSlots = useMemo(() => {
-    return displayedGroupedAssignments.reduce((acc, g) => acc + g.slots.length, 0)
-  }, [displayedGroupedAssignments])
+  const pendingGroupedAssignments = useMemo(
+    () => partitionGroupsByOverdue(displayedGroupedAssignments, false),
+    [displayedGroupedAssignments],
+  )
 
-  const pendingCount = totalPendingSlots
+  const overdueGroupedAssignments = useMemo(
+    () => partitionGroupsByOverdue(displayedGroupedAssignments, true),
+    [displayedGroupedAssignments],
+  )
+
+  // Tab badges + pagination count grouped care tasks (1 resident+task = 1 row), not individual time slots
+  const pendingCount = pendingGroupedAssignments.length
+  const overdueCount = overdueGroupedAssignments.length
 
   // Query for Completed Task Records
   const completionsQueryParams = useMemo(() => {
@@ -358,19 +405,147 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
   const allCount = matrix?.totalAssignments ?? assignments.length
   const completedCount = completionsData?.pagination?.total ?? rawCompletions.length
 
+  const pendingTotalPages = Math.max(1, Math.ceil(pendingGroupedAssignments.length / pageSize))
+  const overdueTotalPages = Math.max(1, Math.ceil(overdueGroupedAssignments.length / pageSize))
+  const completedTotalPages = Math.max(1, Math.ceil(completions.length / pageSize))
+
+  // Reset pagination when filters/location change (adjust state during render — React-recommended)
+  const paginationResetKey = `${searchTerm}|${sourceFilter}|${completedStatusFilter}|${pageSize}|${effectiveLocId ?? ''}|${forcedResidentId ?? ''}`
+  const [prevPaginationResetKey, setPrevPaginationResetKey] = useState(paginationResetKey)
+  if (paginationResetKey !== prevPaginationResetKey) {
+    setPrevPaginationResetKey(paginationResetKey)
+    setPendingPage(1)
+    setCompletedPage(1)
+    setOverduePage(1)
+  }
+
+  // Clamp page if data shrinks below current page
+  const safePendingPage = Math.min(pendingPage, pendingTotalPages)
+  const safeOverduePage = Math.min(overduePage, overdueTotalPages)
+  const safeCompletedPage = Math.min(completedPage, completedTotalPages)
+
+  const activeAssignmentGroups = activeTab === 'OVERDUE' ? overdueGroupedAssignments : pendingGroupedAssignments
+
+  const paginatedGroupedAssignments = useMemo(() => {
+    const page = activeTab === 'OVERDUE' ? safeOverduePage : safePendingPage
+    const start = (page - 1) * pageSize
+    return activeAssignmentGroups.slice(start, start + pageSize)
+  }, [activeAssignmentGroups, activeTab, safeOverduePage, safePendingPage, pageSize])
+
+  const paginatedCompletions = useMemo(() => {
+    const start = (safeCompletedPage - 1) * pageSize
+    return completions.slice(start, start + pageSize)
+  }, [completions, safeCompletedPage, pageSize])
+
   const handleRefresh = () => {
     void refetchAssignments()
     void refetchCompletions()
   }
 
+  const renderTablePagination = (
+    totalItems: number,
+    currentPage: number,
+    totalPages: number,
+    onPageChange: (page: number) => void,
+    itemLabel: string,
+  ) => {
+    if (totalItems === 0) return null
+
+    const from = (currentPage - 1) * pageSize + 1
+    const to = Math.min(currentPage * pageSize, totalItems)
+    const maxVisiblePages = 5
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2))
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
+    startPage = Math.max(1, endPage - maxVisiblePages + 1)
+    const pageNumbers = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i)
+
+    return (
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-3 px-4 border-t border-gray-100 bg-white dark:border-gray-800 dark:bg-slate-900">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-gray-500 font-medium">
+          <span>
+            Showing <span className="font-bold text-gray-900 dark:text-white">{from}</span> to{' '}
+            <span className="font-bold text-gray-900 dark:text-white">{to}</span> of{' '}
+            <span className="font-bold text-gray-900 dark:text-white">{totalItems}</span> {itemLabel}
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400">Rows per page</span>
+            <Select value={String(pageSize)} onValueChange={(val) => setPageSize(Number(val) || DEFAULT_PAGE_SIZE)}>
+              <SelectTrigger className="h-8 w-[72px] rounded-lg border border-gray-200 bg-white px-2 text-xs dark:border-gray-700 dark:bg-slate-800">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <SelectItem key={size} value={String(size)}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <Pagination className="w-auto mx-0">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault()
+                  if (currentPage > 1) onPageChange(currentPage - 1)
+                }}
+                className={
+                  currentPage <= 1
+                    ? 'pointer-events-none opacity-50 bg-gray-50 text-gray-400 border-gray-200'
+                    : 'cursor-pointer bg-white text-gray-700 hover:bg-gray-50 border-gray-200'
+                }
+              />
+            </PaginationItem>
+
+            {pageNumbers.map((pageNum) => (
+              <PaginationItem key={pageNum}>
+                <PaginationLink
+                  href="#"
+                  isActive={pageNum === currentPage}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    onPageChange(pageNum)
+                  }}
+                  className="cursor-pointer text-xs h-8 w-8 rounded-xl font-bold"
+                >
+                  {pageNum}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault()
+                  if (currentPage < totalPages) onPageChange(currentPage + 1)
+                }}
+                className={
+                  currentPage >= totalPages
+                    ? 'pointer-events-none opacity-50 bg-gray-50 text-gray-400 border-gray-200'
+                    : 'cursor-pointer bg-white text-gray-700 hover:bg-gray-50 border-gray-200'
+                }
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
+    )
+  }
+
   // Mutations
   const deleteMutation = useDeleteCareTaskAssignmentMutation()
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this care task assignment?')) return
+  const handleConfirmDelete = async () => {
+    if (!deletingAssignmentId) return
     try {
-      await deleteMutation.mutateAsync(id)
+      await deleteMutation.mutateAsync(deletingAssignmentId)
       notifySuccess('Care task assignment deleted')
+      setDeletingAssignmentId(null)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to delete assignment'
       notifyError(msg)
@@ -381,7 +556,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
     <div className="space-y-6 min-w-0">
       {/* ── Summary Matrix Cards (if not compact) ─────────────────────────── */}
       {!isCompact && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           <Card className="gap-0 rounded-2xl border-gray-100 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
             <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400">
               <span>Total Care Tasks</span>
@@ -396,6 +571,14 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
               <Activity className="size-4 text-emerald-500" />
             </div>
             <div className="mt-2 text-2xl font-black text-emerald-600 dark:text-emerald-400">{pendingCount}</div>
+          </Card>
+
+          <Card className="gap-0 rounded-2xl border-gray-100 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400">
+              <span>Task Overdue</span>
+              <AlertCircle className="size-4 text-amber-500" />
+            </div>
+            <div className="mt-2 text-2xl font-black text-amber-600 dark:text-amber-400">{overdueCount}</div>
           </Card>
 
           <Card className="gap-0 rounded-2xl border-gray-100 bg-white p-4 shadow-xs dark:border-gray-800 dark:bg-slate-900">
@@ -456,6 +639,21 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                   {completedCount}
                 </span>
               </TabsTrigger>
+
+              <TabsTrigger value="OVERDUE" className="gap-1.5 sm:gap-2">
+                <AlertCircle className="size-3.5 sm:size-4 shrink-0" />
+                <span>Task Overdue</span>
+                <span
+                  className={cn(
+                    'rounded-full px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold shrink-0',
+                    activeTab === 'OVERDUE'
+                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300'
+                      : 'bg-gray-200/80 text-gray-700 dark:bg-slate-700 dark:text-gray-300',
+                  )}
+                >
+                  {overdueCount}
+                </span>
+              </TabsTrigger>
             </TabsList>
           </div>
         </Tabs>
@@ -482,7 +680,13 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
           <Search className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-gray-400" />
           <Input
             type="text"
-            placeholder={activeTab === 'COMPLETED' ? 'Search completed task or nurse...' : 'Search resident or task...'}
+            placeholder={
+              activeTab === 'COMPLETED'
+                ? 'Search completed task or nurse...'
+                : activeTab === 'OVERDUE'
+                  ? 'Search overdue resident or task...'
+                  : 'Search resident or task...'
+            }
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full rounded-xl border border-gray-200 bg-white py-2 pr-3 pl-9 text-xs text-gray-900 transition-colors focus:border-[#005390] focus:outline-none dark:border-gray-800 dark:bg-slate-900 dark:text-white"
@@ -556,7 +760,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  completions.map((completion) => {
+                  paginatedCompletions.map((completion) => {
                     const taskName = completion.task?.careTaskName || 'Care Task'
                     const residentOnly =
                       `${completion.resident?.firstName || ''} ${completion.resident?.lastName || ''}`.trim() ||
@@ -701,22 +905,32 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                       <p className="mt-2 text-xs">Loading care task assignments...</p>
                     </TableCell>
                   </TableRow>
-                ) : displayedGroupedAssignments.length === 0 ? (
+                ) : activeAssignmentGroups.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={isCompact ? 5 : 6} className="py-12 text-center text-gray-400">
-                      <HeartHandshake className="mx-auto size-8 text-gray-300 dark:text-gray-600" />
+                      {activeTab === 'OVERDUE' ? (
+                        <AlertCircle className="mx-auto size-8 text-amber-300 dark:text-amber-700" />
+                      ) : (
+                        <HeartHandshake className="mx-auto size-8 text-gray-300 dark:text-gray-600" />
+                      )}
                       <p className="mt-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                        {activeTab === 'PENDING' ? 'No pending care tasks' : 'No care tasks found'}
+                        {activeTab === 'OVERDUE'
+                          ? 'No overdue care tasks'
+                          : activeTab === 'PENDING'
+                            ? 'No pending care tasks'
+                            : 'No care tasks found'}
                       </p>
                       <p className="text-xs text-gray-400">
-                        {activeTab === 'PENDING'
-                          ? 'All assigned tasks have been handled or none are currently active.'
-                          : 'Care package bundled tasks and custom assigned tasks will appear here.'}
+                        {activeTab === 'OVERDUE'
+                          ? 'Tasks that pass their scheduled time plus duration without completion will appear here.'
+                          : activeTab === 'PENDING'
+                            ? 'All assigned tasks have been handled or none are currently active.'
+                            : 'Care package bundled tasks and custom assigned tasks will appear here.'}
                       </p>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  displayedGroupedAssignments.map((group, groupIndex) => {
+                  paginatedGroupedAssignments.map((group, groupIndex) => {
                     const residentOnly =
                       `${group.resident?.firstName || ''} ${group.resident?.lastName || ''}`.trim() || 'Resident'
                     // A family member's task shows their name (and whose family they are).
@@ -955,6 +1169,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                                 {' '}
                                 • {firstSlot.endDate ? `To: ${formatDisplayDate(firstSlot.endDate)}` : 'Lifetime'}
                               </span>
+                              <span> • Duration: {getSlotDurationMinutes(firstSlot)} min</span>
                             </div>
                           </TableCell>
 
@@ -963,16 +1178,18 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                             <span
                               className={cn(
                                 'inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-extrabold',
-                                firstSlot.status === 'ACTIVE'
-                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                                  : firstSlot.status === 'CANCELLED'
-                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                                    : firstSlot.isStopped || firstSlot.status === 'STOPPED'
-                                      ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
-                                      : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+                                activeTab === 'OVERDUE'
+                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                  : firstSlot.status === 'ACTIVE'
+                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                    : firstSlot.status === 'CANCELLED'
+                                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                      : firstSlot.isStopped || firstSlot.status === 'STOPPED'
+                                        ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+                                        : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
                               )}
                             >
-                              {firstSlot.status}
+                              {activeTab === 'OVERDUE' ? 'OVERDUE' : firstSlot.status}
                             </span>
                           </TableCell>
 
@@ -995,7 +1212,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                                 type="button"
                                 variant="ghost"
                                 size="icon-xs"
-                                onClick={() => handleDelete(firstSlot.id)}
+                                onClick={() => setDeletingAssignmentId(firstSlot.id)}
                                 disabled={deleteMutation.isPending}
                                 className="h-7 w-7 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-rose-600 dark:hover:bg-slate-800 cursor-pointer"
                                 title="Delete Assignment"
@@ -1043,6 +1260,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                                 <div className="text-[10px] text-gray-400 mt-0.5">
                                   <span>From: {formatDisplayDate(slot.startDate)}</span>
                                   <span> • {slot.endDate ? `To: ${formatDisplayDate(slot.endDate)}` : 'Lifetime'}</span>
+                                  <span> • Duration: {getSlotDurationMinutes(slot)} min</span>
                                 </div>
                               </TableCell>
 
@@ -1051,16 +1269,18 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                                 <span
                                   className={cn(
                                     'inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-extrabold',
-                                    slot.status === 'ACTIVE'
-                                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                                      : slot.status === 'CANCELLED'
-                                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                                        : slot.isStopped || slot.status === 'STOPPED'
-                                          ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
-                                          : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+                                    activeTab === 'OVERDUE'
+                                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                      : slot.status === 'ACTIVE'
+                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                        : slot.status === 'CANCELLED'
+                                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                          : slot.isStopped || slot.status === 'STOPPED'
+                                            ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+                                            : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
                                   )}
                                 >
-                                  {slot.status}
+                                  {activeTab === 'OVERDUE' ? 'OVERDUE' : slot.status}
                                 </span>
                               </TableCell>
 
@@ -1083,7 +1303,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
                                     type="button"
                                     variant="ghost"
                                     size="icon-xs"
-                                    onClick={() => handleDelete(slot.id)}
+                                    onClick={() => setDeletingAssignmentId(slot.id)}
                                     disabled={deleteMutation.isPending}
                                     className="h-7 w-7 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-rose-600 dark:hover:bg-slate-800 cursor-pointer"
                                     title="Delete Assignment"
@@ -1104,6 +1324,30 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
             </Table>
           )}
         </div>
+
+        {activeTab === 'COMPLETED'
+          ? renderTablePagination(
+              completions.length,
+              safeCompletedPage,
+              completedTotalPages,
+              setCompletedPage,
+              'completed tasks',
+            )
+          : activeTab === 'OVERDUE'
+            ? renderTablePagination(
+                overdueGroupedAssignments.length,
+                safeOverduePage,
+                overdueTotalPages,
+                setOverduePage,
+                'overdue tasks',
+              )
+            : renderTablePagination(
+                pendingGroupedAssignments.length,
+                safePendingPage,
+                pendingTotalPages,
+                setPendingPage,
+                'pending tasks',
+              )}
       </Card>
 
       {/* ── Assign Care Task Modal ─────────────────────────────────────────── */}
@@ -1121,6 +1365,21 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
         onOpenChange={(open) => !open && setCompletingAssignment(null)}
         assignment={completingAssignment}
         onSuccess={handleRefresh}
+      />
+
+      {/* ── Delete Care Task Confirmation ──────────────────────────────────── */}
+      <ConfirmDialog
+        open={Boolean(deletingAssignmentId)}
+        onOpenChange={(open) => {
+          if (!open && !deleteMutation.isPending) setDeletingAssignmentId(null)
+        }}
+        title="Delete care task assignment?"
+        description="This will permanently remove this care task assignment. This action cannot be undone."
+        confirmLabel="Delete"
+        isPending={deleteMutation.isPending}
+        onConfirm={() => {
+          void handleConfirmDelete()
+        }}
       />
     </div>
   )

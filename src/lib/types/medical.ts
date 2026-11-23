@@ -248,6 +248,8 @@ export interface CareTaskAssignment {
   startDate: string
   endDate?: string | null
 
+  durationMinutes?: number | null
+
   time?: string | null
 
   status: AssignmentStatus | string
@@ -323,6 +325,7 @@ export interface CareTaskAssignmentSlot {
   frequency?: number
   startDate: string
   endDate?: string | null
+  durationMinutes?: number | null
   status: AssignmentStatus | string
   isStopped?: boolean
   completionCount: number
@@ -423,6 +426,7 @@ export interface CreateCareTaskAssignmentPayload {
   frequency?: number | null
   startDate: string
   endDate?: string | null
+  durationMinutes: number
   time?: string
   times?: string[]
   nurseId?: string | null
