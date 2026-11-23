@@ -14,12 +14,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from '@/components/ui/combobox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import {
   useCreateAsset,
+  useCreateAssetCategory,
+  useCreateAssetItem,
+  useCreateAssetVendor,
   useCreateItemRequest,
   useDeleteAsset,
   useGetAssetCategories,
@@ -38,9 +49,11 @@ import { DataTable } from '@/components/ui/data-table'
 import { useLocationStore } from '@/lib/stores/locationStore'
 import type {
   Asset,
+  AssetCategory,
   AssetCondition,
   AssetItemRequest,
   AssetStatus,
+  IdNamePair,
   ItemRequestReason,
   ServiceType,
   TransferSendCondition,
@@ -128,8 +141,11 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
   const [serialNumberError, setSerialNumberError] = useState('')
   const [formData, setFormData] = useState({
     categoryId: '',
+    categoryName: '',
     itemId: '',
+    itemName: '',
     vendorId: '',
+    vendorName: '',
     serialNumber: '',
     assetTag: '',
     purchaseDate: '',
@@ -180,6 +196,9 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
   })
 
   const createMutation = useCreateAsset()
+  const createCategoryMutation = useCreateAssetCategory()
+  const createItemMutation = useCreateAssetItem()
+  const createVendorMutation = useCreateAssetVendor()
   const updateMutation = useUpdateAsset()
   const deleteMutation = useDeleteAsset()
   const createGatePassMutation = useCreateItemRequest()
@@ -272,10 +291,54 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
     }
     return false
   }
-  const categories = categoriesData?.data?.categories || []
-  const items = itemsData?.data || []
-  const vendors = vendorsData?.data || []
+  const categories = useMemo(() => categoriesData?.data?.categories || [], [categoriesData?.data?.categories])
+  const items = useMemo(() => itemsData?.data || [], [itemsData?.data])
+  const vendors = useMemo(() => vendorsData?.data || [], [vendorsData?.data])
   const employees = useMemo(() => employeesData?.data || [], [employeesData?.data])
+
+  const selectedCategory = useMemo(
+    () => categories.find((category) => category.id === formData.categoryId) || null,
+    [categories, formData.categoryId],
+  )
+
+  const selectedItem = useMemo(
+    () => items.find((item) => item.id === formData.itemId) || null,
+    [items, formData.itemId],
+  )
+
+  const selectedVendor = useMemo(() => {
+    const fromList = vendors.find((vendor) => vendor.id === formData.vendorId)
+    if (fromList) return fromList
+    if (formData.vendorId && formData.vendorName.trim()) {
+      return { id: formData.vendorId, name: formData.vendorName }
+    }
+    return null
+  }, [vendors, formData.vendorId, formData.vendorName])
+
+  const canEnterItem = Boolean(formData.categoryId || formData.categoryName.trim())
+  const canEnterVendor = canEnterItem
+
+  const getItemOptionLabel = (item: IdNamePair) => (item.model ? `${item.name} (${item.model})` : item.name)
+
+  const emptyFormData = {
+    categoryId: '',
+    categoryName: '',
+    itemId: '',
+    itemName: '',
+    vendorId: '',
+    vendorName: '',
+    serialNumber: '',
+    assetTag: '',
+    purchaseDate: '',
+    purchasePrice: '',
+    warrantyEndDate: '',
+    warrantyDocument: null as File | null,
+    warrantyDocumentName: '',
+    warrantyDocumentUrl: '',
+    condition: 'good' as AssetCondition,
+    status: 'available' as AssetStatus,
+    notes: '',
+  }
 
   const filteredEmployees = useMemo(() => {
     const q = externalEmployeeSearch.trim().toLowerCase()
@@ -292,15 +355,38 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
     setIsModalOpen(false)
     setEditingAsset(null)
     setSerialNumberError('')
+    setFormData({ ...emptyFormData })
+  }
+
+  const resolveVendorId = async (categoryId: string, cleanedVendorName: string) => {
+    if (!cleanedVendorName) return ''
+    if (formData.vendorId) return formData.vendorId
+
+    const matchedVendor = vendors.find((vendor) => vendor.name.trim().toLowerCase() === cleanedVendorName.toLowerCase())
+    if (matchedVendor) return matchedVendor.id
+
+    const createdVendor = await createVendorMutation.mutateAsync({
+      name: cleanedVendorName,
+      categoryId,
+    })
+    const createdId = createdVendor?.data?.id || ''
+    if (!createdId) {
+      throw new Error('Failed to create vendor')
+    }
+    return createdId
   }
 
   const handleSubmit = async () => {
+    const cleanedCategoryName = formData.categoryName.trim()
+    const cleanedItemName = formData.itemName.trim()
+    const cleanedVendorName = formData.vendorName.trim()
+
     if (!editingAsset) {
-      if (!formData.categoryId) {
+      if (!cleanedCategoryName) {
         toast.error('Category is required')
         return
       }
-      if (!formData.itemId) {
+      if (!cleanedItemName) {
         toast.error('Item is required')
         return
       }
@@ -324,11 +410,69 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
       const payload = new FormData()
 
       if (!editingAsset) {
-        payload.append('itemId', formData.itemId)
-        if (formData.vendorId) {
-          payload.append('vendorId', formData.vendorId)
+        let resolvedCategoryId = formData.categoryId
+        if (!resolvedCategoryId) {
+          const matchedCategory = categories.find(
+            (category) => category.name.trim().toLowerCase() === cleanedCategoryName.toLowerCase(),
+          )
+          if (matchedCategory) {
+            resolvedCategoryId = matchedCategory.id
+          } else {
+            const createdCategory = await createCategoryMutation.mutateAsync({ name: cleanedCategoryName })
+            resolvedCategoryId = createdCategory?.data?.id || ''
+            if (!resolvedCategoryId) {
+              toast.error('Failed to create category')
+              return
+            }
+          }
+        }
+
+        let resolvedVendorId = ''
+        try {
+          resolvedVendorId = await resolveVendorId(resolvedCategoryId, cleanedVendorName)
+        } catch {
+          toast.error('Failed to create vendor')
+          return
+        }
+
+        let resolvedItemId = formData.itemId
+        if (!resolvedItemId) {
+          const matchedItem = items.find((item) => item.name.trim().toLowerCase() === cleanedItemName.toLowerCase())
+          if (matchedItem) {
+            resolvedItemId = matchedItem.id
+          } else {
+            const createdItem = await createItemMutation.mutateAsync({
+              name: cleanedItemName,
+              categoryId: resolvedCategoryId,
+              ...(resolvedVendorId ? { vendorId: resolvedVendorId } : {}),
+            })
+            resolvedItemId = createdItem?.data?.id || ''
+            if (!resolvedItemId) {
+              toast.error('Failed to create item')
+              return
+            }
+          }
+        }
+
+        payload.append('itemId', resolvedItemId)
+        if (resolvedVendorId) {
+          payload.append('vendorId', resolvedVendorId)
         }
         payload.append('locationId', selectedLocationId || '')
+      } else {
+        // Edit: allow assigning/updating vendor (including create-by-name for this category).
+        const editCategoryId = formData.categoryId
+        if (cleanedVendorName && editCategoryId) {
+          try {
+            const resolvedVendorId = await resolveVendorId(editCategoryId, cleanedVendorName)
+            payload.append('vendorId', resolvedVendorId)
+          } catch {
+            toast.error('Failed to create vendor')
+            return
+          }
+        } else {
+          payload.append('vendorId', '')
+        }
       }
 
       if (cleanedSerialNumber) payload.append('serialNumber', cleanedSerialNumber)
@@ -692,9 +836,13 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
     if (asset) {
       setEditingAsset(asset)
       setFormData({
+        ...emptyFormData,
         categoryId: asset.item?.category?.id || asset.item?.categoryId || '',
+        categoryName: asset.item?.category?.name || '',
         itemId: asset.itemId,
+        itemName: asset.item?.name || '',
         vendorId: asset.vendorId || '',
+        vendorName: asset.vendor?.name || '',
         serialNumber: asset.serialNumber || '',
         assetTag: asset.assetTag || '',
         purchaseDate: asset.purchaseDate ? new Date(asset.purchaseDate).toISOString().split('T')[0] : '',
@@ -709,22 +857,7 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
       })
     } else {
       setEditingAsset(null)
-      setFormData({
-        categoryId: '',
-        itemId: '',
-        vendorId: '',
-        serialNumber: '',
-        assetTag: '',
-        purchaseDate: '',
-        purchasePrice: '',
-        warrantyEndDate: '',
-        warrantyDocument: null,
-        warrantyDocumentName: '',
-        warrantyDocumentUrl: '',
-        condition: 'good',
-        status: 'available',
-        notes: '',
-      })
+      setFormData({ ...emptyFormData })
     }
     setIsModalOpen(true)
   }
@@ -1039,41 +1172,72 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
 
           <div className="space-y-4 p-4">
             <div>
-              <Label htmlFor="categoryId" className="mb-2">
+              <Label htmlFor="categoryName" className="mb-2">
                 Category <span className="text-red-500">*</span>
               </Label>
               {editingAsset ? (
                 <Input value={editingAsset.item?.category?.name || ''} disabled className="bg-gray-50" />
               ) : (
-                <Select
-                  value={formData.categoryId}
-                  onValueChange={(value) => {
-                    if (!value) return
-                    setFormData({
-                      ...formData,
-                      categoryId: value,
+                <Combobox
+                  items={categories}
+                  value={selectedCategory}
+                  inputValue={formData.categoryName}
+                  onValueChange={(category: AssetCategory | null) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      categoryId: category?.id || '',
+                      categoryName: category?.name || '',
                       itemId: '',
+                      itemName: '',
                       vendorId: '',
-                    })
+                      vendorName: '',
+                    }))
                   }}
+                  onInputValueChange={(value: string, eventDetails) => {
+                    // Base UI resets input to the selected label on popup close; with no
+                    // selection that clears free-typed text. Cancel that clear.
+                    // Explicit X clear uses reason "clear-press" and still works.
+                    if (value === '' && eventDetails.reason === 'input-clear') {
+                      eventDetails.cancel()
+                      return
+                    }
+                    const match = categories.find(
+                      (category) => category.name.trim().toLowerCase() === value.trim().toLowerCase(),
+                    )
+                    setFormData((prev) => ({
+                      ...prev,
+                      categoryName: value,
+                      categoryId: match?.id || '',
+                      ...(match?.id !== prev.categoryId
+                        ? { itemId: '', itemName: '', vendorId: '', vendorName: '' }
+                        : {}),
+                    }))
+                  }}
+                  itemToStringLabel={(category: AssetCategory) => category.name}
+                  isItemEqualToValue={(a: AssetCategory, b: AssetCategory) => a.id === b.id}
                 >
-                  <SelectTrigger className="w-[100%]">
-                    <SelectValue placeholder="Select category first" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <ComboboxInput id="categoryName" className="w-full" placeholder="Type or select category" showClear />
+                  <ComboboxContent>
+                    <ComboboxEmpty>
+                      {formData.categoryName.trim()
+                        ? 'No match — a new category will be created'
+                        : 'No categories found'}
+                    </ComboboxEmpty>
+                    <ComboboxList>
+                      {(category: AssetCategory) => (
+                        <ComboboxItem key={category.id} value={category}>
+                          {category.name}
+                        </ComboboxItem>
+                      )}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
               )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="itemId" className="mb-2">
+                <Label htmlFor="itemName" className="mb-2">
                   Asset Item <span className="text-red-500">*</span>
                 </Label>
                 {editingAsset ? (
@@ -1087,57 +1251,123 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
                     className="bg-gray-50"
                   />
                 ) : (
-                  <Select
-                    value={formData.itemId}
-                    onValueChange={(value) => {
-                      if (!value) return
-                      setFormData({ ...formData, itemId: value })
+                  <Combobox
+                    items={items}
+                    value={selectedItem}
+                    inputValue={formData.itemName}
+                    onValueChange={(item: IdNamePair | null) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        itemId: item?.id || '',
+                        itemName: item?.name || '',
+                      }))
                     }}
-                    disabled={!formData.categoryId}
+                    onInputValueChange={(value: string, eventDetails) => {
+                      // Same as category: keep free-typed creatable text when popup closes.
+                      if (value === '' && eventDetails.reason === 'input-clear') {
+                        eventDetails.cancel()
+                        return
+                      }
+                      const normalized = value.trim().toLowerCase()
+                      const match = items.find((item) => {
+                        const nameMatch = item.name.trim().toLowerCase() === normalized
+                        const labelMatch = getItemOptionLabel(item).trim().toLowerCase() === normalized
+                        return nameMatch || labelMatch
+                      })
+                      setFormData((prev) => ({
+                        ...prev,
+                        itemName: match?.name || value,
+                        itemId: match?.id || '',
+                      }))
+                    }}
+                    itemToStringLabel={getItemOptionLabel}
+                    isItemEqualToValue={(a: IdNamePair, b: IdNamePair) => a.id === b.id}
+                    disabled={!canEnterItem}
                   >
-                    <SelectTrigger className="w-[100%]">
-                      <SelectValue placeholder={formData.categoryId ? 'Select asset item' : 'Select category first'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {items.map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {item.name} {item.model && `(${item.model})`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <ComboboxInput
+                      id="itemName"
+                      className="w-full"
+                      placeholder={canEnterItem ? 'Type or select asset item' : 'Enter category first'}
+                      showClear
+                      disabled={!canEnterItem}
+                    />
+                    <ComboboxContent>
+                      <ComboboxEmpty>
+                        {!canEnterItem
+                          ? 'Enter category first'
+                          : formData.itemName.trim()
+                            ? 'No match — a new item will be created'
+                            : 'No items found'}
+                      </ComboboxEmpty>
+                      <ComboboxList>
+                        {(item: IdNamePair) => (
+                          <ComboboxItem key={item.id} value={item}>
+                            {getItemOptionLabel(item)}
+                          </ComboboxItem>
+                        )}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
                 )}
               </div>
 
               <div>
-                <Label htmlFor="vendorId" className="mb-2">
+                <Label htmlFor="vendorName" className="mb-2">
                   Vendor (Optional)
                 </Label>
-                {editingAsset ? (
-                  <Input value={editingAsset.vendor?.name || ''} disabled className="bg-gray-50" />
-                ) : (
-                  <Select
-                    value={formData.vendorId}
-                    onValueChange={(value) => {
-                      if (!value) return
-                      setFormData({ ...formData, vendorId: value })
-                    }}
-                    disabled={!formData.categoryId}
-                  >
-                    <SelectTrigger className="w-[100%]">
-                      <SelectValue
-                        placeholder={formData.categoryId ? 'Select vendor (optional)' : 'Select category first'}
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vendors.map((vendor) => (
-                        <SelectItem key={vendor.id} value={vendor.id}>
+                <Combobox
+                  items={vendors}
+                  value={selectedVendor}
+                  inputValue={formData.vendorName}
+                  onValueChange={(vendor: IdNamePair | null) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      vendorId: vendor?.id || '',
+                      vendorName: vendor?.name || '',
+                    }))
+                  }}
+                  onInputValueChange={(value: string, eventDetails) => {
+                    if (value === '' && eventDetails.reason === 'input-clear') {
+                      eventDetails.cancel()
+                      return
+                    }
+                    const match = vendors.find(
+                      (vendor) => vendor.name.trim().toLowerCase() === value.trim().toLowerCase(),
+                    )
+                    setFormData((prev) => ({
+                      ...prev,
+                      vendorName: value,
+                      vendorId: match?.id || '',
+                    }))
+                  }}
+                  itemToStringLabel={(vendor: IdNamePair) => vendor.name}
+                  isItemEqualToValue={(a: IdNamePair, b: IdNamePair) => a.id === b.id}
+                  disabled={!canEnterVendor}
+                >
+                  <ComboboxInput
+                    id="vendorName"
+                    className="w-full"
+                    placeholder={canEnterVendor ? 'Type or select vendor (optional)' : 'Enter category first'}
+                    showClear
+                    disabled={!canEnterVendor}
+                  />
+                  <ComboboxContent>
+                    <ComboboxEmpty>
+                      {!canEnterVendor
+                        ? 'Enter category first'
+                        : formData.vendorName.trim()
+                          ? 'No match — a new vendor will be created'
+                          : 'No vendors found'}
+                    </ComboboxEmpty>
+                    <ComboboxList>
+                      {(vendor: IdNamePair) => (
+                        <ComboboxItem key={vendor.id} value={vendor}>
                           {vendor.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+                        </ComboboxItem>
+                      )}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
               </div>
             </div>
 
@@ -1417,7 +1647,16 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
             <Button variant="outline" onClick={handleCloseModal}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
+            <Button
+              onClick={handleSubmit}
+              disabled={
+                createMutation.isPending ||
+                createCategoryMutation.isPending ||
+                createItemMutation.isPending ||
+                createVendorMutation.isPending ||
+                updateMutation.isPending
+              }
+            >
               {editingAsset ? 'Update' : 'Create'}
             </Button>
           </DialogFooter>

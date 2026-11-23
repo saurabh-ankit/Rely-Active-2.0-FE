@@ -107,7 +107,7 @@ export const MedicalPage: React.FC<MedicalPageProps> = ({ initialTab }) => {
     },
     {
       value: 'assigned',
-      label: 'Clinical Care Tasks',
+      label: 'Care Task Management',
       shortLabel: 'Clinical',
       icon: Activity,
       content: (
