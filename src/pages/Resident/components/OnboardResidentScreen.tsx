@@ -285,10 +285,7 @@ const familyMemberSchema = z.object({
     .trim()
     .optional()
     .or(z.literal(''))
-    .refine(
-      (val) => !val || /^[a-zA-Z0-9_]{3,30}$/.test(val),
-      'Username handle must be 3-30 characters (letters, numbers, underscores only)',
-    ),
+    .refine((val) => !val || /^\S{3,30}$/.test(val), 'Username handle must be 3-30 characters with no spaces'),
   password: z
     .string()
     .optional()
@@ -324,10 +321,7 @@ const residentFormSchema = z.object({
     .trim()
     .optional()
     .or(z.literal(''))
-    .refine(
-      (val) => !val || /^[a-zA-Z0-9_]{3,30}$/.test(val),
-      'Username handle must be 3-30 characters (letters, numbers, underscores only)',
-    ),
+    .refine((val) => !val || /^\S{3,30}$/.test(val), 'Username handle must be 3-30 characters with no spaces'),
   password: z
     .string()
     .optional()

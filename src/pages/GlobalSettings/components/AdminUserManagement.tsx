@@ -81,7 +81,8 @@ const sortRolesByHierarchy = (roleList: RoleItem[]) => {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_REGEX = /^[6-9][0-9]{9}$/
 const NAME_REGEX = /^[a-zA-Z\s]+$/
-const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,30}$/
+// Any visible characters (special characters allowed), no spaces.
+const USERNAME_REGEX = /^\S{3,30}$/
 const EXPERIENCE_REGEX = /^\d{1,2}$/
 const BLOOD_GROUP_VALUES = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'] as const
 const GENDER_VALUES = ['MALE', 'FEMALE', 'OTHER'] as const
@@ -141,7 +142,7 @@ const userFormSchema = z
       .string()
       .trim()
       .min(1, 'Username is required')
-      .regex(USERNAME_REGEX, 'Username must be 3–30 characters and contain only letters, numbers, or underscore'),
+      .regex(USERNAME_REGEX, 'Username must be 3–30 characters with no spaces'),
     firstName: z
       .string()
       .trim()
@@ -489,7 +490,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
 
   const populateFormForUser = (u: UserItem) => {
     setEditingUserId(u.id)
-    setValue('username', (u.username || '').replace(/[^a-zA-Z0-9_]/g, '').slice(0, 30))
+    setValue('username', (u.username || '').replace(/\s/g, '').slice(0, 30))
     setValue('firstName', lettersOnly(u.profile?.firstName || u.profile?.first_name || ''))
     setValue('lastName', lettersOnly(u.profile?.lastName || u.profile?.last_name || ''))
     setValue('email', u.email || '')
@@ -1347,7 +1348,7 @@ export function AdminUserManagement({ initialMode = 'list', isLocationScoped = f
                 <Input
                   label="Username (Login Handle)"
                   required
-                  {...registerFiltered('username', (value) => value.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 30))}
+                  {...registerFiltered('username', (value) => value.replace(/\s/g, '').slice(0, 30))}
                   error={errors.username?.message}
                   placeholder="e.g. ravi_kumar"
                   icon={<User className="h-4 w-4 text-gray-400" />}
