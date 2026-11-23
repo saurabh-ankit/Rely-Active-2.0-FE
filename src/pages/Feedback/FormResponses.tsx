@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { format } from 'date-fns'
-import { BarChart3, Eye, MessageSquareText, Star, Users } from 'lucide-react'
+import { BarChart3, Eye, MessageSquareText, Search, Star, Users } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
 import PageLoader from '@/components/shared/PageLoader'
 import { ResponsiveTabs } from '@/components/common/ResponsiveTabs'
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { BackButton } from '@/components/common/BackButton'
 import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { useFeedbackFormResponses } from '@/hooks/react-query/feedback'
@@ -105,6 +106,7 @@ const FormResponses = () => {
   const { data, isLoading } = useFeedbackFormResponses(id)
   const [tab, setTab] = useState('summary')
   const [viewing, setViewing] = useState<FeedbackIndividualResponse | null>(null)
+  const [responseSearch, setResponseSearch] = useState('')
 
   const result = data?.data
   const questionsById = useMemo(
@@ -128,6 +130,16 @@ const FormResponses = () => {
   const recipientCount = form.recipientCount ?? 0
   const responseCount = form.responseCount ?? 0
   const responseRate = recipientCount > 0 ? Math.round((responseCount / recipientCount) * 100) : 0
+
+  // Search individual responses by respondent name or type (Resident / Employee).
+  const searchTerm = responseSearch.trim().toLowerCase()
+  const filteredResponses = searchTerm
+    ? responses.filter((r) =>
+        [r.respondentName, r.recipientType === 'RESIDENT' ? 'resident' : 'employee'].some((v) =>
+          (v || '').toLowerCase().includes(searchTerm),
+        ),
+      )
+    : responses
 
   const noResponses = (
     <Empty className="border border-dashed rounded-xl py-12">
@@ -214,27 +226,45 @@ const FormResponses = () => {
               responses.length === 0 ? (
                 noResponses
               ) : (
-                <Card>
-                  <CardContent className="divide-y p-0">
-                    {responses.map((r) => (
-                      <Button
-                        key={r.recipientId}
-                        type="button"
-                        variant="ghost"
-                        onClick={() => setViewing(r)}
-                        className="h-auto p-0 flex w-full cursor-pointer items-center justify-between gap-4 px-4 py-3 text-left hover:bg-gray-50 whitespace-normal font-normal rounded-none"
-                      >
-                        <div className="min-w-0">
-                          <p className="font-medium text-gray-900 truncate">{r.respondentName}</p>
-                          <p className="text-xs text-gray-500">
-                            Submitted {format(new Date(r.submittedAt), 'dd MMM yyyy, h:mm a')}
-                          </p>
-                        </div>
-                        <Badge variant="outline">{r.recipientType === 'RESIDENT' ? 'Resident' : 'Employee'}</Badge>
-                      </Button>
-                    ))}
-                  </CardContent>
-                </Card>
+                <div className="space-y-3">
+                  <div className="relative max-w-sm">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <Input
+                      type="search"
+                      value={responseSearch}
+                      onChange={(e) => setResponseSearch(e.target.value)}
+                      placeholder="Search by name, resident or employee"
+                      className="h-9 pl-9 text-sm"
+                    />
+                  </div>
+                  {filteredResponses.length === 0 ? (
+                    <p className="rounded-xl border border-dashed py-8 text-center text-sm text-gray-500">
+                      No responses match “{responseSearch.trim()}”
+                    </p>
+                  ) : (
+                    <Card>
+                      <CardContent className="divide-y p-0">
+                        {filteredResponses.map((r) => (
+                          <Button
+                            key={r.recipientId}
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setViewing(r)}
+                            className="h-auto p-0 flex w-full cursor-pointer items-center justify-between gap-4 px-4 py-3 text-left hover:bg-gray-50 whitespace-normal font-normal rounded-none"
+                          >
+                            <div className="min-w-0">
+                              <p className="font-medium text-gray-900 truncate">{r.respondentName}</p>
+                              <p className="text-xs text-gray-500">
+                                Submitted {format(new Date(r.submittedAt), 'dd MMM yyyy, h:mm a')}
+                              </p>
+                            </div>
+                            <Badge variant="outline">{r.recipientType === 'RESIDENT' ? 'Resident' : 'Employee'}</Badge>
+                          </Button>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               ),
           },
         ]}
