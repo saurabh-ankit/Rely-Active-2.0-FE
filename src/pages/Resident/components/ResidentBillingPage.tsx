@@ -472,7 +472,7 @@ export const ResidentBillingPage: React.FC = () => {
       )}
 
       {/* ── Loading & Error States ────────────────────────────────────── */}
-      {isLoading && <PageLoader isVisible={true} message="Loading..." />}
+      {isLoading && <PageLoader isVisible={true} message="Loading..." variant="overlay" />}
 
       {error && !isLoading && (
         <Card className="gap-0 rounded-3xl border border-rose-200 bg-rose-50/80 p-6 text-center text-rose-700 font-semibold shadow-sm">

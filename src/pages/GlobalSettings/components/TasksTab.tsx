@@ -1,4 +1,5 @@
 import { Label } from '@/components/ui/label'
+import { TableSkeleton } from '@/components/ui/skeleton'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useForm, useWatch } from 'react-hook-form'
@@ -512,10 +513,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
       <Card className="gap-0 bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-5 shadow-sm">
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="py-16 text-center">
-              <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
-              <p className="text-xs text-muted-foreground font-medium">Loading care tasks...</p>
-            </div>
+            <TableSkeleton rows={6} columns={5} className="border-0" />
           ) : careTasks.length === 0 ? (
             <div className="py-16 text-center">
               <div className="w-12 h-12 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center mx-auto mb-3 border border-gray-100">

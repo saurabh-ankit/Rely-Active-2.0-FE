@@ -1,4 +1,6 @@
 import { Fragment, useState } from 'react'
+import { TableRowsSkeleton } from '@/components/ui/skeleton'
+import { CountUp } from '@/components/common/CountUp'
 import {
   ArrowRightLeft,
   CalendarDays,
@@ -259,11 +261,7 @@ export function InvoicesList({ unitId, onEditInvoice }: InvoicesListProps) {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={COLUMNS.length} className="py-12 text-center">
-                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
-                </TableCell>
-              </TableRow>
+              <TableRowsSkeleton columns={COLUMNS.length} />
             ) : invoices.length === 0 && oldFlatInvoices.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={COLUMNS.length} className="py-14 text-center text-gray-500">
@@ -457,6 +455,7 @@ function InvoiceDetail({
           />
         )}
         <Row
+          countUp
           label="Total"
           value={formatInr(inv.discountedAmount)}
           className="border-t border-gray-100 pt-2 text-base font-bold text-gray-900"
@@ -472,7 +471,7 @@ function InvoiceDetail({
           </>
         ) : (
           <>
-            <Row label="Paid" value={formatInr(inv.paidAmount)} className="font-semibold text-emerald-600" />
+            <Row countUp label="Paid" value={formatInr(inv.paidAmount)} className="font-semibold text-emerald-600" />
             <PaidBar paid={inv.paidAmount} total={inv.discountedAmount} className="my-1" />
           </>
         )}
@@ -490,6 +489,7 @@ function InvoiceDetail({
           </p>
         ) : (
           <Row
+            countUp
             label="Balance"
             value={inv.remainingBalance > 0 ? formatInr(inv.remainingBalance) : 'Settled'}
             className={cn('font-bold', inv.remainingBalance > 0 ? 'text-rose-600' : 'text-emerald-600')}
@@ -500,9 +500,20 @@ function InvoiceDetail({
   )
 }
 
-const Row = ({ label, value, className }: { label: string; value: string; className?: string }) => (
+const Row = ({
+  label,
+  value,
+  className,
+  countUp = false,
+}: {
+  label: string
+  value: string
+  className?: string
+  /** Roll the figure up when the summary opens, and from old to new after a payment. */
+  countUp?: boolean
+}) => (
   <div className={cn('flex justify-between gap-3', className)}>
     <span>{label}</span>
-    <span className="tabular-nums">{value}</span>
+    <span className="tabular-nums">{countUp ? <CountUp text={value} duration={0.7} /> : value}</span>
   </div>
 )

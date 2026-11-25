@@ -29,7 +29,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
-import { Skeleton } from '@/components/ui/skeleton'
+import { TableSkeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 type DataTableProps<TData, TValue> = {
@@ -186,8 +186,8 @@ export function DataTable<TData, TValue>({
       )}
 
       {isLoading ? (
-        <div className="flex flex-col gap-3 p-4" aria-label="Loading table">
-          <Skeleton className="h-64 w-full rounded-2xl" />
+        <div aria-label="Loading table">
+          <TableSkeleton rows={Math.min(pageSize, 8)} columns={Math.min(Math.max(columns.length, 3), 7)} />
         </div>
       ) : error ? (
         <Empty>
@@ -228,12 +228,15 @@ export function DataTable<TData, TValue>({
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-gray-800/60 font-medium">
                   {table.getRowModel().rows.length ? (
-                    table.getRowModel().rows.map((row) => (
+                    table.getRowModel().rows.map((row, rowIndex) => (
                       <TableRow
                         key={row.id}
                         data-state={row.getIsSelected() && 'selected'}
                         onClick={onRowClick ? () => onRowClick(row.original) : undefined}
-                        className={`hover:bg-blue-50/30 dark:hover:bg-gray-800/40 transition-colors border-b border-gray-100 dark:border-gray-800/60 ${
+                        // Staggered enter on mount only: refetches keep the same row keys, so they don't replay.
+                        // fill-mode-backwards leaves no transform behind once the animation ends.
+                        style={{ animationDelay: `${Math.min(rowIndex, 12) * 30}ms` }}
+                        className={`animate-in fade-in slide-in-from-bottom-1 duration-300 fill-mode-backwards motion-reduce:animate-none hover:bg-blue-50/30 dark:hover:bg-gray-800/40 transition-colors border-b border-gray-100 dark:border-gray-800/60 ${
                           onRowClick ? 'cursor-pointer group' : ''
                         }`}
                       >

@@ -1,4 +1,5 @@
 import { Input } from '@/components/ui/input'
+import { TableRowsSkeleton } from '@/components/ui/skeleton'
 import { Card } from '@/components/ui/card'
 import React, { useMemo, useState } from 'react'
 import {
@@ -7,7 +8,6 @@ import {
   CheckCircle2,
   Clock,
   HeartHandshake,
-  Loader2,
   Plus,
   Search,
   StopCircle,
@@ -740,12 +740,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
               </TableHeader>
               <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {isLoadingCompletions ? (
-                  <TableRow>
-                    <TableCell colSpan={isCompact ? 5 : 6} className="py-12 text-center text-muted-foreground">
-                      <Loader2 className="mx-auto size-6 animate-spin text-primary" />
-                      <p className="mt-2 text-xs">Loading completed care task sessions...</p>
-                    </TableCell>
-                  </TableRow>
+                  <TableRowsSkeleton columns={isCompact ? 5 : 6} />
                 ) : completions.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={isCompact ? 5 : 6} className="py-12 text-center text-gray-400">
@@ -899,12 +894,7 @@ export const AssignedTasksTab: React.FC<AssignedTasksTabProps> = ({
               </TableHeader>
               <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {isLoadingAssignments ? (
-                  <TableRow>
-                    <TableCell colSpan={isCompact ? 5 : 6} className="py-12 text-center text-muted-foreground">
-                      <Loader2 className="mx-auto size-6 animate-spin text-primary" />
-                      <p className="mt-2 text-xs">Loading care task assignments...</p>
-                    </TableCell>
-                  </TableRow>
+                  <TableRowsSkeleton columns={isCompact ? 5 : 6} />
                 ) : activeAssignmentGroups.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={isCompact ? 5 : 6} className="py-12 text-center text-gray-400">

@@ -1,9 +1,19 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { motion } from 'framer-motion'
 import type { InvoiceStatus, MonthBillingStatus } from '@/lib/types/billing'
 import { MONTH_STATUS_META } from './billingFormat'
+
+/** Tick that pops in beside "Paid" (on first show and when an invoice flips to paid). */
+const PaidTick = () => (
+  <Check
+    aria-hidden
+    className="size-3 shrink-0 animate-in zoom-in-50 spin-in-[-45deg] fade-in animation-duration-500 motion-reduce:animate-none"
+    strokeWidth={3}
+  />
+)
 
 const STATUS_STYLE: Record<InvoiceStatus, { label: string; className: string }> = {
   DRAFT: { label: 'Draft', className: 'bg-gray-100 text-gray-700 border-gray-200' },
@@ -19,7 +29,15 @@ const STATUS_STYLE: Record<InvoiceStatus, { label: string; className: string }> 
 export const InvoiceStatusBadge = ({ status, className }: { status: InvoiceStatus; className?: string }) => {
   const style = STATUS_STYLE[status] ?? STATUS_STYLE.PENDING
   return (
-    <Badge variant="outline" className={cn('rounded-full text-xs font-medium', style.className, className)}>
+    <Badge
+      variant="outline"
+      className={cn(
+        'gap-1 rounded-full text-xs font-medium transition-colors duration-300',
+        style.className,
+        className,
+      )}
+    >
+      {status === 'PAID' && <PaidTick key="paid" />}
       {style.label}
     </Badge>
   )
@@ -80,7 +98,13 @@ export const PaidBar = ({ paid, total, className }: { paid: number; total: numbe
   const pct = total > 0 ? Math.min(100, Math.max(0, (paid / total) * 100)) : 0
   return (
     <div className={cn('h-1.5 w-full overflow-hidden rounded-full bg-gray-200', className)}>
-      <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+      {/* Fills from empty on mount, then glides to the new share after a payment */}
+      <motion.div
+        className="h-full rounded-full bg-emerald-500"
+        initial={{ width: 0 }}
+        animate={{ width: `${pct}%` }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+      />
     </div>
   )
 }
@@ -88,10 +112,11 @@ export const PaidBar = ({ paid, total, className }: { paid: number; total: numbe
 export const StatusPill = ({ status }: { status: InvoiceStatus }) => (
   <span
     className={cn(
-      'inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide',
+      'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide transition-colors duration-300',
       PILL[status] ?? 'border-gray-300 bg-gray-50 text-gray-600',
     )}
   >
+    {status === 'PAID' && <PaidTick key="paid" />}
     {status.replace('_', ' ')}
   </span>
 )

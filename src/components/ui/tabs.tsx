@@ -40,15 +40,30 @@ const tabsListVariants = cva(
 function TabsList({
   className,
   variant = 'default',
+  children,
   ...props
 }: TabsPrimitive.List.Props & VariantProps<typeof tabsListVariants>) {
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
       data-variant={variant}
-      className={cn(tabsListVariants({ variant }), className)}
+      className={cn('relative', tabsListVariants({ variant }), className)}
       {...props}
-    />
+    >
+      {children}
+      {/*
+       * One shared underline that slides to the active tab (Base UI sets the --active-tab-* vars, scroll included).
+       * Positioned from the tab's own top + height, so it stays right even when the tabs wrap onto two rows.
+       */}
+      <TabsPrimitive.Indicator
+        data-slot="tabs-indicator"
+        className={cn(
+          'pointer-events-none absolute left-(--active-tab-left) top-[calc(var(--active-tab-top)+var(--active-tab-height)-2px)] h-0.5 w-(--active-tab-width) rounded-full bg-[#005390] dark:bg-sky-400',
+          'transition-[left,top,width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none',
+          'group-data-vertical/tabs:hidden',
+        )}
+      />
+    </TabsPrimitive.List>
   )
 }
 
@@ -59,8 +74,9 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
       className={cn(
         'relative inline-flex h-10 shrink-0 items-center justify-center gap-1.5 border-b-2 border-transparent bg-transparent px-3 text-sm font-medium whitespace-nowrap text-slate-500 transition-colors cursor-pointer',
         'hover:text-slate-800 focus-visible:outline-none focus-visible:text-slate-800 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50',
-        'data-active:border-[#005390] data-active:text-[#005390]',
-        'dark:text-slate-400 dark:hover:text-slate-100 dark:data-active:border-sky-400 dark:data-active:text-sky-300',
+        // Horizontal tabs get their underline from the sliding indicator in TabsList; vertical ones keep a left border.
+        'data-active:text-[#005390] group-data-vertical/tabs:data-active:border-[#005390]',
+        'dark:text-slate-400 dark:hover:text-slate-100 dark:data-active:text-sky-300 dark:group-data-vertical/tabs:data-active:border-sky-400',
         'group-data-vertical/tabs:w-full group-data-vertical/tabs:justify-start group-data-vertical/tabs:border-b-0 group-data-vertical/tabs:border-l-2',
         "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
@@ -72,7 +88,15 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
 
 function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
   return (
-    <TabsPrimitive.Panel data-slot="tabs-content" className={cn('flex-1 text-sm outline-none', className)} {...props} />
+    <TabsPrimitive.Panel
+      data-slot="tabs-content"
+      // Inactive panels unmount, so each switch replays this short fade + lift (no transform is left behind).
+      className={cn(
+        'flex-1 text-sm outline-none animate-in fade-in slide-in-from-bottom-1 duration-300 motion-reduce:animate-none',
+        className,
+      )}
+      {...props}
+    />
   )
 }
 

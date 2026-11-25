@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { TableSkeleton } from '@/components/ui/skeleton'
 import {
   CalendarDays,
   ChevronDown,
@@ -130,9 +131,7 @@ export function ReceiptsList({ unitId }: { unitId: string }) {
       </div>
 
       {isLoading ? (
-        <Card className="gap-0 rounded-xl border-gray-200 bg-white py-12">
-          <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
-        </Card>
+        <TableSkeleton rows={5} columns={5} />
       ) : groups.length === 0 ? (
         <Card className="gap-0 rounded-xl border-gray-200 bg-white py-14 text-center text-gray-500">
           <ReceiptIndianRupee className="mx-auto mb-2 h-10 w-10 text-gray-300" />

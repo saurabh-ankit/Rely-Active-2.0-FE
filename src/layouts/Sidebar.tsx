@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   Armchair,
   PartyPopper,
@@ -54,16 +55,22 @@ const SidebarItem: React.FC<{ item: SidebarItemData; onClick?: () => void }> = (
     >
       <div
         className={cn(
-          'flex items-center justify-center rounded-xl transition-all duration-200 shrink-0',
+          'relative flex items-center justify-center rounded-xl transition-all duration-200 shrink-0',
           'w-9 h-9 md:w-full md:h-12 lg:h-14',
-          item.isActive
-            ? 'bg-[#005390] text-white shadow-md shadow-[#005390]/20'
-            : 'bg-transparent text-gray-500 hover:text-[#005390] md:hover:bg-[#005390]/10',
+          item.isActive ? 'text-white' : 'bg-transparent text-gray-500 hover:text-[#005390] md:hover:bg-[#005390]/10',
         )}
       >
+        {/* One shared pill: layoutId makes it glide from the old active item to the new one */}
+        {item.isActive && (
+          <motion.span
+            layoutId="sidebar-active-pill"
+            className="absolute inset-0 rounded-xl bg-[#005390] shadow-md shadow-[#005390]/20"
+            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+          />
+        )}
         <div
           className={cn(
-            'flex items-center justify-center transition-colors',
+            'relative flex items-center justify-center transition-colors',
             item.isActive ? 'text-white font-bold' : 'text-gray-500 group-hover:text-[#005390]',
           )}
         >
@@ -219,19 +226,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
 
   return (
     <>
-      {isOpen && (
-        <div
-          role="button"
-          tabIndex={0}
-          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-md md:hidden cursor-pointer"
-          onClick={onClose}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
-              onClose?.()
-            }
-          }}
-        />
-      )}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            key="sidebar-backdrop"
+            role="button"
+            tabIndex={0}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-md md:hidden cursor-pointer"
+            onClick={onClose}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+                onClose?.()
+              }
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       <aside
         className={cn(
@@ -242,7 +256,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       >
         <div className="h-full flex flex-col p-1.5 md:p-2 lg:p-3 pr-1.5 md:pr-0 lg:pr-0">
           <div className="flex-1 bg-white/20 backdrop-blur-md rounded-2xl shadow-xl border border-white/30 p-2 md:p-3 overflow-hidden flex flex-col">
-            <div className="flex flex-col h-full overflow-y-auto no-scrollbar gap-1">
+            {/* layoutScroll: lets the active pill measure correctly when this list is scrolled */}
+            <motion.div layoutScroll className="flex flex-col h-full overflow-y-auto no-scrollbar gap-1">
               {/* Mobile drawer header */}
               <div className="md:hidden flex items-center justify-between px-1.5 pt-0.5 pb-2 shrink-0 border-b border-white/30">
                 <span className="text-xs font-bold uppercase tracking-wider text-gray-500 pl-1">Menu</span>
@@ -274,7 +289,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
                   />
                 ))
               )}
-            </div>
+            </motion.div>
           </div>
         </div>
       </aside>

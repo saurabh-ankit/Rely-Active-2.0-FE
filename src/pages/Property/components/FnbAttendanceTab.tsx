@@ -1,4 +1,6 @@
 import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card'
+import { TableSkeleton } from '@/components/ui/skeleton'
+import { CountUp } from '@/components/common/CountUp'
 import { Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/ui/date-picker'
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
@@ -7,7 +9,6 @@ import {
   Clock,
   Coffee,
   Home,
-  Loader2,
   Moon,
   Search,
   Sun,
@@ -20,6 +21,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { fnbService, fnbAttendanceService } from '@/lib/services/fnbService'
 import type {
@@ -138,6 +140,9 @@ const SLOT_CARD_STYLE: Record<SlotStatus, { card: string; icon: string; badge: s
   },
 }
 
+/** The "Attended" tick springs in (once, on mount) so marked meals stand out as the list appears. */
+const ATTENDED_POP = 'animate-in zoom-in-0 spin-in-[-90deg] animation-duration-500 motion-reduce:animate-none'
+
 /** One meal slot for a member, as a card like the L3 attendance app: Attended, Absent or Upcoming. */
 const SlotCard = ({ result }: { result: SlotResult }) => {
   const meta = STATUS_META[result.status]
@@ -160,7 +165,7 @@ const SlotCard = ({ result }: { result: SlotResult }) => {
         <span
           className={cn('inline-flex items-center gap-1 rounded-xl px-2 py-0.5 text-[11px] font-bold', style.badge)}
         >
-          <StatusIcon className="h-3.5 w-3.5" />
+          <StatusIcon className={cn('h-3.5 w-3.5', result.status === 'attended' && ATTENDED_POP)} />
           {meta.label}
         </span>
       </div>
@@ -205,7 +210,7 @@ const SlotChip = ({ result, showLabel }: { result: SlotResult; showLabel: boolea
         result.covered ? 'Covered by package' : 'Extra meal (not in package)'
       }`}
     >
-      <Icon className={cn('h-3.5 w-3.5 shrink-0', meta.iconClass)} />
+      <Icon className={cn('h-3.5 w-3.5 shrink-0', meta.iconClass, result.status === 'attended' && ATTENDED_POP)} />
       {showLabel ? result.slot.label : meta.label}
       {result.time && <span className="font-medium opacity-70">{result.time}</span>}
       {result.by && <span className="font-medium opacity-70">· by {result.by}</span>}
@@ -242,7 +247,9 @@ const StatTile = ({
     </div>
     <CardContent className="min-w-0 p-0">
       <CardDescription className="text-xs font-medium text-gray-500">{label}</CardDescription>
-      <CardTitle className="text-2xl font-bold leading-tight text-gray-900">{value}</CardTitle>
+      <CardTitle className="text-2xl font-bold leading-tight text-gray-900 tabular-nums">
+        <CountUp text={String(value)} duration={0.7} />
+      </CardTitle>
       <p className="truncate text-[11px] text-gray-400">{hint}</p>
     </CardContent>
   </Card>
@@ -746,26 +753,20 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
         </div>
 
         <div className="flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Status filter">
-            {STATUS_FILTERS.map((f) => (
-              <Button
-                key={f.value}
-                type="button"
-                variant="ghost"
-                size="sm"
-                aria-pressed={statusFilter === f.value}
-                onClick={() => setStatusFilter(f.value)}
-                className={cn(
-                  'h-7 cursor-pointer rounded-full border px-3 text-[11px] font-semibold transition-colors',
-                  statusFilter === f.value
-                    ? 'border-[#005390] bg-[#005390] text-white shadow-sm shadow-blue-900/10 hover:bg-[#005390] hover:text-white'
-                    : 'border-gray-200 bg-white text-gray-600 hover:border-[#005390]/40 hover:bg-white hover:text-[#005390]',
-                )}
-              >
-                {f.label}
-              </Button>
-            ))}
-          </div>
+          {/* Line tabs (shared Tabs component): the underline slides to the chosen status */}
+          <Tabs
+            value={statusFilter}
+            onValueChange={(v) => setStatusFilter(v as StatusFilter)}
+            className="min-w-0 gap-0 sm:flex-1"
+          >
+            <TabsList aria-label="Status filter" className="w-full sm:w-auto">
+              {STATUS_FILTERS.map((f) => (
+                <TabsTrigger key={f.value} value={f.value} className="h-9 px-3 text-xs font-semibold">
+                  {f.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
           <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-500">
             {(Object.keys(STATUS_META) as SlotStatus[]).map((s) => {
               const Icon = STATUS_META[s].icon
@@ -829,10 +830,7 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
 
       {/* Main Content Area */}
       {loading ? (
-        <Card className="gap-0 flex flex-col items-center gap-3 rounded-2xl border-gray-100 bg-white p-16 text-muted-foreground">
-          <Loader2 className="h-7 w-7 animate-spin text-primary" />
-          <p className="text-sm font-medium">Loading attendance…</p>
-        </Card>
+        <TableSkeleton rows={6} columns={6} />
       ) : error ? (
         <div className="rounded-2xl border border-red-100 bg-red-50 p-8 text-center text-sm font-semibold text-red-600">
           {error}

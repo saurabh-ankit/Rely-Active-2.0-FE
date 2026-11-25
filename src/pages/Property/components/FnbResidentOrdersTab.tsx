@@ -19,6 +19,8 @@ import { fnbService } from '@/lib/services/fnbService'
 import { useLocationContext } from '@/hooks/useLocation'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
+import { TableSkeleton } from '@/components/ui/skeleton'
+import { CountUp } from '@/components/common/CountUp'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -470,7 +472,13 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
         className="inline-block cursor-pointer hover:scale-105 active:scale-95 transition-transform border-0 bg-transparent p-0 h-auto hover:bg-transparent"
         title={transition ? `Click to ${transition.label}` : 'View Details'}
       >
-        {badgeElement}
+        {/* Keyed by status: when an order moves on (Placed → Preparing → …) the new badge pops in */}
+        <span
+          key={s}
+          className="inline-block animate-in zoom-in-75 fade-in animation-duration-300 motion-reduce:animate-none"
+        >
+          {badgeElement}
+        </span>
       </Button>
     )
   }
@@ -667,7 +675,9 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
           {orderCounts.map(({ label, count, className }) => (
             <div key={label} className={`rounded-xl border px-3 py-2 ${className}`}>
               <p className="text-[10px] font-bold uppercase tracking-wider opacity-75">{label}</p>
-              <p className="text-lg font-extrabold leading-tight">{loading ? '–' : count}</p>
+              <p className="text-lg font-extrabold leading-tight tabular-nums">
+                {loading ? '–' : <CountUp text={String(count)} duration={0.6} />}
+              </p>
             </div>
           ))}
         </div>
@@ -746,7 +756,7 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
           <div className="space-y-4">
             <Card className="gap-0 bg-white rounded-2xl border-gray-200 shadow-xs overflow-hidden">
               {loading ? (
-                <div className="p-12 text-center text-gray-400 text-sm">Loading resident orders...</div>
+                <TableSkeleton rows={6} columns={7} className="rounded-none border-0" />
               ) : orders.length === 0 ? (
                 <div className="p-12 text-center space-y-3">
                   <ShoppingBag className="w-10 h-10 text-gray-300 mx-auto" />
@@ -770,7 +780,7 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                       </TableRow>
                     </TableHeader>
                     <TableBody className="divide-y divide-gray-100 text-xs">
-                      {paginatedOrders.map((order) => {
+                      {paginatedOrders.map((order, orderIndex) => {
                         const resObj = order.resident || order.familyMember?.resident
                         const resName = resObj
                           ? `${resObj.firstName} ${resObj.lastName || ''}`.trim()
@@ -778,7 +788,11 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
                         const isFam = Boolean(order.familyMemberId)
 
                         return (
-                          <TableRow key={order.id} className="hover:bg-blue-50/40 transition-colors">
+                          <TableRow
+                            key={order.id}
+                            style={{ animationDelay: `${Math.min(orderIndex, 10) * 30}ms` }}
+                            className="hover:bg-blue-50/40 transition-colors animate-in fade-in slide-in-from-bottom-1 animation-duration-300 fill-mode-backwards motion-reduce:animate-none"
+                          >
                             {/* Order ID & Date */}
                             <TableCell className="py-3.5 px-4 font-bold text-gray-900">
                               <div className="font-extrabold text-[#005390]">#{order.id.slice(0, 8)}</div>
