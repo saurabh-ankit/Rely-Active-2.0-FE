@@ -301,6 +301,12 @@ export const API_ENDPOINTS = {
       buildLocationEndpoint(`/tickets/${id}/status`, locationId),
     assign: (id: string, locationId?: string | null) => buildLocationEndpoint(`/tickets/${id}/assign`, locationId),
     verify: (id: string, locationId?: string | null) => buildLocationEndpoint(`/tickets/${id}/verify`, locationId),
+    startWork: (id: string, locationId?: string | null) =>
+      buildLocationEndpoint(`/tickets/${id}/start-work`, locationId),
+    complete: (id: string, locationId?: string | null) => buildLocationEndpoint(`/tickets/${id}/complete`, locationId),
+    close: (id: string, locationId?: string | null) => buildLocationEndpoint(`/tickets/${id}/close`, locationId),
+    editWorkDetails: (id: string, locationId?: string | null) =>
+      buildLocationEndpoint(`/tickets/${id}/work-details`, locationId),
     addComment: (id: string, locationId?: string | null) =>
       buildLocationEndpoint(`/tickets/${id}/comments`, locationId),
     delete: (id: string, locationId?: string | null) => buildLocationEndpoint(`/tickets/${id}`, locationId),

@@ -24,6 +24,9 @@ import {
   ArrowUpCircle,
   Wrench,
   Loader2,
+  PlayCircle,
+  Pencil,
+  XCircle,
 } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
 import { useDepartmentsQuery } from '@/hooks/react-query/rbac'
@@ -37,8 +40,10 @@ import type { Ticket, TicketCategoryMaster, TicketPriority, TicketStatus } from 
 import { cn } from '@/lib/utils'
 import { CreateTicketModal } from './components/CreateTicketModal'
 import { SelectPersonDrawer } from './components/SelectPersonDrawer'
-import { AddInvoiceModal } from './components/AddInvoiceModal'
-import { ConfirmStatusChangeDialog } from './components/ConfirmStatusChangeDialog'
+import { EditWorkDetailsDialog } from './components/EditWorkDetailsDialog'
+import { CloseTicketDialog } from './components/CloseTicketDialog'
+import { ClosedEarlyTimeline } from './components/ClosedEarlyTimeline'
+import { CompleteTicketDialog } from './components/CompleteTicketDialog'
 import { TicketFeedbackCard } from './components/TicketFeedbackCard'
 import { AutoAssignSettings } from './components/AutoAssignSettings'
 import { FEEDBACK_RATING_LABELS } from './ticketFeedback'
@@ -46,7 +51,6 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -382,6 +386,9 @@ function parseTicketMedia(ticket: Ticket | null): ParsedTicketMedia {
 }
 
 /** The list tab a ticket appears on; mirrors the API's tab filter. */
+/** Statuses where the work is still to be done (it can be started / completed). */
+const ACTIVE_WORK_STATUSES: TicketStatus[] = ['OPEN', 'IN_PROGRESS', 'ON_HOLD']
+
 const ticketTab = (ticket: Ticket): 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED' => {
   if (ticket.status === 'RESOLVED') return 'COMPLETED'
   if (ticket.status === 'CLOSED' || ticket.status === 'CANCELLED') return 'CLOSED'
@@ -404,7 +411,7 @@ export default function TicketsPage() {
   // Modals & Drawers
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isAssignDrawerOpen, setIsAssignDrawerOpen] = useState(false)
-  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
+  const [isEditWorkOpen, setIsEditWorkOpen] = useState(false)
   const [isTatModalOpen, setIsTatModalOpen] = useState(false)
   // Custom TAT: the date-time picker dialog and its value (yyyy-MM-ddTHH:mm, local time)
   const [isCustomTatOpen, setIsCustomTatOpen] = useState(false)
@@ -413,8 +420,10 @@ export default function TicketsPage() {
   const [previewMediaUrl, setPreviewMediaUrl] = useState<string | null>(null)
   const [verifying, setVerifying] = useState(false)
   // Status picked in the dropdown, waiting for the admin to confirm it.
-  const [pendingStatus, setPendingStatus] = useState<TicketStatus | null>(null)
-  const [changingStatus, setChangingStatus] = useState(false)
+  // Completing collects the work details; closing early asks for a reason
+  const [isCompleteOpen, setIsCompleteOpen] = useState(false)
+  const [isCloseOpen, setIsCloseOpen] = useState(false)
+  const [startingWork, setStartingWork] = useState(false)
   const [viewedTicketIds, setViewedTicketIds] = useState<Set<string>>(() => new Set(readViewedTickets(user?.id)))
 
   const selectedTicketIdRef = useRef<string | undefined>(selectedTicket?.id)
@@ -654,18 +663,31 @@ export default function TicketsPage() {
     )
   }
 
-  /** Runs the status change the admin confirmed in the dialog. */
-  const handleConfirmStatusChange = async () => {
-    if (!pendingStatus || changingStatus) return
-    setChangingStatus(true)
-    const ok = await handleUpdateOption({ status: pendingStatus })
-    setChangingStatus(false)
-    if (ok) {
-      notifySuccess('Ticket status updated')
-      setPendingStatus(null)
-    } else {
-      notifyError('Could not update the ticket status')
+  /** The admin starts work on a ticket assigned to themselves (staff do this in the L3 app). */
+  const handleStartWork = async () => {
+    if (!selectedTicket || startingWork) return
+    setStartingWork(true)
+    try {
+      const res = await apiClient.post(API_ENDPOINTS.tickets.startWork(selectedTicket.id, selectedLocationId))
+      const updated = (res.data?.data || {}) as Partial<Ticket>
+      setSelectedTicket((prev) => (prev ? { ...prev, ...updated } : prev))
+      notifySuccess('Work started')
+      fetchTickets(true)
+    } catch (err) {
+      notifyError(
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Could not start work',
+      )
+    } finally {
+      setStartingWork(false)
     }
+  }
+
+  /** After completing or closing: follow the ticket to the tab it moved to. */
+  const handleTicketCompleted = (updated: Partial<Ticket>) => {
+    setSelectedTicket((prev) => (prev ? { ...prev, ...updated } : prev))
+    const nextTab = updated.status === 'CLOSED' || updated.status === 'CANCELLED' ? 'CLOSED' : 'COMPLETED'
+    if (nextTab === activeTab) fetchTickets(true)
+    else setActiveTab(nextTab)
   }
 
   // Verify a completed ticket: admin sign-off that closes it.
@@ -847,18 +869,21 @@ export default function TicketsPage() {
   }
 
   // Completed By Employee Name helper
-  const getCompletedByName = (t: Ticket | null) => {
-    if (!t) return 'Technician'
-    if (t.completedByUser) {
-      const name = userDisplayName(t.completedByUser)
-      if (name) return name
-    }
+  /**
+   * Who did the work: the person who completed it (staff, or an admin completing it), else the
+   * assignee, else whoever verified / closed it. Null when none of that was recorded (older
+   * tickets closed straight from Open) — never a made-up name.
+   */
+  const getCompletedByName = (t: Ticket | null): string | null => {
+    if (!t) return null
+    const completedBy = userDisplayName(t.completedByUser)
+    if (completedBy) return completedBy
     if (t.completedBy) return t.completedBy
     const compData = parseTicketCompletion(t)
     if (compData?.completedByName) return compData.completedByName
     const assignee = getAssigneeName(t)
     if (assignee && assignee !== 'Unassigned') return assignee
-    return 'Technician'
+    return userDisplayName(t.verifiedByUser) || null
   }
 
   const assignedName = getAssigneeName(selectedTicket)
@@ -868,12 +893,16 @@ export default function TicketsPage() {
   const requestMedia = parseTicketRequestMedia(selectedTicket)
   const isTicketVerified = Boolean(selectedTicket?.verifiedAt) || selectedTicket?.status === 'CLOSED'
   const isTicketFeedbackDone = Boolean(selectedTicket?.feedback)
+  // Closed without completion (raised by mistake, duplicate, …): saved as CANCELLED
+  const isClosedEarly = selectedTicket?.status === 'CANCELLED'
   const isSelectedEscalated = isTicketEscalated(selectedTicket)
   const verifiedByName = userDisplayName(selectedTicket?.verifiedByUser)
+  const closedByName = userDisplayName(selectedTicket?.closedByUser)
 
   // Check view status mode
   const isClosedView =
     selectedTicket?.status === 'CLOSED' ||
+    selectedTicket?.status === 'CANCELLED' ||
     selectedTicket?.status === 'RESOLVED' ||
     activeTab === 'CLOSED' ||
     activeTab === 'COMPLETED'
@@ -1081,14 +1110,18 @@ export default function TicketsPage() {
                         </span>
                       </div>
 
-                      {activeTab === 'CLOSED' ||
-                      activeTab === 'COMPLETED' ||
-                      t.status === 'CLOSED' ||
-                      t.status === 'RESOLVED' ? (
+                      {t.status === 'CANCELLED' ? (
+                        <span className={`text-[10px] font-bold ${isSelected ? 'text-rose-200' : 'text-rose-600'}`}>
+                          Closed without completion
+                        </span>
+                      ) : activeTab === 'CLOSED' ||
+                        activeTab === 'COMPLETED' ||
+                        t.status === 'CLOSED' ||
+                        t.status === 'RESOLVED' ? (
                         <span
                           className={`text-[10px] font-bold ${isSelected ? 'text-emerald-200' : 'text-emerald-600'}`}
                         >
-                          Completed by {getCompletedByName(t)}
+                          {getCompletedByName(t) ? `Completed by ${getCompletedByName(t)}` : 'Closed'}
                         </span>
                       ) : t.assignedToUserId || t.assignedToUser ? (
                         <span className={`text-[10px] font-bold ${isSelected ? 'text-blue-200' : 'text-blue-600'}`}>
@@ -1173,254 +1206,307 @@ export default function TicketsPage() {
 
                   <span
                     className={`px-3 py-1 rounded-lg text-xs font-extrabold shrink-0 self-start sm:self-auto ${
-                      isTicketVerified ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+                      isClosedEarly
+                        ? 'bg-rose-100 text-rose-800'
+                        : isTicketVerified
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-blue-100 text-blue-800'
                     }`}
                   >
-                    {isTicketVerified ? 'Verified & Closed' : 'Completed'}
+                    {isClosedEarly ? 'Closed without completion' : isTicketVerified ? 'Verified & Closed' : 'Completed'}
                   </span>
                 </div>
 
-                {/* Progress Stepper Box matching screenshot */}
-                <div className="border border-dashed border-gray-300 rounded-2xl p-4 sm:p-6 bg-white shadow-2xs space-y-4">
-                  {/* Desktop / Tablet Horizontal Stepper */}
-                  <div className="hidden sm:grid sm:grid-cols-6 relative">
-                    {/* Progress Bar Line — six steps, so the line runs between the 1st and 6th centres */}
-                    <div className="absolute top-4 -translate-y-1/2 left-[8.333%] right-[8.333%] h-0.5 bg-gray-200 z-0" />
-                    <div
-                      className="absolute top-4 -translate-y-1/2 left-[8.333%] h-0.5 bg-emerald-500 z-0 transition-all duration-300"
-                      style={{
-                        width: `${((isTicketFeedbackDone ? 5 : isTicketVerified ? 4 : 3) / 5) * 83.333}%`,
-                      }}
+                {isClosedEarly ? (
+                  /* Closed without completion: only the steps that happened, then Closed */
+                  <div className="border border-dashed border-gray-300 rounded-2xl p-4 sm:p-6 bg-white shadow-2xs space-y-4">
+                    <ClosedEarlyTimeline
+                      steps={[
+                        {
+                          title: 'Request Raised',
+                          desc: `Request raised at ${formatStepperDate(selectedTicket.createdAt)}`,
+                        },
+                        ...(isTicketAssigned
+                          ? [{ title: 'Assigned Task', desc: `Task assigned to ${assignedName}` }]
+                          : []),
+                        ...(selectedTicket.workStartedAt
+                          ? [
+                              {
+                                title: 'Work Started',
+                                desc: `Started${getWorkStartedByName(selectedTicket) ? ` by ${getWorkStartedByName(selectedTicket)}` : ''} at ${formatStepperDate(selectedTicket.workStartedAt)}`,
+                              },
+                            ]
+                          : []),
+                        {
+                          title: 'Closed',
+                          desc: `Closed${closedByName ? ` by ${closedByName}` : ''}${
+                            selectedTicket.closedAt ? ` at ${formatStepperDate(selectedTicket.closedAt)}` : ''
+                          }`,
+                          closed: true,
+                        },
+                      ]}
                     />
-
-                    {/* Step 1: Request Raised */}
-                    <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
-                      <div className="w-8 h-8 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs shadow-2xs">
-                        <Check className="w-4.5 h-4.5" />
-                      </div>
-                      <span className="text-xs font-bold text-gray-900">Request Raised</span>
-                      <span className="text-[10px] font-medium text-gray-500 leading-tight">
-                        Request raised at {formatStepperDate(selectedTicket.createdAt)}
+                    <div className="rounded-xl bg-rose-50 border border-rose-200 px-3.5 py-2.5 space-y-0.5">
+                      <span className="text-xs font-bold text-rose-800 flex items-center gap-1.5">
+                        <XCircle className="w-4 h-4 shrink-0" /> Closed without completion
                       </span>
-                    </div>
-
-                    {/* Step 2: Assigned Task */}
-                    <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
-                      <div className="w-8 h-8 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs shadow-2xs">
-                        <Check className="w-4.5 h-4.5" />
-                      </div>
-                      <span className="text-xs font-bold text-gray-900">Assigned Task</span>
-                      <span className="text-[10px] font-medium text-gray-500 leading-tight">
-                        Task assigned to staff
-                      </span>
-                    </div>
-
-                    {/* Step 3: Work Started (L3 staff tapped "Start Work") */}
-                    <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
-                      <div className="w-8 h-8 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs shadow-2xs">
-                        <Check className="w-4.5 h-4.5" />
-                      </div>
-                      <span className="text-xs font-bold text-gray-900">Work Started</span>
-                      <span className="text-[10px] font-medium text-gray-500 leading-tight">
-                        {selectedTicket.workStartedAt
-                          ? `Started${getWorkStartedByName(selectedTicket) ? ` by ${getWorkStartedByName(selectedTicket)}` : ''} at ${formatStepperDate(selectedTicket.workStartedAt)}`
-                          : 'Work started by staff'}
-                      </span>
-                    </div>
-
-                    {/* Step 4: Task Completed */}
-                    <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
-                      <div className="w-8 h-8 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs shadow-2xs">
-                        <Check className="w-4.5 h-4.5" />
-                      </div>
-                      <span className="text-xs font-bold text-gray-900">Task Completed</span>
-                      <span className="text-[10px] font-medium text-gray-500 leading-tight">
-                        {completion?.completedAt
-                          ? `Work completed ${formatStepperDate(completion.completedAt)}`
-                          : 'Work completed by staff'}
-                      </span>
-                    </div>
-
-                    {/* Step 5: Verified */}
-                    <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
-                      <div
-                        className={`w-8 h-8 rounded-full font-bold flex items-center justify-center text-xs shadow-2xs ${
-                          isTicketVerified
-                            ? 'bg-emerald-500 text-white'
-                            : 'border-2 border-gray-300 bg-white text-gray-400'
-                        }`}
-                      >
-                        {isTicketVerified ? <Check className="w-4.5 h-4.5" /> : <ShieldCheck className="w-4 h-4" />}
-                      </div>
-                      <span className={`text-xs font-bold ${isTicketVerified ? 'text-gray-900' : 'text-gray-400'}`}>
-                        Verified
-                      </span>
-                      <span className="text-[10px] font-medium text-gray-500 leading-tight">
-                        {isTicketVerified
-                          ? `Verified${verifiedByName ? ` by ${verifiedByName}` : ''}${
-                              selectedTicket.verifiedAt ? ` at ${formatStepperDate(selectedTicket.verifiedAt)}` : ''
-                            }`
-                          : 'Awaiting admin verification'}
-                      </span>
-                    </div>
-
-                    {/* Step 6: Feedback */}
-                    <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
-                      <div
-                        className={`w-8 h-8 rounded-full font-bold flex items-center justify-center text-xs shadow-2xs ${
-                          isTicketFeedbackDone
-                            ? 'bg-emerald-500 text-white'
-                            : 'border-2 border-gray-300 bg-white text-gray-400'
-                        }`}
-                      >
-                        {isTicketFeedbackDone ? (
-                          <Check className="w-4.5 h-4.5" />
-                        ) : (
-                          <MessageSquare className="w-4 h-4" />
-                        )}
-                      </div>
-                      <span className={`text-xs font-bold ${isTicketFeedbackDone ? 'text-gray-900' : 'text-gray-400'}`}>
-                        Feedback
-                      </span>
-                      <span className="text-[10px] font-medium text-gray-500 leading-tight">
-                        {isTicketFeedbackDone && selectedTicket.feedback
-                          ? `${FEEDBACK_RATING_LABELS[selectedTicket.feedback.rating] || selectedTicket.feedback.rating} rating${
-                              selectedTicket.feedback.createdAt
-                                ? ` at ${formatStepperDate(selectedTicket.feedback.createdAt)}`
-                                : ''
-                            }`
-                          : 'Awaiting resident feedback'}
-                      </span>
+                      <p className="text-xs text-rose-900 whitespace-pre-wrap break-words">
+                        {selectedTicket.closeReason || 'No reason recorded'}
+                      </p>
                     </div>
                   </div>
+                ) : (
+                  <>
+                    {/* Progress Stepper Box matching screenshot */}
+                    <div className="border border-dashed border-gray-300 rounded-2xl p-4 sm:p-6 bg-white shadow-2xs space-y-4">
+                      {/* Desktop / Tablet Horizontal Stepper */}
+                      <div className="hidden sm:grid sm:grid-cols-6 relative">
+                        {/* Progress Bar Line — six steps, so the line runs between the 1st and 6th centres */}
+                        <div className="absolute top-4 -translate-y-1/2 left-[8.333%] right-[8.333%] h-0.5 bg-gray-200 z-0" />
+                        <div
+                          className="absolute top-4 -translate-y-1/2 left-[8.333%] h-0.5 bg-emerald-500 z-0 transition-all duration-300"
+                          style={{
+                            width: `${((isTicketFeedbackDone ? 5 : isTicketVerified ? 4 : 3) / 5) * 83.333}%`,
+                          }}
+                        />
 
-                  {/* Mobile Vertical Stepper (< sm) */}
-                  <div className="sm:hidden space-y-0 relative pl-1">
-                    {[
-                      {
-                        title: 'Request Raised',
-                        desc: `Request raised at ${formatStepperDate(selectedTicket.createdAt)}`,
-                        done: true,
-                        icon: <Check className="w-4 h-4" />,
-                      },
-                      {
-                        title: 'Assigned Task',
-                        desc: 'Task assigned to staff',
-                        done: true,
-                        icon: <Check className="w-4 h-4" />,
-                      },
-                      {
-                        title: 'Work Started',
-                        desc: selectedTicket.workStartedAt
-                          ? `Started${getWorkStartedByName(selectedTicket) ? ` by ${getWorkStartedByName(selectedTicket)}` : ''} at ${formatStepperDate(selectedTicket.workStartedAt)}`
-                          : 'Work started by staff',
-                        done: true,
-                        icon: <Check className="w-4 h-4" />,
-                      },
-                      {
-                        title: 'Task Completed',
-                        desc: completion?.completedAt
-                          ? `Work completed ${formatStepperDate(completion.completedAt)}`
-                          : 'Work completed by staff',
-                        done: true,
-                        icon: <Check className="w-4 h-4" />,
-                      },
-                      {
-                        title: 'Verified',
-                        desc: isTicketVerified
-                          ? `Verified${verifiedByName ? ` by ${verifiedByName}` : ''}${
-                              selectedTicket.verifiedAt ? ` at ${formatStepperDate(selectedTicket.verifiedAt)}` : ''
-                            }`
-                          : 'Awaiting admin verification',
-                        done: isTicketVerified,
-                        icon: isTicketVerified ? (
-                          <Check className="w-4 h-4" />
-                        ) : (
-                          <ShieldCheck className="w-3.5 h-3.5" />
-                        ),
-                      },
-                      {
-                        title: 'Feedback',
-                        desc:
-                          isTicketFeedbackDone && selectedTicket.feedback
-                            ? `${FEEDBACK_RATING_LABELS[selectedTicket.feedback.rating] || selectedTicket.feedback.rating} rating${
-                                selectedTicket.feedback.createdAt
-                                  ? ` at ${formatStepperDate(selectedTicket.feedback.createdAt)}`
-                                  : ''
-                              }`
-                            : 'Awaiting resident feedback',
-                        done: isTicketFeedbackDone,
-                        icon: isTicketFeedbackDone ? (
-                          <Check className="w-4 h-4" />
-                        ) : (
-                          <MessageSquare className="w-3.5 h-3.5" />
-                        ),
-                      },
-                    ].map((step, idx, arr) => {
-                      const isLast = idx === arr.length - 1
-                      return (
-                        <div key={step.title} className="flex items-start gap-3 relative">
-                          <div className="flex flex-col items-center shrink-0">
-                            <div
-                              className={cn(
-                                'w-7 h-7 rounded-full flex items-center justify-center text-xs shadow-2xs font-bold shrink-0',
-                                step.done
-                                  ? 'bg-emerald-500 text-white'
-                                  : 'border-2 border-gray-300 bg-white text-gray-400',
-                              )}
-                            >
-                              {step.icon}
-                            </div>
-                            {!isLast && (
-                              <div
-                                className={cn(
-                                  'w-0.5 min-h-[22px] my-1',
-                                  arr[idx + 1].done ? 'bg-emerald-500' : 'bg-gray-200',
-                                )}
-                              />
+                        {/* Step 1: Request Raised */}
+                        <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
+                          <div className="w-8 h-8 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs shadow-2xs">
+                            <Check className="w-4.5 h-4.5" />
+                          </div>
+                          <span className="text-xs font-bold text-gray-900">Request Raised</span>
+                          <span className="text-[10px] font-medium text-gray-500 leading-tight">
+                            Request raised at {formatStepperDate(selectedTicket.createdAt)}
+                          </span>
+                        </div>
+
+                        {/* Step 2: Assigned Task */}
+                        <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
+                          <div className="w-8 h-8 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs shadow-2xs">
+                            <Check className="w-4.5 h-4.5" />
+                          </div>
+                          <span className="text-xs font-bold text-gray-900">Assigned Task</span>
+                          <span className="text-[10px] font-medium text-gray-500 leading-tight">
+                            Task assigned to staff
+                          </span>
+                        </div>
+
+                        {/* Step 3: Work Started (L3 staff tapped "Start Work") */}
+                        <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
+                          <div className="w-8 h-8 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs shadow-2xs">
+                            <Check className="w-4.5 h-4.5" />
+                          </div>
+                          <span className="text-xs font-bold text-gray-900">Work Started</span>
+                          <span className="text-[10px] font-medium text-gray-500 leading-tight">
+                            {selectedTicket.workStartedAt
+                              ? `Started${getWorkStartedByName(selectedTicket) ? ` by ${getWorkStartedByName(selectedTicket)}` : ''} at ${formatStepperDate(selectedTicket.workStartedAt)}`
+                              : 'Work started by staff'}
+                          </span>
+                        </div>
+
+                        {/* Step 4: Task Completed */}
+                        <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
+                          <div className="w-8 h-8 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs shadow-2xs">
+                            <Check className="w-4.5 h-4.5" />
+                          </div>
+                          <span className="text-xs font-bold text-gray-900">Task Completed</span>
+                          <span className="text-[10px] font-medium text-gray-500 leading-tight">
+                            {completion?.completedAt
+                              ? `Work completed ${formatStepperDate(completion.completedAt)}`
+                              : 'Work completed by staff'}
+                          </span>
+                        </div>
+
+                        {/* Step 5: Verified */}
+                        <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
+                          <div
+                            className={`w-8 h-8 rounded-full font-bold flex items-center justify-center text-xs shadow-2xs ${
+                              isTicketVerified
+                                ? 'bg-emerald-500 text-white'
+                                : 'border-2 border-gray-300 bg-white text-gray-400'
+                            }`}
+                          >
+                            {isTicketVerified ? <Check className="w-4.5 h-4.5" /> : <ShieldCheck className="w-4 h-4" />}
+                          </div>
+                          <span className={`text-xs font-bold ${isTicketVerified ? 'text-gray-900' : 'text-gray-400'}`}>
+                            Verified
+                          </span>
+                          <span className="text-[10px] font-medium text-gray-500 leading-tight">
+                            {isTicketVerified
+                              ? `Verified${verifiedByName ? ` by ${verifiedByName}` : ''}${
+                                  selectedTicket.verifiedAt ? ` at ${formatStepperDate(selectedTicket.verifiedAt)}` : ''
+                                }`
+                              : 'Awaiting admin verification'}
+                          </span>
+                        </div>
+
+                        {/* Step 6: Feedback */}
+                        <div className="flex flex-col items-center z-10 space-y-1.5 text-center px-1">
+                          <div
+                            className={`w-8 h-8 rounded-full font-bold flex items-center justify-center text-xs shadow-2xs ${
+                              isTicketFeedbackDone
+                                ? 'bg-emerald-500 text-white'
+                                : 'border-2 border-gray-300 bg-white text-gray-400'
+                            }`}
+                          >
+                            {isTicketFeedbackDone ? (
+                              <Check className="w-4.5 h-4.5" />
+                            ) : (
+                              <MessageSquare className="w-4 h-4" />
                             )}
                           </div>
-                          <div className="min-w-0 flex-1 pt-0.5 pb-2">
-                            <span
-                              className={cn('text-xs font-bold block', step.done ? 'text-gray-900' : 'text-gray-400')}
-                            >
-                              {step.title}
-                            </span>
-                            <span className="text-[11px] font-medium text-gray-500 leading-snug block mt-0.5">
-                              {step.desc}
-                            </span>
-                          </div>
+                          <span
+                            className={`text-xs font-bold ${isTicketFeedbackDone ? 'text-gray-900' : 'text-gray-400'}`}
+                          >
+                            Feedback
+                          </span>
+                          <span className="text-[10px] font-medium text-gray-500 leading-tight">
+                            {isTicketFeedbackDone && selectedTicket.feedback
+                              ? `${FEEDBACK_RATING_LABELS[selectedTicket.feedback.rating] || selectedTicket.feedback.rating} rating${
+                                  selectedTicket.feedback.createdAt
+                                    ? ` at ${formatStepperDate(selectedTicket.feedback.createdAt)}`
+                                    : ''
+                                }`
+                              : 'Awaiting resident feedback'}
+                          </span>
                         </div>
-                      )
-                    })}
-                  </div>
+                      </div>
 
-                  {/* Verify action / verified confirmation */}
-                  {isTicketVerified ? (
-                    <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-3.5 py-2.5">
-                      <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                      <span className="text-xs font-bold text-emerald-800">
-                        Work verified{verifiedByName ? ` by ${verifiedByName}` : ''}
-                        {selectedTicket.verifiedAt ? ` on ${new Date(selectedTicket.verifiedAt).toLocaleString()}` : ''}
-                      </span>
+                      {/* Mobile Vertical Stepper (< sm) */}
+                      <div className="sm:hidden space-y-0 relative pl-1">
+                        {[
+                          {
+                            title: 'Request Raised',
+                            desc: `Request raised at ${formatStepperDate(selectedTicket.createdAt)}`,
+                            done: true,
+                            icon: <Check className="w-4 h-4" />,
+                          },
+                          {
+                            title: 'Assigned Task',
+                            desc: 'Task assigned to staff',
+                            done: true,
+                            icon: <Check className="w-4 h-4" />,
+                          },
+                          {
+                            title: 'Work Started',
+                            desc: selectedTicket.workStartedAt
+                              ? `Started${getWorkStartedByName(selectedTicket) ? ` by ${getWorkStartedByName(selectedTicket)}` : ''} at ${formatStepperDate(selectedTicket.workStartedAt)}`
+                              : 'Work started by staff',
+                            done: true,
+                            icon: <Check className="w-4 h-4" />,
+                          },
+                          {
+                            title: 'Task Completed',
+                            desc: completion?.completedAt
+                              ? `Work completed ${formatStepperDate(completion.completedAt)}`
+                              : 'Work completed by staff',
+                            done: true,
+                            icon: <Check className="w-4 h-4" />,
+                          },
+                          {
+                            title: 'Verified',
+                            desc: isTicketVerified
+                              ? `Verified${verifiedByName ? ` by ${verifiedByName}` : ''}${
+                                  selectedTicket.verifiedAt ? ` at ${formatStepperDate(selectedTicket.verifiedAt)}` : ''
+                                }`
+                              : 'Awaiting admin verification',
+                            done: isTicketVerified,
+                            icon: isTicketVerified ? (
+                              <Check className="w-4 h-4" />
+                            ) : (
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                            ),
+                          },
+                          {
+                            title: 'Feedback',
+                            desc:
+                              isTicketFeedbackDone && selectedTicket.feedback
+                                ? `${FEEDBACK_RATING_LABELS[selectedTicket.feedback.rating] || selectedTicket.feedback.rating} rating${
+                                    selectedTicket.feedback.createdAt
+                                      ? ` at ${formatStepperDate(selectedTicket.feedback.createdAt)}`
+                                      : ''
+                                  }`
+                                : 'Awaiting resident feedback',
+                            done: isTicketFeedbackDone,
+                            icon: isTicketFeedbackDone ? (
+                              <Check className="w-4 h-4" />
+                            ) : (
+                              <MessageSquare className="w-3.5 h-3.5" />
+                            ),
+                          },
+                        ].map((step, idx, arr) => {
+                          const isLast = idx === arr.length - 1
+                          return (
+                            <div key={step.title} className="flex items-start gap-3 relative">
+                              <div className="flex flex-col items-center shrink-0">
+                                <div
+                                  className={cn(
+                                    'w-7 h-7 rounded-full flex items-center justify-center text-xs shadow-2xs font-bold shrink-0',
+                                    step.done
+                                      ? 'bg-emerald-500 text-white'
+                                      : 'border-2 border-gray-300 bg-white text-gray-400',
+                                  )}
+                                >
+                                  {step.icon}
+                                </div>
+                                {!isLast && (
+                                  <div
+                                    className={cn(
+                                      'w-0.5 min-h-[22px] my-1',
+                                      arr[idx + 1].done ? 'bg-emerald-500' : 'bg-gray-200',
+                                    )}
+                                  />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1 pt-0.5 pb-2">
+                                <span
+                                  className={cn(
+                                    'text-xs font-bold block',
+                                    step.done ? 'text-gray-900' : 'text-gray-400',
+                                  )}
+                                >
+                                  {step.title}
+                                </span>
+                                <span className="text-[11px] font-medium text-gray-500 leading-snug block mt-0.5">
+                                  {step.desc}
+                                </span>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      {/* Verify action / verified confirmation */}
+                      {isTicketVerified ? (
+                        <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-3.5 py-2.5">
+                          <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                          <span className="text-xs font-bold text-emerald-800">
+                            Work verified{verifiedByName ? ` by ${verifiedByName}` : ''}
+                            {selectedTicket.verifiedAt
+                              ? ` on ${new Date(selectedTicket.verifiedAt).toLocaleString()}`
+                              : ''}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl bg-amber-50 border border-amber-200 px-3.5 py-2.5">
+                          <span className="text-xs font-semibold text-amber-900">
+                            Review the resident request and the staff completion report below, then verify.
+                          </span>
+                          <Button
+                            type="button"
+                            onClick={handleVerifyTicket}
+                            disabled={verifying}
+                            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-bold rounded-xl shadow-2xs transition-colors cursor-pointer flex-shrink-0 h-auto"
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                            {verifying ? 'Verifying…' : 'Verify & Close Ticket'}
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl bg-amber-50 border border-amber-200 px-3.5 py-2.5">
-                      <span className="text-xs font-semibold text-amber-900">
-                        Review the resident request and the staff completion report below, then verify.
-                      </span>
-                      <Button
-                        type="button"
-                        onClick={handleVerifyTicket}
-                        disabled={verifying}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-bold rounded-xl shadow-2xs transition-colors cursor-pointer flex-shrink-0 h-auto"
-                      >
-                        <ShieldCheck className="w-4 h-4" />
-                        {verifying ? 'Verifying…' : 'Verify & Close Ticket'}
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                  </>
+                )}
 
                 {/* Metadata Section */}
                 <div className="space-y-3 pt-2 text-sm text-gray-800">
@@ -1474,7 +1560,11 @@ export default function TicketsPage() {
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span className="text-gray-500 font-semibold">Completed By :</span>
-                    <span className="font-bold text-emerald-700">{getCompletedByName(selectedTicket)}</span>
+                    {getCompletedByName(selectedTicket) ? (
+                      <span className="font-bold text-emerald-700">{getCompletedByName(selectedTicket)}</span>
+                    ) : (
+                      <span className="font-semibold text-gray-400">Not recorded</span>
+                    )}
                   </div>
 
                   {selectedTicket.tatUpdatedBy && (
@@ -1618,17 +1708,31 @@ export default function TicketsPage() {
                           </div>
                         </div>
 
-                        {completionData.amount !== null && completionData.amount !== undefined && (
-                          <div className="flex items-center gap-2 self-start sm:self-center px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white shadow-2xs">
-                            <span className="text-[11px] font-semibold text-emerald-100">Invoice Amount:</span>
-                            <span className="text-sm font-black flex items-center font-mono">
-                              <IndianRupee className="w-3.5 h-3.5 mr-0.5" />
-                              {typeof completionData.amount === 'number'
-                                ? completionData.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })
-                                : completionData.amount}
-                            </span>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2 self-start sm:self-center">
+                          {completionData.amount !== null && completionData.amount !== undefined && (
+                            <div className="flex items-center gap-2 self-start sm:self-center px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white shadow-2xs">
+                              <span className="text-[11px] font-semibold text-emerald-100">Invoice Amount:</span>
+                              <span className="text-sm font-black flex items-center font-mono">
+                                <IndianRupee className="w-3.5 h-3.5 mr-0.5" />
+                                {typeof completionData.amount === 'number'
+                                  ? completionData.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })
+                                  : completionData.amount}
+                              </span>
+                            </div>
+                          )}
+                          {/* Admin can correct the amount / photos until the ticket is verified */}
+                          {canUpdateTicket && selectedTicket.status === 'RESOLVED' && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setIsEditWorkOpen(true)}
+                              className="px-3 py-1.5 h-auto rounded-xl border border-emerald-300 text-emerald-800 hover:bg-emerald-50 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <Pencil className="w-3.5 h-3.5" /> Edit
+                            </Button>
+                          )}
+                        </div>
                       </div>
 
                       {/* 1. Technician Resolution Note */}
@@ -1782,18 +1886,10 @@ export default function TicketsPage() {
                     </div>
                   </div>
 
-                  {/* Status Badge Dropdown */}
-                  <Select value={selectedTicket.status} onValueChange={(val) => setPendingStatus(val as TicketStatus)}>
-                    <SelectTrigger className="px-3 py-1.5 bg-amber-50/90 text-amber-800 border border-amber-200 rounded-xl text-xs font-extrabold shadow-2xs h-auto w-auto shrink-0 self-start sm:self-auto">
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="OPEN">Open</SelectItem>
-                      <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                      <SelectItem value="RESOLVED">Completed</SelectItem>
-                      <SelectItem value="CLOSED">Closed</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {/* Status only: every change goes through its own button (Complete, Close, …) */}
+                  <span className="px-3 py-1.5 bg-amber-50/90 text-amber-800 border border-amber-200 rounded-xl text-xs font-extrabold shadow-2xs shrink-0 self-start sm:self-auto">
+                    In Progress
+                  </span>
                 </div>
 
                 {/* Progress Stepper Tracker Box styled with primary brand blue */}
@@ -2214,7 +2310,16 @@ export default function TicketsPage() {
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                     <Clock className="w-4 h-4 text-gray-700 shrink-0" />
                     <span className="text-gray-500 font-semibold">TAT :</span>
-                    <span className="font-bold text-gray-900">{selectedTicket.tatOption || '1-2 hour'}</span>
+                    <span className="font-bold text-gray-900">
+                      {selectedTicket.tatOption === 'Custom' && selectedTicket.customTatDeadline
+                        ? `Custom · ${new Date(selectedTicket.customTatDeadline).toLocaleString([], {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}`
+                        : selectedTicket.tatOption || '1-2 hour'}
+                    </span>
                     {canUpdateTicket && (
                       <Button
                         type="button"
@@ -2246,16 +2351,41 @@ export default function TicketsPage() {
                   </div>
                 </div>
 
-                {/* Add Invoice Details CTA Button styled with primary color */}
-                {canUpdateTicket && (
-                  <div className="pt-6">
+                {/* Actions: own ticket = Start Work, then Complete; someone else's = complete it for them.
+                    Close ends a wrongly raised ticket without completing it. */}
+                {canUpdateTicket && ACTIVE_WORK_STATUSES.includes(selectedTicket.status) && (
+                  <div className="pt-6 flex flex-col sm:flex-row gap-3">
+                    {isSelfAssigned && !selectedTicket.workStartedAt ? (
+                      <Button
+                        type="button"
+                        onClick={handleStartWork}
+                        disabled={startingWork}
+                        className="flex-1 py-3.5 h-auto bg-[#005390] hover:bg-[#004273] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
+                      >
+                        {startingWork ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <PlayCircle className="w-4 h-4" />
+                        )}
+                        {startingWork ? 'Starting…' : 'Start Work'}
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        onClick={() => setIsCompleteOpen(true)}
+                        className="flex-1 py-3.5 h-auto bg-[#005390] hover:bg-[#004273] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        {isSelfAssigned ? 'Complete Ticket' : `Complete for ${assignedName}`}
+                      </Button>
+                    )}
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => setIsInvoiceModalOpen(true)}
-                      className="w-full py-3.5 h-auto border-2 border-[#005390] text-[#005390] hover:bg-blue-50/60 rounded-xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-2xs"
+                      onClick={() => setIsCloseOpen(true)}
+                      className="py-3.5 px-6 h-auto border-2 border-rose-200 text-rose-700 hover:bg-rose-50 rounded-xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      <Plus className="w-4 h-4" /> Add Invoice Details
+                      <XCircle className="w-4 h-4" /> Close Ticket
                     </Button>
                   </div>
                 )}
@@ -2282,25 +2412,6 @@ export default function TicketsPage() {
                           Escalated
                         </span>
                       )}
-                      <Select
-                        value={selectedTicket.status}
-                        onValueChange={(val) => setPendingStatus(val as TicketStatus)}
-                        disabled={!canUpdateTicket}
-                      >
-                        <SelectTrigger
-                          className={`px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-xs font-bold h-auto w-auto ${
-                            !canUpdateTicket ? 'cursor-not-allowed opacity-75' : ''
-                          }`}
-                        >
-                          <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="OPEN">Open</SelectItem>
-                          <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                          <SelectItem value="RESOLVED">Completed</SelectItem>
-                          <SelectItem value="CLOSED">Closed</SelectItem>
-                        </SelectContent>
-                      </Select>
 
                       {isSelfAssigned && (
                         <span className="px-2.5 py-1 bg-blue-50 text-[#005390] border border-blue-200 rounded-lg text-xs font-bold">
@@ -2607,16 +2718,14 @@ export default function TicketsPage() {
                     >
                       <UserPlus className="w-4 h-4" /> Assign Person
                     </Button>
-
-                    {isSelfAssigned && selectedTicket.status !== 'CLOSED' && (
-                      <Button
-                        type="button"
-                        onClick={() => handleUpdateOption({ status: 'CLOSED' })}
-                        className="px-5 py-2.5 h-auto bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-sm"
-                      >
-                        <CheckCircle2 className="w-4 h-4" /> Close Ticket
-                      </Button>
-                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsCloseOpen(true)}
+                      className="px-5 py-2.5 h-auto border-2 border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-extrabold rounded-xl flex items-center gap-2 cursor-pointer"
+                    >
+                      <XCircle className="w-4 h-4" /> Close Ticket
+                    </Button>
                   </div>
                 )}
 
@@ -2654,13 +2763,39 @@ export default function TicketsPage() {
         onAssignSuccess={fetchTickets}
       />
 
-      <AddInvoiceModal
-        isOpen={isInvoiceModalOpen}
-        onClose={() => setIsInvoiceModalOpen(false)}
+      {/* Mounted only while open, so it starts from the ticket's saved details */}
+      {isEditWorkOpen && (
+        <EditWorkDetailsDialog
+          isOpen
+          ticket={selectedTicket}
+          locationId={selectedLocationId}
+          onClose={() => setIsEditWorkOpen(false)}
+          onSuccess={(updated) => {
+            setSelectedTicket((prev) => (prev ? { ...prev, ...updated } : prev))
+            fetchTickets(true)
+          }}
+        />
+      )}
+
+      <CompleteTicketDialog
+        isOpen={isCompleteOpen}
         ticket={selectedTicket}
         locationId={selectedLocationId}
-        onSuccess={fetchTickets}
+        isSelf={isSelfAssigned}
+        assigneeName={assignedName}
+        onClose={() => setIsCompleteOpen(false)}
+        onSuccess={handleTicketCompleted}
       />
+
+      {isCloseOpen && selectedTicket && (
+        <CloseTicketDialog
+          ticket={selectedTicket}
+          locationId={selectedLocationId}
+          assigneeName={isTicketAssigned && !isSelfAssigned ? assignedName : null}
+          onClose={() => setIsCloseOpen(false)}
+          onSuccess={handleTicketCompleted}
+        />
+      )}
 
       {/* Change TAT Modal */}
       <Dialog
@@ -2778,15 +2913,6 @@ export default function TicketsPage() {
           </DialogContent>
         )}
       </Dialog>
-
-      <ConfirmStatusChangeDialog
-        ticketNumber={selectedTicket?.ticketNumber}
-        fromStatus={selectedTicket?.status}
-        toStatus={pendingStatus}
-        isPending={changingStatus}
-        onCancel={() => setPendingStatus(null)}
-        onConfirm={handleConfirmStatusChange}
-      />
     </div>
   )
 }
