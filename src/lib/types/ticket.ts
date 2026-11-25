@@ -191,6 +191,8 @@ export interface Ticket {
   completedAt?: string | null
   completedByUserId?: string | null
   invoiceAmount?: number | string | null
+  /** On a live resident invoice: the amount can no longer be changed. */
+  isInvoiced?: boolean
   /** Set when the resident escalates the ticket. */
   escalatedAt?: string | null
   escalatedByUserId?: string | null
@@ -220,6 +222,9 @@ export interface Ticket {
   workStartedByUser?: TicketUserRef | null
   completedByUser?: TicketUserRef | null
   verifiedByUser?: TicketUserRef | null
+  /** Closed without completion (status CANCELLED): why, and who closed it. */
+  closeReason?: string | null
+  closedByUser?: TicketUserRef | null
   vendor?: TicketVendorRef | null
   asset?: TicketAssetRef | null
   activityLogs?: TicketActivityLog[]
