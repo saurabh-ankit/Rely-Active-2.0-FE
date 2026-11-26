@@ -1029,7 +1029,9 @@ export const resolveTimeBasedShiftStatus = (
 }
 
 /**
- * Advance only time-driven statuses (upcoming / on_duty). Leaves covered, day_off, absent alone.
+ * Advance only time-driven statuses (upcoming / on_duty).
+ * Leaves covered, day_off, absent alone.
+ * Housekeeping task status can force completed / on_duty / overdue on the card.
  */
 export const resolveLifecycleRosterStatus = (
   currentStatus: string,
@@ -1038,14 +1040,194 @@ export const resolveLifecycleRosterStatus = (
   shiftEnd?: string | null,
   slotTimeRange?: string | null,
   now = new Date(),
+  taskStatus?: string | null,
 ): string => {
-  if (currentStatus !== 'upcoming' && currentStatus !== 'on_duty') return currentStatus
-  const window = resolveAssignmentWindow(shiftStart, shiftEnd, slotTimeRange)
-  if (!window) {
-    if (dateYmd < todayYmdLocal(now)) return 'completed'
+  if (taskStatus === 'COMPLETED') return 'completed'
+  if (taskStatus === 'OVERDUE') return 'overdue'
+  if (currentStatus === 'overdue') return 'overdue'
+  if (currentStatus !== 'upcoming' && currentStatus !== 'on_duty' && taskStatus !== 'IN_PROGRESS') {
     return currentStatus
   }
-  return resolveTimeBasedShiftStatus(dateYmd, window.start, window.end, now)
+  const window = resolveAssignmentWindow(shiftStart, shiftEnd, slotTimeRange)
+  if (!window) {
+    if (dateYmd < todayYmdLocal(now)) {
+      if (taskStatus === 'PENDING' || taskStatus === 'IN_PROGRESS') return 'overdue'
+      return 'completed'
+    }
+    // Started early / same day without a parseable window → On duty
+    if (taskStatus === 'IN_PROGRESS') return 'on_duty'
+    return currentStatus
+  }
+  const next = resolveTimeBasedShiftStatus(dateYmd, window.start, window.end, now)
+  if (taskStatus === 'IN_PROGRESS') {
+    // Past end without completion → overdue; otherwise stay on duty (even before window start).
+    return next === 'completed' ? 'overdue' : 'on_duty'
+  }
+  if (next === 'completed' && taskStatus === 'PENDING') {
+    return 'overdue'
+  }
+  return next
+}
+
+/** Human label for minutes past the scheduled end (late housekeeping completion). */
+export const formatExtraTimeLabel = (extraMinutes?: number | null): string | null => {
+  if (extraMinutes == null || extraMinutes <= 0) return null
+  const h = Math.floor(extraMinutes / 60)
+  const m = extraMinutes % 60
+  if (h > 0 && m > 0) return `${h}h ${m}m`
+  if (h > 0) return `${h}h`
+  return `${m}m`
+}
+
+/** Accent colors for shift names (Afternoon / Evening / Night / …). */
+export const getShiftAccent = (shiftName?: string | null) => {
+  const name = (shiftName || '').toLowerCase()
+  if (name.includes('afternoon')) {
+    return { dot: 'bg-amber-500', bar: 'bg-amber-500', soft: 'bg-amber-50 text-amber-800' }
+  }
+  if (name.includes('evening')) {
+    return { dot: 'bg-violet-500', bar: 'bg-violet-500', soft: 'bg-violet-50 text-violet-800' }
+  }
+  if (name.includes('night')) {
+    return { dot: 'bg-[#1e3a5a]', bar: 'bg-[#1e3a5a]', soft: 'bg-slate-100 text-slate-800' }
+  }
+  if (name.includes('morning')) {
+    return { dot: 'bg-sky-500', bar: 'bg-sky-500', soft: 'bg-sky-50 text-sky-800' }
+  }
+  if (name.includes('daily') || name.includes('general')) {
+    return { dot: 'bg-teal-500', bar: 'bg-teal-500', soft: 'bg-teal-50 text-teal-800' }
+  }
+  // Stable fallback from name hash
+  const palette = [
+    { dot: 'bg-amber-500', bar: 'bg-amber-500', soft: 'bg-amber-50 text-amber-800' },
+    { dot: 'bg-violet-500', bar: 'bg-violet-500', soft: 'bg-violet-50 text-violet-800' },
+    { dot: 'bg-[#1e3a5a]', bar: 'bg-[#1e3a5a]', soft: 'bg-slate-100 text-slate-800' },
+    { dot: 'bg-sky-500', bar: 'bg-sky-500', soft: 'bg-sky-50 text-sky-800' },
+    { dot: 'bg-rose-500', bar: 'bg-rose-500', soft: 'bg-rose-50 text-rose-800' },
+    { dot: 'bg-teal-500', bar: 'bg-teal-500', soft: 'bg-teal-50 text-teal-800' },
+  ]
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = (hash + name.charCodeAt(i) * (i + 1)) % palette.length
+  return palette[hash]!
+}
+
+export const statusBadgeClass = (status: string) => {
+  switch (status) {
+    case 'completed':
+      return 'bg-emerald-100 text-emerald-800'
+    case 'on_duty':
+      return 'bg-[#005390] text-white'
+    case 'overdue':
+      return 'bg-rose-100 text-rose-800'
+    case 'upcoming':
+      return 'bg-slate-100 text-slate-600'
+    case 'covered':
+      return 'bg-amber-100 text-amber-900'
+    case 'day_off':
+      return 'bg-violet-100 text-violet-800'
+    case 'absent':
+      return 'bg-red-100 text-red-800'
+    default:
+      return 'bg-slate-100 text-slate-600'
+  }
+}
+
+export const statusLabelForEvent = (event: { status: string; isCoverDuty?: boolean }): string => {
+  if (event.isCoverDuty) return 'Cover'
+  if (event.status === 'on_duty') return 'On duty now'
+  return event.status
+    .split('_')
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+    .join(' ')
+}
+
+/** Prefer slot range; fall back to shift time string. */
+export const resolveDisplayTimeRange = (slotTimeRange?: string | null, shiftTime?: string | null): string => {
+  const raw = (slotTimeRange || shiftTime || '').trim()
+  if (!raw) return ''
+  return raw.replace(/\s*-\s*/, ' – ')
+}
+
+const parseRangeEnds = (range?: string | null): { start: number; end: number } | null => {
+  if (!range) return null
+  const parts = range.split('-').map((p) => p.trim())
+  if (parts.length < 2) return null
+  const start = parseHHmmToMinutes(parts[0])
+  const end = parseHHmmToMinutes(parts[1])
+  if (start === null || end === null) return null
+  const endAbs = end <= start ? end + 1440 : end
+  return { start, end: endAbs }
+}
+
+export const formatShiftDuration = (slotTimeRange?: string | null, shiftTime?: string | null): string | null => {
+  const window = parseRangeEnds(slotTimeRange) || parseRangeEnds(shiftTime)
+  if (!window) return null
+  const mins = window.end - window.start
+  if (mins <= 0) return null
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  if (h > 0 && m > 0) return `${h} h ${m} m`
+  if (h > 0) return `${h} h`
+  return `${m} m`
+}
+
+export type RosterTimelineSegment = {
+  key: string
+  name: string
+  startMin: number
+  endMin: number
+  locationCount: number
+  barClass: string
+}
+
+/** Build day-timeline segments grouped by shift name + window. */
+export const buildDayTimelineSegments = (
+  events: Array<{
+    id: string
+    shiftName: string
+    slotTimeRange?: string | null
+    shiftTime: string
+    locationLabel?: string | null
+    areaName?: string | null
+  }>,
+): { segments: RosterTimelineSegment[]; axisStart: number; axisEnd: number } => {
+  const groups = new Map<string, RosterTimelineSegment>()
+  for (const event of events) {
+    const window = parseRangeEnds(event.slotTimeRange) || parseRangeEnds(event.shiftTime)
+    if (!window) continue
+    const key = `${event.shiftName}|${window.start}|${window.end}`
+    const existing = groups.get(key)
+    const loc = event.locationLabel || event.areaName || ''
+    if (existing) {
+      if (loc) existing.locationCount += 1
+      continue
+    }
+    const accent = getShiftAccent(event.shiftName)
+    groups.set(key, {
+      key,
+      name: event.shiftName,
+      startMin: window.start,
+      endMin: window.end,
+      locationCount: loc ? 1 : 0,
+      barClass: accent.bar,
+    })
+  }
+  const segments = [...groups.values()].sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin)
+  if (segments.length === 0) {
+    return { segments: [], axisStart: 0, axisEnd: 24 * 60 }
+  }
+  const axisStart = Math.min(...segments.map((s) => s.startMin))
+  const rawEnd = Math.max(...segments.map((s) => s.endMin))
+  // Pad axis a bit so bars aren't edge-to-edge
+  const axisEnd = Math.max(rawEnd, axisStart + 60)
+  return { segments, axisStart, axisEnd }
+}
+
+export const formatAxisTick = (minutes: number): string => {
+  const m = ((minutes % 1440) + 1440) % 1440
+  const h = Math.floor(m / 60)
+  const min = m % 60
+  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`
 }
 
 // ── Roster calendar grouping ──────────────────────────────────────────────────

@@ -50,12 +50,13 @@ import {
 } from '@/hooks/react-query/roster'
 
 const statusStyles: Record<string, string> = {
-  upcoming: 'bg-blue-100 text-blue-800',
-  on_duty: 'bg-green-100 text-green-800',
-  completed: 'bg-gray-100 text-gray-700',
+  upcoming: 'bg-sky-100 text-sky-800',
+  on_duty: 'bg-teal-100 text-teal-800',
+  completed: 'bg-emerald-100 text-emerald-800',
+  overdue: 'bg-rose-100 text-rose-800',
   absent: 'bg-red-100 text-red-800',
-  covered: 'bg-amber-100 text-amber-800',
-  day_off: 'bg-purple-100 text-purple-800',
+  covered: 'bg-amber-100 text-amber-900',
+  day_off: 'bg-violet-100 text-violet-800',
 }
 
 const DailyShiftManagement = () => {
@@ -83,6 +84,8 @@ const DailyShiftManagement = () => {
           d.shiftAssignment?.shift?.startTime,
           d.shiftAssignment?.shift?.endTime,
           d.shiftAssignment?.slotTimeRange,
+          undefined,
+          d.housekeepingCompletion?.status,
         ) as ShiftEmployeeDate['status'],
       }))
   }, [data, employeeId, fromDate, toDate])

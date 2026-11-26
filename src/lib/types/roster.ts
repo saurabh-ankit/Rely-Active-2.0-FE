@@ -2,7 +2,8 @@ export type WeekDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday'
 
 export type SlotGenerationMode = 'Auto Generate' | 'Manual'
 
-export type ShiftEmployeeDateStatus = 'upcoming' | 'on_duty' | 'completed' | 'absent' | 'covered' | 'day_off'
+export type ShiftEmployeeDateStatus =
+  'upcoming' | 'on_duty' | 'completed' | 'overdue' | 'absent' | 'covered' | 'day_off'
 
 export type LeaveType = 'week_off' | 'sick' | 'casual' | 'planned' | 'holiday'
 
@@ -146,6 +147,25 @@ export interface BulkCreateEmployeeShiftPayload {
   slotTimeRange?: string | null
 }
 
+export interface HousekeepingPhotoAttachment {
+  url: string
+  key?: string
+  contentType?: string
+  size?: number
+  originalName?: string
+  uploadedAt?: string
+}
+
+export interface HousekeepingTaskCompletionSummary {
+  id: string
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE'
+  comment?: string | null
+  startedAt?: string | null
+  completedAt?: string | null
+  extraMinutes?: number | null
+  attachments?: { photos?: HousekeepingPhotoAttachment[] } | null
+}
+
 export interface ShiftEmployeeDate {
   id: string
   employeeShiftAssignmentId: string
@@ -158,6 +178,8 @@ export interface ShiftEmployeeDate {
   locationId: string
   notes?: string | null
   isDeleted?: boolean
+  /** Present for housekeeping operational tasks completed via L3. */
+  housekeepingCompletion?: HousekeepingTaskCompletionSummary | null
   shiftAssignment?: {
     id: string
     employeeId: string

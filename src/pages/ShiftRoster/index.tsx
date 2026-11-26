@@ -62,13 +62,17 @@ const ShiftRosterPage = () => {
     )
   }
 
+  const isEmployeeNested = !!pathInfo.employeeId
+
   return (
     <div className="space-y-6">
-      <PageHeader
-        icon={CalendarClock}
-        title="Shift & Roster Management"
-        description="Schedule staff shifts, roster coverage, and areas."
-      />
+      {!isEmployeeNested && (
+        <PageHeader
+          icon={CalendarClock}
+          title="Shift & Roster Management"
+          description="Schedule staff shifts, roster coverage, and areas."
+        />
+      )}
 
       <RosterPermission
         action="view"
@@ -78,7 +82,7 @@ const ShiftRosterPage = () => {
           </p>
         }
       >
-        {pathInfo.employeeId ? (
+        {isEmployeeNested ? (
           renderNested()
         ) : (
           <Suspense fallback={<PageLoader />}>
