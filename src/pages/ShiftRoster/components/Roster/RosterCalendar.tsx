@@ -9,6 +9,7 @@ import { useLocationStore } from '@/lib/stores/locationStore'
 import {
   WEEKDAY_BY_INDEX,
   buildLocationLabel,
+  formatExtraTimeLabel,
   getUserDepartmentIds,
   getUserDepartmentName,
   getUserDisplayName,
@@ -35,6 +36,7 @@ const statusEdge: Record<string, string> = {
   upcoming: 'border-l-[#2a517c]/40',
   on_duty: 'border-l-sky-500',
   completed: 'border-l-emerald-500',
+  overdue: 'border-l-rose-500',
   absent: 'border-l-red-500',
   covered: 'border-l-amber-500',
   day_off: 'border-l-gray-300',
@@ -145,6 +147,8 @@ const RosterCalendar = () => {
         assignment.shift?.startTime,
         assignment.shift?.endTime,
         assignment.slotTimeRange,
+        undefined,
+        override?.housekeepingCompletion?.status,
       )
 
       if (status === 'covered' && override?.coveringEmployee) {
@@ -183,6 +187,14 @@ const RosterCalendar = () => {
         areaName: assignment.area?.areaName || null,
         locationLabel: buildLocationLabel(assignment),
         assignment,
+        taskStartedAt: override?.housekeepingCompletion?.startedAt || null,
+        taskCompletedAt: override?.housekeepingCompletion?.completedAt || null,
+        taskComment: override?.housekeepingCompletion?.comment || null,
+        taskPhotos: (override?.housekeepingCompletion?.attachments?.photos || [])
+          .filter((p): p is { url: string; originalName?: string } => !!p?.url)
+          .map((p) => ({ url: p.url, originalName: p.originalName })),
+        extraMinutes: override?.housekeepingCompletion?.extraMinutes ?? null,
+        extraTimeLabel: formatExtraTimeLabel(override?.housekeepingCompletion?.extraMinutes),
       })
       pushed.add(eventKey)
     }
