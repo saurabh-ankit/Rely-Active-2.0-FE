@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import {
   Dialog,
   DialogContent,
@@ -35,6 +37,7 @@ export function AcceptTransferDialog({ asset, defaultSendCondition, open, onOpen
   const [image, setImage] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const acceptMutation = useAcceptAssetTransfer()
+  const { saved, flashSaved } = useSavedFlash()
 
   /* eslint-disable react-hooks/set-state-in-effect -- reset receive condition when dialog opens */
   useEffect(() => {
@@ -59,8 +62,12 @@ export function AcceptTransferDialog({ asset, defaultSendCondition, open, onOpen
     reader.readAsDataURL(file)
   }
 
+  // Which outcome was clicked, so only that button shows the spinner / ✓
+  const [choice, setChoice] = useState<'available' | 'not_available' | null>(null)
+
   const submit = async (availability: 'available' | 'not_available') => {
     if (!asset) return
+    setChoice(availability)
     await acceptMutation.mutateAsync({
       assetId: asset.id,
       data: {
@@ -70,8 +77,11 @@ export function AcceptTransferDialog({ asset, defaultSendCondition, open, onOpen
         availability,
       },
     })
-    resetForm()
-    onOpenChange(false)
+    // ✓ on the clicked button for a moment, then reset and close
+    flashSaved(() => {
+      resetForm()
+      onOpenChange(false)
+    })
   }
 
   if (!asset) return null
@@ -163,12 +173,27 @@ export function AcceptTransferDialog({ asset, defaultSendCondition, open, onOpen
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={acceptMutation.isPending}>
             Cancel
           </Button>
-          <Button variant="secondary" onClick={() => void submit('not_available')} disabled={acceptMutation.isPending}>
+          <SaveButton
+            variant="secondary"
+            onClick={() => void submit('not_available')}
+            saving={acceptMutation.isPending && choice === 'not_available'}
+            saved={saved && choice === 'not_available'}
+            savedLabel="Accepted"
+            disabled={acceptMutation.isPending || saved}
+            className="gap-2"
+          >
             Mark as Not Available
-          </Button>
-          <Button onClick={() => void submit('available')} disabled={acceptMutation.isPending}>
+          </SaveButton>
+          <SaveButton
+            onClick={() => void submit('available')}
+            saving={acceptMutation.isPending && choice === 'available'}
+            saved={saved && choice === 'available'}
+            savedLabel="Accepted"
+            disabled={acceptMutation.isPending || saved}
+            className="gap-2"
+          >
             Mark as Available
-          </Button>
+          </SaveButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

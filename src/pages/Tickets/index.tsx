@@ -28,6 +28,7 @@ import {
   Pencil,
   XCircle,
 } from 'lucide-react'
+import { EmptyState } from '@/components/common/EmptyState'
 import { useLocationContext } from '@/hooks/useLocation'
 import { useDepartmentsQuery } from '@/hooks/react-query/rbac'
 import { useAuth } from '@/hooks/useAuth'
@@ -51,6 +52,8 @@ import { FEEDBACK_RATING_LABELS } from './ticketFeedback'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
@@ -437,6 +440,7 @@ export default function TicketsPage() {
   const [isCustomTatOpen, setIsCustomTatOpen] = useState(false)
   const [customTatValue, setCustomTatValue] = useState('')
   const [savingCustomTat, setSavingCustomTat] = useState(false)
+  const { saved, flashSaved } = useSavedFlash()
   const [previewMediaUrl, setPreviewMediaUrl] = useState<string | null>(null)
   const [verifying, setVerifying] = useState(false)
   // Status picked in the dropdown, waiting for the admin to confirm it.
@@ -649,7 +653,7 @@ export default function TicketsPage() {
     setSavingCustomTat(false)
     if (ok) {
       notifySuccess('Custom TAT set')
-      setIsCustomTatOpen(false)
+      flashSaved(() => setIsCustomTatOpen(false))
     } else {
       notifyError('Could not set the custom TAT')
     }
@@ -992,13 +996,18 @@ export default function TicketsPage() {
             {isLoading ? (
               <ListSkeleton rows={7} />
             ) : displayTickets.length === 0 ? (
-              <div className="p-12 text-center flex flex-col items-center justify-center text-gray-400">
-                <TicketIcon className="w-10 h-10 mb-2 text-gray-300 stroke-[1.5]" />
-                <span className="text-sm font-bold text-gray-600">No tickets in this section</span>
-                <span className="text-xs text-gray-400 mt-1">
-                  There are currently no {activeTab.toLowerCase().replace('_', ' ')} tickets.
-                </span>
-              </div>
+              <EmptyState
+                icon={TicketIcon}
+                size="sm"
+                className="flex-1"
+                title="No tickets in this section"
+                description={`There are currently no ${activeTab.toLowerCase().replace('_', ' ')} tickets.`}
+                action={
+                  canCreateTicket && activeTab === 'OPEN'
+                    ? { label: 'Create ticket', onClick: () => setIsCreateModalOpen(true), icon: Plus }
+                    : undefined
+                }
+              />
             ) : (
               displayTickets.map((t, ticketIndex) => {
                 const isSelected = selectedTicket?.id === t.id
@@ -2009,7 +2018,7 @@ export default function TicketsPage() {
                           <div className="absolute top-4 -translate-y-1/2 left-[8.333%] right-[8.333%] h-0.5 bg-gray-200 z-0" />
                           {/* Active Progress Line */}
                           <div
-                            className="absolute top-4 -translate-y-1/2 left-[8.333%] h-0.5 bg-[#005390] transition-all duration-300 z-0"
+                            className="absolute top-4 -translate-y-1/2 left-[8.333%] h-0.5 bg-[#005390] z-0 animate-fill transition-[width] duration-500 ease-out motion-reduce:animate-none"
                             style={{ width: `${activeWidthPercent}%` }}
                           />
 
@@ -2883,14 +2892,17 @@ export default function TicketsPage() {
               >
                 Cancel
               </Button>
-              <Button
+              <SaveButton
                 type="button"
-                disabled={savingCustomTat || !customTatValue}
+                saving={savingCustomTat}
+                saved={saved}
+                savedLabel="TAT set"
+                disabled={!customTatValue}
                 onClick={handleSaveCustomTat}
-                className="rounded-xl text-xs font-bold bg-[#005390] hover:bg-[#00457a] text-white"
+                className="gap-1.5 rounded-xl text-xs font-bold bg-[#005390] hover:bg-[#00457a] text-white"
               >
                 {savingCustomTat ? 'Saving…' : 'Set TAT'}
-              </Button>
+              </SaveButton>
             </div>
           </DialogContent>
         )}

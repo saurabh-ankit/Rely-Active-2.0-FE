@@ -20,6 +20,8 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -355,6 +357,7 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
     coverShift.isPending ||
     swapShifts.isPending ||
     createDate.isPending
+  const { saved, flashSaved } = useSavedFlash()
 
   if (!event) return null
 
@@ -543,7 +546,7 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
                 dateId,
                 data: { leaveType: values.leaveType, leaveNote: values.leaveNote?.trim() || null },
               })
-              closeAll()
+              flashSaved(closeAll)
             })}
             noValidate
           >
@@ -594,13 +597,15 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
               <Button type="button" variant="outline" onClick={dismissAction}>
                 Cancel
               </Button>
-              <Button
+              <SaveButton
                 type="submit"
-                className="bg-[#2a517c] hover:bg-[#476587] text-white"
-                disabled={markDayOff.isPending || createDate.isPending}
+                className="gap-2 bg-[#2a517c] hover:bg-[#476587] text-white"
+                saving={markDayOff.isPending || createDate.isPending}
+                saved={saved}
+                savedLabel="Day off marked"
               >
                 Mark as Day Off
-              </Button>
+              </SaveButton>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -631,7 +636,7 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
                   notes: values.notes?.trim() || null,
                 },
               })
-              closeAll()
+              flashSaved(closeAll)
             })}
             noValidate
           >
@@ -683,13 +688,16 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
               <Button type="button" variant="outline" onClick={dismissAction}>
                 Cancel
               </Button>
-              <Button
+              <SaveButton
                 type="submit"
-                className="bg-[#2a517c] hover:bg-[#476587] text-white"
-                disabled={!coveredByEmployeeId || coverShift.isPending || createDate.isPending}
+                className="gap-2 bg-[#2a517c] hover:bg-[#476587] text-white"
+                saving={coverShift.isPending || createDate.isPending}
+                saved={saved}
+                savedLabel="Cover assigned"
+                disabled={!coveredByEmployeeId}
               >
                 Assign Cover
-              </Button>
+              </SaveButton>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -720,7 +728,7 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
                   notes: values.notes?.trim() || null,
                 },
               })
-              closeAll()
+              flashSaved(closeAll)
             })}
             noValidate
           >
@@ -779,13 +787,16 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
               <Button type="button" variant="outline" onClick={dismissAction}>
                 Cancel
               </Button>
-              <Button
+              <SaveButton
                 type="submit"
-                className="bg-[#2a517c] hover:bg-[#476587] text-white"
-                disabled={!targetDateId || swapShifts.isPending || createDate.isPending}
+                className="gap-2 bg-[#2a517c] hover:bg-[#476587] text-white"
+                saving={swapShifts.isPending || createDate.isPending}
+                saved={saved}
+                savedLabel="Swapped"
+                disabled={!targetDateId}
               >
                 Confirm Swap
-              </Button>
+              </SaveButton>
             </DialogFooter>
           </form>
         </DialogContent>

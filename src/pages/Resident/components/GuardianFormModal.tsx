@@ -4,6 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ImagePlus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -83,6 +85,7 @@ const GuardianFormModal = ({ open, onOpenChange, residentId, item }: GuardianFor
   const createMutation = useCreateResidentGuardianMutation(residentId)
   const updateMutation = useUpdateResidentGuardianMutation(residentId)
   const isPending = createMutation.isPending || updateMutation.isPending
+  const { saved, flashSaved } = useSavedFlash()
   const isEdit = !!item
 
   const photoInputRef = useRef<HTMLInputElement | null>(null)
@@ -156,7 +159,8 @@ const GuardianFormModal = ({ open, onOpenChange, residentId, item }: GuardianFor
     if (photoFile) formData.append('photo', photoFile)
     if (isEdit && removePhoto && !photoFile) formData.append('removePhoto', 'true')
 
-    const onSuccess = () => onOpenChange(false)
+    // ✓ Saved shows on the button briefly, then the dialog closes
+    const onSuccess = () => flashSaved(() => onOpenChange(false))
     if (item) updateMutation.mutate({ id: item.id, payload: formData }, { onSuccess })
     else createMutation.mutate(formData, { onSuccess })
   }
@@ -434,15 +438,16 @@ const GuardianFormModal = ({ open, onOpenChange, residentId, item }: GuardianFor
             >
               Cancel
             </Button>
-            <Button
+            <SaveButton
               type="submit"
               variant="primary"
-              className="h-10 min-w-40 rounded-xl"
-              disabled={isPending}
-              isLoading={isPending}
+              className="h-10 min-w-40 gap-2 rounded-xl"
+              saving={isPending}
+              saved={saved}
+              savedLabel={isEdit ? 'Saved' : 'Added'}
             >
               {isEdit ? 'Save Changes' : 'Add Guardian'}
-            </Button>
+            </SaveButton>
           </div>
         </form>
       </DialogContent>

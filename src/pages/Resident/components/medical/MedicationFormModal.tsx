@@ -3,6 +3,8 @@ import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Combobox,
@@ -139,6 +141,7 @@ const MedicationFormModal = ({ open, onOpenChange, residentId, kind, item }: Med
   const createMutation = isInsulin ? createInsulin : createMedication
   const updateMutation = isInsulin ? updateInsulin : updateMedication
   const isPending = createMutation.isPending || updateMutation.isPending
+  const { saved, flashSaved } = useSavedFlash()
   const isEdit = !!item
 
   const {
@@ -193,7 +196,8 @@ const MedicationFormModal = ({ open, onOpenChange, residentId, kind, item }: Med
       }),
       note: values.note || null,
     }
-    const onSuccess = () => onOpenChange(false)
+    // ✓ Saved shows on the button briefly, then the dialog closes
+    const onSuccess = () => flashSaved(() => onOpenChange(false))
     if (item) updateMutation.mutate({ id: item.id, payload }, { onSuccess })
     else createMutation.mutate(payload, { onSuccess })
   }
@@ -439,9 +443,14 @@ const MedicationFormModal = ({ open, onOpenChange, residentId, kind, item }: Med
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending} className="bg-[#005390] hover:bg-[#004a80] text-white">
+            <SaveButton
+              type="submit"
+              saving={isPending}
+              saved={saved}
+              className="bg-[#005390] hover:bg-[#004a80] text-white"
+            >
               {isPending ? 'Saving...' : 'Save'}
-            </Button>
+            </SaveButton>
           </div>
         </form>
       </DialogContent>

@@ -1,16 +1,6 @@
 import { Input } from '@/components/ui/input'
 import React, { useMemo, useState } from 'react'
-import {
-  AlertCircle,
-  Calendar,
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  IndianRupee,
-  Package,
-  Search,
-  User,
-} from 'lucide-react'
+import { AlertCircle, Calendar, Clock, IndianRupee, Package, Search, User } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
 import { usePackageSubscriptionsQuery, useUpdateSubscriptionStatusMutation } from '@/hooks/react-query/medical'
 import type { PackageSubscriptionResponse } from '@/lib/types/medical'
@@ -21,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import PageLoader from '@/components/shared/PageLoader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Expand, ExpandChevron } from '@/components/common/Expand'
 
 interface SubscriptionsTabProps {
   isPropertyMode?: boolean
@@ -250,7 +241,7 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                 >
                   <div className="flex items-center gap-3.5">
                     <div className="flex size-7 items-center justify-center text-gray-500 transition-transform">
-                      {isResidentExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                      <ExpandChevron open={isResidentExpanded} from="right" className="w-5 h-5" />
                     </div>
                     <div className="flex size-9 items-center justify-center rounded-2xl bg-gray-200/70 text-gray-600 shadow-2xs">
                       <User className="w-5 h-5" />
@@ -277,7 +268,7 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                 </Button>
 
                 {/* Subscriptions Table Inside Accordion */}
-                {isResidentExpanded && (
+                <Expand open={isResidentExpanded}>
                   <div className="p-4 sm:p-6 space-y-6">
                     <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-2xs">
                       <Table className="w-full text-left text-xs border-collapse">
@@ -313,11 +304,7 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                                       onClick={() => toggleRowExpand(sub.id)}
                                       className="size-7 inline-flex items-center justify-center rounded-lg hover:bg-gray-200/60 text-gray-500 cursor-pointer p-0"
                                     >
-                                      {isRowExpanded ? (
-                                        <ChevronDown className="w-4 h-4" />
-                                      ) : (
-                                        <ChevronRight className="w-4 h-4" />
-                                      )}
+                                      <ExpandChevron open={isRowExpanded} from="right" className="w-4 h-4" />
                                     </Button>
                                   </TableCell>
 
@@ -420,94 +407,96 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                                 {isRowExpanded && (
                                   <TableRow>
                                     <TableCell colSpan={8} className="p-0">
-                                      <div className="p-4 sm:p-5 bg-gray-50/90 border-t border-b border-gray-200 space-y-4">
-                                        <div className="flex items-center gap-2">
-                                          <IndianRupee className="h-4 w-4 text-gray-500" />
-                                          <span className="font-semibold text-gray-800">Package Cost:</span>
-                                          <span className="text-sm font-bold text-[#005390]">
-                                            ₹
-                                            {Number(
-                                              sub.carePackage?.cost ||
-                                                sub.carePackage?.packageCost ||
-                                                sub.totalCost ||
-                                                0,
-                                            ).toLocaleString('en-IN', {
-                                              minimumFractionDigits: 2,
-                                              maximumFractionDigits: 2,
-                                            })}
-                                          </span>
-                                        </div>
+                                      <Expand open appear>
+                                        <div className="p-4 sm:p-5 bg-gray-50/90 border-t border-b border-gray-200 space-y-4">
+                                          <div className="flex items-center gap-2">
+                                            <IndianRupee className="h-4 w-4 text-gray-500" />
+                                            <span className="font-semibold text-gray-800">Package Cost:</span>
+                                            <span className="text-sm font-bold text-[#005390]">
+                                              ₹
+                                              {Number(
+                                                sub.carePackage?.cost ||
+                                                  sub.carePackage?.packageCost ||
+                                                  sub.totalCost ||
+                                                  0,
+                                              ).toLocaleString('en-IN', {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                              })}
+                                            </span>
+                                          </div>
 
-                                        <div>
-                                          <h4 className="font-bold text-gray-800 mb-2.5 flex items-center gap-2">
-                                            <Package className="h-4 w-4 text-[#005390]" />
-                                            Package Tasks ({features.length})
-                                          </h4>
-                                          {features.length > 0 ? (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                                              {features.map((feat) => (
-                                                <div
-                                                  key={feat.id}
-                                                  className="bg-white border border-gray-200 rounded-xl p-3 shadow-2xs flex items-center justify-between"
-                                                >
-                                                  <div>
-                                                    <div className="font-semibold text-gray-900 text-xs">
-                                                      {feat.name}
-                                                    </div>
-                                                    {feat.description && (
-                                                      <div className="text-[10px] text-gray-400 mt-0.5 line-clamp-1">
-                                                        {feat.description}
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                  <div className="flex items-center gap-3 text-right shrink-0 ml-2">
+                                          <div>
+                                            <h4 className="font-bold text-gray-800 mb-2.5 flex items-center gap-2">
+                                              <Package className="h-4 w-4 text-[#005390]" />
+                                              Package Tasks ({features.length})
+                                            </h4>
+                                            {features.length > 0 ? (
+                                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                                {features.map((feat) => (
+                                                  <div
+                                                    key={feat.id}
+                                                    className="bg-white border border-gray-200 rounded-xl p-3 shadow-2xs flex items-center justify-between"
+                                                  >
                                                     <div>
-                                                      <div className="text-[10px] text-gray-400 font-medium">
-                                                        Complimentary
+                                                      <div className="font-semibold text-gray-900 text-xs">
+                                                        {feat.name}
                                                       </div>
-                                                      {feat.complimentaryCount > 0 ? (
-                                                        <div className="font-bold text-[#005390] text-xs">
-                                                          {feat.complimentaryCount}
+                                                      {feat.description && (
+                                                        <div className="text-[10px] text-gray-400 mt-0.5 line-clamp-1">
+                                                          {feat.description}
                                                         </div>
-                                                      ) : (
-                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                          Free
-                                                        </span>
                                                       )}
                                                     </div>
-                                                    <div>
-                                                      <div className="text-[10px] text-gray-400 font-medium">
-                                                        Remaining
-                                                      </div>
-                                                      {feat.complimentaryCount > 0 ? (
-                                                        <div
-                                                          className={`font-bold text-xs ${
-                                                            feat.remainingCount === 0
-                                                              ? 'text-rose-600'
-                                                              : feat.remainingCount < feat.complimentaryCount
-                                                                ? 'text-amber-600'
-                                                                : 'text-emerald-600'
-                                                          }`}
-                                                        >
-                                                          {feat.remainingCount}
+                                                    <div className="flex items-center gap-3 text-right shrink-0 ml-2">
+                                                      <div>
+                                                        <div className="text-[10px] text-gray-400 font-medium">
+                                                          Complimentary
                                                         </div>
-                                                      ) : (
-                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                          Unlimited
-                                                        </span>
-                                                      )}
+                                                        {feat.complimentaryCount > 0 ? (
+                                                          <div className="font-bold text-[#005390] text-xs">
+                                                            {feat.complimentaryCount}
+                                                          </div>
+                                                        ) : (
+                                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                            Free
+                                                          </span>
+                                                        )}
+                                                      </div>
+                                                      <div>
+                                                        <div className="text-[10px] text-gray-400 font-medium">
+                                                          Remaining
+                                                        </div>
+                                                        {feat.complimentaryCount > 0 ? (
+                                                          <div
+                                                            className={`font-bold text-xs ${
+                                                              feat.remainingCount === 0
+                                                                ? 'text-rose-600'
+                                                                : feat.remainingCount < feat.complimentaryCount
+                                                                  ? 'text-amber-600'
+                                                                  : 'text-emerald-600'
+                                                            }`}
+                                                          >
+                                                            {feat.remainingCount}
+                                                          </div>
+                                                        ) : (
+                                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                            Unlimited
+                                                          </span>
+                                                        )}
+                                                      </div>
                                                     </div>
                                                   </div>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          ) : (
-                                            <div className="text-xs text-gray-400">
-                                              No task features bundled in this package.
-                                            </div>
-                                          )}
+                                                ))}
+                                              </div>
+                                            ) : (
+                                              <div className="text-xs text-gray-400">
+                                                No task features bundled in this package.
+                                              </div>
+                                            )}
+                                          </div>
                                         </div>
-                                      </div>
+                                      </Expand>
                                     </TableCell>
                                   </TableRow>
                                 )}
@@ -539,14 +528,10 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                             })}
                           </span>
                         </div>
-                        {isAddTasksExpanded ? (
-                          <ChevronDown className="h-4 w-4 text-gray-500" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4 text-gray-500" />
-                        )}
+                        <ExpandChevron open={isAddTasksExpanded} from="right" className="h-4 w-4 text-gray-500" />
                       </Button>
 
-                      {isAddTasksExpanded && (
+                      <Expand open={isAddTasksExpanded}>
                         <div className="p-3 sm:p-4 space-y-3 bg-white border-t border-orange-100">
                           {additionalTasks.length > 0 ? (
                             additionalTasks.map((task) => (
@@ -594,10 +579,10 @@ export const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ forcedProper
                             </div>
                           )}
                         </div>
-                      )}
+                      </Expand>
                     </div>
                   </div>
-                )}
+                </Expand>
               </Card>
             )
           })}

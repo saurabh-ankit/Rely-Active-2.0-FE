@@ -4,6 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Mic, RotateCcw, Square, Trash2, Upload } from 'lucide-react'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -77,6 +79,7 @@ const IncidentFormModal = ({ open, onOpenChange, residentId, item }: IncidentFor
   const createMutation = useCreateResidentIncidentMutation(residentId)
   const updateMutation = useUpdateResidentIncidentMutation(residentId)
   const isPending = createMutation.isPending || updateMutation.isPending
+  const { saved, flashSaved } = useSavedFlash()
   const isEdit = !!item
   const photoInputRef = useRef<HTMLInputElement | null>(null)
   const voiceInputRef = useRef<HTMLInputElement | null>(null)
@@ -331,7 +334,8 @@ const IncidentFormModal = ({ open, onOpenChange, residentId, item }: IncidentFor
       if (removeVoiceNote) formData.append('removeVoiceNote', 'true')
     }
 
-    const onSuccess = () => onOpenChange(false)
+    // ✓ Saved shows on the button briefly, then the dialog closes
+    const onSuccess = () => flashSaved(() => onOpenChange(false))
     if (item) updateMutation.mutate({ id: item.id, payload: formData }, { onSuccess })
     else createMutation.mutate(formData, { onSuccess })
   }
@@ -614,13 +618,15 @@ const IncidentFormModal = ({ open, onOpenChange, residentId, item }: IncidentFor
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={isPending}>
               Cancel
             </Button>
-            <Button
+            <SaveButton
               type="submit"
-              disabled={isPending || isRecording}
+              saving={isPending}
+              saved={saved}
+              disabled={isRecording}
               className="bg-[#005390] hover:bg-[#004a80] text-white"
             >
               {isPending ? 'Saving...' : 'Save'}
-            </Button>
+            </SaveButton>
           </div>
         </form>
       </DialogContent>

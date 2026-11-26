@@ -3,6 +3,8 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { toast } from 'sonner'
 import type { PaginationState } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Truck, AlertTriangle, Eye, Pencil, Trash2 } from 'lucide-react'
 import { DataTable } from '@/components/ui/data-table'
 import { ActiveStatus } from '@/components/inventory/InventoryStatus'
@@ -223,6 +225,7 @@ function SupplierDialog({
   onClose: () => void
 }) {
   const mutation = useCenterMutation(locationId)
+  const { saved, flashSaved } = useSavedFlash()
   const [form, setForm] = useState({
     name: supplier.name,
     contactPerson: supplier.contactPerson ?? '',
@@ -310,7 +313,9 @@ function SupplierDialog({
                   ...(mode === 'edit' ? { data: form } : {}),
                 })
                 toast.success(mode === 'delete' ? 'Supplier removed' : 'Supplier updated')
-                onClose()
+                // Edits flash ✓ Saved before closing; deletes close straight away
+                if (mode === 'delete') onClose()
+                else flashSaved(onClose)
               } catch {
                 /* inline error */
               }
@@ -369,7 +374,7 @@ function SupplierDialog({
               >
                 Cancel
               </Button>
-              <Button
+              <SaveButton
                 type="submit"
                 variant={mode === 'delete' ? 'destructive' : 'default'}
                 className={
@@ -377,10 +382,11 @@ function SupplierDialog({
                     ? 'bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md cursor-pointer'
                     : 'bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer'
                 }
-                disabled={mutation.isPending}
+                saving={mutation.isPending}
+                saved={saved}
               >
                 {mutation.isPending ? 'Saving…' : mode === 'delete' ? 'Delete Supplier' : 'Save Changes'}
-              </Button>
+              </SaveButton>
             </DialogFooter>
           </form>
         )}

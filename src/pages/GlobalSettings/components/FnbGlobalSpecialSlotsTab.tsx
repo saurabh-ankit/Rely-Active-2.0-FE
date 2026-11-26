@@ -6,6 +6,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Plus, Edit2, Trash2, Building2, Clock, IndianRupee } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import api from '@/lib/api/axios'
@@ -47,6 +49,7 @@ export default function FnbGlobalSpecialSlotsTab() {
   })
   const [propertyAssignments, setPropertyAssignments] = useState<PropertyAssignment[]>([])
   const [submitting, setSubmitting] = useState(false)
+  const { saved, flashSaved } = useSavedFlash()
 
   const fetchGlobalSpecialSlots = useCallback(async () => {
     try {
@@ -174,7 +177,7 @@ export default function FnbGlobalSpecialSlotsTab() {
         toast.success('Special meal slot created successfully')
       }
 
-      setIsModalOpen(false)
+      flashSaved(() => setIsModalOpen(false))
       fetchGlobalSpecialSlots()
     } catch (err: unknown) {
       const msg =
@@ -416,13 +419,14 @@ export default function FnbGlobalSpecialSlotsTab() {
                 >
                   Cancel
                 </Button>
-                <Button
+                <SaveButton
                   type="submit"
-                  disabled={submitting}
+                  saving={submitting}
+                  saved={saved}
                   className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-5 py-2 rounded-xl shadow-xs"
                 >
                   {submitting ? 'Saving...' : editingSlot ? 'Update Special Slot' : 'Create Special Slot'}
-                </Button>
+                </SaveButton>
               </div>
             </form>
           </DialogContent>

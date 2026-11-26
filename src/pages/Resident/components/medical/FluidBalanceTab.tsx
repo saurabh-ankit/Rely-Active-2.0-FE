@@ -12,6 +12,7 @@ import {
 import { FluidBalanceCategory } from '@/lib/constants/fluidBalance'
 import type { ResidentFluidBalanceItem } from '@/lib/types/resident'
 import { cn } from '@/lib/utils'
+import { TAB_COUNT, Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ClinicalCard, ClinicalEmptyState, ClinicalLoadingState } from './ClinicalShared'
 import FluidBalanceCard from './FluidBalanceCard'
 import FluidBalanceFormModal from './FluidBalanceFormModal'
@@ -262,60 +263,33 @@ export const FluidBalanceTab: React.FC<FluidBalanceTabProps> = ({
             </div>
           </div>
 
-          {/* ── Category Filter Pills ────────────────────────────────────────── */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3 dark:border-gray-800">
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-              <button
-                type="button"
-                onClick={() => setCategoryFilter('ALL')}
-                className={cn(
-                  'rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer',
-                  categoryFilter === 'ALL'
-                    ? 'bg-[#005390] text-white shadow-xs'
-                    : 'bg-slate-100 text-gray-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-gray-300 dark:hover:bg-slate-700',
-                )}
-              >
-                All Entries ({fluidBalances.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setCategoryFilter('INTAKE')}
-                className={cn(
-                  'rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer',
-                  categoryFilter === 'INTAKE'
-                    ? 'bg-sky-600 text-white shadow-xs'
-                    : 'bg-slate-100 text-gray-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-gray-300 dark:hover:bg-slate-700',
-                )}
-              >
-                Intake ({intakeCount})
-              </button>
-              <button
-                type="button"
-                onClick={() => setCategoryFilter('OUTPUT')}
-                className={cn(
-                  'rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer',
-                  categoryFilter === 'OUTPUT'
-                    ? 'bg-rose-600 text-white shadow-xs'
-                    : 'bg-slate-100 text-gray-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-gray-300 dark:hover:bg-slate-700',
-                )}
-              >
-                Output ({outputCount})
-              </button>
-              <button
-                type="button"
-                onClick={() => setCategoryFilter('BOWEL')}
-                className={cn(
-                  'rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer',
-                  categoryFilter === 'BOWEL'
-                    ? 'bg-violet-600 text-white shadow-xs'
-                    : 'bg-slate-100 text-gray-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-gray-300 dark:hover:bg-slate-700',
-                )}
-              >
-                Bowel ({bowelCount})
-              </button>
-            </div>
-
-            <div className="text-xs text-gray-500 font-medium">
+          {/* ── Category Filter Tabs (their baseline sits on this row's bottom border) ── */}
+          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-gray-100 dark:border-gray-800">
+            {' '}
+            {/* Line tabs: the underline slides to the chosen category; the dot keeps each category's colour */}
+            <Tabs
+              value={categoryFilter}
+              onValueChange={(v) => setCategoryFilter(v as CategoryFilter)}
+              className="min-w-0 gap-0"
+            >
+              <TabsList aria-label="Fluid balance category" className="w-auto">
+                {(
+                  [
+                    ['ALL', 'All Entries', fluidBalances.length, 'bg-[#005390]'],
+                    ['INTAKE', 'Intake', intakeCount, 'bg-sky-600'],
+                    ['OUTPUT', 'Output', outputCount, 'bg-rose-600'],
+                    ['BOWEL', 'Bowel', bowelCount, 'bg-violet-600'],
+                  ] as const
+                ).map(([value, label, count, dot]) => (
+                  <TabsTrigger key={value} value={value} className="h-9 gap-1.5 px-3 text-xs font-bold">
+                    <span className={cn('size-2 rounded-full', dot)} />
+                    {label}
+                    <span className={TAB_COUNT}>{count}</span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+            <div className="pb-2.5 text-xs text-gray-500 font-medium">
               Showing {displayedBalances.length} of {fluidBalances.length} total records
             </div>
           </div>

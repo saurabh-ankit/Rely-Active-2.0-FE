@@ -8,6 +8,8 @@ import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import {
   createVitalSettingAPI,
@@ -204,6 +206,7 @@ export function VitalsTab() {
   const [showPredefined, setShowPredefined] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [saving, setSaving] = useState(false)
+  const { saved, flashSaved } = useSavedFlash()
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState(DEFAULT_ICON)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -361,7 +364,7 @@ export function VitalsTab() {
         }
       }
 
-      setIsModalOpen(false)
+      flashSaved(() => setIsModalOpen(false))
       resetForm()
       setEditing(null)
       await loadVitals()
@@ -683,13 +686,14 @@ export function VitalsTab() {
                 >
                   Cancel
                 </Button>
-                <Button
+                <SaveButton
                   type="submit"
-                  disabled={saving}
+                  saving={saving}
+                  saved={saved}
                   className="inline-flex items-center gap-2 px-5 py-2.5 h-auto bg-[#005390] hover:bg-[#004070] disabled:opacity-60 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
                 >
                   {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create Vital'}
-                </Button>
+                </SaveButton>
               </div>
             </form>
           </DialogContent>

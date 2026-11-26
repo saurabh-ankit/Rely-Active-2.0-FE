@@ -3,6 +3,8 @@ import { Controller, useForm } from 'react-hook-form'
 /* eslint-disable react-hooks/incompatible-library -- react-hook-form watch() */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -46,6 +48,7 @@ const parsePositiveInt = (raw: string): number | null => {
 
 const ManageSlotTimeDialog = ({ open, onOpenChange, shift }: ManageSlotTimeDialogProps) => {
   const updateShift = useUpdateShift()
+  const { saved, flashSaved } = useSavedFlash()
 
   const {
     control,
@@ -157,7 +160,8 @@ const ManageSlotTimeDialog = ({ open, onOpenChange, shift }: ManageSlotTimeDialo
         slotDuration: duration,
       },
     })
-    onOpenChange(false)
+    // ✓ Saved on the button for a moment, then close
+    flashSaved(() => onOpenChange(false))
   }
 
   return (
@@ -286,13 +290,15 @@ const ManageSlotTimeDialog = ({ open, onOpenChange, shift }: ManageSlotTimeDialo
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button
+            <SaveButton
               type="submit"
-              disabled={!canSave || updateShift.isPending}
-              className="bg-[#2a517c] hover:bg-[#476587] text-white"
+              saving={updateShift.isPending}
+              saved={saved}
+              disabled={!canSave}
+              className="gap-2 bg-[#2a517c] hover:bg-[#476587] text-white"
             >
               {updateShift.isPending ? 'Saving…' : 'Save Slots'}
-            </Button>
+            </SaveButton>
           </DialogFooter>
         </form>
       </DialogContent>

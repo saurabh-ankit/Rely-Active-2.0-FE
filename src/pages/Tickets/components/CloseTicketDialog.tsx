@@ -6,6 +6,8 @@ import type { Ticket } from '@/lib/types'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -28,6 +30,7 @@ interface Props {
 export function CloseTicketDialog({ ticket, locationId, assigneeName, onClose, onSuccess }: Props) {
   const [reason, setReason] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { saved, flashSaved } = useSavedFlash()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,8 +43,12 @@ export function CloseTicketDialog({ ticket, locationId, assigneeName, onClose, o
     try {
       const res = await apiClient.post(API_ENDPOINTS.tickets.close(ticket.id, locationId), { reason: reason.trim() })
       notifySuccess('Ticket closed')
-      onSuccess((res.data?.data || {}) as Partial<Ticket>)
-      onClose()
+      const updated = (res.data?.data || {}) as Partial<Ticket>
+      // ✓ on the button for a moment, then update the ticket and close
+      flashSaved(() => {
+        onSuccess(updated)
+        onClose()
+      })
     } catch (err) {
       notifyError(
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
@@ -106,14 +113,17 @@ export function CloseTicketDialog({ ticket, locationId, assigneeName, onClose, o
             >
               Cancel
             </Button>
-            <Button
+            <SaveButton
               type="submit"
               size="sm"
-              disabled={isSubmitting || !reason.trim()}
+              saving={isSubmitting}
+              saved={saved}
+              savedLabel="Closed"
+              disabled={!reason.trim()}
               className="px-5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
             >
-              <XCircle className="w-4 h-4" /> {isSubmitting ? 'Closing...' : 'Close Ticket'}
-            </Button>
+              {!isSubmitting && <XCircle className="w-4 h-4" />} {isSubmitting ? 'Closing...' : 'Close Ticket'}
+            </SaveButton>
           </div>
         </form>
       </DialogContent>

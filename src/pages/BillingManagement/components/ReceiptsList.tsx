@@ -2,8 +2,6 @@ import { useMemo, useState } from 'react'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import {
   CalendarDays,
-  ChevronDown,
-  ChevronRight,
   Download,
   FileText,
   Image as ImageIcon,
@@ -11,6 +9,7 @@ import {
   ReceiptIndianRupee,
   UserRound,
 } from 'lucide-react'
+import { EmptyState } from '@/components/common/EmptyState'
 import { toast } from 'sonner'
 import { Card } from '@/components/ui/card'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -22,6 +21,7 @@ import type { ReceiptListItem } from '@/lib/types/billing'
 import { cn } from '@/lib/utils'
 import { PaidBar, StatusPill, TablePager } from './billingUi'
 import { formatDmy, formatInr, monthLabel, openPdf, PAYMENT_METHOD_LABEL } from './billingFormat'
+import { Expand, ExpandChevron } from '@/components/common/Expand'
 
 /** A flat rarely has more payments than this; they are all loaded and grouped by invoice. */
 const RECEIPT_LIMIT = 200
@@ -133,9 +133,12 @@ export function ReceiptsList({ unitId }: { unitId: string }) {
       {isLoading ? (
         <TableSkeleton rows={5} columns={5} />
       ) : groups.length === 0 ? (
-        <Card className="gap-0 rounded-xl border-gray-200 bg-white py-14 text-center text-gray-500">
-          <ReceiptIndianRupee className="mx-auto mb-2 h-10 w-10 text-gray-300" />
-          No payments recorded yet
+        <Card className="gap-0 rounded-xl border-gray-200 bg-white">
+          <EmptyState
+            icon={ReceiptIndianRupee}
+            title="No payments recorded yet"
+            description="Receipts appear here as payments are recorded against invoices."
+          />
         </Card>
       ) : (
         <div className="space-y-3">
@@ -160,11 +163,7 @@ export function ReceiptsList({ unitId }: { unitId: string }) {
                     open && 'bg-[#2b4f7e]/[0.03] hover:bg-[#2b4f7e]/[0.03]',
                   )}
                 >
-                  {open ? (
-                    <ChevronDown className="h-4 w-4 text-gray-500" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-gray-500" />
-                  )}
+                  <ExpandChevron open={open} from="right" className="h-4 w-4 text-gray-500" />
                   <div className="flex min-w-0 items-center gap-2.5">
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#2b4f7e]/10 text-[#2b4f7e]">
                       <FileText className="h-4 w-4" />
@@ -211,7 +210,7 @@ export function ReceiptsList({ unitId }: { unitId: string }) {
                 </Button>
 
                 {/* Payments on this invoice */}
-                {open && (
+                <Expand open={open}>
                   <div className="border-t border-gray-100">
                     <div className="overflow-hidden">
                       <Table className="w-full min-w-[820px] text-sm">
@@ -347,7 +346,7 @@ export function ReceiptsList({ unitId }: { unitId: string }) {
                       </div>
                     )}
                   </div>
-                )}
+                </Expand>
               </Card>
             )
           })}

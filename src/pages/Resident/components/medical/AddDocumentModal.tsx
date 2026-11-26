@@ -4,6 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { FileText, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -39,6 +41,7 @@ interface AddDocumentModalProps {
 const AddDocumentModal = ({ open, onOpenChange, residentId }: AddDocumentModalProps) => {
   const createMutation = useCreateResidentDocumentMutation(residentId)
   const isPending = createMutation.isPending
+  const { saved, flashSaved } = useSavedFlash()
 
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [file, setFile] = useState<File | null>(null)
@@ -83,7 +86,7 @@ const AddDocumentModal = ({ open, onOpenChange, residentId }: AddDocumentModalPr
     formData.append('note', values.note)
     formData.append('file', file)
 
-    createMutation.mutate(formData, { onSuccess: () => onOpenChange(false) })
+    createMutation.mutate(formData, { onSuccess: () => flashSaved(() => onOpenChange(false)) })
   }
 
   return (
@@ -166,9 +169,14 @@ const AddDocumentModal = ({ open, onOpenChange, residentId }: AddDocumentModalPr
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending} className="bg-[#005390] hover:bg-[#004a80] text-white">
+            <SaveButton
+              type="submit"
+              saving={isPending}
+              saved={saved}
+              className="bg-[#005390] hover:bg-[#004a80] text-white"
+            >
               {isPending ? 'Saving...' : 'Save'}
-            </Button>
+            </SaveButton>
           </div>
         </form>
       </DialogContent>

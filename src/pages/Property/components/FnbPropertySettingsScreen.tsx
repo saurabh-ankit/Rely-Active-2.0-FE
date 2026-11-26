@@ -5,8 +5,6 @@ import { TimePicker } from '@/components/ui/time-picker'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Utensils,
-  ChevronDown,
-  ChevronRight,
   Edit2,
   Users,
   AlertCircle,
@@ -28,6 +26,8 @@ import { notifyError, notifySuccess } from '@/utils/toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -39,6 +39,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination'
 import { floorLabel, isHiddenFloor } from '@/utils/unitLabel'
+import { Expand, ExpandChevron } from '@/components/common/Expand'
 
 interface GlobalPackage {
   id: string
@@ -232,6 +233,7 @@ export function FnbPropertySettingsScreen({
   const [editPrice, setEditPrice] = useState<number | string>(0)
   const [editHasOpted, setEditHasOpted] = useState(false)
   const [saving, setSaving] = useState(false)
+  const { saved, flashSaved } = useSavedFlash()
 
   // Edit Property Meal Slot Modal State
   const [editingMealSlot, setEditingMealSlot] = useState<PropertyMealSlot | null>(null)
@@ -266,7 +268,8 @@ export function FnbPropertySettingsScreen({
 
       if (res.data?.success) {
         notifySuccess(`Price updated for ${editingSpecialSlot.name}!`)
-        setIsSpecialSlotModalOpen(false)
+        // ✓ on the button for a moment, then close
+        flashSaved(() => setIsSpecialSlotModalOpen(false))
         fetchData()
       } else {
         notifyError(res.data?.message || 'Failed to update special slot price')
@@ -486,7 +489,8 @@ export function FnbPropertySettingsScreen({
 
       if (res.data?.success) {
         notifySuccess(`Monthly pricing saved for ${editingGlobalPkg.name}!`)
-        setIsEditModalOpen(false)
+        // ✓ on the button for a moment, then close
+        flashSaved(() => setIsEditModalOpen(false))
         fetchData()
       } else {
         notifyError(res.data?.message || 'Failed to save property package pricing')
@@ -546,7 +550,8 @@ export function FnbPropertySettingsScreen({
 
       if (res.data?.success) {
         notifySuccess('Package changed successfully!')
-        setIsChangeModalOpen(false)
+        // ✓ on the button for a moment, then close
+        flashSaved(() => setIsChangeModalOpen(false))
         fetchData()
       } else {
         notifyError(res.data?.message || 'Failed to change package')
@@ -633,7 +638,8 @@ export function FnbPropertySettingsScreen({
 
       if (res.data?.success) {
         notifySuccess(`Property meal slot override saved for ${editingMealSlot.name}!`)
-        setIsMealSlotModalOpen(false)
+        // ✓ on the button for a moment, then close
+        flashSaved(() => setIsMealSlotModalOpen(false))
         fetchData()
       } else {
         notifyError(res.data?.message || 'Failed to save meal slot override')
@@ -786,11 +792,11 @@ export function FnbPropertySettingsScreen({
                                 }}
                                 className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
                               >
-                                {isExpanded ? (
-                                  <ChevronDown className="w-4 h-4 text-[#005390]" />
-                                ) : (
-                                  <ChevronRight className="w-4 h-4" />
-                                )}
+                                <ExpandChevron
+                                  open={isExpanded}
+                                  from="right"
+                                  className={isExpanded ? 'w-4 h-4 text-[#005390]' : 'w-4 h-4'}
+                                />
                               </Button>
                             </TableCell>
                             <TableCell className="py-4 px-4">
@@ -837,193 +843,195 @@ export function FnbPropertySettingsScreen({
                           {isExpanded && (
                             <TableRow className="bg-gray-50/70 border-b border-gray-200">
                               <TableCell colSpan={6} className="p-4 sm:p-6">
-                                <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-xs space-y-4">
-                                  <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                                    <div className="flex items-center gap-2">
-                                      <Home className="w-4 h-4 text-[#005390]" />
-                                      <h4 className="font-bold text-gray-800 text-xs uppercase tracking-wider">
-                                        Food Package Subscriptions History for Flat {grp.unitNumber} ({grp.blockName})
-                                      </h4>
+                                <Expand open appear>
+                                  <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-xs space-y-4">
+                                    <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                                      <div className="flex items-center gap-2">
+                                        <Home className="w-4 h-4 text-[#005390]" />
+                                        <h4 className="font-bold text-gray-800 text-xs uppercase tracking-wider">
+                                          Food Package Subscriptions History for Flat {grp.unitNumber} ({grp.blockName})
+                                        </h4>
+                                      </div>
+                                      <span className="text-xs font-bold text-[#005390] bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
+                                        {grp.subscriptions.length} Subscriptions Recorded
+                                      </span>
                                     </div>
-                                    <span className="text-xs font-bold text-[#005390] bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
-                                      {grp.subscriptions.length} Subscriptions Recorded
-                                    </span>
-                                  </div>
 
-                                  <div className="overflow-hidden">
-                                    <Table className="w-full text-left text-xs border-collapse">
-                                      <TableHeader>
-                                        <TableRow className="bg-gray-100/80 text-gray-500 font-bold uppercase tracking-wider text-[10px] border-b border-gray-200">
-                                          <TableHead className="py-2.5 px-3">Resident / Family Member</TableHead>
-                                          <TableHead className="py-2.5 px-3">Assigned Food Package</TableHead>
-                                          <TableHead className="py-2.5 px-3">Included Meal Slots</TableHead>
-                                          <TableHead className="py-2.5 px-3">Monthly Rate</TableHead>
-                                          <TableHead className="py-2.5 px-3">Diet Preference</TableHead>
-                                          <TableHead className="py-2.5 px-3">Start Date</TableHead>
-                                          <TableHead className="py-2.5 px-3">End Date</TableHead>
-                                          <TableHead className="py-2.5 px-3">Status</TableHead>
-                                          <TableHead className="py-2.5 px-3">Notes</TableHead>
-                                          <TableHead className="py-2.5 px-3 text-right">Actions</TableHead>
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody className="divide-y divide-gray-100">
-                                        {grp.subscriptions.map((sub) => {
-                                          const isFamily = Boolean(sub.familyMember)
-                                          const displayName = isFamily
-                                            ? `${sub.familyMember?.firstName} ${sub.familyMember?.lastName || ''}`.trim()
-                                            : grp.primaryResidentName
+                                    <div className="overflow-hidden">
+                                      <Table className="w-full text-left text-xs border-collapse">
+                                        <TableHeader>
+                                          <TableRow className="bg-gray-100/80 text-gray-500 font-bold uppercase tracking-wider text-[10px] border-b border-gray-200">
+                                            <TableHead className="py-2.5 px-3">Resident / Family Member</TableHead>
+                                            <TableHead className="py-2.5 px-3">Assigned Food Package</TableHead>
+                                            <TableHead className="py-2.5 px-3">Included Meal Slots</TableHead>
+                                            <TableHead className="py-2.5 px-3">Monthly Rate</TableHead>
+                                            <TableHead className="py-2.5 px-3">Diet Preference</TableHead>
+                                            <TableHead className="py-2.5 px-3">Start Date</TableHead>
+                                            <TableHead className="py-2.5 px-3">End Date</TableHead>
+                                            <TableHead className="py-2.5 px-3">Status</TableHead>
+                                            <TableHead className="py-2.5 px-3">Notes</TableHead>
+                                            <TableHead className="py-2.5 px-3 text-right">Actions</TableHead>
+                                          </TableRow>
+                                        </TableHeader>
+                                        <TableBody className="divide-y divide-gray-100">
+                                          {grp.subscriptions.map((sub) => {
+                                            const isFamily = Boolean(sub.familyMember)
+                                            const displayName = isFamily
+                                              ? `${sub.familyMember?.firstName} ${sub.familyMember?.lastName || ''}`.trim()
+                                              : grp.primaryResidentName
 
-                                          const pkgName = sub.propertyPackage?.globalPackage?.name || 'Package'
-                                          const basePrice = sub.propertyPackage?.price || 0
-                                          const deliveryFee = Number(sub.deliveryCharge) || 0
-                                          const price =
-                                            sub.totalPrice != null
-                                              ? Number(sub.totalPrice)
-                                              : basePrice + (sub.diningType === 'home_delivery' ? deliveryFee : 0)
-                                          const slots =
-                                            (
-                                              sub.propertyPackage?.globalPackage as unknown as {
-                                                includedMealSlots?: string[]
-                                              }
-                                            )?.includedMealSlots || []
-                                          const isPaused = sub.status === 'paused' || sub.status === 'PAUSED'
-                                          const isCancelled = sub.status === 'cancelled' || sub.status === 'CANCELLED'
+                                            const pkgName = sub.propertyPackage?.globalPackage?.name || 'Package'
+                                            const basePrice = sub.propertyPackage?.price || 0
+                                            const deliveryFee = Number(sub.deliveryCharge) || 0
+                                            const price =
+                                              sub.totalPrice != null
+                                                ? Number(sub.totalPrice)
+                                                : basePrice + (sub.diningType === 'home_delivery' ? deliveryFee : 0)
+                                            const slots =
+                                              (
+                                                sub.propertyPackage?.globalPackage as unknown as {
+                                                  includedMealSlots?: string[]
+                                                }
+                                              )?.includedMealSlots || []
+                                            const isPaused = sub.status === 'paused' || sub.status === 'PAUSED'
+                                            const isCancelled = sub.status === 'cancelled' || sub.status === 'CANCELLED'
 
-                                          return (
-                                            <TableRow
-                                              key={sub.id}
-                                              className={
-                                                isCancelled ? 'bg-rose-50/20 hover:bg-rose-50/40' : 'hover:bg-gray-50'
-                                              }
-                                            >
-                                              <TableCell className="py-2.5 px-3">
-                                                <div className="font-bold text-gray-900">{displayName}</div>
-                                                {isFamily ? (
-                                                  <span className="inline-block text-[10px] font-semibold px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 border border-purple-200 mt-0.5">
-                                                    Family ({sub.familyMember?.relation || 'Member'})
-                                                  </span>
-                                                ) : (
-                                                  <span className="inline-block text-[10px] font-semibold px-1.5 py-0.2 rounded bg-blue-50 text-[#005390] border border-blue-200 mt-0.5">
-                                                    Primary Resident
-                                                  </span>
-                                                )}
-                                              </TableCell>
-                                              <TableCell className="py-2.5 px-3">
-                                                <div className="font-bold text-gray-900">{pkgName}</div>
-                                                {sub.diningType && (
-                                                  <span
-                                                    className={`inline-block text-[10px] font-semibold px-1.5 py-0.2 rounded border mt-0.5 ${
-                                                      sub.diningType === 'home_delivery'
-                                                        ? 'bg-amber-50 text-amber-800 border-amber-300'
-                                                        : 'bg-blue-50 text-blue-800 border-blue-200'
-                                                    }`}
-                                                  >
-                                                    {sub.diningType === 'home_delivery'
-                                                      ? '🚚 Home Delivery'
-                                                      : '🍽️ Dine-in'}
-                                                  </span>
-                                                )}
-                                              </TableCell>
-                                              <TableCell className="py-2.5 px-3">
-                                                <div className="flex flex-wrap gap-1">
-                                                  {slots.map((s) => (
-                                                    <span
-                                                      key={s}
-                                                      className="px-1.5 py-0.5 bg-blue-50 text-[#005390] rounded text-[10px] font-semibold border border-blue-100"
-                                                    >
-                                                      {getSlotDisplayName(s)}
+                                            return (
+                                              <TableRow
+                                                key={sub.id}
+                                                className={
+                                                  isCancelled ? 'bg-rose-50/20 hover:bg-rose-50/40' : 'hover:bg-gray-50'
+                                                }
+                                              >
+                                                <TableCell className="py-2.5 px-3">
+                                                  <div className="font-bold text-gray-900">{displayName}</div>
+                                                  {isFamily ? (
+                                                    <span className="inline-block text-[10px] font-semibold px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 border border-purple-200 mt-0.5">
+                                                      Family ({sub.familyMember?.relation || 'Member'})
                                                     </span>
-                                                  ))}
-                                                </div>
-                                              </TableCell>
-                                              <TableCell className="py-2.5 px-3 font-extrabold text-emerald-700">
-                                                <div>₹{Number(price).toLocaleString('en-IN')}/mo</div>
-                                                {sub.diningType === 'home_delivery' && deliveryFee > 0 && (
-                                                  <div className="text-[9px] text-amber-700 font-semibold">
-                                                    (+₹{deliveryFee.toLocaleString('en-IN')} Del.)
-                                                  </div>
-                                                )}
-                                              </TableCell>
-                                              <TableCell className="py-2.5 px-3">
-                                                <span
-                                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold capitalize border inline-block ${getDietBadgeStyle(sub.dietaryPreference)}`}
-                                                >
-                                                  {sub.dietaryPreference.replace('_', ' ')}
-                                                </span>
-                                              </TableCell>
-                                              <TableCell className="py-2.5 px-3 text-gray-600 font-medium">
-                                                {sub.startDate ? sub.startDate.split('T')[0] : '-'}
-                                              </TableCell>
-                                              <TableCell className="py-2.5 px-3 text-gray-600 font-medium">
-                                                {sub.endDate ? (
-                                                  <span className="text-rose-700 font-bold">
-                                                    {sub.endDate.split('T')[0]}
-                                                  </span>
-                                                ) : (
-                                                  'N/A'
-                                                )}
-                                              </TableCell>
-                                              <TableCell className="py-2.5 px-3">
-                                                <span
-                                                  className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
-                                                    isCancelled
-                                                      ? 'bg-rose-100 text-rose-800 border border-rose-300'
-                                                      : isPaused
-                                                        ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                                                        : 'bg-blue-100 text-[#005390] border border-blue-200'
-                                                  }`}
-                                                >
-                                                  {sub.status}
-                                                </span>
-                                              </TableCell>
-                                              <TableCell className="py-2.5 px-3 text-gray-500 italic max-w-xs truncate">
-                                                {sub.allergiesNotes || '-'}
-                                              </TableCell>
-                                              <TableCell className="py-2.5 px-3 text-right space-x-2">
-                                                {isCancelled ? (
-                                                  <span className="text-xs text-rose-600 font-semibold italic">
-                                                    Cancelled
-                                                  </span>
-                                                ) : (
-                                                  <>
-                                                    <Button
-                                                      type="button"
-                                                      onClick={() => handleTogglePause(sub)}
-                                                      disabled={actionLoading === sub.id}
-                                                      className={`inline-flex items-center gap-1 px-2.5 py-1 h-auto rounded-lg text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-50 ${
-                                                        isPaused
-                                                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                                                          : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                                                  ) : (
+                                                    <span className="inline-block text-[10px] font-semibold px-1.5 py-0.2 rounded bg-blue-50 text-[#005390] border border-blue-200 mt-0.5">
+                                                      Primary Resident
+                                                    </span>
+                                                  )}
+                                                </TableCell>
+                                                <TableCell className="py-2.5 px-3">
+                                                  <div className="font-bold text-gray-900">{pkgName}</div>
+                                                  {sub.diningType && (
+                                                    <span
+                                                      className={`inline-block text-[10px] font-semibold px-1.5 py-0.2 rounded border mt-0.5 ${
+                                                        sub.diningType === 'home_delivery'
+                                                          ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                                          : 'bg-blue-50 text-blue-800 border-blue-200'
                                                       }`}
                                                     >
-                                                      {isPaused ? (
-                                                        <>
-                                                          <Play className="w-3 h-3" /> Resume
-                                                        </>
-                                                      ) : (
-                                                        <>
-                                                          <Pause className="w-3 h-3" /> Pause
-                                                        </>
-                                                      )}
-                                                    </Button>
-                                                    <Button
-                                                      type="button"
-                                                      variant="outline"
-                                                      onClick={() => handleOpenChangeModal(sub)}
-                                                      className="inline-flex items-center gap-1 px-2.5 py-1 h-auto rounded-lg text-xs font-semibold bg-blue-50 text-[#005390] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
-                                                    >
-                                                      <RefreshCw className="w-3 h-3" /> Change Package
-                                                    </Button>
-                                                  </>
-                                                )}
-                                              </TableCell>
-                                            </TableRow>
-                                          )
-                                        })}
-                                      </TableBody>
-                                    </Table>
+                                                      {sub.diningType === 'home_delivery'
+                                                        ? '🚚 Home Delivery'
+                                                        : '🍽️ Dine-in'}
+                                                    </span>
+                                                  )}
+                                                </TableCell>
+                                                <TableCell className="py-2.5 px-3">
+                                                  <div className="flex flex-wrap gap-1">
+                                                    {slots.map((s) => (
+                                                      <span
+                                                        key={s}
+                                                        className="px-1.5 py-0.5 bg-blue-50 text-[#005390] rounded text-[10px] font-semibold border border-blue-100"
+                                                      >
+                                                        {getSlotDisplayName(s)}
+                                                      </span>
+                                                    ))}
+                                                  </div>
+                                                </TableCell>
+                                                <TableCell className="py-2.5 px-3 font-extrabold text-emerald-700">
+                                                  <div>₹{Number(price).toLocaleString('en-IN')}/mo</div>
+                                                  {sub.diningType === 'home_delivery' && deliveryFee > 0 && (
+                                                    <div className="text-[9px] text-amber-700 font-semibold">
+                                                      (+₹{deliveryFee.toLocaleString('en-IN')} Del.)
+                                                    </div>
+                                                  )}
+                                                </TableCell>
+                                                <TableCell className="py-2.5 px-3">
+                                                  <span
+                                                    className={`px-2 py-0.5 rounded text-[11px] font-semibold capitalize border inline-block ${getDietBadgeStyle(sub.dietaryPreference)}`}
+                                                  >
+                                                    {sub.dietaryPreference.replace('_', ' ')}
+                                                  </span>
+                                                </TableCell>
+                                                <TableCell className="py-2.5 px-3 text-gray-600 font-medium">
+                                                  {sub.startDate ? sub.startDate.split('T')[0] : '-'}
+                                                </TableCell>
+                                                <TableCell className="py-2.5 px-3 text-gray-600 font-medium">
+                                                  {sub.endDate ? (
+                                                    <span className="text-rose-700 font-bold">
+                                                      {sub.endDate.split('T')[0]}
+                                                    </span>
+                                                  ) : (
+                                                    'N/A'
+                                                  )}
+                                                </TableCell>
+                                                <TableCell className="py-2.5 px-3">
+                                                  <span
+                                                    className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                                                      isCancelled
+                                                        ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                                                        : isPaused
+                                                          ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                                          : 'bg-blue-100 text-[#005390] border border-blue-200'
+                                                    }`}
+                                                  >
+                                                    {sub.status}
+                                                  </span>
+                                                </TableCell>
+                                                <TableCell className="py-2.5 px-3 text-gray-500 italic max-w-xs truncate">
+                                                  {sub.allergiesNotes || '-'}
+                                                </TableCell>
+                                                <TableCell className="py-2.5 px-3 text-right space-x-2">
+                                                  {isCancelled ? (
+                                                    <span className="text-xs text-rose-600 font-semibold italic">
+                                                      Cancelled
+                                                    </span>
+                                                  ) : (
+                                                    <>
+                                                      <Button
+                                                        type="button"
+                                                        onClick={() => handleTogglePause(sub)}
+                                                        disabled={actionLoading === sub.id}
+                                                        className={`inline-flex items-center gap-1 px-2.5 py-1 h-auto rounded-lg text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-50 ${
+                                                          isPaused
+                                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                                            : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                                                        }`}
+                                                      >
+                                                        {isPaused ? (
+                                                          <>
+                                                            <Play className="w-3 h-3" /> Resume
+                                                          </>
+                                                        ) : (
+                                                          <>
+                                                            <Pause className="w-3 h-3" /> Pause
+                                                          </>
+                                                        )}
+                                                      </Button>
+                                                      <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        onClick={() => handleOpenChangeModal(sub)}
+                                                        className="inline-flex items-center gap-1 px-2.5 py-1 h-auto rounded-lg text-xs font-semibold bg-blue-50 text-[#005390] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
+                                                      >
+                                                        <RefreshCw className="w-3 h-3" /> Change Package
+                                                      </Button>
+                                                    </>
+                                                  )}
+                                                </TableCell>
+                                              </TableRow>
+                                            )
+                                          })}
+                                        </TableBody>
+                                      </Table>
+                                    </div>
                                   </div>
-                                </div>
+                                </Expand>
                               </TableCell>
                             </TableRow>
                           )}
@@ -1162,11 +1170,11 @@ export function FnbPropertySettingsScreen({
                                 }}
                                 className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
                               >
-                                {isExpanded ? (
-                                  <ChevronDown className="w-4 h-4 text-[#005390]" />
-                                ) : (
-                                  <ChevronRight className="w-4 h-4" />
-                                )}
+                                <ExpandChevron
+                                  open={isExpanded}
+                                  from="right"
+                                  className={isExpanded ? 'w-4 h-4 text-[#005390]' : 'w-4 h-4'}
+                                />
                               </Button>
                             </TableCell>
                             <TableCell className="py-4 px-4">
@@ -1254,179 +1262,187 @@ export function FnbPropertySettingsScreen({
                           {isExpanded && (
                             <TableRow className="bg-gray-50/70 border-b border-gray-200">
                               <TableCell colSpan={7} className="p-4 sm:p-6">
-                                <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-xs space-y-4">
-                                  <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                                    <div className="flex items-center gap-2">
-                                      <Users className="w-4 h-4 text-[#005390]" />
-                                      <h4 className="font-bold text-gray-800 text-xs uppercase tracking-wider">
-                                        Subscribed Residents History for "{gPkg.name}"
-                                      </h4>
+                                <Expand open appear>
+                                  <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-xs space-y-4">
+                                    <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                                      <div className="flex items-center gap-2">
+                                        <Users className="w-4 h-4 text-[#005390]" />
+                                        <h4 className="font-bold text-gray-800 text-xs uppercase tracking-wider">
+                                          Subscribed Residents History for "{gPkg.name}"
+                                        </h4>
+                                      </div>
+                                      <span className="text-xs font-bold text-[#005390] bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
+                                        {allOptedSubs.length} Subscriptions Recorded ({optedCount} Active
+                                        {cancelledOptedSubs.length > 0
+                                          ? `, ${cancelledOptedSubs.length} Cancelled`
+                                          : ''}
+                                        )
+                                      </span>
                                     </div>
-                                    <span className="text-xs font-bold text-[#005390] bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
-                                      {allOptedSubs.length} Subscriptions Recorded ({optedCount} Active
-                                      {cancelledOptedSubs.length > 0 ? `, ${cancelledOptedSubs.length} Cancelled` : ''})
-                                    </span>
+
+                                    {allOptedSubs.length === 0 ? (
+                                      <div className="p-6 text-center text-gray-400 text-xs bg-gray-50 rounded-lg">
+                                        No residents currently opted into this food package.
+                                      </div>
+                                    ) : (
+                                      <div className="overflow-hidden">
+                                        <Table className="w-full text-left text-xs border-collapse">
+                                          <TableHeader>
+                                            <TableRow className="bg-gray-100/80 text-gray-500 font-bold uppercase tracking-wider text-[10px] border-b border-gray-200">
+                                              <TableHead className="py-2.5 px-3">Resident Name</TableHead>
+                                              <TableHead className="py-2.5 px-3">Unit</TableHead>
+                                              <TableHead className="py-2.5 px-3">Contact</TableHead>
+                                              <TableHead className="py-2.5 px-3">Diet Preference</TableHead>
+                                              <TableHead className="py-2.5 px-3">Start Date</TableHead>
+                                              <TableHead className="py-2.5 px-3">End Date</TableHead>
+                                              <TableHead className="py-2.5 px-3">Status</TableHead>
+                                              <TableHead className="py-2.5 px-3">Allergies / Notes</TableHead>
+                                              <TableHead className="py-2.5 px-3 text-right">Actions</TableHead>
+                                            </TableRow>
+                                          </TableHeader>
+                                          <TableBody className="divide-y divide-gray-100">
+                                            {allOptedSubs.map((sub) => {
+                                              const primaryName = sub.resident
+                                                ? `${sub.resident.firstName} ${sub.resident.lastName || ''}`.trim()
+                                                : 'Resident'
+                                              const isFamily = Boolean(sub.familyMember)
+                                              const displayName = isFamily
+                                                ? `${sub.familyMember?.firstName} ${sub.familyMember?.lastName || ''}`.trim()
+                                                : primaryName
+
+                                              const targetRes = sub.resident || sub.familyMember?.resident
+                                              const blockName = targetRes?.unit?.floor?.block?.block_name
+                                              const floorObj = targetRes?.unit?.floor
+                                              const floorStr = floorLabel(floorObj)
+                                              const unitNum = targetRes?.unit?.unit_number
+                                              const unitDisplay = unitNum
+                                                ? [blockName, floorStr, unitNum].filter(Boolean).join(' - ')
+                                                : 'Unit -'
+
+                                              const isPaused = sub.status === 'paused' || sub.status === 'PAUSED'
+                                              const isCancelled =
+                                                sub.status === 'cancelled' || sub.status === 'CANCELLED'
+
+                                              return (
+                                                <TableRow
+                                                  key={sub.id}
+                                                  className={
+                                                    isCancelled
+                                                      ? 'bg-rose-50/20 hover:bg-rose-50/40'
+                                                      : 'hover:bg-gray-50'
+                                                  }
+                                                >
+                                                  <TableCell className="py-2.5 px-3">
+                                                    <div className="font-bold text-gray-900">{displayName}</div>
+                                                    {isFamily ? (
+                                                      <span className="inline-block text-[10px] font-semibold px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 border border-purple-200">
+                                                        Family ({sub.familyMember?.relation || 'Member'})
+                                                      </span>
+                                                    ) : (
+                                                      <span className="inline-block text-[10px] font-semibold px-1.5 py-0.2 rounded bg-blue-50 text-[#005390] border border-blue-200">
+                                                        Primary Resident
+                                                      </span>
+                                                    )}
+                                                  </TableCell>
+                                                  <TableCell className="py-2.5 px-3 font-semibold text-gray-700">
+                                                    <span className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded font-mono text-[11px] inline-block">
+                                                      {unitDisplay}
+                                                    </span>
+                                                  </TableCell>
+                                                  <TableCell className="py-2.5 px-3 text-gray-600">
+                                                    {sub.familyMember?.phone || sub.resident?.phone ? (
+                                                      <span className="flex items-center gap-1">
+                                                        <Phone className="w-3 h-3 text-gray-400" />
+                                                        {sub.familyMember?.phone || sub.resident?.phone}
+                                                      </span>
+                                                    ) : (
+                                                      '-'
+                                                    )}
+                                                  </TableCell>
+                                                  <TableCell className="py-2.5 px-3">
+                                                    <span
+                                                      className={`px-2 py-0.5 rounded text-[11px] font-semibold capitalize border inline-block ${getDietBadgeStyle(sub.dietaryPreference)}`}
+                                                    >
+                                                      {sub.dietaryPreference.replace('_', ' ')}
+                                                    </span>
+                                                  </TableCell>
+                                                  <TableCell className="py-2.5 px-3 text-gray-600 font-medium">
+                                                    {sub.startDate ? sub.startDate.split('T')[0] : '-'}
+                                                  </TableCell>
+                                                  <TableCell className="py-2.5 px-3 text-gray-600 font-medium">
+                                                    {sub.endDate ? (
+                                                      <span className="text-rose-700 font-bold">
+                                                        {sub.endDate.split('T')[0]}
+                                                      </span>
+                                                    ) : (
+                                                      'N/A'
+                                                    )}
+                                                  </TableCell>
+                                                  <TableCell className="py-2.5 px-3">
+                                                    <span
+                                                      className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                                                        isCancelled
+                                                          ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                                                          : isPaused
+                                                            ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                                            : 'bg-blue-100 text-[#005390] border border-blue-200'
+                                                      }`}
+                                                    >
+                                                      {sub.status}
+                                                    </span>
+                                                  </TableCell>
+                                                  <TableCell className="py-2.5 px-3 text-gray-500 italic max-w-xs truncate">
+                                                    {sub.allergiesNotes || '-'}
+                                                  </TableCell>
+                                                  <TableCell className="py-2.5 px-3 text-right space-x-2">
+                                                    {isCancelled ? (
+                                                      <span className="text-xs text-rose-600 font-semibold italic">
+                                                        Cancelled
+                                                      </span>
+                                                    ) : (
+                                                      canUpdateFnb && (
+                                                        <>
+                                                          <Button
+                                                            type="button"
+                                                            onClick={() => handleTogglePause(sub)}
+                                                            disabled={actionLoading === sub.id}
+                                                            className={`inline-flex items-center gap-1 px-2.5 py-1 h-auto rounded-lg text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-50 ${
+                                                              isPaused
+                                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                                                : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                                                            }`}
+                                                          >
+                                                            {isPaused ? (
+                                                              <>
+                                                                <Play className="w-3 h-3" /> Resume
+                                                              </>
+                                                            ) : (
+                                                              <>
+                                                                <Pause className="w-3 h-3" /> Pause
+                                                              </>
+                                                            )}
+                                                          </Button>
+                                                          <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            onClick={() => handleOpenChangeModal(sub)}
+                                                            className="inline-flex items-center gap-1 px-2.5 py-1 h-auto rounded-lg text-xs font-semibold bg-blue-50 text-[#005390] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
+                                                          >
+                                                            <RefreshCw className="w-3 h-3" /> Change Package
+                                                          </Button>
+                                                        </>
+                                                      )
+                                                    )}
+                                                  </TableCell>
+                                                </TableRow>
+                                              )
+                                            })}
+                                          </TableBody>
+                                        </Table>
+                                      </div>
+                                    )}
                                   </div>
-
-                                  {allOptedSubs.length === 0 ? (
-                                    <div className="p-6 text-center text-gray-400 text-xs bg-gray-50 rounded-lg">
-                                      No residents currently opted into this food package.
-                                    </div>
-                                  ) : (
-                                    <div className="overflow-hidden">
-                                      <Table className="w-full text-left text-xs border-collapse">
-                                        <TableHeader>
-                                          <TableRow className="bg-gray-100/80 text-gray-500 font-bold uppercase tracking-wider text-[10px] border-b border-gray-200">
-                                            <TableHead className="py-2.5 px-3">Resident Name</TableHead>
-                                            <TableHead className="py-2.5 px-3">Unit</TableHead>
-                                            <TableHead className="py-2.5 px-3">Contact</TableHead>
-                                            <TableHead className="py-2.5 px-3">Diet Preference</TableHead>
-                                            <TableHead className="py-2.5 px-3">Start Date</TableHead>
-                                            <TableHead className="py-2.5 px-3">End Date</TableHead>
-                                            <TableHead className="py-2.5 px-3">Status</TableHead>
-                                            <TableHead className="py-2.5 px-3">Allergies / Notes</TableHead>
-                                            <TableHead className="py-2.5 px-3 text-right">Actions</TableHead>
-                                          </TableRow>
-                                        </TableHeader>
-                                        <TableBody className="divide-y divide-gray-100">
-                                          {allOptedSubs.map((sub) => {
-                                            const primaryName = sub.resident
-                                              ? `${sub.resident.firstName} ${sub.resident.lastName || ''}`.trim()
-                                              : 'Resident'
-                                            const isFamily = Boolean(sub.familyMember)
-                                            const displayName = isFamily
-                                              ? `${sub.familyMember?.firstName} ${sub.familyMember?.lastName || ''}`.trim()
-                                              : primaryName
-
-                                            const targetRes = sub.resident || sub.familyMember?.resident
-                                            const blockName = targetRes?.unit?.floor?.block?.block_name
-                                            const floorObj = targetRes?.unit?.floor
-                                            const floorStr = floorLabel(floorObj)
-                                            const unitNum = targetRes?.unit?.unit_number
-                                            const unitDisplay = unitNum
-                                              ? [blockName, floorStr, unitNum].filter(Boolean).join(' - ')
-                                              : 'Unit -'
-
-                                            const isPaused = sub.status === 'paused' || sub.status === 'PAUSED'
-                                            const isCancelled = sub.status === 'cancelled' || sub.status === 'CANCELLED'
-
-                                            return (
-                                              <TableRow
-                                                key={sub.id}
-                                                className={
-                                                  isCancelled ? 'bg-rose-50/20 hover:bg-rose-50/40' : 'hover:bg-gray-50'
-                                                }
-                                              >
-                                                <TableCell className="py-2.5 px-3">
-                                                  <div className="font-bold text-gray-900">{displayName}</div>
-                                                  {isFamily ? (
-                                                    <span className="inline-block text-[10px] font-semibold px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 border border-purple-200">
-                                                      Family ({sub.familyMember?.relation || 'Member'})
-                                                    </span>
-                                                  ) : (
-                                                    <span className="inline-block text-[10px] font-semibold px-1.5 py-0.2 rounded bg-blue-50 text-[#005390] border border-blue-200">
-                                                      Primary Resident
-                                                    </span>
-                                                  )}
-                                                </TableCell>
-                                                <TableCell className="py-2.5 px-3 font-semibold text-gray-700">
-                                                  <span className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded font-mono text-[11px] inline-block">
-                                                    {unitDisplay}
-                                                  </span>
-                                                </TableCell>
-                                                <TableCell className="py-2.5 px-3 text-gray-600">
-                                                  {sub.familyMember?.phone || sub.resident?.phone ? (
-                                                    <span className="flex items-center gap-1">
-                                                      <Phone className="w-3 h-3 text-gray-400" />
-                                                      {sub.familyMember?.phone || sub.resident?.phone}
-                                                    </span>
-                                                  ) : (
-                                                    '-'
-                                                  )}
-                                                </TableCell>
-                                                <TableCell className="py-2.5 px-3">
-                                                  <span
-                                                    className={`px-2 py-0.5 rounded text-[11px] font-semibold capitalize border inline-block ${getDietBadgeStyle(sub.dietaryPreference)}`}
-                                                  >
-                                                    {sub.dietaryPreference.replace('_', ' ')}
-                                                  </span>
-                                                </TableCell>
-                                                <TableCell className="py-2.5 px-3 text-gray-600 font-medium">
-                                                  {sub.startDate ? sub.startDate.split('T')[0] : '-'}
-                                                </TableCell>
-                                                <TableCell className="py-2.5 px-3 text-gray-600 font-medium">
-                                                  {sub.endDate ? (
-                                                    <span className="text-rose-700 font-bold">
-                                                      {sub.endDate.split('T')[0]}
-                                                    </span>
-                                                  ) : (
-                                                    'N/A'
-                                                  )}
-                                                </TableCell>
-                                                <TableCell className="py-2.5 px-3">
-                                                  <span
-                                                    className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
-                                                      isCancelled
-                                                        ? 'bg-rose-100 text-rose-800 border border-rose-300'
-                                                        : isPaused
-                                                          ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                                                          : 'bg-blue-100 text-[#005390] border border-blue-200'
-                                                    }`}
-                                                  >
-                                                    {sub.status}
-                                                  </span>
-                                                </TableCell>
-                                                <TableCell className="py-2.5 px-3 text-gray-500 italic max-w-xs truncate">
-                                                  {sub.allergiesNotes || '-'}
-                                                </TableCell>
-                                                <TableCell className="py-2.5 px-3 text-right space-x-2">
-                                                  {isCancelled ? (
-                                                    <span className="text-xs text-rose-600 font-semibold italic">
-                                                      Cancelled
-                                                    </span>
-                                                  ) : (
-                                                    canUpdateFnb && (
-                                                      <>
-                                                        <Button
-                                                          type="button"
-                                                          onClick={() => handleTogglePause(sub)}
-                                                          disabled={actionLoading === sub.id}
-                                                          className={`inline-flex items-center gap-1 px-2.5 py-1 h-auto rounded-lg text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-50 ${
-                                                            isPaused
-                                                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                                                              : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
-                                                          }`}
-                                                        >
-                                                          {isPaused ? (
-                                                            <>
-                                                              <Play className="w-3 h-3" /> Resume
-                                                            </>
-                                                          ) : (
-                                                            <>
-                                                              <Pause className="w-3 h-3" /> Pause
-                                                            </>
-                                                          )}
-                                                        </Button>
-                                                        <Button
-                                                          type="button"
-                                                          variant="outline"
-                                                          onClick={() => handleOpenChangeModal(sub)}
-                                                          className="inline-flex items-center gap-1 px-2.5 py-1 h-auto rounded-lg text-xs font-semibold bg-blue-50 text-[#005390] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
-                                                        >
-                                                          <RefreshCw className="w-3 h-3" /> Change Package
-                                                        </Button>
-                                                      </>
-                                                    )
-                                                  )}
-                                                </TableCell>
-                                              </TableRow>
-                                            )
-                                          })}
-                                        </TableBody>
-                                      </Table>
-                                    </div>
-                                  )}
-                                </div>
+                                </Expand>
                               </TableCell>
                             </TableRow>
                           )}
@@ -1721,13 +1737,15 @@ export function FnbPropertySettingsScreen({
                 >
                   Cancel
                 </Button>
-                <Button
+                <SaveButton
                   type="submit"
-                  disabled={savingSlot || Boolean(propertySlotCollisionError)}
+                  saving={savingSlot}
+                  saved={saved}
+                  disabled={Boolean(propertySlotCollisionError)}
                   className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-4 py-2 h-auto rounded-xl shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {savingSlot ? 'Saving...' : 'Save Override'}
-                </Button>
+                </SaveButton>
               </div>
             </form>
           </DialogContent>
@@ -1800,13 +1818,15 @@ export function FnbPropertySettingsScreen({
                 >
                   Cancel
                 </Button>
-                <Button
+                <SaveButton
                   type="submit"
-                  disabled={saving || editHasOpted}
+                  saving={saving}
+                  saved={saved}
+                  disabled={editHasOpted}
                   className="inline-flex items-center gap-2 bg-[#005390] text-white px-5 py-2 h-auto rounded-xl font-medium text-xs hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Property Pricing'}
-                </Button>
+                  {!saving && <Save className="w-4 h-4" />} {saving ? 'Saving...' : 'Save Property Pricing'}
+                </SaveButton>
               </div>
             </form>
           </DialogContent>
@@ -1904,13 +1924,15 @@ export function FnbPropertySettingsScreen({
                 >
                   Cancel
                 </Button>
-                <Button
+                <SaveButton
                   type="submit"
-                  disabled={changingPackage || !newPropertyPkgId || newPropertyPkgId === changingSub.propertyPackageId}
+                  saving={changingPackage}
+                  saved={saved}
+                  disabled={!newPropertyPkgId || newPropertyPkgId === changingSub.propertyPackageId}
                   className="px-5 py-2 h-auto bg-[#005390] text-white text-xs font-bold rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
                 >
                   {changingPackage ? 'Saving Changes...' : 'Confirm Change Package'}
-                </Button>
+                </SaveButton>
               </div>
             </form>
           </DialogContent>
@@ -1962,13 +1984,14 @@ export function FnbPropertySettingsScreen({
                 >
                   Cancel
                 </Button>
-                <Button
+                <SaveButton
                   type="submit"
-                  disabled={savingSpecialSlot}
+                  saving={savingSpecialSlot}
+                  saved={saved}
                   className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-4 py-2 h-auto rounded-xl shadow-xs cursor-pointer disabled:opacity-50"
                 >
                   {savingSpecialSlot ? 'Saving...' : 'Save Special Price'}
-                </Button>
+                </SaveButton>
               </div>
             </form>
           </DialogContent>

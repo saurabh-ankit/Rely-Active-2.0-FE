@@ -35,6 +35,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { z } from 'zod'
@@ -197,6 +199,7 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
   )
 
   const isSubmitting = createCarePackageMutation.isPending || updateCarePackageMutation.isPending
+  const { saved, flashSaved } = useSavedFlash()
   const isDeleting = deleteCarePackageMutation.isPending
 
   // Delete Confirmation Modal States
@@ -368,11 +371,11 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
           payload,
         })
         notifySuccess('Package updated successfully!')
-        setIsModalOpen(false)
+        flashSaved(() => setIsModalOpen(false))
       } else {
         await createCarePackageMutation.mutateAsync(payload)
         notifySuccess('Package created successfully!')
-        setIsModalOpen(false)
+        flashSaved(() => setIsModalOpen(false))
       }
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } }
@@ -1015,13 +1018,14 @@ export const PackagesTab: React.FC<PackagesTabProps> = ({ isPropertyMode = false
                 >
                   Cancel
                 </Button>
-                <Button
+                <SaveButton
                   type="submit"
-                  disabled={isSubmitting}
+                  saving={isSubmitting}
+                  saved={saved}
                   className="px-5 py-2 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004170] transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting ? 'Saving...' : editingPackage ? 'Update Package' : 'Create Package'}
-                </Button>
+                </SaveButton>
               </div>
             </form>
           </DialogContent>

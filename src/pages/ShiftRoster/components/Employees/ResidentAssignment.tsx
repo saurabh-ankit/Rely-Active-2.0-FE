@@ -5,6 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { BackButton } from '@/components/common/BackButton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -117,6 +119,7 @@ const ResidentAssignment = () => {
   }, [property])
 
   const createPool = useCreateResidentPool()
+  const { saved, flashSaved } = useSavedFlash()
   const deletePool = useDeleteResidentPool()
 
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -148,8 +151,11 @@ const ResidentAssignment = () => {
       fromTime: values.fromTime || null,
       toTime: values.toTime || null,
     })
-    setDialogOpen(false)
-    reset(residentPoolFormDefaultValues)
+    // ✓ Added on the button for a moment, then close
+    flashSaved(() => {
+      setDialogOpen(false)
+      reset(residentPoolFormDefaultValues)
+    })
   }
 
   return (
@@ -302,13 +308,16 @@ const ResidentAssignment = () => {
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button
+              <SaveButton
                 type="submit"
-                disabled={!unitId || createPool.isPending}
-                className="bg-[#2a517c] hover:bg-[#476587] text-white"
+                saving={createPool.isPending}
+                saved={saved}
+                savedLabel="Added"
+                disabled={!unitId}
+                className="gap-2 bg-[#2a517c] hover:bg-[#476587] text-white"
               >
                 Add
-              </Button>
+              </SaveButton>
             </DialogFooter>
           </form>
         </DialogContent>

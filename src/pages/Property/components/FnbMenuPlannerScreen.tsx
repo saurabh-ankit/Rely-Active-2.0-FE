@@ -13,8 +13,6 @@ import {
   Edit3,
   ChevronLeft,
   ChevronRight,
-  ChevronUp,
-  ChevronDown,
   Plus,
   Clock,
 } from 'lucide-react'
@@ -38,6 +36,7 @@ import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
 import { cn } from '@/lib/utils'
+import { ExpandChevron } from '@/components/common/Expand'
 
 interface Dish {
   id: string
@@ -1190,11 +1189,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                                     title={isCollapsed ? 'Expand Meal Slot' : 'Collapse Meal Slot'}
                                     aria-label={isCollapsed ? `Expand ${slot.name}` : `Collapse ${slot.name}`}
                                   >
-                                    {isCollapsed ? (
-                                      <ChevronDown className="w-4 h-4" />
-                                    ) : (
-                                      <ChevronUp className="w-4 h-4" />
-                                    )}
+                                    <ExpandChevron open={!isCollapsed} from="down" className="w-4 h-4" />
                                   </Button>
                                 </div>
                               </div>
@@ -1362,11 +1357,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                                     title={isCollapsed ? 'Expand Special Slot' : 'Collapse Special Slot'}
                                     aria-label={isCollapsed ? `Expand ${spSlot.name}` : `Collapse ${spSlot.name}`}
                                   >
-                                    {isCollapsed ? (
-                                      <ChevronDown className="w-4 h-4" />
-                                    ) : (
-                                      <ChevronUp className="w-4 h-4" />
-                                    )}
+                                    <ExpandChevron open={!isCollapsed} from="down" className="w-4 h-4" />
                                   </Button>
                                 </div>
                               </div>
@@ -1747,7 +1738,7 @@ export function FnbMenuPlannerScreen({ locId }: FnbMenuPlannerProps) {
                                 title={isCollapsed ? 'Expand Meal Slot' : 'Collapse Meal Slot'}
                                 aria-label={isCollapsed ? `Expand ${slot.name}` : `Collapse ${slot.name}`}
                               >
-                                {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                                <ExpandChevron open={!isCollapsed} from="down" className="w-4 h-4" />
                               </Button>
                             </div>
                           </div>

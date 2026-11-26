@@ -13,6 +13,8 @@ import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Checkbox } from '@/components/ui/checkbox'
 import { z } from 'zod'
 
@@ -113,6 +115,7 @@ export function GlobalServicesTab() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingService, setEditingService] = useState<GlobalService | null>(null)
   const [saving, setSaving] = useState(false)
+  const { saved, flashSaved } = useSavedFlash()
   const [errorMsg, setErrorMsg] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreviewUrl, setImagePreviewUrl] = useState('')
@@ -290,7 +293,7 @@ export function GlobalServicesTab() {
 
       if (res.data?.success) {
         notifySuccess(`Event Global Service ${editingService ? 'updated' : 'created'} successfully!`)
-        setIsModalOpen(false)
+        flashSaved(() => setIsModalOpen(false))
         fetchData()
       } else {
         setErrorMsg(res.data?.message || 'Failed to save service')
@@ -680,13 +683,14 @@ export function GlobalServicesTab() {
                 >
                   Cancel
                 </Button>
-                <Button
+                <SaveButton
                   type="submit"
-                  disabled={saving}
+                  saving={saving}
+                  saved={saved}
                   className="px-6 py-2.5 h-auto bg-[#005390] text-white text-sm font-medium rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : 'Save Service & Assignments'}
-                </Button>
+                </SaveButton>
               </div>
             </form>
           </DialogContent>

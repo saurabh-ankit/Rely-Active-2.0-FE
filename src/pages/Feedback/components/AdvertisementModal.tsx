@@ -4,6 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ImagePlus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -45,6 +47,7 @@ const AdvertisementModal = ({ open, onOpenChange, advertisement }: Advertisement
   const createMutation = useCreateAdvertisement()
   const updateMutation = useUpdateAdvertisement()
   const isPending = createMutation.isPending || updateMutation.isPending
+  const { saved, flashSaved } = useSavedFlash()
 
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   /** A newly picked image, shown in the cropper until it's uploaded */
@@ -122,7 +125,7 @@ const AdvertisementModal = ({ open, onOpenChange, advertisement }: Advertisement
       }
     }
 
-    const onSuccess = () => onOpenChange(false)
+    const onSuccess = () => flashSaved(() => onOpenChange(false))
     if (isEdit) {
       updateMutation.mutate({ id: advertisement.id, data: formData }, { onSuccess })
     } else {
@@ -226,10 +229,12 @@ const AdvertisementModal = ({ open, onOpenChange, advertisement }: Advertisement
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
               Cancel
             </Button>
-            <Button
+            <SaveButton
               type="submit"
-              disabled={isPending || preparing}
-              className="bg-[#2a517c] hover:bg-[#476587] text-white"
+              saving={isPending}
+              saved={saved}
+              disabled={preparing}
+              className="gap-2 bg-[#2a517c] hover:bg-[#476587] text-white"
             >
               {preparing
                 ? 'Preparing image...'
@@ -238,7 +243,7 @@ const AdvertisementModal = ({ open, onOpenChange, advertisement }: Advertisement
                   : isEdit
                     ? 'Save Changes'
                     : 'Upload Advertisement'}
-            </Button>
+            </SaveButton>
           </div>
         </form>
       </DialogContent>

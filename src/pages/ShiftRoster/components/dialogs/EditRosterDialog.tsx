@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Info, MapPin, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -90,6 +92,7 @@ const EditRosterDialog = ({
   const { data: users } = useUsersQuery()
   const { data: departments = [] } = useDepartmentsQuery()
   const update = useUpdateEmployeeShift()
+  const { saved, flashSaved } = useSavedFlash()
 
   const shifts: ShiftV2[] = useMemo(() => shiftsData?.data?.shifts || [], [shiftsData])
   const areas = useMemo(() => {
@@ -357,8 +360,11 @@ const EditRosterDialog = ({
           ...locationPayload,
         },
       })
-      onOpenChange(false)
-      onSaved?.()
+      // ✓ Saved on the button for a moment, then close and refresh
+      flashSaved(() => {
+        onOpenChange(false)
+        onSaved?.()
+      })
     } catch {
       // toast handled by the mutation
     }
@@ -649,14 +655,16 @@ const EditRosterDialog = ({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={update.isPending}>
             Cancel
           </Button>
-          <Button
+          <SaveButton
             type="button"
             onClick={save}
-            disabled={!!error || update.isPending}
-            className="bg-[#2a517c] hover:bg-[#476587] text-white"
+            saving={update.isPending}
+            saved={saved}
+            disabled={!!error}
+            className="gap-2 bg-[#2a517c] hover:bg-[#476587] text-white"
           >
             {update.isPending ? 'Saving…' : 'Save changes'}
-          </Button>
+          </SaveButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

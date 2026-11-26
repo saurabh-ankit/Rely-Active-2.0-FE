@@ -236,7 +236,10 @@ export const IncidentSopDialog: React.FC<IncidentSopDialogProps> = ({ residentId
                 {sop.summary.completed} of {sop.summary.total} steps completed
               </p>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${percent}%` }} />
+                <div
+                  className="h-full rounded-full bg-emerald-500 animate-fill transition-[width] duration-500 ease-out motion-reduce:animate-none"
+                  style={{ width: `${percent}%` }}
+                />
               </div>
             </div>
             <div className="-mx-1 min-h-0 flex-1 space-y-2 overflow-y-auto px-1 pb-1">

@@ -1,5 +1,7 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
@@ -55,6 +57,7 @@ const EventRegistrationsPage = () => {
     status: isOpen ? 'ATTENDED' : statusFilter !== 'all' ? statusFilter : undefined,
   })
   const updateStatusMutation = useUpdateRegistrationStatus()
+  const { saved, flashSaved } = useSavedFlash()
 
   const event = loadedEvent
   const capacity = capacityData?.data
@@ -111,11 +114,12 @@ const EventRegistrationsPage = () => {
         },
       },
       {
-        onSuccess: () => {
-          setIsStatusDialogOpen(false)
-          setSelectedRegistration(null)
-          setStatusNotes('')
-        },
+        onSuccess: () =>
+          flashSaved(() => {
+            setIsStatusDialogOpen(false)
+            setSelectedRegistration(null)
+            setStatusNotes('')
+          }),
       },
     )
   }
@@ -371,9 +375,15 @@ const EventRegistrationsPage = () => {
               >
                 Cancel
               </Button>
-              <Button onClick={handleStatusUpdate} disabled={updateStatusMutation.isPending}>
+              <SaveButton
+                onClick={handleStatusUpdate}
+                saving={updateStatusMutation.isPending}
+                saved={saved}
+                savedLabel="Updated"
+                className="gap-2"
+              >
                 {updateStatusMutation.isPending ? 'Updating...' : 'Update Status'}
-              </Button>
+              </SaveButton>
             </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import {
   Dialog,
   DialogContent,
@@ -34,6 +36,7 @@ export const BookAppointmentDialog = ({
 
   const { data: residents = [] } = useResidentsQuery(undefined, open)
   const bookMutation = useBookAppointment()
+  const { saved, flashSaved } = useSavedFlash()
 
   const availableSlots = useMemo(
     () => slots.filter((s) => s.isAvailable !== false && !s.isBooked && !s.isPast),
@@ -53,12 +56,13 @@ export const BookAppointmentDialog = ({
         },
       },
       {
-        onSuccess: () => {
-          setResidentId('')
-          setSlotTimeRange('')
-          setNotes('')
-          onOpenChange(false)
-        },
+        onSuccess: () =>
+          flashSaved(() => {
+            setResidentId('')
+            setSlotTimeRange('')
+            setNotes('')
+            onOpenChange(false)
+          }),
       },
     )
   }
@@ -127,13 +131,16 @@ export const BookAppointmentDialog = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button
+          <SaveButton
             onClick={handleSubmit}
-            disabled={!residentId || !slotTimeRange || bookMutation.isPending || availableSlots.length === 0}
-            className="bg-[#005390] hover:bg-[#004070] text-white"
+            saving={bookMutation.isPending}
+            saved={saved}
+            savedLabel="Booked"
+            disabled={!residentId || !slotTimeRange || availableSlots.length === 0}
+            className="gap-2 bg-[#005390] hover:bg-[#004070] text-white"
           >
             {bookMutation.isPending ? 'Booking...' : 'Book Appointment'}
-          </Button>
+          </SaveButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

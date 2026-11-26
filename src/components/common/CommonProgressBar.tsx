@@ -28,7 +28,7 @@ export const CommonProgressBar: React.FC<CommonProgressBarProps> = ({
         {/* Connecting Progress Line */}
         <div className="absolute top-[22px] left-[56px] right-[56px] sm:left-[72px] sm:right-[72px] -translate-y-1/2 h-1 bg-gray-100 rounded-full z-0 overflow-hidden">
           <div
-            className="h-full bg-[#005390] rounded-full transition-all duration-300 ease-in-out"
+            className="h-full bg-[#005390] rounded-full transition-[width] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
             style={{
               width: `${
                 steps.length > 1
@@ -67,8 +67,16 @@ export const CommonProgressBar: React.FC<CommonProgressBarProps> = ({
                       : 'bg-white border border-gray-200 text-gray-400'
                 }`}
               >
+                {/* Soft pulse around the step the user is on */}
+                {isActive && (
+                  <span
+                    aria-hidden
+                    className="absolute inset-0 -z-10 rounded-2xl bg-[#005390]/30 animate-ping [animation-duration:2s] motion-reduce:animate-none"
+                  />
+                )}
                 {isDone ? (
-                  <Check className="w-5.5 h-5.5 stroke-[2.5]" />
+                  // Ticks pop in as each step is completed
+                  <Check className="w-5.5 h-5.5 stroke-[2.5] animate-in zoom-in-50 duration-300 motion-reduce:animate-none" />
                 ) : Icon ? (
                   <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-400'}`} />
                 ) : (

@@ -100,4 +100,11 @@ function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
   )
 }
 
-export { Tabs, TabsList, TabsTrigger, TabsContent, tabsListVariants }
+/** Secondary text inside a tab (a time, a count): muted, and tinted brand blue while its tab is active. */
+const TAB_HINT = 'text-[10px] font-medium text-gray-400 [[data-active]_&]:text-[#005390]/70'
+
+/** Count chip inside a tab ("Mains 12"): grey, brand-tinted while its tab is active. */
+const TAB_COUNT =
+  'rounded-full bg-gray-100 px-1.5 text-[10px] font-bold tabular-nums text-gray-600 transition-colors [[data-active]_&]:bg-[#005390]/10 [[data-active]_&]:text-[#005390]'
+
+export { Tabs, TabsList, TabsTrigger, TabsContent, tabsListVariants, TAB_HINT, TAB_COUNT }

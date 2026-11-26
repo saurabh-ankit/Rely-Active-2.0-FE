@@ -6,6 +6,7 @@ import { useLocation } from '@/hooks/useLocation'
 import { useGetEventsCalendar, useListEvents } from '@/hooks/react-query/events'
 import type { Event } from '@/lib/services/eventService'
 import { useState, useEffect, useMemo } from 'react'
+import { motion } from 'framer-motion'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Clock, IndianRupee, MapPin } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -530,13 +531,19 @@ const EventsCalendar = ({ enabled = true }: EventsCalendarProps) => {
                   }
                 }}
                 className={cn(
-                  'h-8 cursor-pointer rounded-lg px-3 text-xs font-semibold capitalize transition-colors',
-                  viewMode === mode
-                    ? 'bg-[#005390] text-white shadow-xs hover:bg-[#005390] hover:text-white'
-                    : 'text-gray-600 hover:bg-white hover:text-gray-900',
+                  'relative h-8 cursor-pointer rounded-lg px-3 text-xs font-semibold capitalize transition-colors hover:bg-transparent',
+                  viewMode === mode ? 'text-white hover:text-white' : 'text-gray-600 hover:text-gray-900',
                 )}
               >
-                {mode}
+                {/* One shared highlight that slides to the chosen view */}
+                {viewMode === mode && (
+                  <motion.span
+                    layoutId="events-view-mode"
+                    className="absolute inset-0 rounded-lg bg-[#005390] shadow-xs"
+                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                  />
+                )}
+                <span className="relative">{mode}</span>
               </Button>
             ))}
           </div>

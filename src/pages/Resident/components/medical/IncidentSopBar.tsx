@@ -39,7 +39,10 @@ export const IncidentSopBar: React.FC<IncidentSopBarProps> = ({ sop, onClick }) 
       </span>
       <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted">
         <span
-          className={cn('block h-full rounded-full transition-all', done ? 'bg-emerald-500' : 'bg-orange-500')}
+          className={cn(
+            'block h-full rounded-full animate-fill transition-[width] duration-500 ease-out motion-reduce:animate-none',
+            done ? 'bg-emerald-500' : 'bg-orange-500',
+          )}
           style={{ width: `${percent}%` }}
         />
       </span>

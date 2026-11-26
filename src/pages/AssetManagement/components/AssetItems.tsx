@@ -4,6 +4,8 @@ import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { PermissionGuard } from '@/components/common/PermissionGuard'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Card, CardContent } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import {
@@ -63,6 +65,7 @@ const AssetItems: React.FC<AssetItemsProps> = ({ enabled = true }) => {
 
   const createMutation = useCreateAssetItem()
   const updateMutation = useUpdateAssetItem()
+  const { saved, flashSaved } = useSavedFlash()
   const deleteMutation = useDeleteAssetItem()
 
   const items = itemsData?.data?.items || []
@@ -120,7 +123,8 @@ const AssetItems: React.FC<AssetItemsProps> = ({ enabled = true }) => {
         await createMutation.mutateAsync(formData)
         toast.success('Item created successfully')
       }
-      handleCloseModal()
+      // ✓ on the button for a moment, then close
+      flashSaved(handleCloseModal)
     } catch (error) {
       const err = error as { response?: { data?: { message?: string } } }
       toast.error(err?.response?.data?.message || 'Failed to save item')
@@ -343,9 +347,15 @@ const AssetItems: React.FC<AssetItemsProps> = ({ enabled = true }) => {
             <Button variant="outline" onClick={handleCloseModal}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
+            <SaveButton
+              onClick={handleSubmit}
+              saving={createMutation.isPending || updateMutation.isPending}
+              saved={saved}
+              savedLabel={editingItem ? 'Updated' : 'Created'}
+              className="gap-2"
+            >
               {editingItem ? 'Update' : 'Create'}
-            </Button>
+            </SaveButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

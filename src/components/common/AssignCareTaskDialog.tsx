@@ -11,6 +11,8 @@ import type { CareTask } from '@/lib/types/medical'
 import type { ResidentFamilyMember, ResidentItem } from '@/lib/types'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
@@ -179,6 +181,7 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
     selectedTaskId && careTasks.some((t) => t.id === selectedTaskId) ? selectedTaskId : careTasks[0]?.id || ''
 
   const createAssignmentMutation = useCreateCareTaskAssignmentMutation()
+  const { saved, flashSaved } = useSavedFlash()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -240,8 +243,11 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
           ? `Care task successfully assigned with ${formattedTimes.length} daily time slots`
           : 'Care task successfully assigned',
       )
-      onOpenChange(false)
-      if (onSuccess) onSuccess()
+      // ✓ on the button for a moment, then close and refresh
+      flashSaved(() => {
+        onOpenChange(false)
+        if (onSuccess) onSuccess()
+      })
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to assign care task'
       notifyError(msg)
@@ -657,14 +663,15 @@ const AssignCareTaskDialogContent: React.FC<AssignCareTaskDialogContentProps> = 
           >
             Cancel
           </Button>
-          <Button
+          <SaveButton
             type="submit"
-            disabled={createAssignmentMutation.isPending}
-            className="rounded-xl bg-[#005390] px-5 py-2 text-xs font-bold text-white hover:bg-[#004375] cursor-pointer shadow-sm"
+            saving={createAssignmentMutation.isPending}
+            saved={saved}
+            savedLabel="Assigned"
+            className="gap-2 rounded-xl bg-[#005390] px-5 py-2 text-xs font-bold text-white hover:bg-[#004375] cursor-pointer shadow-sm"
           >
-            {createAssignmentMutation.isPending && <Loader2 className="mr-2 size-3.5 animate-spin" />}
             {effectiveFamilyMemberId ? 'Assign Task to Family Member' : 'Assign Task to Resident'}
-          </Button>
+          </SaveButton>
         </div>
       </form>
     </div>

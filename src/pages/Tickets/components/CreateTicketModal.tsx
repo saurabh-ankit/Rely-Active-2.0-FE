@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { X, Loader2, Building2, Home, Mic, Square, Play, Pause, Trash2, Volume2, Paperclip } from 'lucide-react'
+import { X, Building2, Home, Mic, Square, Play, Pause, Trash2, Volume2, Paperclip } from 'lucide-react'
 import { z } from 'zod'
 import apiClient from '@/lib/api/axios'
 import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import type { TicketPriority } from '@/lib/types'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -116,6 +118,7 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
   const [departments, setDepartments] = useState<DepartmentItem[]>([])
 
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { saved, flashSaved } = useSavedFlash()
   const [isLoadingProperty, setIsLoadingProperty] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -426,16 +429,17 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
       })
 
       onSuccess()
-      onClose()
-
-      // Reset Form State
-      setDescription('')
-      setCategoryName('R&M (Repair)')
-      setPriority('MEDIUM')
-      setSelectedFlatId('')
-      setJobCategoryId('')
-      setPhotos([])
-      deleteVoiceRecording()
+      // Show ✓ Created on the button for a moment, then close and reset the form.
+      flashSaved(() => {
+        onClose()
+        setDescription('')
+        setCategoryName('R&M (Repair)')
+        setPriority('MEDIUM')
+        setSelectedFlatId('')
+        setJobCategoryId('')
+        setPhotos([])
+        deleteVoiceRecording()
+      })
     } catch (err: unknown) {
       console.error('Failed to create ticket:', err)
       setErrorMsg('Failed to create ticket. Please check backend connection.')
@@ -857,19 +861,15 @@ export function CreateTicketModal({ isOpen, onClose, locationId, onSuccess }: Pr
 
             {/* Create CTA Button (Fully enabled & vibrant with inline validation on click) */}
             <div className="pt-3">
-              <Button
+              <SaveButton
                 type="submit"
-                disabled={isSubmitting}
+                saving={isSubmitting}
+                saved={saved}
+                savedLabel="Created"
                 className="w-36 py-3 h-auto bg-[#005390] hover:bg-[#004273] active:scale-98 text-white font-extrabold text-sm rounded-xl transition-all cursor-pointer shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> Creating...
-                  </>
-                ) : (
-                  'Create'
-                )}
-              </Button>
+                {isSubmitting ? 'Creating...' : 'Create'}
+              </SaveButton>
             </div>
           </form>
         </DialogContent>

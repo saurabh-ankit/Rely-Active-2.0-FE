@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { ClipboardList, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import {
   Dialog,
   DialogContent,
@@ -38,6 +40,7 @@ export function PurchaseOrderForm({
   const suppliers = useCenterOptions(locationId, 'suppliers')
   const items = useCenterOptions(locationId, 'items', record || !categoryId ? {} : { categoryId })
   const mutation = useCenterMutation<PurchaseOrder>(locationId)
+  const { saved, flashSaved } = useSavedFlash()
   const [requestId] = useState(() => generateUUID())
   const fixedSuppliers = fixedItem?.suppliers.filter((s) => s.isActive)
   const [supplierId, setSupplierId] = useState(
@@ -111,13 +114,13 @@ export function PurchaseOrderForm({
                   }
                 }),
               }
-              const saved = await mutation.mutateAsync({
+              const result = await mutation.mutateAsync({
                 path: record ? `purchase-orders/${record.id}` : 'purchase-orders',
                 method: record ? 'put' : 'post',
                 data: input,
               })
               toast.success(record ? 'Purchase order updated' : 'Purchase order created')
-              onSaved(saved.id)
+              flashSaved(() => onSaved(result.id))
             } catch (err) {
               setError(err)
             }
@@ -252,13 +255,16 @@ export function PurchaseOrderForm({
             >
               Cancel
             </Button>
-            <Button
+            <SaveButton
               type="submit"
-              className="bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer"
-              disabled={mutation.isPending || items.isPending || suppliers.isPending}
+              className="gap-2 bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer"
+              saving={mutation.isPending}
+              saved={saved}
+              savedLabel={record ? 'Saved' : 'Created'}
+              disabled={items.isPending || suppliers.isPending}
             >
               {mutation.isPending ? 'Saving…' : record ? 'Save Changes' : 'Create Purchase Order'}
-            </Button>
+            </SaveButton>
           </DialogFooter>
         </form>
       </DialogContent>

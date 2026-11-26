@@ -3,6 +3,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { FieldErrors } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useCreateVenue, useLocationGlobalServices } from '@/hooks/react-query/events'
 import { mapSelectedServicesToAddOns } from '@/lib/services/eventService'
@@ -17,6 +19,7 @@ interface CreateVenueModalProps {
 
 const CreateVenueModal = ({ open, onOpenChange }: CreateVenueModalProps) => {
   const createVenueMutation = useCreateVenue()
+  const { saved, flashSaved } = useSavedFlash()
   const { data: locationServices = [], isLoading: isLoadingServices } = useLocationGlobalServices()
   const [coverPhotoFile, setCoverPhotoFile] = useState<File | null>(null)
   const [coverPhotoPreview, setCoverPhotoPreview] = useState<string | null>(null)
@@ -112,7 +115,7 @@ const CreateVenueModal = ({ open, onOpenChange }: CreateVenueModalProps) => {
     }
 
     createVenueMutation.mutate(formData as FormData, {
-      onSuccess: () => handleClose(),
+      onSuccess: () => flashSaved(handleClose),
     })
   }
 
@@ -164,13 +167,15 @@ const CreateVenueModal = ({ open, onOpenChange }: CreateVenueModalProps) => {
             <Button type="button" variant="outline" onClick={handleClose} className="cursor-pointer">
               Cancel
             </Button>
-            <Button
+            <SaveButton
               type="submit"
-              disabled={createVenueMutation.isPending}
-              className="border-[#2a517c] text-white hover:bg-[#2a517c] hover:text-white cursor-pointer"
+              saving={createVenueMutation.isPending}
+              saved={saved}
+              savedLabel="Added"
+              className="gap-2 border-[#2a517c] text-white hover:bg-[#2a517c] hover:text-white cursor-pointer"
             >
               {createVenueMutation.isPending ? 'Adding...' : 'Add Venue'}
-            </Button>
+            </SaveButton>
           </div>
         </form>
       </DialogContent>

@@ -4,8 +4,6 @@ import { CountUp } from '@/components/common/CountUp'
 import {
   ArrowRightLeft,
   CalendarDays,
-  ChevronDown,
-  ChevronRight,
   CreditCard,
   Download,
   FileText,
@@ -13,6 +11,7 @@ import {
   Pencil,
   ReceiptIndianRupee,
 } from 'lucide-react'
+import { EmptyState } from '@/components/common/EmptyState'
 import { toast } from 'sonner'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -27,6 +26,7 @@ import { cn } from '@/lib/utils'
 import { RecordPaymentModal } from './RecordPaymentModal'
 import { ConsumerTag, OldFlatTag, PaidBar, StatusPill, TablePager } from './billingUi'
 import { formatDmy, formatInr, isPayable, monthLabel, openPdf, PAYMENT_METHOD_LABEL } from './billingFormat'
+import { Expand, ExpandChevron } from '@/components/common/Expand'
 
 /** Unpaid invoices that nothing was carried out of can still be edited. */
 const isEditable = (inv: Invoice) =>
@@ -90,7 +90,7 @@ export function InvoicesList({ unitId, onEditInvoice }: InvoicesListProps) {
               }}
               className="h-7 w-7 rounded-md p-1 text-gray-500 hover:bg-gray-200/70"
             >
-              {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              <ExpandChevron open={isOpen} from="right" className="h-4 w-4" />
             </Button>
           </TableCell>
           <TableCell className="px-3 py-3.5">
@@ -217,13 +217,15 @@ export function InvoicesList({ unitId, onEditInvoice }: InvoicesListProps) {
         {isOpen && (
           <TableRow className="border-b border-gray-200 bg-[#2b4f7e]/[0.03]">
             <TableCell colSpan={COLUMNS.length} className="px-5 pt-1 pb-5">
-              <InvoiceDetail
-                invoice={inv}
-                opening={opening}
-                onReceiptPdf={(receiptId) =>
-                  showPdf(receiptId, async () => getBillingDocumentAPI(selectedLocationId, inv.id, receiptId))
-                }
-              />
+              <Expand open appear>
+                <InvoiceDetail
+                  invoice={inv}
+                  opening={opening}
+                  onReceiptPdf={(receiptId) =>
+                    showPdf(receiptId, async () => getBillingDocumentAPI(selectedLocationId, inv.id, receiptId))
+                  }
+                />
+              </Expand>
             </TableCell>
           </TableRow>
         )}
@@ -264,9 +266,12 @@ export function InvoicesList({ unitId, onEditInvoice }: InvoicesListProps) {
               <TableRowsSkeleton columns={COLUMNS.length} />
             ) : invoices.length === 0 && oldFlatInvoices.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={COLUMNS.length} className="py-14 text-center text-gray-500">
-                  <FileText className="mx-auto mb-2 h-10 w-10 text-gray-300" />
-                  No invoices yet for this flat
+                <TableCell colSpan={COLUMNS.length} className="p-0">
+                  <EmptyState
+                    icon={FileText}
+                    title="No invoices yet for this flat"
+                    description="Invoices appear here once they're generated for this flat."
+                  />
                 </TableCell>
               </TableRow>
             ) : (

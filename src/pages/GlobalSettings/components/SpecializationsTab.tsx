@@ -10,6 +10,8 @@ import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import {
   createSpecializationAPI,
@@ -67,6 +69,7 @@ export function SpecializationsTab() {
   const [editing, setEditing] = useState<Specialization | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
   const [saving, setSaving] = useState(false)
+  const { saved, flashSaved } = useSavedFlash()
 
   const {
     register,
@@ -155,7 +158,7 @@ export function SpecializationsTab() {
         await createSpecializationAPI(payload)
         notifySuccess('Specialization created')
       }
-      setIsModalOpen(false)
+      flashSaved(() => setIsModalOpen(false))
       await loadSpecializations()
     } catch (error) {
       setErrorMsg(readApiError(error, 'Could not save the specialization'))
@@ -405,13 +408,14 @@ export function SpecializationsTab() {
                 >
                   Cancel
                 </Button>
-                <Button
+                <SaveButton
                   type="submit"
-                  disabled={saving}
+                  saving={saving}
+                  saved={saved}
                   className="inline-flex items-center gap-2 px-5 py-2.5 h-auto bg-[#005390] hover:bg-[#004070] disabled:opacity-60 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
                 >
                   {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create Specialization'}
-                </Button>
+                </SaveButton>
               </div>
             </form>
           </DialogContent>

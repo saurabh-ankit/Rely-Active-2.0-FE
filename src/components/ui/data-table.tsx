@@ -15,10 +15,9 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Search } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { AlertTriangle, Inbox, RotateCcw, Search, SearchX } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
+import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/ui/input'
 import {
   Pagination,
@@ -190,17 +189,13 @@ export function DataTable<TData, TValue>({
           <TableSkeleton rows={Math.min(pageSize, 8)} columns={Math.min(Math.max(columns.length, 3), 7)} />
         </div>
       ) : error ? (
-        <Empty>
-          <EmptyHeader>
-            <EmptyTitle>Unable to load data</EmptyTitle>
-            <EmptyDescription>{error}</EmptyDescription>
-            {onRetry && (
-              <Button variant="outline" onClick={onRetry}>
-                Retry
-              </Button>
-            )}
-          </EmptyHeader>
-        </Empty>
+        <EmptyState
+          icon={AlertTriangle}
+          tone="danger"
+          title="Unable to load data"
+          description={error}
+          action={onRetry ? { label: 'Retry', onClick: onRetry, icon: RotateCcw } : undefined}
+        />
       ) : (
         <>
           {/* Main Table Container (Assist Styling) */}
@@ -256,15 +251,21 @@ export function DataTable<TData, TValue>({
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={columns.length} className="py-12 text-center">
-                        <Empty>
-                          <EmptyHeader>
-                            <EmptyTitle className="text-base font-bold text-gray-800">No records found</EmptyTitle>
-                            <EmptyDescription className="text-xs text-gray-400">
-                              Try adjusting your search or filter terms.
-                            </EmptyDescription>
-                          </EmptyHeader>
-                        </Empty>
+                      <TableCell colSpan={columns.length} className="p-0">
+                        {/* Only suggest changing the search when one is actually narrowing the list */}
+                        {searchValue || filters.length > 0 ? (
+                          <EmptyState
+                            icon={SearchX}
+                            title="No records found"
+                            description="Try adjusting your search or filter terms."
+                          />
+                        ) : (
+                          <EmptyState
+                            icon={Inbox}
+                            title="No records found"
+                            description="There's nothing to show here yet."
+                          />
+                        )}
                       </TableCell>
                     </TableRow>
                   )}

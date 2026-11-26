@@ -1,4 +1,6 @@
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
@@ -45,6 +47,7 @@ const VenuesListPage = ({ embedded = false, enabled = true }: VenuesListPageProp
   })
 
   const updateVenueMutation = useUpdateVenue()
+  const { saved, flashSaved } = useSavedFlash()
   const deleteVenueMutation = useDeleteVenue()
   const { data: locationServices = [], isLoading: isLoadingServices } = useLocationGlobalServices()
 
@@ -122,11 +125,12 @@ const VenuesListPage = ({ embedded = false, enabled = true }: VenuesListPageProp
     updateVenueMutation.mutate(
       { venueId: selectedVenue.id, data: formData as FormData },
       {
-        onSuccess: () => {
-          setIsEditOpen(false)
-          setSelectedVenue(null)
-          resetForm()
-        },
+        onSuccess: () =>
+          flashSaved(() => {
+            setIsEditOpen(false)
+            setSelectedVenue(null)
+            resetForm()
+          }),
       },
     )
   }
@@ -479,13 +483,15 @@ const VenuesListPage = ({ embedded = false, enabled = true }: VenuesListPageProp
                 </Button>
               </EventsPermission>
               <EventsPermission action="update">
-                <Button
+                <SaveButton
                   type="submit"
-                  disabled={updateVenueMutation.isPending}
-                  className="border-[#2a517c] text-white hover:bg-[#2a517c] hover:text-white cursor-pointer"
+                  saving={updateVenueMutation.isPending}
+                  saved={saved}
+                  savedLabel="Updated"
+                  className="gap-2 border-[#2a517c] text-white hover:bg-[#2a517c] hover:text-white cursor-pointer"
                 >
                   Update Venue
-                </Button>
+                </SaveButton>
               </EventsPermission>
             </div>
           </form>

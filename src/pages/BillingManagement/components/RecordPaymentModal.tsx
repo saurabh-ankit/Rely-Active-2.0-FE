@@ -4,7 +4,6 @@ import {
   CreditCard,
   FileText,
   Landmark,
-  Loader2,
   Paperclip,
   Smartphone,
   Wallet,
@@ -13,6 +12,8 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -90,6 +91,8 @@ export function RecordPaymentModal({ invoice, onOpenChange }: RecordPaymentModal
 
   const split = splitPayment(invoice?.carriedIn ?? [], amountInvalid ? 0 : amountNum)
 
+  const { saved, flashSaved } = useSavedFlash()
+
   const submit = async () => {
     setTouched(true)
     if (!invoice || amountInvalid || referenceMissing) return
@@ -120,7 +123,8 @@ export function RecordPaymentModal({ invoice, onOpenChange }: RecordPaymentModal
       },
       {
         onSuccess: async (res) => {
-          onOpenChange(false)
+          // Show ✓ Saved on the button for a moment, then close; the toast and receipt PDF carry on meanwhile.
+          flashSaved(() => onOpenChange(false))
           const { receiptId, receiptNumber, receiptPdfUrl } = res.data
           toast.success(`Payment recorded · ${receiptNumber}`)
           try {
@@ -137,7 +141,8 @@ export function RecordPaymentModal({ invoice, onOpenChange }: RecordPaymentModal
     )
   }
 
-  const busy = uploading || recordPayment.isPending
+  const saving = uploading || recordPayment.isPending
+  const busy = saving || saved
 
   return (
     <Dialog open={!!invoice} onOpenChange={onOpenChange}>
@@ -179,11 +184,11 @@ export function RecordPaymentModal({ invoice, onOpenChange }: RecordPaymentModal
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-200">
               <div className="relative h-full">
                 <div
-                  className="absolute inset-y-0 left-0 rounded-full bg-emerald-300 transition-all"
+                  className="absolute inset-y-0 left-0 rounded-full bg-emerald-300 animate-fill transition-[width] duration-500 ease-out motion-reduce:animate-none"
                   style={{ width: `${paidPct}%` }}
                 />
                 <div
-                  className="absolute inset-y-0 left-0 rounded-full bg-emerald-600"
+                  className="absolute inset-y-0 left-0 rounded-full bg-emerald-600 animate-fill transition-[width] duration-500 ease-out motion-reduce:animate-none"
                   style={{ width: `${paidBeforePct}%` }}
                 />
               </div>
@@ -390,14 +395,16 @@ export function RecordPaymentModal({ invoice, onOpenChange }: RecordPaymentModal
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
               Cancel
             </Button>
-            <Button
-              className="bg-[#2a517c] text-white hover:bg-[#476587]"
-              disabled={amountInvalid || busy || (touched && referenceMissing)}
+            <SaveButton
+              className="gap-2 bg-[#2a517c] text-white hover:bg-[#476587]"
+              disabled={amountInvalid || (touched && referenceMissing)}
+              saving={saving}
+              saved={saved}
+              savedLabel="Payment recorded"
               onClick={submit}
             >
-              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Record {amountInvalid ? 'payment' : formatInr(amountNum)}
-            </Button>
+            </SaveButton>
           </div>
         </div>
       </DialogContent>

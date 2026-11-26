@@ -7,6 +7,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import {
   Combobox,
   ComboboxChip,
@@ -556,13 +558,15 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
         unitIds: effectiveTargetType === 'unit' && values.unitIds.length > 0 ? values.unitIds : undefined,
         slotTimeRange: slotRange,
       })
-      onOpenChange(false)
+      // ✓ Created on the button for a moment, then close
+      flashSaved(() => onOpenChange(false))
     } catch {
       // toast handled by mutation
     }
   }
 
   const pending = createBulk.isPending
+  const { saved, flashSaved } = useSavedFlash()
 
   // Plain-language line above the buttons: what pressing Create will do.
   const rosterSummary = (() => {
@@ -1330,10 +1334,12 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                   Cancel
                 </Button>
-                <Button
+                <SaveButton
                   type="submit"
+                  saving={pending}
+                  saved={saved}
+                  savedLabel="Created"
                   disabled={
-                    pending ||
                     !selectedShiftId ||
                     !departmentId ||
                     (isMedicalDept && !roleCode) ||
@@ -1342,10 +1348,10 @@ const AssignShiftDialog = ({ open, onOpenChange, shift = null }: AssignShiftDial
                     !!timeValidationError ||
                     !!overlapValidationError
                   }
-                  className="bg-[#2a517c] hover:bg-[#476587] text-white"
+                  className="gap-2 bg-[#2a517c] hover:bg-[#476587] text-white"
                 >
                   {pending ? 'Creating…' : 'Create Roster'}
-                </Button>
+                </SaveButton>
               </div>
             </DialogFooter>
           </form>

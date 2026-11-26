@@ -1,31 +1,11 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import {
-  Armchair,
-  PartyPopper,
-  CalendarClock,
-  IdCard,
-  LayoutDashboard,
-  Boxes,
-  ReceiptIndianRupee,
-  Settings,
-  ShieldCheck,
-  Dumbbell,
-  FileSpreadsheet,
-  Stethoscope,
-  User,
-  Utensils,
-  Ticket,
-  X,
-} from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
+import { X } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
 import { cn } from '@/lib/utils'
-import { REPORT_ROLES } from '@/pages/Reports/roles'
 import { Button } from '@/components/ui/button'
-
-import { getDepartmentManagerType } from '@/utils/departmentManager'
+import { useNavItems } from './useNavItems'
 
 export interface SidebarItemData {
   icon: React.ReactNode
@@ -92,137 +72,15 @@ const SidebarItem: React.FC<{ item: SidebarItemData; onClick?: () => void }> = (
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
   const location = useLocation()
-  const { user, isSuperAdmin, roles } = useAuth()
-  const { hasResourcePermission, isLoadingLocations } = useLocationContext()
+  const { isLoadingLocations } = useLocationContext()
 
-  const managerType = getDepartmentManagerType(user)
-
-  const sidebarItems: SidebarItemData[] = [
-    {
-      icon: <LayoutDashboard className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Dashboard',
-      href: '/dashboard',
-    },
-    {
-      icon: <User className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Resident',
-      href: '/admin/residents',
-      resourceKey: 'RESIDENT',
-    },
-    {
-      icon: <IdCard className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Employee',
-      href: '/admin/employees',
-      resourceKey: 'EMPLOYEE',
-    },
-    {
-      icon: <CalendarClock className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Shift & Roster',
-      href: '/admin/shift-roster-management',
-      resourceKey: 'ROSTER',
-    },
-    {
-      icon: <Ticket className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Tickets',
-      href: '/admin/tickets',
-      resourceKey: 'TICKETS',
-    },
-    {
-      icon: <ShieldCheck className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Gate & Security',
-      href: '/admin/visitor-history',
-      resourceKey: 'GNS',
-    },
-    {
-      icon: <Boxes className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Inventory',
-      href: '/admin/inventory/home',
-      resourceKey: 'INVENTORY',
-    },
-    {
-      icon: <Armchair className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Asset Management',
-      href: '/admin/asset-management',
-      resourceKey: 'ASSET',
-    },
-    {
-      icon: <Stethoscope className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Medical',
-      href: '/admin/medical',
-      resourceKey: 'MEDICAL',
-    },
-    {
-      icon: <Utensils className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Food',
-      href: '/admin/fnb-history',
-      resourceKey: 'FNB',
-    },
-    {
-      icon: <ReceiptIndianRupee className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Billing',
-      href: '/admin/billing-management',
-      resourceKey: 'BILLING',
-    },
-    {
-      icon: <PartyPopper className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Events',
-      href: '/admin/events',
-      resourceKey: 'EVENTS',
-    },
-    {
-      icon: <Dumbbell className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Amenities',
-      href: '/admin/amenities',
-    },
-    {
-      icon: <FileSpreadsheet className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Reports',
-      href: '/admin/reports',
-    },
-    {
-      icon: <Settings className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Settings',
-      href: '/admin/settings',
-    },
-  ]
-
-  const filteredItems = sidebarItems.filter((item) => {
-    if (item.href === '/admin/reports') {
-      return isSuperAdmin || roles.some((r) => REPORT_ROLES.includes(r))
-    }
-    // Department managers see only their department's module (not Amenities).
-    if (managerType) {
-      switch (managerType) {
-        case 'RNM':
-        case 'CON':
-          return item.href === '/admin/tickets'
-        case 'FNB':
-          return item.href.startsWith('/admin/fnb')
-        case 'EVENTS':
-          return item.href === '/admin/events'
-        case 'GNS':
-          return item.href === '/admin/visitor-history'
-        case 'HOUSEKEEPING':
-          return item.href === '/admin/shift-roster-management'
-      }
-    }
-    if (item.href === '/global-settings') {
-      return isSuperAdmin
-    }
-    if (item.href === '/admin/settings' || item.href === '/settings') {
-      return true
-    }
-    if (item.href === '/dashboard') {
-      return true
-    }
-    if (isSuperAdmin) {
-      return true
-    }
-    if (item.resourceKey) {
-      return hasResourcePermission(item.resourceKey, 'view')
-    }
-    return true
-  })
+  // Same list and permission rules as the command palette (layouts/useNavItems.ts)
+  const filteredItems: SidebarItemData[] = useNavItems().map(({ icon: Icon, label, href, resourceKey }) => ({
+    icon: <Icon className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
+    label,
+    href,
+    resourceKey,
+  }))
 
   return (
     <>

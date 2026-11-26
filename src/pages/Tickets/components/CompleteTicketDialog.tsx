@@ -6,6 +6,8 @@ import type { Ticket } from '@/lib/types'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -36,6 +38,7 @@ export function CompleteTicketDialog({ isOpen, ticket, locationId, isSelf, assig
   const [photos, setPhotos] = useState<File[]>([])
   const [voiceNotes, setVoiceNotes] = useState<File[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { saved, flashSaved } = useSavedFlash()
 
   // Leave a fresh form for the next ticket
   const close = () => {
@@ -101,8 +104,12 @@ export function CompleteTicketDialog({ isOpen, ticket, locationId, isSelf, assig
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       notifySuccess(closesTicket ? 'Ticket completed and closed' : 'Ticket marked as completed')
-      onSuccess((res.data?.data || {}) as Partial<Ticket>)
-      close()
+      const updated = (res.data?.data || {}) as Partial<Ticket>
+      // ✓ on the button for a moment, then update the ticket and close
+      flashSaved(() => {
+        onSuccess(updated)
+        close()
+      })
     } catch (err) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
@@ -279,10 +286,13 @@ export function CompleteTicketDialog({ isOpen, ticket, locationId, isSelf, assig
               >
                 Cancel
               </Button>
-              <Button
+              <SaveButton
                 type="submit"
                 size="sm"
-                disabled={isSubmitting || !notes.trim()}
+                saving={isSubmitting}
+                saved={saved}
+                savedLabel="Completed"
+                disabled={!notes.trim()}
                 className="px-5 bg-[#005390] hover:bg-[#004273] text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
               >
                 {isSubmitting ? (
@@ -292,7 +302,7 @@ export function CompleteTicketDialog({ isOpen, ticket, locationId, isSelf, assig
                     <CheckCircle2 className="w-4 h-4" /> {closesTicket ? 'Complete & Close' : 'Mark Completed'}
                   </>
                 )}
-              </Button>
+              </SaveButton>
             </div>
           </form>
         </DialogContent>

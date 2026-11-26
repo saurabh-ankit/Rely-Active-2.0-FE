@@ -114,7 +114,7 @@ export function OpenAttendanceAccordion({
                   </span>
                   <span className="mt-1 block h-1.5 w-full max-w-36 overflow-hidden rounded-full bg-gray-100">
                     <span
-                      className="block h-full rounded-full bg-emerald-500"
+                      className="block h-full rounded-full bg-emerald-500 animate-fill transition-[width] duration-500 ease-out motion-reduce:animate-none"
                       style={{ width: `${Math.min(100, (g.people.length / Math.max(1, g.living)) * 100)}%` }}
                     />
                   </span>

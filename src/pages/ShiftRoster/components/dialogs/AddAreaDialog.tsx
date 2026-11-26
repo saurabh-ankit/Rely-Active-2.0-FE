@@ -3,6 +3,8 @@ import { Controller, useForm } from 'react-hook-form'
 /* eslint-disable react-hooks/incompatible-library -- react-hook-form watch() */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -66,10 +68,12 @@ const AddAreaDialog = ({ open, onOpenChange, area }: AddAreaDialogProps) => {
     } else {
       await createArea.mutateAsync(payload)
     }
-    onOpenChange(false)
+    // ✓ Saved on the button for a moment, then close
+    flashSaved(() => onOpenChange(false))
   }
 
   const pending = createArea.isPending || updateArea.isPending
+  const { saved, flashSaved } = useSavedFlash()
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -119,13 +123,15 @@ const AddAreaDialog = ({ open, onOpenChange, area }: AddAreaDialogProps) => {
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button
+            <SaveButton
               type="submit"
-              disabled={pending || !areaName.trim() || !location.trim()}
-              className="bg-[#2a517c] hover:bg-[#476587] text-white"
+              saving={pending}
+              saved={saved}
+              disabled={!areaName.trim() || !location.trim()}
+              className="gap-2 bg-[#2a517c] hover:bg-[#476587] text-white"
             >
               {pending ? 'Saving…' : isEdit ? 'Update' : 'Create'}
-            </Button>
+            </SaveButton>
           </DialogFooter>
         </form>
       </DialogContent>

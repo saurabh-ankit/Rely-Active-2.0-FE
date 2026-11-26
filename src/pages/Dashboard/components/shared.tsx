@@ -232,7 +232,7 @@ export function Meter({
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-gray-100">
         <div
-          className="h-full rounded-full"
+          className="h-full rounded-full animate-fill transition-[width] duration-500 ease-out motion-reduce:animate-none"
           style={{ width: `${max > 0 ? Math.min(100, (value / max) * 100) : 0}%`, backgroundColor: color }}
         />
       </div>

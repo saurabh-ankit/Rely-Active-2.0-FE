@@ -21,7 +21,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { TAB_HINT, Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { fnbService, fnbAttendanceService } from '@/lib/services/fnbService'
 import type {
@@ -716,40 +716,24 @@ export const FnbAttendanceTab: React.FC<FnbAttendanceTabProps> = ({ locId }) => 
 
         <div className="space-y-2 border-t border-gray-100 pt-4">
           <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Meal slot</p>
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Meal slot">
-            {[{ key: ALL_SLOTS, label: 'All slots', time: undefined } as MealSlotOption, ...activeMealSlotsList].map(
-              (slot) => {
-                const isSelected = selectedSlot === slot.key
-                return (
-                  <Button
-                    key={slot.key}
-                    type="button"
-                    variant="ghost"
-                    aria-pressed={isSelected}
-                    onClick={() => setSelectedSlot(slot.key)}
-                    className={cn(
-                      'flex cursor-pointer items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-all h-auto font-normal',
-                      isSelected
-                        ? 'border-[#005390] bg-[#005390] text-white shadow-md shadow-blue-900/10 hover:bg-[#005390] hover:text-white'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-[#005390]/40 hover:text-[#005390] hover:bg-white',
-                    )}
-                  >
+          {/* Line tabs: the underline slides to the chosen slot; times stay as muted text beside each label */}
+          <Tabs value={selectedSlot} onValueChange={(v) => setSelectedSlot(v as string)} className="gap-0">
+            <TabsList aria-label="Meal slot">
+              {[{ key: ALL_SLOTS, label: 'All slots', time: undefined } as MealSlotOption, ...activeMealSlotsList].map(
+                (slot) => (
+                  <TabsTrigger key={slot.key} value={slot.key} className="h-10 gap-2 px-3 text-xs font-semibold">
                     {slot.key === ALL_SLOTS ? (
                       <UtensilsCrossed className="h-3.5 w-3.5" />
                     ) : (
                       <Clock className="h-3.5 w-3.5" />
                     )}
                     {slot.label}
-                    {slot.time && (
-                      <span className={cn('text-[10px] font-medium', isSelected ? 'text-white/75' : 'text-gray-400')}>
-                        {slot.time}
-                      </span>
-                    )}
-                  </Button>
-                )
-              },
-            )}
-          </div>
+                    {slot.time && <span className={TAB_HINT}>{slot.time}</span>}
+                  </TabsTrigger>
+                ),
+              )}
+            </TabsList>
+          </Tabs>
         </div>
 
         <div className="flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
