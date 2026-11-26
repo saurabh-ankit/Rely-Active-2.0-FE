@@ -1,24 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 /* eslint-disable react-hooks/incompatible-library -- react-hook-form watch() */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { format, isValid, parseISO } from 'date-fns'
-import {
-  ArrowLeftRight,
-  Building2,
-  CalendarDays,
-  CalendarRange,
-  Clock,
-  Coffee,
-  MapPin,
-  Pencil,
-  Repeat,
-  StickyNote,
-  Timer,
-  UserCheck,
-  type LucideIcon,
-} from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { ArrowLeftRight, Coffee, Lock, MapPin, Pencil, UserCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SaveButton } from '@/components/common/SaveButton'
 import { useSavedFlash } from '@/hooks/useSavedFlash'
@@ -48,15 +33,22 @@ import {
   type DayOffFormValues,
   type SwapFormValues,
 } from '@/utils/roster.utils'
+import { ImagePreviewLightbox } from '@/pages/Resident/components/medical/ImagePreviewLightbox'
 import { RosterPermission } from '../RosterPermission'
 import EditRosterDialog from './EditRosterDialog'
 import {
+  formatExtraTimeLabel,
+  formatShiftDuration,
+  getShiftAccent,
   getUserDisplayName,
   getUserRoleCodes,
   isEmployeeAvailableForDateSlot,
   isSameRoleGroup,
   LEAVE_TYPES,
   resolveAssignmentWindow,
+  resolveDisplayTimeRange,
+  statusBadgeClass,
+  statusLabelForEvent,
   todayYmdLocal,
   usersShareDepartment,
 } from '../../utils'
@@ -96,15 +88,13 @@ export interface RosterCalendarEvent {
   isCoverDuty?: boolean
   coveredByEmployeeId?: string | null
   originalEmployeeName?: string | null
-}
-
-const statusColor: Record<string, string> = {
-  upcoming: 'bg-blue-100 text-blue-800',
-  on_duty: 'bg-green-100 text-green-800',
-  completed: 'bg-emerald-100 text-emerald-800',
-  absent: 'bg-red-100 text-red-800',
-  covered: 'bg-amber-100 text-amber-800',
-  day_off: 'bg-purple-100 text-purple-800',
+  /** Housekeeping L3 task completion details (shown on completed cards). */
+  taskStartedAt?: string | null
+  taskCompletedAt?: string | null
+  taskComment?: string | null
+  taskPhotos?: Array<{ url: string; originalName?: string }> | null
+  extraMinutes?: number | null
+  extraTimeLabel?: string | null
 }
 
 const WEEK: WeekDay[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
@@ -128,13 +118,13 @@ const initials = (name: string) =>
 const WorkingDayChips = ({ days }: { days?: WeekDay[] | null }) => {
   const active = new Set(days?.length ? days : WEEK)
   return (
-    <div className="flex flex-wrap gap-1">
+    <div className="flex flex-wrap gap-1.5">
       {WEEK.map((d) => (
         <span
           key={d}
           className={cn(
-            'flex h-7 w-9 items-center justify-center rounded-md text-[11px] font-bold',
-            active.has(d) ? 'bg-[#005390] text-white' : 'bg-gray-100 text-gray-400',
+            'flex h-8 w-10 items-center justify-center rounded-lg text-[11px] font-semibold',
+            active.has(d) ? 'bg-[#1e3a5a] text-white' : 'bg-slate-100 text-slate-400',
           )}
         >
           {d.slice(0, 3).replace(/^./, (c) => c.toUpperCase())}
@@ -144,11 +134,46 @@ const WorkingDayChips = ({ days }: { days?: WeekDay[] | null }) => {
   )
 }
 
-const formatStatus = (status: string) =>
-  status
-    .split('_')
-    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-    .join(' ')
+const parseTaskInstant = (value?: string | Date | null): Date | null => {
+  if (!value) return null
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value
+  const d = new Date(value)
+  if (!Number.isNaN(d.getTime())) return d
+  const asIso = parseISO(value)
+  return isValid(asIso) ? asIso : null
+}
+
+const formatTaskParts = (value?: string | Date | null): { time: string; date: string } | null => {
+  const d = parseTaskInstant(value)
+  if (!d) return null
+  return { time: format(d, 'h:mm a'), date: format(d, 'dd MMM yyyy') }
+}
+
+const formatDurationLabel = (slotTimeRange?: string | null, shiftTime?: string | null) => {
+  const raw = formatShiftDuration(slotTimeRange, shiftTime)
+  if (!raw) return null
+  return raw.replace(/\b(\d+)\s*m\b/g, '$1 min').replace(/\b(\d+)\s*h\b/g, '$1 h')
+}
+
+const FieldLabel = ({ children }: { children: string }) => (
+  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">{children}</p>
+)
+
+const resolveTaskPhotos = (
+  attachments?: { photos?: Array<{ url?: string; originalName?: string }> } | string | null,
+) => {
+  let parsed = attachments
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed) as { photos?: Array<{ url?: string; originalName?: string }> }
+    } catch {
+      return [] as Array<{ url: string; originalName?: string }>
+    }
+  }
+  return (parsed?.photos || [])
+    .filter((p): p is { url: string; originalName?: string } => !!p?.url)
+    .map((p) => ({ url: p.url, originalName: p.originalName }))
+}
 
 interface RosterDetailDialogProps {
   open: boolean
@@ -160,33 +185,10 @@ interface RosterDetailDialogProps {
 
 type ActionMode = 'swap' | 'cover' | 'day_off' | null
 
-const DetailTile = ({
-  icon: Icon,
-  label,
-  value,
-  className,
-}: {
-  icon: LucideIcon
-  label: string
-  value: ReactNode
-  className?: string
-}) => {
-  if (value === null || value === undefined || value === '') return null
-  return (
-    <div className={cn('flex items-start gap-2.5 rounded-xl border border-gray-100 bg-gray-50/70 p-3', className)}>
-      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[#005390]" />
-      <div className="min-w-0">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">{label}</p>
-        <div className="mt-0.5 text-sm font-semibold text-gray-900 break-words">{value}</div>
-      </div>
-    </div>
-  )
-}
-
 const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }: RosterDetailDialogProps) => {
   const locationId = useLocationStore((s) => s.selectedLocationId)
   const { data: users } = useUsersQuery()
-  const { data: datesData } = useListShiftEmployeeDates(undefined, open)
+  const { data: datesData, refetch: refetchDates } = useListShiftEmployeeDates(undefined, open)
 
   const markDayOff = useMarkDayOff()
   const unmarkDayOff = useUnmarkDayOff()
@@ -196,6 +198,7 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
 
   const [actionMode, setActionMode] = useState<ActionMode>(initialAction ?? null)
   const [editOpen, setEditOpen] = useState(false)
+  const [previewPhoto, setPreviewPhoto] = useState<{ url: string; alt: string } | null>(null)
   /** True when Swap/Cover/Day Off was opened directly from a roster card (not from details). */
   const openedViaInitialAction = useRef(false)
 
@@ -229,11 +232,13 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
       resetDayOff(dayOffFormDefaultValues)
       resetCover(coverFormDefaultValues)
       resetSwap(swapFormDefaultValues)
+      void refetchDates()
     } else {
       setActionMode(null)
       openedViaInitialAction.current = false
+      setPreviewPhoto(null)
     }
-  }, [open, initialAction, event?.id, resetDayOff, resetCover, resetSwap])
+  }, [open, initialAction, event?.id, resetDayOff, resetCover, resetSwap, refetchDates])
 
   useEffect(() => {
     if (actionMode === 'day_off') resetDayOff(dayOffFormDefaultValues)
@@ -245,6 +250,37 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
     () => (Array.isArray(datesData?.data) ? datesData.data : []) as ShiftEmployeeDate[],
     [datesData],
   )
+
+  /** Prefer live list row completion so Completed-tab details match Today. */
+  const taskCompletion = useMemo(() => {
+    if (!event) return null
+    const liveRow = event.shiftEmployeeDateId ? allDates.find((d) => d.id === event.shiftEmployeeDateId) : undefined
+    const live = liveRow?.housekeepingCompletion
+    const startedAt = live?.startedAt || event.taskStartedAt || null
+    const completedAt = live?.completedAt || event.taskCompletedAt || null
+    const comment = live?.comment || event.taskComment || null
+    const livePhotos = resolveTaskPhotos(live?.attachments)
+    const photos = livePhotos.length > 0 ? livePhotos : event.taskPhotos || []
+    const extraMinutes = live?.extraMinutes ?? event.extraMinutes ?? null
+    const status = live?.status || null
+    const hasDetails = !!(
+      startedAt ||
+      completedAt ||
+      comment ||
+      photos.length > 0 ||
+      (extraMinutes != null && extraMinutes > 0)
+    )
+    if (!hasDetails && status !== 'COMPLETED') return null
+    return {
+      startedAt,
+      completedAt,
+      comment,
+      photos,
+      extraMinutes,
+      extraTimeLabel: formatExtraTimeLabel(extraMinutes) || event.extraTimeLabel || null,
+      status,
+    }
+  }, [allDates, event])
 
   const sourceUser = useMemo(
     () => (users || []).find((u) => u.id === event?.employeeId) || null,
@@ -349,9 +385,13 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
     return id || null
   }
 
+  const taskHasStarted = !!(taskCompletion?.startedAt || event?.taskStartedAt)
+  const actionsLocked =
+    !!event &&
+    (event.status === 'completed' || event.status === 'overdue' || event.status === 'on_duty' || taskHasStarted)
   const actionsDisabled =
     !event ||
-    event.status === 'completed' ||
+    actionsLocked ||
     markDayOff.isPending ||
     unmarkDayOff.isPending ||
     coverShift.isPending ||
@@ -365,6 +405,21 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
   const rosterStart = event.assignment?.startDate ? String(event.assignment.startDate).slice(0, 10) : null
   const canEditRoster = !!event.assignment && !event.isCoverDuty && !!rosterStart && rosterStart > todayYmdLocal()
 
+  const accent = getShiftAccent(event.shiftName)
+  const timeLabel = resolveDisplayTimeRange(event.slotTimeRange, event.shiftTime)
+  const durationLabel = formatDurationLabel(event.slotTimeRange, event.shiftTime)
+  const statusKey = event.isCoverDuty ? 'covered' : event.status
+  const areaLabel = event.locationLabel || event.areaName || null
+  const periodStart = formatDay(event.startDate, 'dd MMM yyyy')
+  const periodEnd = formatDay(event.endDate, 'dd MMM yyyy')
+  const rosterPeriodLabel = !periodStart
+    ? null
+    : periodStart === periodEnd || event.startDate === event.endDate
+      ? `${periodStart} (one day)`
+      : `${periodStart} – ${periodEnd}`
+  const startedParts = formatTaskParts(taskCompletion?.startedAt)
+  const completedParts = formatTaskParts(taskCompletion?.completedAt)
+
   const closeAll = () => {
     resetActionState()
     openedViaInitialAction.current = false
@@ -377,6 +432,13 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
     else resetActionState()
   }
 
+  const lockMessage =
+    event.status === 'completed'
+      ? "This shift is locked. Completed shifts can't be edited once the roster has started."
+      : event.status === 'overdue'
+        ? "This shift is locked. Overdue shifts can't be swapped, covered, or marked day off."
+        : 'This shift is locked. Swap, cover, and day off are unavailable after the task has started.'
+
   return (
     <>
       <Dialog
@@ -386,141 +448,249 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
           else onOpenChange(next)
         }}
       >
-        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Roster Details</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="gap-0 overflow-y-auto rounded-2xl p-0 sm:max-w-xl max-h-[90vh]">
+          <div className="px-5 pt-5 pb-5">
+            <DialogHeader className="mb-4 space-y-0 text-left">
+              <DialogTitle className="text-lg font-bold tracking-tight text-slate-900">Roster details</DialogTitle>
+            </DialogHeader>
 
-          {/* Employee + shift */}
-          <div className="overflow-hidden rounded-2xl border border-gray-200">
-            <div className="flex items-center gap-3 bg-white p-4">
+            <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#005390]/10 text-sm font-bold text-[#005390]">
                 {initials(event.employeeName)}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold text-gray-900">{event.employeeName}</p>
-                {event.departmentName && (
-                  <p className="text-[11px] font-medium uppercase tracking-wider text-gray-500">
-                    {event.departmentName}
-                  </p>
-                )}
+                <p className="truncate text-[15px] font-semibold text-slate-900">{event.employeeName}</p>
+                <p className="truncate text-sm text-slate-500">{event.departmentName || event.role || 'Staff'}</p>
               </div>
-              <Badge variant="secondary" className={statusColor[event.status] || 'bg-gray-100 text-gray-700'}>
-                {formatStatus(event.status)}
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between gap-2 bg-[#2a517c] px-4 py-2.5 text-white">
-              <span className="flex min-w-0 items-center gap-2 text-xs font-bold uppercase tracking-wide">
-                <Clock className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">{event.shiftName}</span>
-              </span>
-              <span className="shrink-0 rounded-md bg-white/15 px-2 py-0.5 font-mono text-xs font-semibold">
-                {event.slotTimeRange || event.shiftTime}
-              </span>
-            </div>
-          </div>
-
-          {event.isCoverDuty && event.originalEmployeeName && (
-            <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
-              Covering for {event.originalEmployeeName}
-            </p>
-          )}
-
-          {/* Details */}
-          <div className="grid gap-2.5 sm:grid-cols-2">
-            <DetailTile icon={CalendarDays} label="Date" value={formatDay(event.date)} />
-            <DetailTile icon={Timer} label="Slot" value={event.slotTimeRange || event.shiftTime} />
-            <DetailTile
-              icon={CalendarRange}
-              label="Roster period"
-              value={`${formatDay(event.startDate, 'dd MMM yyyy')} – ${formatDay(event.endDate, 'dd MMM yyyy')}`}
-              className="sm:col-span-2"
-            />
-            <DetailTile
-              icon={Repeat}
-              label="Working days"
-              value={<WorkingDayChips days={event.workingDays} />}
-              className="sm:col-span-2"
-            />
-            <DetailTile icon={MapPin} label="Area" value={event.areaName} />
-            {event.locationLabel !== event.areaName && (
-              <DetailTile icon={Building2} label="Location" value={event.locationLabel} />
-            )}
-            <DetailTile icon={StickyNote} label="Notes" value={event.notes} className="sm:col-span-2" />
-            {event.status === 'day_off' && (
-              <>
-                <DetailTile
-                  icon={Coffee}
-                  label="Leave type"
-                  value={LEAVE_TYPES.find((t) => t.value === event.leaveType)?.label || event.leaveType}
-                />
-                <DetailTile icon={StickyNote} label="Reason" value={event.leaveNote} />
-              </>
-            )}
-          </div>
-
-          {!(event.status === 'covered' && !event.isCoverDuty) && (
-            <RosterPermission action="update">
-              <div className="border-t pt-4">
-                {canEditRoster ? (
-                  <Button
-                    variant="outline"
-                    className="mb-2 w-full border-[#2a517c]/30 text-[#2a517c] hover:bg-[#2a517c]/5"
-                    onClick={() => setEditOpen(true)}
-                  >
-                    <Pencil className="mr-1.5 h-4 w-4" />
-                    Edit roster
-                  </Button>
-                ) : (
-                  event.assignment &&
-                  !event.isCoverDuty &&
-                  rosterStart && (
-                    <p className="mb-2 text-center text-xs text-gray-500">
-                      This roster started on {formatDay(rosterStart, 'dd MMM yyyy')}, so it can no longer be edited.
-                    </p>
-                  )
+              <span
+                className={cn(
+                  'inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11px] font-semibold',
+                  statusBadgeClass(statusKey),
                 )}
-                {event.status === 'day_off' ? (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    disabled={actionsDisabled}
-                    onClick={async () => {
-                      const dateId = await ensureDateId()
-                      if (!dateId) return
-                      await unmarkDayOff.mutateAsync(dateId)
-                      closeAll()
-                    }}
-                  >
-                    Restore day off
-                  </Button>
-                ) : (
-                  <div className="grid grid-cols-3 gap-2">
-                    <Button variant="outline" disabled={actionsDisabled} onClick={() => setActionMode('swap')}>
-                      <ArrowLeftRight className="h-4 w-4 mr-1.5" />
-                      Swap
-                    </Button>
-                    <Button variant="outline" disabled={actionsDisabled} onClick={() => setActionMode('cover')}>
-                      <UserCheck className="h-4 w-4 mr-1.5" />
-                      Cover
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="border-amber-300 text-amber-700 hover:bg-amber-50"
-                      disabled={actionsDisabled}
-                      onClick={() => setActionMode('day_off')}
-                    >
-                      <Coffee className="h-4 w-4 mr-1.5" />
-                      Day Off
-                    </Button>
+              >
+                {statusLabelForEvent(event)}
+              </span>
+            </div>
+
+            {event.isCoverDuty && event.originalEmployeeName ? (
+              <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+                Covering for {event.originalEmployeeName}
+              </p>
+            ) : null}
+
+            <div className={cn('mt-4 rounded-2xl px-4 py-3.5', accent.soft)}>
+              <div className="flex items-center gap-2">
+                <span className={cn('size-2 shrink-0 rounded-full', accent.dot)} aria-hidden />
+                <p className="text-sm font-semibold">{event.shiftName} shift</p>
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <p className="text-2xl font-bold tabular-nums tracking-tight">{timeLabel || '—'}</p>
+                {durationLabel ? <p className="text-sm font-medium opacity-70">{durationLabel}</p> : null}
+              </div>
+              <p className="mt-1 text-sm font-medium opacity-80">{formatDay(event.date, 'EEE, d MMM yyyy')}</p>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              {areaLabel ? (
+                <div>
+                  <FieldLabel>Area</FieldLabel>
+                  <div className="mt-1.5 flex items-start gap-2">
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#005390]" />
+                    <p className="text-sm font-semibold text-slate-900">{areaLabel}</p>
+                  </div>
+                </div>
+              ) : null}
+
+              {rosterPeriodLabel ? (
+                <div>
+                  <FieldLabel>Roster period</FieldLabel>
+                  <p className="mt-1.5 text-sm font-semibold text-slate-900">{rosterPeriodLabel}</p>
+                </div>
+              ) : null}
+
+              <div>
+                <FieldLabel>Working days</FieldLabel>
+                <div className="mt-2">
+                  <WorkingDayChips days={event.workingDays} />
+                </div>
+              </div>
+
+              {event.notes ? (
+                <div>
+                  <FieldLabel>Notes</FieldLabel>
+                  <p className="mt-1.5 text-sm font-medium text-slate-800">{event.notes}</p>
+                </div>
+              ) : null}
+
+              {event.status === 'day_off' ? (
+                <>
+                  {(event.leaveType || event.leaveNote) && (
+                    <div className="space-y-3 rounded-xl bg-violet-50 px-3.5 py-3">
+                      {event.leaveType ? (
+                        <div>
+                          <FieldLabel>Leave type</FieldLabel>
+                          <p className="mt-1 text-sm font-semibold text-slate-900">
+                            {LEAVE_TYPES.find((t) => t.value === event.leaveType)?.label || event.leaveType}
+                          </p>
+                        </div>
+                      ) : null}
+                      {event.leaveNote ? (
+                        <div>
+                          <FieldLabel>Reason</FieldLabel>
+                          <p className="mt-1 text-sm font-medium text-slate-800">{event.leaveNote}</p>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+                </>
+              ) : null}
+            </div>
+
+            {taskCompletion ? (
+              <div className="mt-5 space-y-3.5 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
+                <p className="text-sm font-bold text-emerald-900">Task completion</p>
+
+                {(startedParts || completedParts) && (
+                  <div className="flex items-center gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-700/70">Started</p>
+                      {startedParts ? (
+                        <>
+                          <p className="mt-0.5 text-sm font-bold tabular-nums text-slate-900">{startedParts.time}</p>
+                          <p className="text-xs text-slate-500">{startedParts.date}</p>
+                        </>
+                      ) : (
+                        <p className="mt-0.5 text-sm text-slate-400">—</p>
+                      )}
+                    </div>
+                    <div className="h-px min-w-[2rem] flex-1 bg-emerald-300" aria-hidden />
+                    <div className="min-w-0 flex-1 text-right">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-700/70">Completed</p>
+                      {completedParts ? (
+                        <>
+                          <p className="mt-0.5 text-sm font-bold tabular-nums text-slate-900">{completedParts.time}</p>
+                          <p className="text-xs text-slate-500">{completedParts.date}</p>
+                        </>
+                      ) : (
+                        <p className="mt-0.5 text-sm text-slate-400">—</p>
+                      )}
+                    </div>
                   </div>
                 )}
-                {event.status === 'completed' && (
-                  <p className="mt-2 text-center text-xs text-gray-500">Completed shifts can no longer be changed.</p>
-                )}
+
+                {taskCompletion.extraTimeLabel ? (
+                  <div>
+                    <FieldLabel>Extra time</FieldLabel>
+                    <p className="mt-1 text-sm font-semibold text-amber-800">{taskCompletion.extraTimeLabel}</p>
+                  </div>
+                ) : null}
+
+                {taskCompletion.comment ? (
+                  <div>
+                    <FieldLabel>Note</FieldLabel>
+                    <p className="mt-1 text-sm font-medium text-slate-800">{taskCompletion.comment}</p>
+                  </div>
+                ) : null}
+
+                {taskCompletion.photos.length > 0 ? (
+                  <div>
+                    <FieldLabel>Attachment</FieldLabel>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {taskCompletion.photos.map((photo, idx) => {
+                        const alt = photo.originalName || `Photo ${idx + 1}`
+                        return (
+                          <button
+                            key={`${photo.url}-${idx}`}
+                            type="button"
+                            className="block h-[72px] w-[72px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:ring-2 hover:ring-[#005390]/30"
+                            title={alt}
+                            onClick={() => setPreviewPhoto({ url: photo.url, alt })}
+                          >
+                            <img src={photo.url} alt={alt} className="h-full w-full object-cover" />
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ) : null}
               </div>
-            </RosterPermission>
-          )}
+            ) : null}
+
+            {!(event.status === 'covered' && !event.isCoverDuty) && (
+              <RosterPermission action="update">
+                <div className="mt-5 space-y-3">
+                  {canEditRoster ? (
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-xl border-[#2a517c]/30 text-[#2a517c] hover:bg-[#2a517c]/5"
+                      onClick={() => setEditOpen(true)}
+                    >
+                      <Pencil className="mr-1.5 h-4 w-4" />
+                      Edit roster
+                    </Button>
+                  ) : null}
+
+                  {event.status === 'day_off' ? (
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-xl"
+                      disabled={actionsDisabled}
+                      onClick={async () => {
+                        const dateId = await ensureDateId()
+                        if (!dateId) return
+                        await unmarkDayOff.mutateAsync(dateId)
+                        closeAll()
+                      }}
+                    >
+                      Restore day off
+                    </Button>
+                  ) : actionsLocked ? (
+                    <div className="flex items-start gap-2.5 rounded-xl bg-slate-100 px-3.5 py-3">
+                      <Lock className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+                      <div className="min-w-0 space-y-1">
+                        <p className="text-sm leading-snug text-slate-600">{lockMessage}</p>
+                        {event.status === 'completed' && (taskCompletion?.extraTimeLabel || event.extraTimeLabel) ? (
+                          <p className="text-xs font-semibold text-amber-700">
+                            Extra time: {taskCompletion?.extraTimeLabel || event.extraTimeLabel}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2">
+                      <Button
+                        variant="outline"
+                        className="rounded-xl"
+                        disabled={actionsDisabled}
+                        onClick={() => setActionMode('swap')}
+                      >
+                        <ArrowLeftRight className="mr-1.5 h-4 w-4" />
+                        Swap
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="rounded-xl"
+                        disabled={actionsDisabled}
+                        onClick={() => setActionMode('cover')}
+                      >
+                        <UserCheck className="mr-1.5 h-4 w-4" />
+                        Cover
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="rounded-xl border-amber-300 text-amber-700 hover:bg-amber-50"
+                        disabled={actionsDisabled}
+                        onClick={() => setActionMode('day_off')}
+                      >
+                        <Coffee className="mr-1.5 h-4 w-4" />
+                        Day Off
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </RosterPermission>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -811,6 +981,12 @@ const RosterDetailDialog = ({ open, onOpenChange, event, initialAction = null }:
           locationLabel={event.locationLabel || event.areaName}
         />
       )}
+
+      <ImagePreviewLightbox
+        url={previewPhoto?.url ?? null}
+        alt={previewPhoto?.alt}
+        onClose={() => setPreviewPhoto(null)}
+      />
     </>
   )
 }

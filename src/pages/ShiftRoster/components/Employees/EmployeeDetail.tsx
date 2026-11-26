@@ -4,7 +4,7 @@ import { format } from 'date-fns'
 import { CalendarCheck, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BackButton } from '@/components/common/BackButton'
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
@@ -29,6 +29,8 @@ import type { EmployeeShiftAssignment, ShiftEmployeeDate } from '@/lib/services/
 import { useLocationStore } from '@/lib/stores/locationStore'
 import { cn } from '@/lib/utils'
 import {
+  formatExtraTimeLabel,
+  getShiftAccent,
   getUserDepartmentName,
   getUserDisplayName,
   getUserRoleCodes,
@@ -46,7 +48,7 @@ import {
 } from '@/hooks/react-query/roster'
 import { floorLabel } from '@/utils/unitLabel'
 
-const ROSTER_PAGE_SIZE = 9
+const ROSTER_PAGE_SIZE = 6
 const ALL_STATUS = 'all'
 
 const ROSTER_STATUS_FILTERS = [
@@ -55,6 +57,7 @@ const ROSTER_STATUS_FILTERS = [
   { value: 'upcoming', label: 'Upcoming' },
   { value: 'on_duty', label: 'On duty' },
   { value: 'completed', label: 'Completed' },
+  { value: 'overdue', label: 'Overdue' },
   { value: 'covered', label: 'Cover' },
   { value: 'day_off', label: 'Day off' },
   { value: 'absent', label: 'Absent' },
@@ -136,7 +139,15 @@ const EmployeeDetail = () => {
         shiftName,
         shiftTime,
         slotTimeRange,
-        status: resolveLifecycleRosterStatus(d.status, d.date, shiftStart, shiftEnd, slotTimeRange),
+        status: resolveLifecycleRosterStatus(
+          d.status,
+          d.date,
+          shiftStart,
+          shiftEnd,
+          slotTimeRange,
+          undefined,
+          d.housekeepingCompletion?.status,
+        ),
         startDate: assignment?.startDate || d.date,
         endDate: assignment?.endDate || d.date,
         workingDays: assignment?.workingDays || d.shiftAssignment?.workingDays || null,
@@ -149,6 +160,14 @@ const EmployeeDetail = () => {
         isCoverDuty: opts.isCoverDuty,
         coveredByEmployeeId: d.coveredByEmployeeId || null,
         originalEmployeeName: opts.isCoverDuty ? originalName || null : null,
+        taskStartedAt: d.housekeepingCompletion?.startedAt || null,
+        taskCompletedAt: d.housekeepingCompletion?.completedAt || null,
+        taskComment: d.housekeepingCompletion?.comment || null,
+        taskPhotos: (d.housekeepingCompletion?.attachments?.photos || [])
+          .filter((p): p is { url: string; originalName?: string } => !!p?.url)
+          .map((p) => ({ url: p.url, originalName: p.originalName })),
+        extraMinutes: d.housekeepingCompletion?.extraMinutes ?? null,
+        extraTimeLabel: formatExtraTimeLabel(d.housekeepingCompletion?.extraMinutes),
       }
     }
 
@@ -211,6 +230,16 @@ const EmployeeDetail = () => {
     [rosterEvents, statusFilter, today],
   )
 
+  const todayEvents = useMemo(() => rosterEvents.filter((event) => event.date === today), [rosterEvents, today])
+
+  const shiftLegend = useMemo(() => {
+    const seen = new Map<string, string>()
+    for (const event of todayEvents) {
+      if (!seen.has(event.shiftName)) seen.set(event.shiftName, getShiftAccent(event.shiftName).dot)
+    }
+    return [...seen.entries()].map(([name, dot]) => ({ name, dot }))
+  }, [todayEvents])
+
   const pageCount = Math.max(1, Math.ceil(filteredEvents.length / ROSTER_PAGE_SIZE))
   const safePageIndex = Math.min(pageIndex, pageCount - 1)
 
@@ -261,6 +290,17 @@ const EmployeeDetail = () => {
     }
 
     if (action === 'swap' || action === 'cover' || action === 'day_off') {
+      // Started / on-duty / completed / overdue cannot be swapped, covered, or marked day off.
+      if (
+        event.status === 'completed' ||
+        event.status === 'overdue' ||
+        event.status === 'on_duty' ||
+        event.taskStartedAt
+      ) {
+        setInitialAction(null)
+        setDetailEvent(event)
+        return
+      }
       setInitialAction(action)
       setDetailEvent(event)
       return
@@ -280,321 +320,284 @@ const EmployeeDetail = () => {
     })
   }
 
-  return (
-    <div className="space-y-4 pb-10">
-      <div>
-        <BackButton onClick={() => navigate('/admin/shift-roster-management?tab=employees')}>
-          Back to Employee Roster
-        </BackButton>
-      </div>
+  const employeeInitials = employee
+    ? getUserDisplayName(employee)
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((p) => p[0]?.toUpperCase() || '')
+        .join('') || '?'
+    : '?'
 
-      <Card className="gap-0 relative overflow-hidden rounded-2xl border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(42,81,124,0.05)]">
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#1e3a5a] via-[#2a517c] to-[#5b8bb8]" />
-        <div className="flex flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div className="flex items-start gap-3 min-w-0">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2a517c] to-[#476587] text-sm font-bold tracking-wide text-white shadow-sm">
-              {employee
-                ? getUserDisplayName(employee)
-                    .split(/\s+/)
-                    .filter(Boolean)
-                    .slice(0, 2)
-                    .map((p) => p[0]?.toUpperCase() || '')
-                    .join('') || '?'
-                : '?'}
+  const departmentLabel = employee
+    ? getUserDepartmentName(employee, departments || [], locationId) || getUserRoleCodes(employee)[0] || 'Staff'
+    : 'Staff'
+
+  return (
+    <div className="space-y-5 pb-10">
+      <BackButton onClick={() => navigate('/admin/shift-roster-management?tab=employees')}>
+        Back to employee roster
+      </BackButton>
+
+      <Card className="gap-0 rounded-2xl border-slate-200/80 bg-white px-4 py-4 shadow-none sm:px-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#1e3a5a] text-sm font-bold text-white">
+              {employeeInitials}
             </div>
             <div className="min-w-0">
-              <h2 className="truncate text-xl font-semibold tracking-tight text-slate-900">
-                {employee ? getUserDisplayName(employee) : 'Employee'}
-              </h2>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
-                {employee ? (
-                  <span className="rounded-full bg-[#2a517c]/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#2a517c]">
-                    {getUserDepartmentName(employee, departments || [], locationId) ||
-                      getUserRoleCodes(employee)[0] ||
-                      'Staff'}
-                  </span>
-                ) : null}
-                <span className="truncate">{employee?.email || employeeId}</span>
-                {(employee?.phone || employee?.profile?.phone) && (
-                  <span className="tabular-nums">{employee?.phone || employee?.profile?.phone}</span>
-                )}
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="truncate text-lg font-semibold text-slate-900">
+                  {employee ? getUserDisplayName(employee) : 'Employee'}
+                </h2>
+                <span className="rounded-full bg-[#005390]/10 px-2.5 py-0.5 text-[11px] font-semibold text-[#005390]">
+                  {departmentLabel}
+                </span>
               </div>
+              <p className="mt-0.5 truncate text-sm text-slate-500">
+                {[employee?.email || employeeId, employee?.phone || employee?.profile?.phone]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
             </div>
           </div>
-          {/* The roster at a glance; each figure opens that filter. */}
-          <div className="grid grid-cols-4 gap-2 sm:min-w-[400px]">
+          <div className="grid grid-cols-4 gap-2 sm:min-w-[360px]">
             {(
               [
-                ['today', 'Today', 'text-[#005390]'],
-                ['upcoming', 'Upcoming', 'text-sky-700'],
-                ['completed', 'Completed', 'text-emerald-700'],
-                ['day_off', 'Days off', 'text-violet-700'],
+                ['today', 'Today'],
+                ['upcoming', 'Upcoming'],
+                ['completed', 'Completed'],
+                ['day_off', 'Days off'],
               ] as const
-            ).map(([value, label, tone]) => (
-              <Button
+            ).map(([value, label]) => (
+              <button
                 key={value}
                 type="button"
-                variant="ghost"
                 onClick={() => handleStatusFilterChange(value)}
                 className={cn(
-                  'h-auto cursor-pointer rounded-xl border px-3 py-2 text-center transition-colors flex flex-col items-center justify-center hover:bg-transparent whitespace-normal font-normal',
-                  statusFilter === value
-                    ? 'border-[#005390] bg-[#005390]/5'
-                    : 'border-slate-200 bg-slate-50 hover:border-slate-300',
+                  'rounded-xl px-2.5 py-2 text-center transition-colors',
+                  statusFilter === value ? 'bg-[#005390]/10' : 'bg-slate-50 hover:bg-slate-100',
                 )}
               >
-                <p className={cn('text-xl font-semibold tabular-nums', tone)}>{filterCounts[value] ?? 0}</p>
+                <p className="text-lg font-bold tabular-nums text-slate-900">{filterCounts[value] ?? 0}</p>
                 <p className="text-[11px] font-medium text-slate-500">{label}</p>
-              </Button>
+              </button>
             ))}
           </div>
         </div>
       </Card>
 
-      <div className="pb-4">
-        <Card className="gap-0 mb-4 rounded-2xl border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-          <CardHeader className="p-0 mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <CardTitle className="text-base font-semibold text-slate-900">Assigned rosters</CardTitle>
-              <CardDescription className="text-xs text-slate-500">
-                {rosterEvents.length} shift{rosterEvents.length === 1 ? '' : 's'} in total · click a card for details,
-                swap, cover or day off
-              </CardDescription>
-            </div>
-          </CardHeader>
-          {/* Status filters: Today first and highlighted */}
-          <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Filter rosters">
-            {ROSTER_STATUS_FILTERS.map((opt) => {
-              const active = statusFilter === opt.value
-              const count = filterCounts[opt.value] ?? 0
-              if (opt.value === 'today') {
-                return (
-                  <Button
-                    key={opt.value}
-                    type="button"
-                    variant="ghost"
-                    role="tab"
-                    aria-selected={active}
-                    onClick={() => handleStatusFilterChange(opt.value)}
-                    className={cn(
-                      'h-auto flex shrink-0 items-center gap-2.5 rounded-xl border-2 px-4 py-2 text-left transition-all cursor-pointer whitespace-normal font-normal',
-                      active
-                        ? 'border-[#005390] bg-[#005390] text-white shadow-md shadow-[#005390]/25 hover:bg-[#005390] hover:text-white'
-                        : 'border-[#005390]/30 bg-[#005390]/5 text-[#005390] hover:border-[#005390]/60 hover:bg-[#005390]/10 hover:text-[#005390]',
-                    )}
-                  >
-                    <CalendarCheck className="h-5 w-5 shrink-0" />
-                    <span className="leading-tight">
-                      <span className="block text-sm font-bold">Today</span>
-                      <span
-                        className={cn('block text-[11px] font-medium', active ? 'text-white/80' : 'text-[#005390]/70')}
-                      >
-                        {format(new Date(), 'EEE, dd MMM')}
-                      </span>
-                    </span>
-                    <span
-                      className={cn(
-                        'ml-1 rounded-full px-2 py-0.5 text-xs font-bold',
-                        active ? 'bg-white text-[#005390]' : 'bg-[#005390] text-white',
-                      )}
-                    >
-                      {count}
-                    </span>
-                  </Button>
-                )
-              }
-              return (
-                <Button
-                  key={opt.value}
-                  type="button"
-                  variant="ghost"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => handleStatusFilterChange(opt.value)}
-                  className={cn(
-                    'h-auto flex shrink-0 items-center gap-1.5 self-center rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer',
-                    active
-                      ? 'border-[#005390] bg-[#005390]/10 text-[#005390] hover:bg-[#005390]/15 hover:text-[#005390]'
-                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-900 hover:bg-slate-50',
-                  )}
-                >
-                  {opt.label}
-                  <span className={cn('text-[11px]', active ? 'text-[#005390]/80' : 'text-gray-400')}>{count}</span>
-                </Button>
-              )
-            })}
+      <Card className="gap-0 rounded-2xl border-slate-200/80 bg-white p-4 shadow-none sm:p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-slate-900">Today · {format(new Date(), 'EEE, d MMM')}</h3>
+            <p className="mt-0.5 text-sm text-slate-500">
+              {todayEvents.length} shift{todayEvents.length === 1 ? '' : 's'} · {rosterEvents.length} in total. Select a
+              card to view details, swap, cover, or mark a day off.
+            </p>
           </div>
-        </Card>
-
-        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <RosterPermission action="delete">
-              <div className="flex items-center gap-2">
-                {selectablePagedIds.length > 0 && (
-                  <div className="flex items-center gap-2 text-xs text-slate-600 select-none">
-                    <Checkbox
-                      checked={allPageSelected}
-                      onCheckedChange={(checked) => toggleSelectAllPage(checked === true)}
-                      aria-label="Select all on page"
-                    />
-                    <span>Select page</span>
-                  </div>
-                )}
-                {selectedIds.length > 0 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-9 rounded-lg border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                    disabled={bulkDeleteDates.isPending}
-                    onClick={() => setIsBulkDeleteOpen(true)}
-                  >
-                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                    Delete selected ({selectedIds.length})
-                  </Button>
-                )}
-              </div>
-            </RosterPermission>
-          </div>
-        </div>
-        {isLoading ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-12 text-center text-sm text-slate-500">
-            Loading…
-          </div>
-        ) : rosterEvents.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-12 text-center text-sm text-slate-500">
-            No rosters created for this employee.
-          </div>
-        ) : filteredEvents.length === 0 ? (
-          statusFilter === 'today' ? (
-            <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-[#005390]/30 bg-[#005390]/5 py-12 text-center">
-              <CalendarCheck className="h-8 w-8 text-[#005390]/60" />
-              <p className="text-sm font-semibold text-slate-800">No shifts scheduled for today</p>
-              <p className="text-xs text-slate-500">{format(new Date(), 'EEEE, dd MMMM yyyy')}</p>
-              {filterCounts.upcoming > 0 && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="mt-2"
-                  onClick={() => handleStatusFilterChange('upcoming')}
-                >
-                  View {filterCounts.upcoming} upcoming
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-12 text-center text-sm text-slate-500">
-              No rosters match this filter.
-            </div>
-          )
-        ) : (
-          <>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {pagedEvents.map((event) => (
-                <div
-                  key={event.id}
-                  className={cn(
-                    'relative rounded-xl',
-                    event.date === today && 'ring-2 ring-[#005390] ring-offset-2 ring-offset-gray-50',
-                  )}
-                >
-                  {event.date === today && (
-                    <span className="absolute -top-2.5 left-10 z-10 rounded-full bg-[#005390] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
-                      Today
-                    </span>
-                  )}
-                  <RosterShiftCard
-                    event={event}
-                    showAssignedResidents={false}
-                    selectable
-                    selected={!!event.shiftEmployeeDateId && selectedIds.includes(event.shiftEmployeeDateId)}
-                    onSelectChange={(checked) => {
-                      if (event.shiftEmployeeDateId) toggleSelectOne(event.shiftEmployeeDateId, checked)
-                    }}
-                    onAction={(action) => handleCardAction(event, action)}
-                  />
-                </div>
+          {shiftLegend.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3">
+              {shiftLegend.map((item) => (
+                <span key={item.name} className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                  <span className={cn('size-2 rounded-full', item.dot)} />
+                  {item.name}
+                </span>
               ))}
             </div>
+          )}
+        </div>
 
-            <div className="mt-5 mb-6 flex flex-col items-center justify-between gap-4 px-1 py-2 sm:flex-row">
-              <div className="text-xs font-medium text-gray-500">
-                Showing{' '}
-                <span className="font-bold text-gray-900">
-                  {rangeStart}–{rangeEnd}
-                </span>{' '}
-                of <span className="font-bold text-gray-900">{filteredEvents.length}</span>
-                <span className="mx-1.5">•</span>
-                Page <span className="font-bold text-gray-900">{safePageIndex + 1}</span> of{' '}
-                <span className="font-bold text-gray-900">{pageCount}</span>
+        <div className="mt-5 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Filter rosters">
+          {ROSTER_STATUS_FILTERS.map((opt) => {
+            const active = statusFilter === opt.value
+            const count = filterCounts[opt.value] ?? 0
+            return (
+              <Button
+                key={opt.value}
+                type="button"
+                variant="ghost"
+                role="tab"
+                aria-selected={active}
+                onClick={() => handleStatusFilterChange(opt.value)}
+                className={cn(
+                  'h-9 shrink-0 rounded-full border px-3.5 text-xs font-semibold transition-colors',
+                  active
+                    ? 'border-[#1e3a5a] bg-[#1e3a5a] text-white hover:bg-[#1e3a5a] hover:text-white'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900',
+                )}
+              >
+                {opt.label}
+                <span className={cn('ml-1.5 tabular-nums', active ? 'text-white/85' : 'text-slate-400')}>{count}</span>
+              </Button>
+            )
+          })}
+        </div>
+      </Card>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm font-medium text-slate-600">
+          {statusFilter === 'today'
+            ? `Today's shifts`
+            : statusFilter === 'all'
+              ? 'All shifts'
+              : `${ROSTER_STATUS_FILTERS.find((f) => f.value === statusFilter)?.label || 'Shifts'}`}
+          <span className="ml-1.5 text-slate-400">({filteredEvents.length})</span>
+        </p>
+        <RosterPermission action="delete">
+          <div className="flex items-center gap-2">
+            {selectablePagedIds.length > 0 && (
+              <div className="flex items-center gap-2 text-xs text-slate-600 select-none">
+                <Checkbox
+                  checked={allPageSelected}
+                  onCheckedChange={(checked) => toggleSelectAllPage(checked === true)}
+                  aria-label="Select all on page"
+                />
+                <span>Select page</span>
               </div>
-
-              <Pagination className="mx-0 w-auto">
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        if (safePageIndex > 0) setPageIndex(safePageIndex - 1)
-                      }}
-                      className={
-                        safePageIndex === 0
-                          ? 'pointer-events-none border-gray-200 bg-gray-50 text-gray-400 opacity-50'
-                          : 'cursor-pointer border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                      }
-                    />
-                  </PaginationItem>
-
-                  {Array.from({ length: pageCount }).map((_, idx) => {
-                    if (idx === 0 || idx === pageCount - 1 || (idx >= safePageIndex - 1 && idx <= safePageIndex + 1)) {
-                      return (
-                        <PaginationItem key={idx}>
-                          <PaginationLink
-                            href="#"
-                            isActive={idx === safePageIndex}
-                            onClick={(e) => {
-                              e.preventDefault()
-                              setPageIndex(idx)
-                            }}
-                            className="h-8 w-8 cursor-pointer rounded-xl text-xs font-bold"
-                          >
-                            {idx + 1}
-                          </PaginationLink>
-                        </PaginationItem>
-                      )
-                    }
-                    if ((idx === 1 && safePageIndex > 2) || (idx === pageCount - 2 && safePageIndex < pageCount - 3)) {
-                      return (
-                        <PaginationItem key={`ellipsis-${idx}`}>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                      )
-                    }
-                    return null
-                  })}
-
-                  <PaginationItem>
-                    <PaginationNext
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        if (safePageIndex < pageCount - 1) setPageIndex(safePageIndex + 1)
-                      }}
-                      className={
-                        safePageIndex >= pageCount - 1
-                          ? 'pointer-events-none border-gray-200 bg-gray-50 text-gray-400 opacity-50'
-                          : 'cursor-pointer border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                      }
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          </>
-        )}
+            )}
+            {selectedIds.length > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 rounded-lg border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                disabled={bulkDeleteDates.isPending}
+                onClick={() => setIsBulkDeleteOpen(true)}
+              >
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                Delete selected ({selectedIds.length})
+              </Button>
+            )}
+          </div>
+        </RosterPermission>
       </div>
+
+      {isLoading ? (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-12 text-center text-sm text-slate-500">
+          Loading…
+        </div>
+      ) : rosterEvents.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-12 text-center text-sm text-slate-500">
+          No rosters created for this employee.
+        </div>
+      ) : filteredEvents.length === 0 ? (
+        statusFilter === 'today' ? (
+          <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-[#005390]/30 bg-[#005390]/5 py-12 text-center">
+            <CalendarCheck className="h-8 w-8 text-[#005390]/60" />
+            <p className="text-sm font-semibold text-slate-800">No shifts scheduled for today</p>
+            <p className="text-xs text-slate-500">{format(new Date(), 'EEEE, dd MMMM yyyy')}</p>
+            {filterCounts.upcoming > 0 && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="mt-2"
+                onClick={() => handleStatusFilterChange('upcoming')}
+              >
+                View {filterCounts.upcoming} upcoming
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-12 text-center text-sm text-slate-500">
+            No rosters match this filter.
+          </div>
+        )
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {pagedEvents.map((event) => (
+              <RosterShiftCard
+                key={event.id}
+                event={event}
+                showAssignedResidents={false}
+                selectable
+                selected={!!event.shiftEmployeeDateId && selectedIds.includes(event.shiftEmployeeDateId)}
+                onSelectChange={(checked) => {
+                  if (event.shiftEmployeeDateId) toggleSelectOne(event.shiftEmployeeDateId, checked)
+                }}
+                onAction={(action) => handleCardAction(event, action)}
+              />
+            ))}
+          </div>
+
+          <div className="mt-5 mb-2 flex flex-col items-center justify-between gap-4 px-1 py-2 sm:flex-row">
+            <div className="text-xs font-medium text-gray-500">
+              Showing{' '}
+              <span className="font-bold text-gray-900">
+                {rangeStart}–{rangeEnd}
+              </span>{' '}
+              of <span className="font-bold text-gray-900">{filteredEvents.length}</span>
+              <span className="mx-1.5">•</span>
+              Page <span className="font-bold text-gray-900">{safePageIndex + 1}</span> of{' '}
+              <span className="font-bold text-gray-900">{pageCount}</span>
+            </div>
+
+            <Pagination className="mx-0 w-auto">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      if (safePageIndex > 0) setPageIndex(safePageIndex - 1)
+                    }}
+                    className={
+                      safePageIndex === 0
+                        ? 'pointer-events-none border-gray-200 bg-gray-50 text-gray-400 opacity-50'
+                        : 'cursor-pointer border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                    }
+                  />
+                </PaginationItem>
+
+                {Array.from({ length: pageCount }).map((_, idx) => {
+                  if (idx === 0 || idx === pageCount - 1 || (idx >= safePageIndex - 1 && idx <= safePageIndex + 1)) {
+                    return (
+                      <PaginationItem key={idx}>
+                        <PaginationLink
+                          href="#"
+                          isActive={idx === safePageIndex}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setPageIndex(idx)
+                          }}
+                          className="h-8 w-8 cursor-pointer rounded-xl text-xs font-bold"
+                        >
+                          {idx + 1}
+                        </PaginationLink>
+                      </PaginationItem>
+                    )
+                  }
+                  if ((idx === 1 && safePageIndex > 2) || (idx === pageCount - 2 && safePageIndex < pageCount - 3)) {
+                    return (
+                      <PaginationItem key={`ellipsis-${idx}`}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    )
+                  }
+                  return null
+                })}
+
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      if (safePageIndex < pageCount - 1) setPageIndex(safePageIndex + 1)
+                    }}
+                    className={
+                      safePageIndex >= pageCount - 1
+                        ? 'pointer-events-none border-gray-200 bg-gray-50 text-gray-400 opacity-50'
+                        : 'cursor-pointer border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        </>
+      )}
 
       <Dialog open={isBulkDeleteOpen} onOpenChange={(open) => !open && setIsBulkDeleteOpen(false)}>
         <DialogContent className="sm:max-w-md">

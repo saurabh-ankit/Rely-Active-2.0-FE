@@ -1,17 +1,39 @@
-import { MapPin } from 'lucide-react'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock3,
+  Coffee,
+  MapPin,
+  PlayCircle,
+  UserCheck,
+  XCircle,
+  type LucideIcon,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { cn } from '@/lib/utils'
 import type { RosterCalendarEvent } from './RosterDetailDialog'
 import { groupRostersByShift } from '../../utils'
 
 const statusColor: Record<string, string> = {
-  upcoming: 'bg-blue-100 text-blue-800',
-  on_duty: 'bg-green-100 text-green-800',
+  upcoming: 'bg-sky-100 text-sky-800',
+  on_duty: 'bg-teal-100 text-teal-800',
   completed: 'bg-emerald-100 text-emerald-800',
+  overdue: 'bg-rose-100 text-rose-800',
   absent: 'bg-red-100 text-red-800',
-  covered: 'bg-amber-100 text-amber-800',
-  day_off: 'bg-purple-100 text-purple-800',
+  covered: 'bg-amber-100 text-amber-900',
+  day_off: 'bg-violet-100 text-violet-800',
+}
+
+const statusIcon: Record<string, LucideIcon> = {
+  upcoming: Clock3,
+  on_duty: PlayCircle,
+  completed: CheckCircle2,
+  overdue: AlertTriangle,
+  absent: XCircle,
+  covered: UserCheck,
+  day_off: Coffee,
 }
 
 const formatStatus = (status: string) =>
@@ -20,11 +42,21 @@ const formatStatus = (status: string) =>
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
     .join(' ')
 
-const StatusBadge = ({ status }: { status: string }) => (
-  <Badge variant="secondary" className={`shrink-0 ${statusColor[status] || 'bg-gray-100 text-gray-700'}`}>
-    {formatStatus(status)}
-  </Badge>
-)
+const StatusBadge = ({ status }: { status: string }) => {
+  const StatusIcon = statusIcon[status] || CheckCircle2
+  return (
+    <Badge
+      variant="secondary"
+      className={cn(
+        'shrink-0 inline-flex items-center gap-1 border-0 font-bold',
+        statusColor[status] || 'bg-gray-100 text-gray-700',
+      )}
+    >
+      <StatusIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      {formatStatus(status)}
+    </Badge>
+  )
+}
 
 const rowClass =
   'h-auto p-0 flex w-full items-start justify-between gap-2 bg-gray-50 px-3 py-2.5 text-left transition-colors hover:bg-[#2a517c]/5 whitespace-normal font-normal rounded-none'
