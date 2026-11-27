@@ -2,6 +2,7 @@ import {
   Armchair,
   Boxes,
   CalendarClock,
+  CalendarRange,
   Dumbbell,
   FileSpreadsheet,
   IdCard,
@@ -19,7 +20,7 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { useLocationContext } from '@/hooks/useLocation'
 import { REPORT_ROLES } from '@/pages/Reports/roles'
-import { getDepartmentManagerType } from '@/utils/departmentManager'
+import { getDepartmentManagerType, isManagerAtLocation } from '@/utils/departmentManager'
 
 export interface NavItem {
   icon: LucideIcon
@@ -33,6 +34,13 @@ export interface NavItem {
 /** Every main module, in sidebar order. */
 export const NAV_ITEMS: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', keywords: ['home', 'overview'] },
+  {
+    icon: CalendarRange,
+    label: 'Task Calendar',
+    href: '/admin/task-calendar',
+    resourceKey: 'ACTIVITY_CALENDAR',
+    keywords: ['activity', 'calendar', 'schedule'],
+  },
   { icon: User, label: 'Resident', href: '/admin/residents', resourceKey: 'RESIDENT', keywords: ['residents', 'flat'] },
   { icon: IdCard, label: 'Employee', href: '/admin/employees', resourceKey: 'EMPLOYEE', keywords: ['staff', 'users'] },
   {
@@ -88,10 +96,15 @@ export const NAV_ITEMS: NavItem[] = [
 /** The modules this user may open: the single source for the sidebar and the command palette. */
 export function useNavItems(): NavItem[] {
   const { user, isSuperAdmin, roles } = useAuth()
-  const { hasResourcePermission } = useLocationContext()
+  const { hasResourcePermission, selectedLocationId } = useLocationContext()
   const managerType = getDepartmentManagerType(user)
 
   return NAV_ITEMS.filter((item) => {
+    // Read-only property calendar: never for Department Managers (the API refuses them too).
+    if (item.href === '/admin/task-calendar') {
+      if (managerType || isManagerAtLocation(user, selectedLocationId)) return false
+      return isSuperAdmin || hasResourcePermission('ACTIVITY_CALENDAR', 'view')
+    }
     if (item.href === '/admin/reports') {
       return isSuperAdmin || roles.some((r) => REPORT_ROLES.includes(r))
     }
