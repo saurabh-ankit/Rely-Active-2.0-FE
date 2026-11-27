@@ -4,6 +4,7 @@ import {
   Armchair,
   PartyPopper,
   CalendarClock,
+  CalendarRange,
   IdCard,
   LayoutDashboard,
   Boxes,
@@ -24,7 +25,7 @@ import { cn } from '@/lib/utils'
 import { REPORT_ROLES } from '@/pages/Reports/roles'
 import { Button } from '@/components/ui/button'
 
-import { getDepartmentManagerType } from '@/utils/departmentManager'
+import { getDepartmentManagerType, isManagerAtLocation } from '@/utils/departmentManager'
 
 export interface SidebarItemData {
   icon: React.ReactNode
@@ -86,7 +87,7 @@ const SidebarItem: React.FC<{ item: SidebarItemData; onClick?: () => void }> = (
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
   const location = useLocation()
   const { user, isSuperAdmin, roles } = useAuth()
-  const { hasResourcePermission, isLoadingLocations } = useLocationContext()
+  const { hasResourcePermission, isLoadingLocations, selectedLocationId } = useLocationContext()
 
   const managerType = getDepartmentManagerType(user)
 
@@ -95,6 +96,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       icon: <LayoutDashboard className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
       label: 'Dashboard',
       href: '/dashboard',
+    },
+    {
+      icon: <CalendarRange className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
+      label: 'Task Calendar',
+      href: '/admin/task-calendar',
+      resourceKey: 'ACTIVITY_CALENDAR',
     },
     {
       icon: <User className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
@@ -180,6 +187,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
   ]
 
   const filteredItems = sidebarItems.filter((item) => {
+    // Read-only property calendar: never for Department Managers (the API refuses them too).
+    if (item.href === '/admin/task-calendar') {
+      if (managerType || isManagerAtLocation(user, selectedLocationId)) return false
+      return isSuperAdmin || hasResourcePermission('ACTIVITY_CALENDAR', 'view')
+    }
     if (item.href === '/admin/reports') {
       return isSuperAdmin || roles.some((r) => REPORT_ROLES.includes(r))
     }

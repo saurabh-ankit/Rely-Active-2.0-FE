@@ -24,6 +24,7 @@ const UserProfilePage = lazy(() => import('@/pages/Profile'))
 const TicketsPage = lazy(() => import('@/pages/Tickets'))
 const GateManagementPage = lazy(() => import('@/pages/GateManagement'))
 const EventsPage = lazy(() => import('@/pages/Events'))
+const TaskCalendarPage = lazy(() => import('@/pages/ActivityCalendar'))
 const EventForm = lazy(() => import('@/pages/Events/components/EventForm'))
 const EventRegistrationsPage = lazy(() => import('@/pages/Events/components/EventRegistrations'))
 const ShiftRosterPage = lazy(() => import('@/pages/ShiftRoster'))
@@ -461,6 +462,14 @@ export default function RootRouter() {
           element={
             <ProtectedRoute resourceKey="GNS" action="view">
               <GateManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/task-calendar"
+          element={
+            <ProtectedRoute resourceKey="ACTIVITY_CALENDAR" action="view">
+              <TaskCalendarPage />
             </ProtectedRoute>
           }
         />

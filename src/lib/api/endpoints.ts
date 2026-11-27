@@ -447,6 +447,10 @@ export const API_ENDPOINTS = {
     delete: (id: string) => `${BASE_URL}/lab-test-settings/${id}`,
   },
 
+  activityCalendar: {
+    get: `${BASE_URL}/location/:locationId/activity-calendar`,
+  },
+
   eventManagement: {
     createVenue: `${BASE_URL}/location/:locationId/venues`,
     listVenues: `${BASE_URL}/location/:locationId/venues`,
