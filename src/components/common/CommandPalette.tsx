@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Loader2, Search, Ticket as TicketIcon, User, UserPlus } from 'lucide-react'
+import { Loader2, Ticket as TicketIcon, User, UserPlus } from 'lucide-react'
 import {
   Command,
   CommandDialog,
@@ -22,8 +22,6 @@ import { getResidentsAPI } from '@/lib/services/residentService'
 import type { Ticket } from '@/lib/types/ticket'
 import { useNavItems } from '@/layouts/useNavItems'
 
-const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
-
 /** Waits until typing pauses before searching, so each keystroke doesn't hit the API. */
 function useDebounced<T>(value: T, ms: number) {
   const [debounced, setDebounced] = useState(value)
@@ -36,7 +34,7 @@ function useDebounced<T>(value: T, ms: number) {
 
 /**
  * Ctrl/⌘+K command palette: jump to any module the user may open, start common actions, and find residents
- * and tickets by name or number. Renders its own trigger (for the header) and the dialog.
+ * and tickets by name or number. Opened only via the keyboard shortcut (no header trigger).
  */
 export function CommandPalette() {
   const [open, setOpen] = useState(false)
@@ -104,25 +102,6 @@ export function CommandPalette() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="hidden h-10 cursor-pointer items-center gap-2 rounded-full border border-white/30 bg-white/20 pr-2 pl-3.5 text-xs text-gray-500 shadow-lg backdrop-blur-sm transition-colors hover:bg-white/40 hover:text-gray-700 md:flex"
-        aria-label="Search and jump (Ctrl+K)"
-      >
-        <Search className="size-4" />
-        <span className="pr-4">Search…</span>
-        <Kbd>{isMac ? '⌘' : 'Ctrl'} K</Kbd>
-      </button>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex size-10 cursor-pointer items-center justify-center rounded-full border border-white/30 bg-white/20 text-gray-700 shadow-lg backdrop-blur-sm md:hidden"
-        aria-label="Search"
-      >
-        <Search className="size-5" />
-      </button>
-
       <CommandDialog
         open={open}
         onOpenChange={(o) => {

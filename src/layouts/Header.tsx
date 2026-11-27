@@ -151,7 +151,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
             )}
           </div>
 
-          {/* Ctrl/⌘+K search: modules, residents, tickets */}
+          {/* Ctrl/⌘+K search (no visible trigger): modules, residents, tickets */}
           <CommandPalette />
 
           <NotificationBell
