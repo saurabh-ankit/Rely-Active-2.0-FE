@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Briefcase, Lock, Users, UsersRound } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useFeedbackRecipientCount, useSendFeedbackForm } from '@/hooks/react-query/feedback'
 import { cn } from '@/lib/utils'
@@ -24,6 +26,7 @@ const SendFormDialog = ({ open, onOpenChange, form, onSent }: SendFormDialogProp
   const [audience, setAudience] = useState<FeedbackAudience>('RESIDENTS')
   const { data: countData, isLoading: isCounting } = useFeedbackRecipientCount(open)
   const sendMutation = useSendFeedbackForm()
+  const { saved, flashSaved } = useSavedFlash()
 
   const handleOpenChange = (next: boolean) => {
     if (!next) setAudience('RESIDENTS')
@@ -41,10 +44,11 @@ const SendFormDialog = ({ open, onOpenChange, form, onSent }: SendFormDialogProp
     sendMutation.mutate(
       { id: form.id, audience },
       {
-        onSuccess: () => {
-          handleOpenChange(false)
-          onSent?.()
-        },
+        onSuccess: () =>
+          flashSaved(() => {
+            handleOpenChange(false)
+            onSent?.()
+          }),
       },
     )
   }
@@ -93,17 +97,20 @@ const SendFormDialog = ({ open, onOpenChange, form, onSent }: SendFormDialogProp
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={sendMutation.isPending}>
             Cancel
           </Button>
-          <Button
+          <SaveButton
             onClick={handleSend}
-            disabled={sendMutation.isPending || isCounting || selectedCount === 0}
-            className="bg-[#2a517c] hover:bg-[#476587] text-white"
+            saving={sendMutation.isPending}
+            saved={saved}
+            savedLabel="Sent"
+            disabled={isCounting || selectedCount === 0}
+            className="gap-2 bg-[#2a517c] hover:bg-[#476587] text-white"
           >
             {sendMutation.isPending
               ? 'Sending...'
               : selectedCount === 0 && !isCounting
                 ? 'No one to send to'
                 : `Send to ${selectedCount} ${selectedCount === 1 ? 'person' : 'people'}`}
-          </Button>
+          </SaveButton>
         </div>
       </DialogContent>
     </Dialog>

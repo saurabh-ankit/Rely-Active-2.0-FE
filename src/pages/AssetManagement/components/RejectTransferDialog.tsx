@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import {
   Dialog,
   DialogContent,
@@ -26,6 +28,7 @@ export function RejectTransferDialog({ asset, open, onOpenChange }: RejectTransf
   const [image, setImage] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const rejectMutation = useRejectAssetTransfer()
+  const { saved, flashSaved } = useSavedFlash()
 
   const resetForm = () => {
     setDescription('')
@@ -51,8 +54,11 @@ export function RejectTransferDialog({ asset, open, onOpenChange }: RejectTransf
       assetId: asset.id,
       data: { description: description.trim(), image: image || undefined },
     })
-    resetForm()
-    onOpenChange(false)
+    // ✓ on the button for a moment, then reset and close
+    flashSaved(() => {
+      resetForm()
+      onOpenChange(false)
+    })
   }
 
   return (
@@ -107,9 +113,16 @@ export function RejectTransferDialog({ asset, open, onOpenChange }: RejectTransf
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={rejectMutation.isPending}>
             Cancel
           </Button>
-          <Button variant="destructive" onClick={() => void handleReject()} disabled={rejectMutation.isPending}>
+          <SaveButton
+            variant="destructive"
+            onClick={() => void handleReject()}
+            saving={rejectMutation.isPending}
+            saved={saved}
+            savedLabel="Rejected"
+            className="gap-2"
+          >
             Reject
-          </Button>
+          </SaveButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

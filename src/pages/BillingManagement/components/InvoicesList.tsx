@@ -1,9 +1,9 @@
 import { Fragment, useState } from 'react'
+import { TableRowsSkeleton } from '@/components/ui/skeleton'
+import { CountUp } from '@/components/common/CountUp'
 import {
   ArrowRightLeft,
   CalendarDays,
-  ChevronDown,
-  ChevronRight,
   CreditCard,
   Download,
   FileText,
@@ -11,6 +11,7 @@ import {
   Pencil,
   ReceiptIndianRupee,
 } from 'lucide-react'
+import { EmptyState } from '@/components/common/EmptyState'
 import { toast } from 'sonner'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -25,6 +26,7 @@ import { cn } from '@/lib/utils'
 import { RecordPaymentModal } from './RecordPaymentModal'
 import { ConsumerTag, OldFlatTag, PaidBar, StatusPill, TablePager } from './billingUi'
 import { formatDmy, formatInr, isPayable, monthLabel, openPdf, PAYMENT_METHOD_LABEL } from './billingFormat'
+import { Expand, ExpandChevron } from '@/components/common/Expand'
 
 /** Unpaid invoices that nothing was carried out of can still be edited. */
 const isEditable = (inv: Invoice) =>
@@ -88,7 +90,7 @@ export function InvoicesList({ unitId, onEditInvoice }: InvoicesListProps) {
               }}
               className="h-7 w-7 rounded-md p-1 text-gray-500 hover:bg-gray-200/70"
             >
-              {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              <ExpandChevron open={isOpen} from="right" className="h-4 w-4" />
             </Button>
           </TableCell>
           <TableCell className="px-3 py-3.5">
@@ -215,13 +217,15 @@ export function InvoicesList({ unitId, onEditInvoice }: InvoicesListProps) {
         {isOpen && (
           <TableRow className="border-b border-gray-200 bg-[#2b4f7e]/[0.03]">
             <TableCell colSpan={COLUMNS.length} className="px-5 pt-1 pb-5">
-              <InvoiceDetail
-                invoice={inv}
-                opening={opening}
-                onReceiptPdf={(receiptId) =>
-                  showPdf(receiptId, async () => getBillingDocumentAPI(selectedLocationId, inv.id, receiptId))
-                }
-              />
+              <Expand open appear>
+                <InvoiceDetail
+                  invoice={inv}
+                  opening={opening}
+                  onReceiptPdf={(receiptId) =>
+                    showPdf(receiptId, async () => getBillingDocumentAPI(selectedLocationId, inv.id, receiptId))
+                  }
+                />
+              </Expand>
             </TableCell>
           </TableRow>
         )}
@@ -259,16 +263,15 @@ export function InvoicesList({ unitId, onEditInvoice }: InvoicesListProps) {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={COLUMNS.length} className="py-12 text-center">
-                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
-                </TableCell>
-              </TableRow>
+              <TableRowsSkeleton columns={COLUMNS.length} />
             ) : invoices.length === 0 && oldFlatInvoices.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={COLUMNS.length} className="py-14 text-center text-gray-500">
-                  <FileText className="mx-auto mb-2 h-10 w-10 text-gray-300" />
-                  No invoices yet for this flat
+                <TableCell colSpan={COLUMNS.length} className="p-0">
+                  <EmptyState
+                    icon={FileText}
+                    title="No invoices yet for this flat"
+                    description="Invoices appear here once they're generated for this flat."
+                  />
                 </TableCell>
               </TableRow>
             ) : (
@@ -457,6 +460,7 @@ function InvoiceDetail({
           />
         )}
         <Row
+          countUp
           label="Total"
           value={formatInr(inv.discountedAmount)}
           className="border-t border-gray-100 pt-2 text-base font-bold text-gray-900"
@@ -472,7 +476,7 @@ function InvoiceDetail({
           </>
         ) : (
           <>
-            <Row label="Paid" value={formatInr(inv.paidAmount)} className="font-semibold text-emerald-600" />
+            <Row countUp label="Paid" value={formatInr(inv.paidAmount)} className="font-semibold text-emerald-600" />
             <PaidBar paid={inv.paidAmount} total={inv.discountedAmount} className="my-1" />
           </>
         )}
@@ -490,6 +494,7 @@ function InvoiceDetail({
           </p>
         ) : (
           <Row
+            countUp
             label="Balance"
             value={inv.remainingBalance > 0 ? formatInr(inv.remainingBalance) : 'Settled'}
             className={cn('font-bold', inv.remainingBalance > 0 ? 'text-rose-600' : 'text-emerald-600')}
@@ -500,9 +505,20 @@ function InvoiceDetail({
   )
 }
 
-const Row = ({ label, value, className }: { label: string; value: string; className?: string }) => (
+const Row = ({
+  label,
+  value,
+  className,
+  countUp = false,
+}: {
+  label: string
+  value: string
+  className?: string
+  /** Roll the figure up when the summary opens, and from old to new after a payment. */
+  countUp?: boolean
+}) => (
   <div className={cn('flex justify-between gap-3', className)}>
     <span>{label}</span>
-    <span className="tabular-nums">{value}</span>
+    <span className="tabular-nums">{countUp ? <CountUp text={value} duration={0.7} /> : value}</span>
   </div>
 )

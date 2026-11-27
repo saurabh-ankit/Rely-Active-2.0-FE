@@ -1,5 +1,7 @@
 import React from 'react'
-import { Loader2, type LucideIcon } from 'lucide-react'
+import { type LucideIcon } from 'lucide-react'
+import { EmptyState } from '@/components/common/EmptyState'
+import { ListSkeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn, formatDisplayDateTime } from '@/lib/utils'
@@ -59,18 +61,15 @@ interface ClinicalEmptyStateProps {
   description?: string
 }
 
-export const ClinicalEmptyState: React.FC<ClinicalEmptyStateProps> = ({ icon: Icon, title, description }) => (
-  <div className="py-12 text-center text-gray-400">
-    <Icon className="mx-auto size-8 text-gray-300 dark:text-gray-600" />
-    <p className="mt-2 text-sm font-semibold text-gray-700 dark:text-gray-300">{title}</p>
-    {description && <p className="text-xs text-gray-400">{description}</p>}
-  </div>
+export const ClinicalEmptyState: React.FC<ClinicalEmptyStateProps> = ({ icon, title, description }) => (
+  <EmptyState icon={icon} title={title} description={description} />
 )
 
+/** Skeleton rows while clinical records load; the label is kept for screen readers. */
 export const ClinicalLoadingState: React.FC<{ label: string }> = ({ label }) => (
-  <div className="py-12 text-center text-muted-foreground">
-    <Loader2 className="mx-auto size-6 animate-spin text-primary" />
-    <p className="mt-2 text-xs">{label}</p>
+  <div aria-busy="true">
+    <span className="sr-only">{label}</span>
+    <ListSkeleton rows={3} />
   </div>
 )
 

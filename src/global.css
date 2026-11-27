@@ -56,6 +56,40 @@ body {
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /*
+   * Progress bars grow from empty on mount. Only `from` is given, so the animation ends at the bar's own
+   * (inline) width — add `animate-fill` to any bar sized with style={{ width }}.
+   */
+  --animate-fill: fill 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+  @keyframes fill {
+    from {
+      width: 0;
+    }
+  }
+
+  /* Gentle bob for empty-state icons (see components/common/EmptyState.tsx) */
+  --animate-float: float 3.2s ease-in-out infinite;
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+
+  /* Light sweep across skeleton placeholders (see components/ui/skeleton.tsx) */
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+  @keyframes shimmer {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
 }
 
 :root {
@@ -340,5 +374,51 @@ body {
     :root:not(.light) *::-webkit-scrollbar-thumb:hover {
       background: rgba(255, 255, 255, 0.55);
     }
+  }
+}
+
+/*
+ * Validation messages ease in (fade + small drop) the moment they appear, instead of popping into place.
+ * Scoped to forms and to shadcn field errors so ordinary red text elsewhere is untouched.
+ */
+@keyframes form-error-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+form p:is([class*='text-red-'], [class*='text-rose-'], [class*='text-destructive']),
+[data-slot='field-error'] {
+  animation: form-error-in 0.22s ease-out;
+}
+
+/* Short horizontal shake, used on a submit button when validation blocks the save (see SaveButton). */
+@keyframes shake-x {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+.shake-x {
+  animation: shake-x 0.4s ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  form p:is([class*='text-red-'], [class*='text-rose-'], [class*='text-destructive']),
+  [data-slot='field-error'],
+  .shake-x {
+    animation: none;
   }
 }

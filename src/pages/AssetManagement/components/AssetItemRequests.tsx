@@ -4,6 +4,8 @@ import { toast } from 'sonner'
 import { PermissionGuard } from '@/components/common/PermissionGuard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -128,6 +130,7 @@ const AssetItemRequests = ({ enabled = true }: AssetItemRequestsProps) => {
   }, [assetOptions, assetSearch])
 
   const isSaving = createMutation.isPending || updateMutation.isPending
+  const { saved, flashSaved } = useSavedFlash()
 
   const toggleAsset = (assetId: string) => {
     setFormData((prev) => ({
@@ -271,11 +274,11 @@ const AssetItemRequests = ({ enabled = true }: AssetItemRequestsProps) => {
           id: editingRequest.id,
           data: payload,
         })
-        handleCloseModal()
+        flashSaved(handleCloseModal)
         await refetchItemRequests()
       } else {
         const result = await createMutation.mutateAsync(payload)
-        handleCloseModal()
+        flashSaved(handleCloseModal)
         await refetchItemRequests()
         if (result?.data) {
           setQrPreview(result.data)
@@ -720,9 +723,9 @@ const AssetItemRequests = ({ enabled = true }: AssetItemRequestsProps) => {
             <Button variant="outline" onClick={handleCloseModal} disabled={isSaving}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={isSaving}>
+            <SaveButton onClick={handleSubmit} saving={isSaving} saved={saved} className="gap-2">
               {isSaving ? 'Saving...' : editingRequest ? 'Update' : 'Save'}
-            </Button>
+            </SaveButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

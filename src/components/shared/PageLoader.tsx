@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react'
 import { FullScreenLoader } from '@/components/ui/FullScreenLoader'
+import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 
 interface PageLoaderProps {
   isVisible?: boolean
   message?: string
   delay?: number
+  /**
+   * 'skeleton' (default): an in-place toolbar + table placeholder, so tabs and pages keep their layout while loading.
+   * 'overlay': the full-screen blurred spinner, for loads that block the whole workspace.
+   */
+  variant?: 'skeleton' | 'overlay'
 }
 
-/**
- * PageLoader component - loader component with optional delay matching rely-assist style
- */
-const PageLoader = ({ isVisible = true, message = 'Loading...', delay = 0 }: PageLoaderProps) => {
+const PageLoader = ({ isVisible = true, message = 'Loading...', delay = 0, variant = 'skeleton' }: PageLoaderProps) => {
   const [showDelayedLoader, setShowDelayedLoader] = useState(false)
 
   useEffect(() => {
@@ -27,7 +30,18 @@ const PageLoader = ({ isVisible = true, message = 'Loading...', delay = 0 }: Pag
 
   if (!shouldShow) return null
 
-  return <FullScreenLoader isVisible={true} message={message} />
+  if (variant === 'overlay') return <FullScreenLoader isVisible={true} message={message} />
+
+  return (
+    <div className="flex w-full flex-col gap-4 animate-in fade-in duration-300" aria-busy="true">
+      <span className="sr-only">{message}</span>
+      <div className="flex items-center justify-between gap-3">
+        <Skeleton className="h-9 w-full max-w-xs rounded-xl" />
+        <Skeleton className="h-9 w-28 rounded-xl" />
+      </div>
+      <TableSkeleton rows={6} columns={5} />
+    </div>
+  )
 }
 
 export default PageLoader

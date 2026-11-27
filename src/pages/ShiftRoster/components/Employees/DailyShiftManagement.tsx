@@ -5,6 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useParams } from 'react-router-dom'
 import { RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { BackButton } from '@/components/common/BackButton'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -100,6 +102,7 @@ const DailyShiftManagement = () => {
   const unmarkDayOff = useUnmarkDayOff()
   const coverShift = useCoverShiftDate()
   const swapShifts = useSwapShiftDates()
+  const { saved, flashSaved } = useSavedFlash()
   const generateDates = useGenerateShiftEmployeeDates()
 
   const [dayOffTarget, setDayOffTarget] = useState<ShiftEmployeeDate | null>(null)
@@ -346,7 +349,7 @@ const DailyShiftManagement = () => {
                 dateId: dayOffTarget.id,
                 data: { leaveType: values.leaveType, leaveNote: values.leaveNote || null },
               })
-              setDayOffTarget(null)
+              flashSaved(() => setDayOffTarget(null))
             })}
             noValidate
             className="space-y-4"
@@ -386,13 +389,15 @@ const DailyShiftManagement = () => {
               <Button type="button" variant="outline" onClick={() => setDayOffTarget(null)}>
                 Cancel
               </Button>
-              <Button
+              <SaveButton
                 type="submit"
-                className="bg-[#2a517c] hover:bg-[#476587] text-white"
-                disabled={markDayOff.isPending}
+                className="gap-2 bg-[#2a517c] hover:bg-[#476587] text-white"
+                saving={markDayOff.isPending}
+                saved={saved}
+                savedLabel="Day off marked"
               >
                 Confirm
-              </Button>
+              </SaveButton>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -422,8 +427,10 @@ const DailyShiftManagement = () => {
                   notes: values.notes?.trim() || null,
                 },
               })
-              setCoverTarget(null)
-              resetCover(coverFormDefaultValues)
+              flashSaved(() => {
+                setCoverTarget(null)
+                resetCover(coverFormDefaultValues)
+              })
             })}
             noValidate
             className="space-y-4"
@@ -466,13 +473,16 @@ const DailyShiftManagement = () => {
               <Button type="button" variant="outline" onClick={() => setCoverTarget(null)}>
                 Cancel
               </Button>
-              <Button
+              <SaveButton
                 type="submit"
-                className="bg-[#2a517c] hover:bg-[#476587] text-white"
-                disabled={!coveredByEmployeeId || coverShift.isPending}
+                className="gap-2 bg-[#2a517c] hover:bg-[#476587] text-white"
+                saving={coverShift.isPending}
+                saved={saved}
+                savedLabel="Cover assigned"
+                disabled={!coveredByEmployeeId}
               >
                 Assign cover
-              </Button>
+              </SaveButton>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -502,8 +512,10 @@ const DailyShiftManagement = () => {
                   notes: values.notes?.trim() || null,
                 },
               })
-              setSwapTarget(null)
-              resetSwap(swapFormDefaultValues)
+              flashSaved(() => {
+                setSwapTarget(null)
+                resetSwap(swapFormDefaultValues)
+              })
             })}
             noValidate
             className="space-y-4"
@@ -550,13 +562,16 @@ const DailyShiftManagement = () => {
               <Button type="button" variant="outline" onClick={() => setSwapTarget(null)}>
                 Cancel
               </Button>
-              <Button
+              <SaveButton
                 type="submit"
-                className="bg-[#2a517c] hover:bg-[#476587] text-white"
-                disabled={!targetDateId || swapShifts.isPending}
+                className="gap-2 bg-[#2a517c] hover:bg-[#476587] text-white"
+                saving={swapShifts.isPending}
+                saved={saved}
+                savedLabel="Swapped"
+                disabled={!targetDateId}
               >
                 Swap
-              </Button>
+              </SaveButton>
             </DialogFooter>
           </form>
         </DialogContent>

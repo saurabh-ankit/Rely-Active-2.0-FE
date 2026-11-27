@@ -4,6 +4,8 @@ import { toast } from 'sonner'
 import { AlertTriangle, ChevronRight, Gauge, Package, Pencil, SlidersHorizontal, Truck } from 'lucide-react'
 import { ActiveStatus } from '@/components/inventory/InventoryStatus'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { BackButton } from '@/components/common/BackButton'
 import { Card } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
@@ -503,6 +505,7 @@ function ItemSettings({
   onClose: () => void
 }) {
   const suppliers = useCenterOptions(locationId, 'suppliers')
+  const { saved, flashSaved } = useSavedFlash()
   const mutation = useCenterMutation(locationId)
   const [supplierIds, setSupplierIds] = useState(item.suppliers.map((s) => s.id))
   const [thresholds, setThresholds] = useState({
@@ -544,7 +547,7 @@ function ItemSettings({
                 data: mode === 'suppliers' ? { supplierIds } : thresholds,
               })
               toast.success('Item updated')
-              onClose()
+              flashSaved(onClose)
             } catch {
               /* inline error */
             }
@@ -600,13 +603,15 @@ function ItemSettings({
             >
               Cancel
             </Button>
-            <Button
+            <SaveButton
               type="submit"
-              className="bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer"
-              disabled={mutation.isPending || (mode === 'suppliers' && suppliers.isPending)}
+              className="gap-2 bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer"
+              saving={mutation.isPending}
+              saved={saved}
+              disabled={mode === 'suppliers' && suppliers.isPending}
             >
               {mutation.isPending ? 'Saving…' : 'Save Changes'}
-            </Button>
+            </SaveButton>
           </DialogFooter>
         </form>
       </DialogContent>

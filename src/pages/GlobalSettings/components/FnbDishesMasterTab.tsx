@@ -3,6 +3,9 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
+import { TAB_COUNT, Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -14,8 +17,6 @@ import {
   AlertCircle,
   Upload,
   Image as ImageIcon,
-  ChevronDown,
-  ChevronRight,
   Building2,
   Layers,
   Tag,
@@ -26,6 +27,7 @@ import { useLocationContext } from '@/hooks/useLocation'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { useScrollLock } from '@/hooks/useScrollLock'
 import { Label } from '@/components/ui/label'
+import { Expand, ExpandChevron } from '@/components/common/Expand'
 
 const DISH_CATEGORIES = [
   { key: 'breakfast', label: 'Breakfast', icon: '🌅' },
@@ -95,6 +97,7 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingDish, setEditingDish] = useState<Dish | null>(null)
   const [saving, setSaving] = useState(false)
+  const { saved, flashSaved } = useSavedFlash()
 
   // Delete Confirmation Modal
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
@@ -358,7 +361,7 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
 
       if (res.data?.success) {
         notifySuccess(`Dish ${editingDish ? 'updated' : 'created'} successfully!`)
-        setIsModalOpen(false)
+        flashSaved(() => setIsModalOpen(false))
         fetchData()
       } else {
         setErrorMsg(res.data?.message || 'Failed to save dish')
@@ -425,47 +428,22 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
         )}
       </div>
 
-      {/* Category Pills Quick Filter */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => setActiveCategoryFilter('ALL')}
-          className={`px-3.5 py-1.5 h-auto rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-            activeCategoryFilter === 'ALL'
-              ? 'bg-[#005390] text-white shadow-xs'
-              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-          }`}
-        >
-          <Layers className="w-3.5 h-3.5" /> All Dishes ({displayDishes.length})
-        </Button>
-        {DISH_CATEGORIES.map((cat) => {
-          const count = groupedDishes[cat.key]?.length || 0
-          return (
-            <Button
-              key={cat.key}
-              type="button"
-              variant="ghost"
-              onClick={() => setActiveCategoryFilter(cat.key)}
-              className={`px-3 py-1.5 h-auto rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                activeCategoryFilter === cat.key
-                  ? 'bg-[#005390] text-white shadow-xs'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-              }`}
-            >
+      {/* Category quick filter as line tabs: the underline slides to the chosen category */}
+      <Tabs value={activeCategoryFilter} onValueChange={(v) => setActiveCategoryFilter(v as string)} className="gap-0">
+        <TabsList aria-label="Dish category">
+          <TabsTrigger value="ALL" className="h-10 gap-1.5 px-3 text-xs font-bold">
+            <Layers className="w-3.5 h-3.5" /> All Dishes
+            <span className={TAB_COUNT}>{displayDishes.length}</span>
+          </TabsTrigger>
+          {DISH_CATEGORIES.map((cat) => (
+            <TabsTrigger key={cat.key} value={cat.key} className="h-10 gap-1.5 px-3 text-xs font-bold">
               <span>{cat.icon}</span>
               <span>{cat.label}</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
-                  activeCategoryFilter === cat.key ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'
-                }`}
-              >
-                {count}
-              </span>
-            </Button>
-          )
-        })}
-      </div>
+              <span className={TAB_COUNT}>{groupedDishes[cat.key]?.length || 0}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {loading ? (
         <div className="p-12 text-center text-gray-400">Loading dish catalogue...</div>
@@ -502,12 +480,12 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                     </span>
                   </div>
                   <div className="text-gray-400 p-1">
-                    {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    <ExpandChevron open={!isCollapsed} from="right" className="w-4 h-4" />
                   </div>
                 </Button>
 
                 {/* Category Dishes Table */}
-                {!isCollapsed && (
+                <Expand open={!isCollapsed}>
                   <div>
                     {categoryDishes.length === 0 ? (
                       <div className="p-6 text-center text-gray-400 text-xs italic">
@@ -641,7 +619,7 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                       </div>
                     )}
                   </div>
-                )}
+                </Expand>
               </div>
             )
           })}
@@ -940,13 +918,14 @@ export function FnbDishesMasterTab({ locId, isLocationMode = false }: FnbDishesM
                 >
                   Cancel
                 </Button>
-                <Button
+                <SaveButton
                   type="submit"
-                  disabled={saving}
+                  saving={saving}
+                  saved={saved}
                   className="px-6 py-2.5 h-auto bg-[#005390] text-white text-xs font-bold rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50 shadow-xs"
                 >
                   {saving ? 'Saving Dish...' : 'Save Dish'}
-                </Button>
+                </SaveButton>
               </div>
             </form>
           </DialogContent>

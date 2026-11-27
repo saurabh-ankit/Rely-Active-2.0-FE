@@ -28,7 +28,10 @@ const BarRow = ({ label, count, total }: { label: string; count: number; total: 
         </span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-gray-100">
-        <div className="h-full rounded-full bg-[#2a517c]" style={{ width: `${percent}%` }} />
+        <div
+          className="h-full rounded-full bg-[#2a517c] animate-fill transition-[width] duration-500 ease-out motion-reduce:animate-none"
+          style={{ width: `${percent}%` }}
+        />
       </div>
     </div>
   )

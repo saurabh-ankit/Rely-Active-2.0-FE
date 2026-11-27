@@ -29,7 +29,7 @@ export const GlobalLoadingIndicator = () => {
   }
 
   if (isLoadingLocations || isLoadingPermissions || isPageLoading > 0) {
-    return <PageLoader isVisible={true} message="Loading workspace..." delay={0} />
+    return <PageLoader isVisible={true} message="Loading workspace..." delay={0} variant="overlay" />
   }
 
   return null

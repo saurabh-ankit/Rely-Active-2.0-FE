@@ -28,6 +28,7 @@ import {
   Pencil,
   XCircle,
 } from 'lucide-react'
+import { EmptyState } from '@/components/common/EmptyState'
 import { useLocationContext } from '@/hooks/useLocation'
 import { useDepartmentsQuery } from '@/hooks/react-query/rbac'
 import { useAuth } from '@/hooks/useAuth'
@@ -37,6 +38,7 @@ import { API_ENDPOINTS } from '@/lib/api/endpoints'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { getDepartmentManagerType } from '@/utils/departmentManager'
 import type { Ticket, TicketCategoryMaster, TicketPriority, TicketStatus } from '@/lib/types'
+import { ListSkeleton, Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { CreateTicketModal } from './components/CreateTicketModal'
 import { SelectPersonDrawer } from './components/SelectPersonDrawer'
@@ -50,6 +52,8 @@ import { FEEDBACK_RATING_LABELS } from './ticketFeedback'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
@@ -82,17 +86,36 @@ function escalatedByLabel(ticket: Ticket | null | undefined): string | null {
   return ticket.escalatedByName || ticket.escalatedBy || null
 }
 
-function TicketScreenLoader({ title = 'Loading...', subtitle }: { title?: string; subtitle?: string }) {
+/** Fade + lift when a ticket's detail view mounts (each ticket remounts it via its key). */
+const DETAIL_ENTER = 'animate-in fade-in slide-in-from-bottom-1 duration-300 motion-reduce:animate-none'
+
+/** List rows fade in one after another on mount; refetches keep the same keys, so they don't replay. */
+// animation-duration (not duration-*) so the row's 150ms hover transition is untouched.
+const LIST_ENTER =
+  'animate-in fade-in slide-in-from-left-1 animation-duration-300 fill-mode-backwards motion-reduce:animate-none'
+
+/** Placeholder shaped like the ticket detail pane: header, status strip and two content blocks. */
+function TicketDetailSkeleton() {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center select-none animate-in fade-in duration-200">
-      <div className="relative flex items-center justify-center mb-3">
-        <div className="absolute w-12 h-12 rounded-full bg-[#005390]/15 animate-ping" />
-        <div className="relative w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100 shadow-2xs">
-          <Loader2 className="w-6 h-6 animate-spin text-[#005390]" />
+    <div role="status" aria-label="Loading ticket details" className="flex flex-col gap-6">
+      <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-4">
+        <div className="flex items-center gap-2.5">
+          <Skeleton className="size-9 rounded-xl" />
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-5 w-20 rounded-full" />
         </div>
+        <Skeleton className="h-9 w-28 rounded-xl" />
       </div>
-      <span className="text-sm font-bold text-gray-800">{title}</span>
-      {subtitle && <span className="text-xs text-gray-400 mt-1">{subtitle}</span>}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} className="space-y-2">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        ))}
+      </div>
+      <Skeleton className="h-28 w-full rounded-2xl" />
+      <Skeleton className="h-40 w-full rounded-2xl" />
     </div>
   )
 }
@@ -417,6 +440,7 @@ export default function TicketsPage() {
   const [isCustomTatOpen, setIsCustomTatOpen] = useState(false)
   const [customTatValue, setCustomTatValue] = useState('')
   const [savingCustomTat, setSavingCustomTat] = useState(false)
+  const { saved, flashSaved } = useSavedFlash()
   const [previewMediaUrl, setPreviewMediaUrl] = useState<string | null>(null)
   const [verifying, setVerifying] = useState(false)
   // Status picked in the dropdown, waiting for the admin to confirm it.
@@ -629,7 +653,7 @@ export default function TicketsPage() {
     setSavingCustomTat(false)
     if (ok) {
       notifySuccess('Custom TAT set')
-      setIsCustomTatOpen(false)
+      flashSaved(() => setIsCustomTatOpen(false))
     } else {
       notifyError('Could not set the custom TAT')
     }
@@ -728,29 +752,12 @@ export default function TicketsPage() {
     [user?.id],
   )
 
-  const switchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [isTicketSwitching, setIsTicketSwitching] = useState(false)
-
-  useEffect(() => {
-    return () => {
-      if (switchTimeoutRef.current) {
-        clearTimeout(switchTimeoutRef.current)
-      }
-    }
-  }, [])
-
   const handleSelectTicket = useCallback(
     (ticket: Ticket) => {
       if (selectedTicket?.id === ticket.id) return
-      if (switchTimeoutRef.current) {
-        clearTimeout(switchTimeoutRef.current)
-      }
-      setIsTicketSwitching(true)
+      // The detail pane is keyed by ticket id and fades in, so no artificial "switching" pause is needed.
       setSelectedTicket(ticket)
       markTicketViewed(ticket.id)
-      switchTimeoutRef.current = setTimeout(() => {
-        setIsTicketSwitching(false)
-      }, 180)
     },
     [selectedTicket?.id, markTicketViewed],
   )
@@ -987,20 +994,22 @@ export default function TicketsPage() {
           {/* Tickets Scroll List */}
           <div className="flex-1 overflow-y-auto divide-y divide-gray-100 flex flex-col">
             {isLoading ? (
-              <TicketScreenLoader
-                title="Loading tickets..."
-                subtitle={`Fetching ${activeTab.toLowerCase().replace('_', ' ')} queue...`}
-              />
+              <ListSkeleton rows={7} />
             ) : displayTickets.length === 0 ? (
-              <div className="p-12 text-center flex flex-col items-center justify-center text-gray-400">
-                <TicketIcon className="w-10 h-10 mb-2 text-gray-300 stroke-[1.5]" />
-                <span className="text-sm font-bold text-gray-600">No tickets in this section</span>
-                <span className="text-xs text-gray-400 mt-1">
-                  There are currently no {activeTab.toLowerCase().replace('_', ' ')} tickets.
-                </span>
-              </div>
+              <EmptyState
+                icon={TicketIcon}
+                size="sm"
+                className="flex-1"
+                title="No tickets in this section"
+                description={`There are currently no ${activeTab.toLowerCase().replace('_', ' ')} tickets.`}
+                action={
+                  canCreateTicket && activeTab === 'OPEN'
+                    ? { label: 'Create ticket', onClick: () => setIsCreateModalOpen(true), icon: Plus }
+                    : undefined
+                }
+              />
             ) : (
-              displayTickets.map((t) => {
+              displayTickets.map((t, ticketIndex) => {
                 const isSelected = selectedTicket?.id === t.id
                 const isCommon = isCommonAreaTicket(t)
                 const unitStr = formatUnitLabel(t)
@@ -1025,8 +1034,10 @@ export default function TicketsPage() {
                     type="button"
                     variant="ghost"
                     onClick={() => handleSelectTicket(t)}
+                    style={{ animationDelay: `${Math.min(ticketIndex, 10) * 35}ms` }}
                     className={cn(
                       'w-full text-left justify-start items-stretch flex flex-col h-auto p-4 transition-all duration-150 cursor-pointer relative rounded-none border-b border-gray-100 last:border-b-0 whitespace-normal font-normal',
+                      LIST_ENTER,
                       isSelected
                         ? 'bg-[#005390] text-white hover:bg-[#005390] hover:text-white shadow-2xs'
                         : 'bg-white text-gray-900 hover:bg-gray-50 hover:text-gray-900',
@@ -1037,12 +1048,17 @@ export default function TicketsPage() {
                         <span className="font-bold tracking-tight">{t.ticketNumber}</span>
                         {t.status === 'OPEN' && !viewedTicketIds.has(t.id) && (
                           <span
-                            className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider ${
+                            className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider ${
                               isSelected
                                 ? 'bg-amber-200 text-amber-950 shadow-2xs'
                                 : 'bg-amber-100 text-amber-800 border border-amber-200'
                             }`}
                           >
+                            {/* Pinging dot until the ticket is opened */}
+                            <span className="relative flex size-1.5">
+                              <span className="absolute inline-flex size-full animate-ping rounded-full bg-amber-500 opacity-75 motion-reduce:animate-none" />
+                              <span className="relative inline-flex size-1.5 rounded-full bg-amber-500" />
+                            </span>
                             New
                           </span>
                         )}
@@ -1170,15 +1186,12 @@ export default function TicketsPage() {
 
         {/* Right Column: Ticket Workspace Detail (8 cols) */}
         <Card className="gap-0 lg:col-span-8 bg-white rounded-2xl border-gray-200 shadow-sm p-4 sm:p-6 h-[calc(100vh-13rem)] min-h-[520px] relative flex flex-col overflow-y-auto">
-          {isLoading || isTicketSwitching ? (
-            <TicketScreenLoader
-              title={isLoading ? 'Loading ticket details...' : 'Switching ticket...'}
-              subtitle={isLoading ? 'Retrieving service requests & status...' : 'Updating workspace details...'}
-            />
+          {isLoading ? (
+            <TicketDetailSkeleton />
           ) : selectedTicket ? (
             isClosedView ? (
               /* CLOSED TICKET VIEW MATCHING SCREENSHOT */
-              <div className="space-y-6 flex-1">
+              <div key={selectedTicket.id} className={cn('space-y-6 flex-1', DETAIL_ENTER)}>
                 {/* Header Bar */}
                 <div className="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-3 pb-4 border-b border-gray-100">
                   <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
@@ -1860,7 +1873,7 @@ export default function TicketsPage() {
               </div>
             ) : isInProgressView ? (
               /* IN PROGRESS EXECUTION VIEW MATCHING DESIGN SYSTEM */
-              <div className="space-y-6 flex-1">
+              <div key={selectedTicket.id} className={cn('space-y-6 flex-1', DETAIL_ENTER)}>
                 {/* Header Bar */}
                 <div className="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-3 pb-4 border-b border-gray-100">
                   <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
@@ -2005,7 +2018,7 @@ export default function TicketsPage() {
                           <div className="absolute top-4 -translate-y-1/2 left-[8.333%] right-[8.333%] h-0.5 bg-gray-200 z-0" />
                           {/* Active Progress Line */}
                           <div
-                            className="absolute top-4 -translate-y-1/2 left-[8.333%] h-0.5 bg-[#005390] transition-all duration-300 z-0"
+                            className="absolute top-4 -translate-y-1/2 left-[8.333%] h-0.5 bg-[#005390] z-0 animate-fill transition-[width] duration-500 ease-out motion-reduce:animate-none"
                             style={{ width: `${activeWidthPercent}%` }}
                           />
 
@@ -2392,7 +2405,7 @@ export default function TicketsPage() {
               </div>
             ) : (
               /* OPEN TICKET CREATION / OPTION SELECTOR VIEW */
-              <div className="space-y-6 flex-1">
+              <div key={selectedTicket.id} className={cn('space-y-6 flex-1', DETAIL_ENTER)}>
                 {/* Header Title & Status */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-4">
                   <div>
@@ -2879,14 +2892,17 @@ export default function TicketsPage() {
               >
                 Cancel
               </Button>
-              <Button
+              <SaveButton
                 type="button"
-                disabled={savingCustomTat || !customTatValue}
+                saving={savingCustomTat}
+                saved={saved}
+                savedLabel="TAT set"
+                disabled={!customTatValue}
                 onClick={handleSaveCustomTat}
-                className="rounded-xl text-xs font-bold bg-[#005390] hover:bg-[#00457a] text-white"
+                className="gap-1.5 rounded-xl text-xs font-bold bg-[#005390] hover:bg-[#00457a] text-white"
               >
                 {savingCustomTat ? 'Saving…' : 'Set TAT'}
-              </Button>
+              </SaveButton>
             </div>
           </DialogContent>
         )}

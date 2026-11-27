@@ -1,4 +1,5 @@
 import { Label } from '@/components/ui/label'
+import { TableSkeleton } from '@/components/ui/skeleton'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useForm, useWatch } from 'react-hook-form'
@@ -18,6 +19,7 @@ import {
   Lock,
   Loader2,
 } from 'lucide-react'
+import { EmptyState } from '@/components/common/EmptyState'
 import { useLocationContext } from '@/hooks/useLocation'
 import {
   useCareTasksQuery,
@@ -32,6 +34,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { z } from 'zod'
@@ -132,6 +136,8 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
   const deleteCareTaskMutation = useDeleteCareTaskMutation()
 
   const isSubmitting = createCareTaskMutation.isPending || updateCareTaskMutation.isPending
+  // ✓ Saved shows on the submit button briefly before the dialog closes
+  const { saved, flashSaved } = useSavedFlash()
   const isDeleting = deleteCareTaskMutation.isPending
 
   const isTaskAssigned = useCallback((task: CareTask) => {
@@ -253,11 +259,11 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
           formData,
         })
         notifySuccess('Care Task updated successfully!')
-        setIsModalOpen(false)
+        flashSaved(() => setIsModalOpen(false))
       } else {
         await createCareTaskMutation.mutateAsync(formData)
         notifySuccess('Care Task created successfully!')
-        setIsModalOpen(false)
+        flashSaved(() => setIsModalOpen(false))
       }
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } }
@@ -512,29 +518,16 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
       <Card className="gap-0 bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-5 shadow-sm">
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="py-16 text-center">
-              <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
-              <p className="text-xs text-muted-foreground font-medium">Loading care tasks...</p>
-            </div>
+            <TableSkeleton rows={6} columns={5} className="border-0" />
           ) : careTasks.length === 0 ? (
-            <div className="py-16 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center mx-auto mb-3 border border-gray-100">
-                <HeartHandshake className="w-6 h-6 text-gray-400" />
-              </div>
-              <h3 className="text-sm font-bold text-gray-800">No Care Tasks Found</h3>
-              <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
-                {searchQuery ? 'Try adjusting your search terms.' : 'Get started by creating your first Care Task.'}
-              </p>
-              {!searchQuery && (
-                <Button
-                  type="button"
-                  onClick={handleOpenCreate}
-                  className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-2 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold hover:bg-[#004170] cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Create Care Task
-                </Button>
-              )}
-            </div>
+            <EmptyState
+              icon={HeartHandshake}
+              title="No Care Tasks Found"
+              description={
+                searchQuery ? 'Try adjusting your search terms.' : 'Get started by creating your first Care Task.'
+              }
+              action={searchQuery ? undefined : { label: 'Create Care Task', onClick: handleOpenCreate, icon: Plus }}
+            />
           ) : (
             <DataTable
               columns={columns}
@@ -767,14 +760,15 @@ export const TasksTab: React.FC<TasksTabProps> = ({ isPropertyMode = false, forc
                 >
                   Cancel
                 </Button>
-                <Button
+                <SaveButton
                   type="submit"
-                  disabled={isSubmitting}
+                  saving={isSubmitting}
+                  saved={saved}
+                  savedLabel={editingTask ? 'Saved' : 'Created'}
                   className="inline-flex items-center gap-1.5 px-5 py-2 h-auto rounded-xl bg-[#005390] text-white text-xs font-bold shadow-md hover:bg-[#004170] transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   {editingTask ? 'Save Changes' : 'Create Care Task'}
-                </Button>
+                </SaveButton>
               </div>
             </form>
           </DialogContent>

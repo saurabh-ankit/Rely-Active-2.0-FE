@@ -3,6 +3,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AlertCircle, Building2, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -52,6 +54,7 @@ export default function EditCompanyModal({ isOpen, onClose, company, onSave }: E
   const [signatureFile, setSignatureFile] = useState<File | null>(null)
   const [customFields, setCustomFields] = useState<CustomFieldItem[]>(company?.customFields || [])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { saved, flashSaved } = useSavedFlash()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const {
@@ -161,7 +164,8 @@ export default function EditCompanyModal({ isOpen, onClose, company, onSave }: E
       formData.append('customFields', JSON.stringify(customFields))
 
       await onSave(formData)
-      onClose()
+      // ✓ Saved on the button for a moment, then close
+      flashSaved(onClose)
     } catch (error) {
       console.error('Failed to update company:', error)
       const msg = error instanceof Error ? error.message : 'Failed to update company. Please try again.'
@@ -420,12 +424,9 @@ export default function EditCompanyModal({ isOpen, onClose, company, onSave }: E
 
           <DialogFooter className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
             <Button variant="cancel" onClick={onClose} label={TEXT_LIBRARY.BUTTONS.CANCEL} />
-            <Button
-              variant="success"
-              type="submit"
-              isLoading={isSubmitting}
-              label={isSubmitting ? TEXT_LIBRARY.BUTTONS.SAVING : TEXT_LIBRARY.BUTTONS.SAVE}
-            />
+            <SaveButton variant="success" type="submit" saving={isSubmitting} saved={saved} className="gap-2">
+              {isSubmitting ? TEXT_LIBRARY.BUTTONS.SAVING : TEXT_LIBRARY.BUTTONS.SAVE}
+            </SaveButton>
           </DialogFooter>
         </form>
       </DialogContent>

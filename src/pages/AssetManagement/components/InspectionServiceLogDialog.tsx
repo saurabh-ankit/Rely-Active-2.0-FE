@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import {
   Dialog,
   DialogContent,
@@ -71,6 +73,7 @@ const InspectionServiceLogDialog = ({
     setVendorId('')
   }, [open, inspectionDescription, serviceType])
   /* eslint-enable react-hooks/set-state-in-effect */
+  const { saved, flashSaved } = useSavedFlash()
 
   if (!asset || !serviceType) return null
 
@@ -111,8 +114,11 @@ const InspectionServiceLogDialog = ({
 
       await createMutation.mutateAsync(payload)
       toast.success(isScrap ? 'Scrap service log created' : 'Repair service log created')
-      onCompleted()
-      onOpenChange(false)
+      // ✓ on the button for a moment, then refresh and close
+      flashSaved(() => {
+        onCompleted()
+        onOpenChange(false)
+      })
     } catch {
       // toasts handled in mutations
     }
@@ -216,9 +222,9 @@ const InspectionServiceLogDialog = ({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isSaving}>
+          <SaveButton onClick={handleSubmit} saving={isSaving} saved={saved} savedLabel="Created" className="gap-2">
             {isSaving ? 'Creating...' : 'Create'}
-          </Button>
+          </SaveButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

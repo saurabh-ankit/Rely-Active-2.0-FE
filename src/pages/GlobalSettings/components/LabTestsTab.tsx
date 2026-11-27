@@ -7,6 +7,8 @@ import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import {
   createLabTestSettingAPI,
@@ -45,6 +47,7 @@ export function LabTestsTab() {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string>('')
   const [saving, setSaving] = useState(false)
+  const { saved, flashSaved } = useSavedFlash()
   const [errorMsg, setErrorMsg] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -157,7 +160,7 @@ export function LabTestsTab() {
         }
       }
 
-      setIsModalOpen(false)
+      flashSaved(() => setIsModalOpen(false))
       resetForm()
       setEditing(null)
       await loadLabTests()
@@ -382,13 +385,14 @@ export function LabTestsTab() {
                 >
                   Cancel
                 </Button>
-                <Button
+                <SaveButton
                   type="submit"
-                  disabled={saving}
+                  saving={saving}
+                  saved={saved}
                   className="px-4 py-2.5 h-auto rounded-xl bg-[#005390] hover:bg-[#004070] text-white text-xs font-bold shadow-xs transition-colors disabled:opacity-60 cursor-pointer"
                 >
                   {saving ? (editing ? 'Updating...' : 'Creating...') : editing ? 'Update Lab Test' : 'Create Lab Test'}
-                </Button>
+                </SaveButton>
               </div>
             </form>
           </DialogContent>

@@ -1,11 +1,13 @@
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import React, { useState, useMemo } from 'react'
-import { CheckCircle2, Loader2, X, Sparkles, AlertCircle } from 'lucide-react'
+import { CheckCircle2, X, Sparkles, AlertCircle } from 'lucide-react'
 import { useCompleteCareTaskMutation, useCareTaskAssignmentByIdQuery } from '@/hooks/react-query/medical'
 import type { CareTaskAssignment } from '@/lib/types/medical'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { formatDisplayDate, cn } from '@/lib/utils'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 
@@ -35,6 +37,7 @@ const CompleteCareTaskDialogContent: React.FC<CompleteCareTaskDialogContentProps
   const [notes, setNotes] = useState<string>('')
 
   const completeMutation = useCompleteCareTaskMutation()
+  const { saved, flashSaved } = useSavedFlash()
 
   const taskName = assignment.task?.careTaskName || 'Care Task'
   const residentName =
@@ -82,8 +85,11 @@ const CompleteCareTaskDialogContent: React.FC<CompleteCareTaskDialogContentProps
       })
 
       notifySuccess(`Care task "${taskName}" marked as completed for ${residentName}`)
-      onOpenChange(false)
-      if (onSuccess) onSuccess()
+      // ✓ on the button for a moment, then close and refresh
+      flashSaved(() => {
+        onOpenChange(false)
+        if (onSuccess) onSuccess()
+      })
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to complete care task'
       notifyError(msg)
@@ -240,10 +246,13 @@ const CompleteCareTaskDialogContent: React.FC<CompleteCareTaskDialogContentProps
         >
           Cancel
         </Button>
-        <Button
+        <SaveButton
           type="submit"
           form="complete-care-task-form"
-          disabled={completeMutation.isPending || isPackageStopped}
+          saving={completeMutation.isPending}
+          saved={saved}
+          savedLabel="Session recorded"
+          disabled={isPackageStopped}
           className={cn(
             'rounded-xl px-5 py-2 text-xs font-bold text-white shadow-sm transition-colors',
             isPackageStopped
@@ -251,9 +260,8 @@ const CompleteCareTaskDialogContent: React.FC<CompleteCareTaskDialogContentProps
               : 'bg-emerald-600 hover:bg-emerald-700 cursor-pointer',
           )}
         >
-          {completeMutation.isPending && <Loader2 className="mr-2 size-3.5 animate-spin" />}
           Complete & Record Session
-        </Button>
+        </SaveButton>
       </div>
     </div>
   )

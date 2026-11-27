@@ -2,6 +2,8 @@ import { Input } from '@/components/ui/input'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Plus, Edit2, Trash2, CheckCircle, Utensils, AlertCircle, Building2, Lock } from 'lucide-react'
@@ -72,6 +74,7 @@ export function FnbGlobalPackagesTab() {
   const [propertyAssignments, setPropertyAssignments] = useState<PropertyAssignment[]>([])
   const [errorMsg, setErrorMsg] = useState('')
   const [saving, setSaving] = useState(false)
+  const { saved, flashSaved } = useSavedFlash()
 
   const enabledPropAssignments = propertyAssignments.filter((pa) => pa.enabled)
   const enabledPropIds = enabledPropAssignments.map((pa) => pa.locId)
@@ -265,7 +268,7 @@ export function FnbGlobalPackagesTab() {
 
       if (res.data?.success) {
         notifySuccess(editingPkg ? 'Global package updated successfully!' : 'Global package created successfully!')
-        setIsModalOpen(false)
+        flashSaved(() => setIsModalOpen(false))
         fetchData()
       } else {
         notifyError(res.data?.message || 'Failed to save package')
@@ -720,13 +723,14 @@ export function FnbGlobalPackagesTab() {
                 >
                   Cancel
                 </Button>
-                <Button
+                <SaveButton
                   type="submit"
-                  disabled={saving}
+                  saving={saving}
+                  saved={saved}
                   className="px-6 py-2.5 h-auto bg-[#005390] text-white text-sm font-medium rounded-xl hover:bg-[#004070] transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : 'Save Package & Assignments'}
-                </Button>
+                </SaveButton>
               </div>
             </form>
           </DialogContent>

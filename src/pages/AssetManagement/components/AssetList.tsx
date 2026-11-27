@@ -4,6 +4,8 @@ import { toast } from 'sonner'
 import { PermissionGuard } from '@/components/common/PermissionGuard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -200,6 +202,7 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
   const createItemMutation = useCreateAssetItem()
   const createVendorMutation = useCreateAssetVendor()
   const updateMutation = useUpdateAsset()
+  const { saved, flashSaved } = useSavedFlash()
   const deleteMutation = useDeleteAsset()
   const createGatePassMutation = useCreateItemRequest()
   const makeAvailableMutation = useMakeAssetAvailable()
@@ -498,7 +501,8 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
           data: payload,
         })
         toast.success('Asset updated successfully')
-        handleCloseModal()
+        // ✓ Updated on the button for a moment, then close (create hands off to the QR preview instead)
+        flashSaved(handleCloseModal)
       } else {
         const result = await createMutation.mutateAsync(payload)
         toast.success('Asset created successfully')
@@ -1647,18 +1651,21 @@ const AssetList: React.FC<AssetListProps> = ({ enabled = true }) => {
             <Button variant="outline" onClick={handleCloseModal}>
               Cancel
             </Button>
-            <Button
+            <SaveButton
               onClick={handleSubmit}
-              disabled={
+              saving={
                 createMutation.isPending ||
                 createCategoryMutation.isPending ||
                 createItemMutation.isPending ||
                 createVendorMutation.isPending ||
                 updateMutation.isPending
               }
+              saved={saved}
+              savedLabel="Updated"
+              className="gap-2"
             >
               {editingAsset ? 'Update' : 'Create'}
-            </Button>
+            </SaveButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -4,6 +4,8 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -95,10 +97,12 @@ const CreateShiftDialog = ({ open, onOpenChange, shift }: CreateShiftDialogProps
     } else {
       await createShift.mutateAsync(payload)
     }
-    onOpenChange(false)
+    // ✓ Saved on the button for a moment, then close
+    flashSaved(() => onOpenChange(false))
   }
 
   const pending = createShift.isPending || updateShift.isPending
+  const { saved, flashSaved } = useSavedFlash()
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -184,13 +188,15 @@ const CreateShiftDialog = ({ open, onOpenChange, shift }: CreateShiftDialogProps
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button
+            <SaveButton
               type="submit"
-              disabled={pending || !name.trim() || !shiftCode?.trim()}
-              className="bg-[#2a517c] hover:bg-[#476587] text-white"
+              saving={pending}
+              saved={saved}
+              disabled={!name.trim() || !shiftCode?.trim()}
+              className="gap-2 bg-[#2a517c] hover:bg-[#476587] text-white"
             >
               {pending ? 'Saving…' : isEdit ? 'Update' : 'Create'}
-            </Button>
+            </SaveButton>
           </DialogFooter>
         </form>
       </DialogContent>

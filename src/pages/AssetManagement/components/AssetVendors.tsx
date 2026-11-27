@@ -5,6 +5,8 @@ import { PermissionGuard } from '@/components/common/PermissionGuard'
 import { generateUUID } from '@/utils/uuid'
 
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Dialog,
@@ -184,6 +186,7 @@ const AssetVendors: React.FC<AssetVendorsProps> = ({ enabled = true }) => {
 
   const createMutation = useCreateAssetVendor()
   const updateMutation = useUpdateAssetVendor()
+  const { saved, flashSaved } = useSavedFlash()
   const deleteMutation = useDeleteAssetVendor()
 
   const vendors = vendorsData?.data?.vendors || []
@@ -387,7 +390,8 @@ const AssetVendors: React.FC<AssetVendorsProps> = ({ enabled = true }) => {
         }
       }
 
-      handleCloseModal()
+      // ✓ on the button for a moment, then close
+      flashSaved(handleCloseModal)
     } catch (error) {
       const err = error as { response?: { data?: { message?: string } } }
       toast.error(err?.response?.data?.message || 'Failed to save vendor')
@@ -913,9 +917,15 @@ const AssetVendors: React.FC<AssetVendorsProps> = ({ enabled = true }) => {
             <Button variant="outline" onClick={handleCloseModal}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
+            <SaveButton
+              onClick={handleSubmit}
+              saving={createMutation.isPending || updateMutation.isPending}
+              saved={saved}
+              savedLabel={editingVendor ? 'Updated' : 'Created'}
+              className="gap-2"
+            >
               {editingVendor ? 'Update' : 'Create'}
-            </Button>
+            </SaveButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

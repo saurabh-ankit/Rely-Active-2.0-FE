@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ArrowUpRight, User, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import {
   Dialog,
   DialogContent,
@@ -98,6 +100,7 @@ export function AssignItemsForm({
   const categories = useCenterOptions(locationId, 'categories')
   const items = useCenterOptions(locationId, 'items', category ? { categoryId: category } : {})
   const mutation = useCenterMutation<StockTransaction>(locationId)
+  const { saved, flashSaved } = useSavedFlash()
   const recipients = useQuery({
     queryKey: ['center-inventory', locationId, 'assignment-recipients', recipientType],
     queryFn: async () => {
@@ -182,7 +185,7 @@ export function AssignItemsForm({
                   toast.success(
                     `Items assigned · ${record.mrpAmount == null ? 'Amount unavailable' : money(record.mrpAmount)}`,
                   )
-                  onSaved(record.id)
+                  flashSaved(() => onSaved(record.id))
                 },
               },
             )
@@ -431,13 +434,16 @@ export function AssignItemsForm({
             >
               Cancel
             </Button>
-            <Button
+            <SaveButton
               type="submit"
-              className="bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer disabled:opacity-50"
-              disabled={!valid || !currentPreview || preview.isFetching || busy}
+              className="gap-2 bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer disabled:opacity-50"
+              saving={busy}
+              saved={saved}
+              savedLabel="Assigned"
+              disabled={!valid || !currentPreview || preview.isFetching}
             >
               {busy ? 'Assigning…' : 'Assign Items'}
-            </Button>
+            </SaveButton>
           </DialogFooter>
         </form>
       </DialogContent>

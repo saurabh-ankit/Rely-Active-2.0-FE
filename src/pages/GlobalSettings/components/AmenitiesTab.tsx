@@ -10,6 +10,8 @@ import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import {
   createAmenityAPI,
@@ -56,6 +58,7 @@ export function AmenitiesTab() {
   const [editing, setEditing] = useState<Amenity | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
   const [saving, setSaving] = useState(false)
+  const { saved, flashSaved } = useSavedFlash()
 
   const {
     register,
@@ -137,7 +140,7 @@ export function AmenitiesTab() {
         await createAmenityAPI(payload)
         notifySuccess('Amenity created')
       }
-      setIsModalOpen(false)
+      flashSaved(() => setIsModalOpen(false))
       await loadAmenities()
     } catch (error) {
       setErrorMsg(readApiError(error, 'Could not save the amenity'))
@@ -334,13 +337,14 @@ export function AmenitiesTab() {
                 >
                   Cancel
                 </Button>
-                <Button
+                <SaveButton
                   type="submit"
-                  disabled={saving}
+                  saving={saving}
+                  saved={saved}
                   className="rounded-lg bg-[#005390] px-4 py-2 h-auto text-xs font-bold text-white hover:bg-[#004274] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
                 >
                   {saving ? 'Saving...' : editing ? 'Update Amenity' : 'Create Amenity'}
-                </Button>
+                </SaveButton>
               </div>
             </form>
           </DialogContent>

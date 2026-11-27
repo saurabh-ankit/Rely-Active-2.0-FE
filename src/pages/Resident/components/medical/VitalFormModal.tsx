@@ -2,6 +2,8 @@ import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -44,6 +46,7 @@ const VitalFormModal = ({ open, onOpenChange, residentId, item }: VitalFormModal
   const createMutation = useCreateResidentVitalMutation(residentId)
   const updateMutation = useUpdateResidentVitalMutation(residentId)
   const isPending = createMutation.isPending || updateMutation.isPending
+  const { saved, flashSaved } = useSavedFlash()
   const isEdit = !!item
 
   const {
@@ -73,7 +76,8 @@ const VitalFormModal = ({ open, onOpenChange, residentId, item }: VitalFormModal
       note: values.note || null,
       recordedAt: fromDateTimeInputValue(values.recordedAt),
     }
-    const onSuccess = () => onOpenChange(false)
+    // ✓ Saved shows on the button briefly, then the dialog closes
+    const onSuccess = () => flashSaved(() => onOpenChange(false))
     if (item) updateMutation.mutate({ id: item.id, payload }, { onSuccess })
     else createMutation.mutate(payload, { onSuccess })
   }
@@ -156,9 +160,14 @@ const VitalFormModal = ({ open, onOpenChange, residentId, item }: VitalFormModal
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending} className="bg-[#005390] hover:bg-[#004a80] text-white">
+            <SaveButton
+              type="submit"
+              saving={isPending}
+              saved={saved}
+              className="bg-[#005390] hover:bg-[#004a80] text-white"
+            >
               {isPending ? 'Saving...' : 'Save'}
-            </Button>
+            </SaveButton>
           </div>
         </form>
       </DialogContent>

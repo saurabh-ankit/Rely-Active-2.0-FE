@@ -4,6 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2 } from 'lucide-react'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -144,6 +146,7 @@ const FluidBalanceFormModal = ({ open, onOpenChange, residentId, item }: FluidBa
   const createMutation = useCreateResidentFluidBalanceMutation(residentId)
   const updateMutation = useUpdateResidentFluidBalanceMutation(residentId)
   const isPending = createMutation.isPending || updateMutation.isPending
+  const { saved, flashSaved } = useSavedFlash()
   const isEdit = !!item
 
   const createForm = useForm<CreateFormValues>({
@@ -209,7 +212,7 @@ const FluidBalanceFormModal = ({ open, onOpenChange, residentId, item }: FluidBa
           }
         : null,
     }
-    createMutation.mutate(payload, { onSuccess: () => onOpenChange(false) })
+    createMutation.mutate(payload, { onSuccess: () => flashSaved(() => onOpenChange(false)) })
   }
 
   const onEdit = (values: EditFormValues) => {
@@ -238,7 +241,7 @@ const FluidBalanceFormModal = ({ open, onOpenChange, residentId, item }: FluidBa
       payload.comfortLevel = values.comfortLevel
       payload.note = values.note || null
     }
-    updateMutation.mutate({ id: item.id, payload }, { onSuccess: () => onOpenChange(false) })
+    updateMutation.mutate({ id: item.id, payload }, { onSuccess: () => flashSaved(() => onOpenChange(false)) })
   }
 
   return (
@@ -411,9 +414,14 @@ const FluidBalanceFormModal = ({ open, onOpenChange, residentId, item }: FluidBa
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isPending} className="bg-[#005390] hover:bg-[#004a80] text-white">
+              <SaveButton
+                type="submit"
+                saving={isPending}
+                saved={saved}
+                className="bg-[#005390] hover:bg-[#004a80] text-white"
+              >
                 {isPending ? 'Saving...' : 'Save'}
-              </Button>
+              </SaveButton>
             </div>
           </form>
         ) : (
@@ -647,9 +655,14 @@ const FluidBalanceFormModal = ({ open, onOpenChange, residentId, item }: FluidBa
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isPending} className="bg-[#005390] hover:bg-[#004a80] text-white">
+              <SaveButton
+                type="submit"
+                saving={isPending}
+                saved={saved}
+                className="bg-[#005390] hover:bg-[#004a80] text-white"
+              >
                 {isPending ? 'Saving...' : 'Save'}
-              </Button>
+              </SaveButton>
             </div>
           </form>
         )}

@@ -1,31 +1,11 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import {
-  Armchair,
-  PartyPopper,
-  CalendarClock,
-  CalendarRange,
-  IdCard,
-  LayoutDashboard,
-  Boxes,
-  ReceiptIndianRupee,
-  Settings,
-  ShieldCheck,
-  Dumbbell,
-  FileSpreadsheet,
-  Stethoscope,
-  User,
-  Utensils,
-  Ticket,
-  X,
-} from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
+import { AnimatePresence, motion } from 'framer-motion'
+import { X } from 'lucide-react'
 import { useLocationContext } from '@/hooks/useLocation'
 import { cn } from '@/lib/utils'
-import { REPORT_ROLES } from '@/pages/Reports/roles'
 import { Button } from '@/components/ui/button'
-
-import { getDepartmentManagerType, isManagerAtLocation } from '@/utils/departmentManager'
+import { useNavItems } from './useNavItems'
 
 export interface SidebarItemData {
   icon: React.ReactNode
@@ -55,16 +35,22 @@ const SidebarItem: React.FC<{ item: SidebarItemData; onClick?: () => void }> = (
     >
       <div
         className={cn(
-          'flex items-center justify-center rounded-xl transition-all duration-200 shrink-0',
+          'relative flex items-center justify-center rounded-xl transition-all duration-200 shrink-0',
           'w-9 h-9 md:w-full md:h-12 lg:h-14',
-          item.isActive
-            ? 'bg-[#005390] text-white shadow-md shadow-[#005390]/20'
-            : 'bg-transparent text-gray-500 hover:text-[#005390] md:hover:bg-[#005390]/10',
+          item.isActive ? 'text-white' : 'bg-transparent text-gray-500 hover:text-[#005390] md:hover:bg-[#005390]/10',
         )}
       >
+        {/* One shared pill: layoutId makes it glide from the old active item to the new one */}
+        {item.isActive && (
+          <motion.span
+            layoutId="sidebar-active-pill"
+            className="absolute inset-0 rounded-xl bg-[#005390] shadow-md shadow-[#005390]/20"
+            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+          />
+        )}
         <div
           className={cn(
-            'flex items-center justify-center transition-colors',
+            'relative flex items-center justify-center transition-colors',
             item.isActive ? 'text-white font-bold' : 'text-gray-500 group-hover:text-[#005390]',
           )}
         >
@@ -86,164 +72,38 @@ const SidebarItem: React.FC<{ item: SidebarItemData; onClick?: () => void }> = (
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
   const location = useLocation()
-  const { user, isSuperAdmin, roles } = useAuth()
-  const { hasResourcePermission, isLoadingLocations, selectedLocationId } = useLocationContext()
+  const { isLoadingLocations } = useLocationContext()
 
-  const managerType = getDepartmentManagerType(user)
-
-  const sidebarItems: SidebarItemData[] = [
-    {
-      icon: <LayoutDashboard className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Dashboard',
-      href: '/dashboard',
-    },
-    {
-      icon: <CalendarRange className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Task Calendar',
-      href: '/admin/task-calendar',
-      resourceKey: 'ACTIVITY_CALENDAR',
-    },
-    {
-      icon: <User className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Resident',
-      href: '/admin/residents',
-      resourceKey: 'RESIDENT',
-    },
-    {
-      icon: <IdCard className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Employee',
-      href: '/admin/employees',
-      resourceKey: 'EMPLOYEE',
-    },
-    {
-      icon: <CalendarClock className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Shift & Roster',
-      href: '/admin/shift-roster-management',
-      resourceKey: 'ROSTER',
-    },
-    {
-      icon: <Ticket className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Tickets',
-      href: '/admin/tickets',
-      resourceKey: 'TICKETS',
-    },
-    {
-      icon: <ShieldCheck className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Gate & Security',
-      href: '/admin/visitor-history',
-      resourceKey: 'GNS',
-    },
-    {
-      icon: <Boxes className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Inventory',
-      href: '/admin/inventory/home',
-      resourceKey: 'INVENTORY',
-    },
-    {
-      icon: <Armchair className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Asset Management',
-      href: '/admin/asset-management',
-      resourceKey: 'ASSET',
-    },
-    {
-      icon: <Stethoscope className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Medical',
-      href: '/admin/medical',
-      resourceKey: 'MEDICAL',
-    },
-    {
-      icon: <Utensils className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Food',
-      href: '/admin/fnb-history',
-      resourceKey: 'FNB',
-    },
-    {
-      icon: <ReceiptIndianRupee className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Billing',
-      href: '/admin/billing-management',
-      resourceKey: 'BILLING',
-    },
-    {
-      icon: <PartyPopper className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Events',
-      href: '/admin/events',
-      resourceKey: 'EVENTS',
-    },
-    {
-      icon: <Dumbbell className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Amenities',
-      href: '/admin/amenities',
-    },
-    {
-      icon: <FileSpreadsheet className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Reports',
-      href: '/admin/reports',
-    },
-    {
-      icon: <Settings className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
-      label: 'Settings',
-      href: '/admin/settings',
-    },
-  ]
-
-  const filteredItems = sidebarItems.filter((item) => {
-    // Read-only property calendar: never for Department Managers (the API refuses them too).
-    if (item.href === '/admin/task-calendar') {
-      if (managerType || isManagerAtLocation(user, selectedLocationId)) return false
-      return isSuperAdmin || hasResourcePermission('ACTIVITY_CALENDAR', 'view')
-    }
-    if (item.href === '/admin/reports') {
-      return isSuperAdmin || roles.some((r) => REPORT_ROLES.includes(r))
-    }
-    // Department managers see only their department's module (not Amenities).
-    if (managerType) {
-      switch (managerType) {
-        case 'RNM':
-        case 'CON':
-          return item.href === '/admin/tickets'
-        case 'FNB':
-          return item.href.startsWith('/admin/fnb')
-        case 'EVENTS':
-          return item.href === '/admin/events'
-        case 'GNS':
-          return item.href === '/admin/visitor-history'
-        case 'HOUSEKEEPING':
-          return item.href === '/admin/shift-roster-management'
-      }
-    }
-    if (item.href === '/global-settings') {
-      return isSuperAdmin
-    }
-    if (item.href === '/admin/settings' || item.href === '/settings') {
-      return true
-    }
-    if (item.href === '/dashboard') {
-      return true
-    }
-    if (isSuperAdmin) {
-      return true
-    }
-    if (item.resourceKey) {
-      return hasResourcePermission(item.resourceKey, 'view')
-    }
-    return true
-  })
+  // Same list and permission rules as the command palette (layouts/useNavItems.ts)
+  const filteredItems: SidebarItemData[] = useNavItems().map(({ icon: Icon, label, href, resourceKey }) => ({
+    icon: <Icon className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />,
+    label,
+    href,
+    resourceKey,
+  }))
 
   return (
     <>
-      {isOpen && (
-        <div
-          role="button"
-          tabIndex={0}
-          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-md md:hidden cursor-pointer"
-          onClick={onClose}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
-              onClose?.()
-            }
-          }}
-        />
-      )}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            key="sidebar-backdrop"
+            role="button"
+            tabIndex={0}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-md md:hidden cursor-pointer"
+            onClick={onClose}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+                onClose?.()
+              }
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       <aside
         className={cn(
@@ -254,7 +114,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       >
         <div className="h-full flex flex-col p-1.5 md:p-2 lg:p-3 pr-1.5 md:pr-0 lg:pr-0">
           <div className="flex-1 bg-white/20 backdrop-blur-md rounded-2xl shadow-xl border border-white/30 p-2 md:p-3 overflow-hidden flex flex-col">
-            <div className="flex flex-col h-full overflow-y-auto no-scrollbar gap-1">
+            {/* layoutScroll: lets the active pill measure correctly when this list is scrolled */}
+            <motion.div layoutScroll className="flex flex-col h-full overflow-y-auto no-scrollbar gap-1">
               {/* Mobile drawer header */}
               <div className="md:hidden flex items-center justify-between px-1.5 pt-0.5 pb-2 shrink-0 border-b border-white/30">
                 <span className="text-xs font-bold uppercase tracking-wider text-gray-500 pl-1">Menu</span>
@@ -286,7 +147,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
                   />
                 ))
               )}
-            </div>
+            </motion.div>
           </div>
         </div>
       </aside>

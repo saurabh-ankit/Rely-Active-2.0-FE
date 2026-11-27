@@ -6,6 +6,8 @@ import type { Ticket } from '@/lib/types'
 import { notifyError, notifySuccess } from '@/utils/toast'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -72,6 +74,7 @@ export function EditWorkDetailsDialog({ isOpen, ticket, locationId, onClose, onS
   const [removedVoice, setRemovedVoice] = useState<string[]>([])
   const [addedVoice, setAddedVoice] = useState<File[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { saved, flashSaved } = useSavedFlash()
 
   const photoPreviews = useMemo(() => addedPhotos.map((f) => URL.createObjectURL(f)), [addedPhotos])
   useEffect(() => () => photoPreviews.forEach((url) => URL.revokeObjectURL(url)), [photoPreviews])
@@ -144,8 +147,12 @@ export function EditWorkDetailsDialog({ isOpen, ticket, locationId, onClose, onS
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       notifySuccess('Work details updated')
-      onSuccess((res.data?.data || {}) as Partial<Ticket>)
-      onClose()
+      const updated = (res.data?.data || {}) as Partial<Ticket>
+      // ✓ Saved on the button for a moment, then update the ticket and close
+      flashSaved(() => {
+        onSuccess(updated)
+        onClose()
+      })
     } catch (err) {
       notifyError(
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
@@ -364,14 +371,16 @@ export function EditWorkDetailsDialog({ isOpen, ticket, locationId, onClose, onS
               >
                 Cancel
               </Button>
-              <Button
+              <SaveButton
                 type="submit"
                 size="sm"
-                disabled={isSubmitting || !hasChanges || !notes.trim()}
-                className="px-5 bg-[#005390] hover:bg-[#004273] text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer"
+                saving={isSubmitting}
+                saved={saved}
+                disabled={!hasChanges || !notes.trim()}
+                className="gap-1.5 px-5 bg-[#005390] hover:bg-[#004273] text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer"
               >
                 {isSubmitting ? 'Saving...' : 'Save Changes'}
-              </Button>
+              </SaveButton>
             </div>
           </form>
         </DialogContent>

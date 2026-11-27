@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { ArrowDownLeft, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import {
   Dialog,
   DialogContent,
@@ -47,6 +49,7 @@ export function StockInForm({
   const suppliers = useCenterOptions(locationId, 'suppliers')
   const items = useCenterOptions(locationId, 'items', po || !categoryId ? {} : { categoryId })
   const mutation = useCenterMutation<StockTransaction>(locationId)
+  const { saved, flashSaved } = useSavedFlash()
   const [requestId] = useState(() => generateUUID())
   const [supplierId, setSupplierId] = useState(po?.supplierId ?? '')
   const [date, setDate] = useState(today)
@@ -128,7 +131,7 @@ export function StockInForm({
                 data: input,
               })
               toast.success('Stock received')
-              onSaved(receipt.id)
+              flashSaved(() => onSaved(receipt.id))
             } catch (err) {
               setError(err)
             }
@@ -329,13 +332,16 @@ export function StockInForm({
             >
               Cancel
             </Button>
-            <Button
+            <SaveButton
               type="submit"
-              className="bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer"
-              disabled={mutation.isPending || items.isPending || suppliers.isPending}
+              className="gap-2 bg-[#005390] hover:bg-[#004170] text-white font-bold rounded-xl shadow-md cursor-pointer"
+              saving={mutation.isPending}
+              saved={saved}
+              savedLabel="Received"
+              disabled={items.isPending || suppliers.isPending}
             >
               {mutation.isPending ? 'Receiving…' : 'Stock In'}
-            </Button>
+            </SaveButton>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -14,12 +14,22 @@ import {
   Camera,
   Clock,
   HelpCircle,
+  Columns3,
+  List,
 } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { cn } from '@/lib/utils'
+import { FnbOrdersBoard } from './FnbOrdersBoard'
+import { EmptyState } from '@/components/common/EmptyState'
 import { fnbService } from '@/lib/services/fnbService'
 import { useLocationContext } from '@/hooks/useLocation'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
+import { TableSkeleton } from '@/components/ui/skeleton'
+import { CountUp } from '@/components/common/CountUp'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Card } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -177,6 +187,22 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
   // Pagination State
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [pageSize, setPageSize] = useState<number>(10)
+  // Table or status-board view; remembered per browser (storage can be unavailable, so guard it)
+  const [ordersView, setOrdersView] = useState<'table' | 'board'>(() => {
+    try {
+      return localStorage.getItem('fnb-orders-view') === 'board' ? 'board' : 'table'
+    } catch {
+      return 'table'
+    }
+  })
+  const changeOrdersView = (view: 'table' | 'board') => {
+    setOrdersView(view)
+    try {
+      localStorage.setItem('fnb-orders-view', view)
+    } catch {
+      /* view still switches for this visit */
+    }
+  }
 
   // Detail Modal State
   const [selectedOrder, setSelectedOrder] = useState<ResidentOrder | null>(null)
@@ -193,6 +219,7 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
   const [completingDeliveryOrder, setCompletingDeliveryOrder] = useState<ResidentOrder | null>(null)
   const [proofPhotoInput, setProofPhotoInput] = useState<string>('')
   const [submittingComplete, setSubmittingComplete] = useState(false)
+  const { saved, flashSaved } = useSavedFlash()
 
   // Confirmation Modal State
   const [confirmModalData, setConfirmModalData] = useState<{
@@ -362,9 +389,11 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
         deliveryCharge: deliveryChargeInput,
       })
       toast.success('Delivery employee assigned successfully! 🛵')
-      setAssigningOrder(null)
-      setSelectedStaffId('')
-      setDeliveryChargeInput(0)
+      flashSaved(() => {
+        setAssigningOrder(null)
+        setSelectedStaffId('')
+        setDeliveryChargeInput(0)
+      })
       await loadData(false)
     } catch (err: unknown) {
       const msg =
@@ -385,8 +414,11 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
         photoUrl: proofPhotoInput.trim() || undefined,
       })
       toast.success('Room delivery marked as completed! 🎉')
-      setCompletingDeliveryOrder(null)
-      setProofPhotoInput('')
+      // ✓ on the button for a moment, then close; the list refreshes meanwhile
+      flashSaved(() => {
+        setCompletingDeliveryOrder(null)
+        setProofPhotoInput('')
+      })
       await loadData(false)
     } catch (err: unknown) {
       const msg =
@@ -470,7 +502,13 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
         className="inline-block cursor-pointer hover:scale-105 active:scale-95 transition-transform border-0 bg-transparent p-0 h-auto hover:bg-transparent"
         title={transition ? `Click to ${transition.label}` : 'View Details'}
       >
-        {badgeElement}
+        {/* Keyed by status: when an order moves on (Placed → Preparing → …) the new badge pops in */}
+        <span
+          key={s}
+          className="inline-block animate-in zoom-in-75 fade-in animation-duration-300 motion-reduce:animate-none"
+        >
+          {badgeElement}
+        </span>
       </Button>
     )
   }
@@ -667,7 +705,9 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
           {orderCounts.map(({ label, count, className }) => (
             <div key={label} className={`rounded-xl border px-3 py-2 ${className}`}>
               <p className="text-[10px] font-bold uppercase tracking-wider opacity-75">{label}</p>
-              <p className="text-lg font-extrabold leading-tight">{loading ? '–' : count}</p>
+              <p className="text-lg font-extrabold leading-tight tabular-nums">
+                {loading ? '–' : <CountUp text={String(count)} duration={0.6} />}
+              </p>
             </div>
           ))}
         </div>
@@ -742,267 +782,323 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
         const startIndex = (currentPage - 1) * pageSize
         const paginatedOrders = orders.slice(startIndex, startIndex + pageSize)
 
+        const residentNameOf = (order: ResidentOrder) => {
+          const resObj = order.resident || order.familyMember?.resident
+          return resObj ? `${resObj.firstName} ${resObj.lastName || ''}`.trim() : order.guestName || 'Resident'
+        }
+
         return (
           <div className="space-y-4">
-            <Card className="gap-0 bg-white rounded-2xl border-gray-200 shadow-xs overflow-hidden">
-              {loading ? (
-                <div className="p-12 text-center text-gray-400 text-sm">Loading resident orders...</div>
-              ) : orders.length === 0 ? (
-                <div className="p-12 text-center space-y-3">
-                  <ShoppingBag className="w-10 h-10 text-gray-300 mx-auto" />
-                  <p className="font-bold text-gray-700 text-sm">No Resident Orders Found</p>
-                  <p className="text-xs text-gray-400 max-w-sm mx-auto">
-                    There are no resident orders matching your filters for this location.
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-hidden">
-                  <Table className="w-full text-left border-collapse">
-                    <TableHeader>
-                      <TableRow className="bg-gray-50/80 border-b border-gray-200 text-[11px] font-extrabold text-gray-500 uppercase tracking-wider">
-                        <TableHead className="py-3 px-4">Order ID & Date</TableHead>
-                        <TableHead className="py-3 px-4">Resident / Unit</TableHead>
-                        <TableHead className="py-3 px-4">Type & Mode</TableHead>
-                        <TableHead className="py-3 px-4">Items / Details</TableHead>
-                        <TableHead className="py-3 px-4">Total Amount</TableHead>
-                        <TableHead className="py-3 px-4">Status</TableHead>
-                        <TableHead className="py-3 px-4 text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody className="divide-y divide-gray-100 text-xs">
-                      {paginatedOrders.map((order) => {
-                        const resObj = order.resident || order.familyMember?.resident
-                        const resName = resObj
-                          ? `${resObj.firstName} ${resObj.lastName || ''}`.trim()
-                          : order.guestName || 'Resident'
-                        const isFam = Boolean(order.familyMemberId)
+            {/* Table / Board switch: one highlight slides between the two */}
+            <div className="flex justify-end">
+              <div
+                role="group"
+                aria-label="Orders view"
+                className="flex rounded-xl border border-gray-200 bg-gray-50 p-0.5"
+              >
+                {(
+                  [
+                    ['table', 'Table', List],
+                    ['board', 'Board', Columns3],
+                  ] as const
+                ).map(([value, label, Icon]) => (
+                  <Button
+                    key={value}
+                    type="button"
+                    variant="ghost"
+                    aria-pressed={ordersView === value}
+                    onClick={() => changeOrdersView(value)}
+                    className={cn(
+                      'relative h-8 cursor-pointer gap-1.5 rounded-lg px-3 text-xs font-semibold transition-colors hover:bg-transparent',
+                      ordersView === value ? 'text-white hover:text-white' : 'text-gray-600 hover:text-gray-900',
+                    )}
+                  >
+                    {ordersView === value && (
+                      <motion.span
+                        layoutId="fnb-orders-view"
+                        className="absolute inset-0 rounded-lg bg-[#005390] shadow-xs"
+                        transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                      />
+                    )}
+                    <Icon className="relative size-3.5" />
+                    <span className="relative">{label}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
 
-                        return (
-                          <TableRow key={order.id} className="hover:bg-blue-50/40 transition-colors">
-                            {/* Order ID & Date */}
-                            <TableCell className="py-3.5 px-4 font-bold text-gray-900">
-                              <div className="font-extrabold text-[#005390]">#{order.id.slice(0, 8)}</div>
-                              <div className="text-[10px] text-gray-400 font-medium mt-0.5">
-                                {new Date(order.createdAt).toLocaleString('en-IN', {
-                                  dateStyle: 'short',
-                                  timeStyle: 'short',
-                                })}
-                              </div>
-                            </TableCell>
+            {ordersView === 'board' && !loading && orders.length > 0 ? (
+              <FnbOrdersBoard<ResidentOrder>
+                orders={orders}
+                residentName={residentNameOf}
+                unitLabel={(order) => getFullLocationString((order.resident || order.familyMember?.resident)?.unit)}
+                statusBadge={getStatusBadge}
+                typeBadge={getTypeBadge}
+                onOpen={setSelectedOrder}
+              />
+            ) : (
+              <Card className="gap-0 bg-white rounded-2xl border-gray-200 shadow-xs overflow-hidden">
+                {loading ? (
+                  <TableSkeleton rows={6} columns={7} className="rounded-none border-0" />
+                ) : orders.length === 0 ? (
+                  <EmptyState
+                    icon={ShoppingBag}
+                    title="No Resident Orders Found"
+                    description="There are no resident orders matching your filters for this location."
+                  />
+                ) : (
+                  <div className="overflow-hidden">
+                    <Table className="w-full text-left border-collapse">
+                      <TableHeader>
+                        <TableRow className="bg-gray-50/80 border-b border-gray-200 text-[11px] font-extrabold text-gray-500 uppercase tracking-wider">
+                          <TableHead className="py-3 px-4">Order ID & Date</TableHead>
+                          <TableHead className="py-3 px-4">Resident / Unit</TableHead>
+                          <TableHead className="py-3 px-4">Type & Mode</TableHead>
+                          <TableHead className="py-3 px-4">Items / Details</TableHead>
+                          <TableHead className="py-3 px-4">Total Amount</TableHead>
+                          <TableHead className="py-3 px-4">Status</TableHead>
+                          <TableHead className="py-3 px-4 text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody className="divide-y divide-gray-100 text-xs">
+                        {paginatedOrders.map((order, orderIndex) => {
+                          const resObj = order.resident || order.familyMember?.resident
+                          const resName = resObj
+                            ? `${resObj.firstName} ${resObj.lastName || ''}`.trim()
+                            : order.guestName || 'Resident'
+                          const isFam = Boolean(order.familyMemberId)
 
-                            {/* Resident & Unit */}
-                            <TableCell className="py-3.5 px-4">
-                              <div className="font-extrabold text-gray-900 flex items-center gap-1.5">
-                                <User className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                                {resName}
-                                {isFam && (
-                                  <span className="text-[9px] bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded">
-                                    Family ({order.familyMember?.relation || 'Member'})
+                          return (
+                            <TableRow
+                              key={order.id}
+                              style={{ animationDelay: `${Math.min(orderIndex, 10) * 30}ms` }}
+                              className="hover:bg-blue-50/40 transition-colors animate-in fade-in slide-in-from-bottom-1 animation-duration-300 fill-mode-backwards motion-reduce:animate-none"
+                            >
+                              {/* Order ID & Date */}
+                              <TableCell className="py-3.5 px-4 font-bold text-gray-900">
+                                <div className="font-extrabold text-[#005390]">#{order.id.slice(0, 8)}</div>
+                                <div className="text-[10px] text-gray-400 font-medium mt-0.5">
+                                  {new Date(order.createdAt).toLocaleString('en-IN', {
+                                    dateStyle: 'short',
+                                    timeStyle: 'short',
+                                  })}
+                                </div>
+                              </TableCell>
+
+                              {/* Resident & Unit */}
+                              <TableCell className="py-3.5 px-4">
+                                <div className="font-extrabold text-gray-900 flex items-center gap-1.5">
+                                  <User className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                  {resName}
+                                  {isFam && (
+                                    <span className="text-[9px] bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded">
+                                      Family ({order.familyMember?.relation || 'Member'})
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-gray-600 font-semibold flex items-center gap-1 mt-0.5">
+                                  <Building2 className="w-3.5 h-3.5 text-[#005390] shrink-0" />
+                                  <span>{getFullLocationString(resObj?.unit)}</span>
+                                </div>
+                              </TableCell>
+
+                              {/* Order Type & Service Type */}
+                              <TableCell className="py-3.5 px-4 space-y-1">
+                                <div>{getTypeBadge(order)}</div>
+                                <div>{getServiceTypeBadge(order.serviceType)}</div>
+                                {(() => {
+                                  const empName = order.assignedEmployee?.profile
+                                    ? `${order.assignedEmployee.profile.firstName || ''} ${order.assignedEmployee.profile.lastName || ''}`.trim()
+                                    : order.assignedEmployee?.username ||
+                                      (order.delivery?.employeeDetail
+                                        ? `${order.delivery.employeeDetail.firstName || ''} ${order.delivery.employeeDetail.lastName || ''}`.trim()
+                                        : order.delivery?.employee?.username)
+                                  if (empName) {
+                                    return (
+                                      <div className="text-[10px] text-amber-900 font-extrabold flex items-center gap-1 mt-0.5 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                                        🛵 {empName}
+                                      </div>
+                                    )
+                                  }
+                                  return null
+                                })()}
+                              </TableCell>
+
+                              {/* Items Summary & Meal Slot */}
+                              <TableCell className="py-3.5 px-4">
+                                <div className="space-y-1 max-w-xs">
+                                  {getMealSlotBadge(order) && <div>{getMealSlotBadge(order)}</div>}
+                                  {order.details && order.details.length > 0 ? (
+                                    <>
+                                      <div className="font-bold text-gray-800 truncate">
+                                        {order.details
+                                          .map((d) => d.dish?.name || d.specialMealSlot?.name || 'Item')
+                                          .join(', ')}
+                                      </div>
+                                      <div className="text-[10px] text-gray-400 font-medium">
+                                        {order.details.length} Line Item{order.details.length !== 1 ? 's' : ''}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <span className="text-gray-400 italic text-xs block">Entire Slot Order</span>
+                                  )}
+                                </div>
+                              </TableCell>
+
+                              {/* Total Amount */}
+                              <TableCell className="py-3.5 px-4">
+                                <div className="font-black text-emerald-700 text-sm">
+                                  ₹{Number(order.totalAmount || 0).toFixed(2)}
+                                </div>
+                                {order.isPackageCovered && (
+                                  <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded uppercase">
+                                    Package Covered
                                   </span>
                                 )}
-                              </div>
-                              <div className="text-[11px] text-gray-600 font-semibold flex items-center gap-1 mt-0.5">
-                                <Building2 className="w-3.5 h-3.5 text-[#005390] shrink-0" />
-                                <span>{getFullLocationString(resObj?.unit)}</span>
-                              </div>
-                            </TableCell>
-
-                            {/* Order Type & Service Type */}
-                            <TableCell className="py-3.5 px-4 space-y-1">
-                              <div>{getTypeBadge(order)}</div>
-                              <div>{getServiceTypeBadge(order.serviceType)}</div>
-                              {(() => {
-                                const empName = order.assignedEmployee?.profile
-                                  ? `${order.assignedEmployee.profile.firstName || ''} ${order.assignedEmployee.profile.lastName || ''}`.trim()
-                                  : order.assignedEmployee?.username ||
-                                    (order.delivery?.employeeDetail
-                                      ? `${order.delivery.employeeDetail.firstName || ''} ${order.delivery.employeeDetail.lastName || ''}`.trim()
-                                      : order.delivery?.employee?.username)
-                                if (empName) {
-                                  return (
-                                    <div className="text-[10px] text-amber-900 font-extrabold flex items-center gap-1 mt-0.5 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
-                                      🛵 {empName}
-                                    </div>
-                                  )
-                                }
-                                return null
-                              })()}
-                            </TableCell>
-
-                            {/* Items Summary & Meal Slot */}
-                            <TableCell className="py-3.5 px-4">
-                              <div className="space-y-1 max-w-xs">
-                                {getMealSlotBadge(order) && <div>{getMealSlotBadge(order)}</div>}
-                                {order.details && order.details.length > 0 ? (
-                                  <>
-                                    <div className="font-bold text-gray-800 truncate">
-                                      {order.details
-                                        .map((d) => d.dish?.name || d.specialMealSlot?.name || 'Item')
-                                        .join(', ')}
-                                    </div>
-                                    <div className="text-[10px] text-gray-400 font-medium">
-                                      {order.details.length} Line Item{order.details.length !== 1 ? 's' : ''}
-                                    </div>
-                                  </>
-                                ) : (
-                                  <span className="text-gray-400 italic text-xs block">Entire Slot Order</span>
+                                {Number(order.deliveryCharge) > 0 && (
+                                  <div className="text-[10px] text-amber-800 font-semibold mt-0.5">
+                                    + ₹{order.deliveryCharge} Delivery
+                                  </div>
                                 )}
-                              </div>
-                            </TableCell>
+                              </TableCell>
 
-                            {/* Total Amount */}
-                            <TableCell className="py-3.5 px-4">
-                              <div className="font-black text-emerald-700 text-sm">
-                                ₹{Number(order.totalAmount || 0).toFixed(2)}
-                              </div>
-                              {order.isPackageCovered && (
-                                <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded uppercase">
-                                  Package Covered
-                                </span>
-                              )}
-                              {Number(order.deliveryCharge) > 0 && (
-                                <div className="text-[10px] text-amber-800 font-semibold mt-0.5">
-                                  + ₹{order.deliveryCharge} Delivery
+                              {/* Status */}
+                              <TableCell className="py-3.5 px-4">{getStatusBadge(order)}</TableCell>
+
+                              {/* Actions */}
+                              <TableCell className="py-3.5 px-4 text-right">
+                                <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    onClick={() => setSelectedOrder(order)}
+                                    className="p-1.5 text-gray-600 hover:text-[#005390] hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                    title="View Order Details"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                    <span className="sr-only">View Order Details</span>
+                                  </Button>
+
+                                  {canUpdateFnb && (
+                                    <>
+                                      {/* 1. Placed -> Accept Order */}
+                                      {order.orderStatus === 'placed' && (
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          disabled={updatingStatusId === order.id}
+                                          onClick={() =>
+                                            setConfirmModalData({
+                                              order,
+                                              nextStatus: 'accepted',
+                                              actionLabel: 'Accept Order',
+                                            })
+                                          }
+                                          className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-[#005390] border border-blue-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
+                                        >
+                                          Accept Order
+                                        </Button>
+                                      )}
+
+                                      {/* 2. Accepted -> Start Preparing */}
+                                      {order.orderStatus === 'accepted' && (
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          disabled={updatingStatusId === order.id}
+                                          onClick={() =>
+                                            setConfirmModalData({
+                                              order,
+                                              nextStatus: 'preparing',
+                                              actionLabel: 'Start Preparing',
+                                            })
+                                          }
+                                          className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
+                                        >
+                                          Start Preparing
+                                        </Button>
+                                      )}
+
+                                      {/* 3. Preparing -> Food is Ready (Dine In & Room Service) */}
+                                      {order.orderStatus === 'preparing' && (
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          disabled={updatingStatusId === order.id}
+                                          onClick={() =>
+                                            setConfirmModalData({
+                                              order,
+                                              nextStatus: 'ready',
+                                              actionLabel: 'Food is Ready',
+                                            })
+                                          }
+                                          className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
+                                        >
+                                          Food is Ready
+                                        </Button>
+                                      )}
+
+                                      {/* 4. Ready -> Assign Delivery Employee (Room Service) OR Complete Order (Dine In) */}
+                                      {(order.orderStatus === 'ready' || order.orderStatus === 'food_ready') && (
+                                        <>
+                                          {order.serviceType === 'room_service' ? (
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() =>
+                                                setConfirmModalData({
+                                                  order,
+                                                  nextStatus: 'assign_delivery',
+                                                  actionLabel: 'Assign Delivery Employee',
+                                                })
+                                              }
+                                              className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
+                                            >
+                                              Assign Delivery Employee
+                                            </Button>
+                                          ) : (
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="sm"
+                                              disabled={updatingStatusId === order.id}
+                                              onClick={() =>
+                                                setConfirmModalData({
+                                                  order,
+                                                  nextStatus: 'completed',
+                                                  actionLabel: 'Complete Order',
+                                                })
+                                              }
+                                              className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
+                                            >
+                                              Complete Order
+                                            </Button>
+                                          )}
+                                        </>
+                                      )}
+                                    </>
+                                  )}
+
+                                  {/* 5. Delivering to Room: Delivery employee will deliver & complete from L3 mobile app */}
                                 </div>
-                              )}
-                            </TableCell>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </Card>
+            )}
 
-                            {/* Status */}
-                            <TableCell className="py-3.5 px-4">{getStatusBadge(order)}</TableCell>
-
-                            {/* Actions */}
-                            <TableCell className="py-3.5 px-4 text-right">
-                              <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon-xs"
-                                  onClick={() => setSelectedOrder(order)}
-                                  className="p-1.5 text-gray-600 hover:text-[#005390] hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                                  title="View Order Details"
-                                >
-                                  <Eye className="w-4 h-4" />
-                                  <span className="sr-only">View Order Details</span>
-                                </Button>
-
-                                {canUpdateFnb && (
-                                  <>
-                                    {/* 1. Placed -> Accept Order */}
-                                    {order.orderStatus === 'placed' && (
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        disabled={updatingStatusId === order.id}
-                                        onClick={() =>
-                                          setConfirmModalData({
-                                            order,
-                                            nextStatus: 'accepted',
-                                            actionLabel: 'Accept Order',
-                                          })
-                                        }
-                                        className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-[#005390] border border-blue-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
-                                      >
-                                        Accept Order
-                                      </Button>
-                                    )}
-
-                                    {/* 2. Accepted -> Start Preparing */}
-                                    {order.orderStatus === 'accepted' && (
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        disabled={updatingStatusId === order.id}
-                                        onClick={() =>
-                                          setConfirmModalData({
-                                            order,
-                                            nextStatus: 'preparing',
-                                            actionLabel: 'Start Preparing',
-                                          })
-                                        }
-                                        className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
-                                      >
-                                        Start Preparing
-                                      </Button>
-                                    )}
-
-                                    {/* 3. Preparing -> Food is Ready (Dine In & Room Service) */}
-                                    {order.orderStatus === 'preparing' && (
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        disabled={updatingStatusId === order.id}
-                                        onClick={() =>
-                                          setConfirmModalData({
-                                            order,
-                                            nextStatus: 'ready',
-                                            actionLabel: 'Food is Ready',
-                                          })
-                                        }
-                                        className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
-                                      >
-                                        Food is Ready
-                                      </Button>
-                                    )}
-
-                                    {/* 4. Ready -> Assign Delivery Employee (Room Service) OR Complete Order (Dine In) */}
-                                    {(order.orderStatus === 'ready' || order.orderStatus === 'food_ready') && (
-                                      <>
-                                        {order.serviceType === 'room_service' ? (
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() =>
-                                              setConfirmModalData({
-                                                order,
-                                                nextStatus: 'assign_delivery',
-                                                actionLabel: 'Assign Delivery Employee',
-                                              })
-                                            }
-                                            className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
-                                          >
-                                            Assign Delivery Employee
-                                          </Button>
-                                        ) : (
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            disabled={updatingStatusId === order.id}
-                                            onClick={() =>
-                                              setConfirmModalData({
-                                                order,
-                                                nextStatus: 'completed',
-                                                actionLabel: 'Complete Order',
-                                              })
-                                            }
-                                            className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-extrabold rounded-lg cursor-pointer transition-colors h-auto"
-                                          >
-                                            Complete Order
-                                          </Button>
-                                        )}
-                                      </>
-                                    )}
-                                  </>
-                                )}
-
-                                {/* 5. Delivering to Room: Delivery employee will deliver & complete from L3 mobile app */}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </Card>
-
-            {/* Pagination Controls */}
-            {!loading && orders.length > 0 && (
+            {/* Pagination Controls (the board shows every matching order) */}
+            {!loading && orders.length > 0 && ordersView === 'table' && (
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3.5 bg-white border border-gray-200 rounded-2xl shadow-xs text-xs font-semibold text-gray-600">
                 <div className="flex items-center gap-3">
                   <span>
@@ -1245,14 +1341,17 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
               <Button variant="ghost" size="sm" onClick={() => setAssigningOrder(null)} className="text-xs font-bold">
                 Cancel
               </Button>
-              <Button
+              <SaveButton
                 size="sm"
-                disabled={submittingAssign || !selectedStaffId}
+                saving={submittingAssign}
+                saved={saved}
+                savedLabel="Assigned"
+                disabled={!selectedStaffId}
                 onClick={handleAssignDelivery}
-                className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs px-4 rounded-xl cursor-pointer"
+                className="gap-1.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs px-4 rounded-xl cursor-pointer"
               >
                 {submittingAssign ? 'Assigning...' : 'Assign & Start Delivery'}
-              </Button>
+              </SaveButton>
             </div>
           </DialogContent>
         )}
@@ -1318,14 +1417,16 @@ export function FnbResidentOrdersTab({ locId }: FnbResidentOrdersTabProps) {
               >
                 Cancel
               </Button>
-              <Button
+              <SaveButton
                 size="sm"
-                disabled={submittingComplete}
+                saving={submittingComplete}
+                saved={saved}
+                savedLabel="Delivered"
                 onClick={handleCompleteDelivery}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 rounded-xl cursor-pointer"
+                className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 rounded-xl cursor-pointer"
               >
                 {submittingComplete ? 'Completing...' : 'Confirm Delivery Completed'}
-              </Button>
+              </SaveButton>
             </div>
           </DialogContent>
         )}

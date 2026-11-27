@@ -7,6 +7,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Plus, Edit2, Trash2, Clock, IndianRupee, Sparkles, Building2, AlertCircle, Utensils } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import api from '@/lib/api/axios'
@@ -89,6 +92,7 @@ export default function FnbGlobalMealSlotsTab() {
   })
   const [propertyAssignments, setPropertyAssignments] = useState<PropertyAssignment[]>([])
   const [submitting, setSubmitting] = useState(false)
+  const { saved, flashSaved } = useSavedFlash()
 
   const fetchGlobalMealSlots = useCallback(async () => {
     try {
@@ -229,7 +233,7 @@ export default function FnbGlobalMealSlotsTab() {
         })
         if (res.data?.success) {
           toast.success('Global meal slot updated successfully')
-          setIsModalOpen(false)
+          flashSaved(() => setIsModalOpen(false))
           fetchGlobalMealSlots()
         }
       } else {
@@ -243,7 +247,7 @@ export default function FnbGlobalMealSlotsTab() {
         })
         if (res.data?.success) {
           toast.success('Global meal slot created successfully')
-          setIsModalOpen(false)
+          flashSaved(() => setIsModalOpen(false))
           fetchGlobalMealSlots()
         }
       }
@@ -286,37 +290,21 @@ export default function FnbGlobalMealSlotsTab() {
 
   return (
     <div className="space-y-6">
-      {/* Top Navigation Sub-Tabs */}
-      <div className="flex items-center gap-2 border-b border-gray-200 dark:border-neutral-800 pb-3 w-full">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => setActiveSubTab('regular')}
-          className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 h-auto rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
-            activeSubTab === 'regular'
-              ? 'bg-[#005390] text-white shadow-sm hover:bg-[#005390] hover:text-white'
-              : 'bg-white dark:bg-neutral-900 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800'
-          }`}
-        >
-          <Utensils className="w-4 h-4 shrink-0" />
-          <span className="hidden sm:inline">Regular Meal Slots</span>
-          <span className="sm:hidden">Regular Slots</span>
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => setActiveSubTab('special')}
-          className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 h-auto rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
-            activeSubTab === 'special'
-              ? 'bg-[#005390] text-white shadow-sm hover:bg-[#005390] hover:text-white'
-              : 'bg-white dark:bg-neutral-900 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800'
-          }`}
-        >
-          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-          <span className="hidden sm:inline">Special Meal Slots</span>
-          <span className="sm:hidden">Special Slots</span>
-        </Button>
-      </div>
+      {/* Top Navigation Sub-Tabs (line tabs: the underline slides between Regular and Special) */}
+      <Tabs value={activeSubTab} onValueChange={(v) => setActiveSubTab(v as 'regular' | 'special')} className="gap-0">
+        <TabsList aria-label="Meal slot type">
+          <TabsTrigger value="regular" className="flex-1 gap-2 sm:flex-initial">
+            <Utensils className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline">Regular Meal Slots</span>
+            <span className="sm:hidden">Regular Slots</span>
+          </TabsTrigger>
+          <TabsTrigger value="special" className="flex-1 gap-2 sm:flex-initial">
+            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="hidden sm:inline">Special Meal Slots</span>
+            <span className="sm:hidden">Special Slots</span>
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* Special Meal Slots View */}
       {activeSubTab === 'special' ? (
@@ -578,13 +566,14 @@ export default function FnbGlobalMealSlotsTab() {
                     >
                       Cancel
                     </Button>
-                    <Button
+                    <SaveButton
                       type="submit"
-                      disabled={submitting}
+                      saving={submitting}
+                      saved={saved}
                       className="bg-[#005390] hover:bg-[#004070] text-white font-bold text-xs px-5 py-2 rounded-xl shadow-xs"
                     >
                       {submitting ? 'Saving...' : editingSlot ? 'Update Meal Slot' : 'Create Meal Slot'}
-                    </Button>
+                    </SaveButton>
                   </div>
                 </form>
               </DialogContent>

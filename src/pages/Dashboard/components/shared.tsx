@@ -5,7 +5,16 @@ import { Cell, Pie, PieChart } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 import { cn } from '@/lib/utils'
+import { CountUp } from '@/components/common/CountUp'
 import { SERIES, formatNumber } from './chartUtils'
+
+/*
+ * Entrance on mount (each dashboard tab switch remounts its cards). Siblings in a grid are staggered by position.
+ * Uses animation-delay, not `delay-*`, so hover transitions stay instant; fill-mode-backwards leaves no transform behind.
+ */
+const ENTER = 'animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards motion-reduce:animate-none'
+const TILE_ENTER = `${ENTER} nth-2:[animation-delay:50ms] nth-3:[animation-delay:100ms] nth-4:[animation-delay:150ms] nth-5:[animation-delay:200ms] nth-6:[animation-delay:250ms] nth-[n+7]:[animation-delay:300ms]`
+const PANEL_ENTER = `${ENTER} [animation-delay:200ms] nth-2:[animation-delay:280ms] nth-[n+3]:[animation-delay:360ms]`
 
 export function Panel({
   title,
@@ -26,6 +35,7 @@ export function Panel({
     <Card
       className={cn(
         'gap-0 min-w-0 rounded-[24px] border border-white/80 bg-white/80 p-5 shadow-lg backdrop-blur-xl',
+        PANEL_ENTER,
         className,
       )}
     >
@@ -79,6 +89,7 @@ export function StatTile({
       onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
       className={cn(
         'gap-0 flex-row min-w-0 items-start gap-3 rounded-[20px] border border-white/80 bg-white/80 p-4 text-left shadow-md backdrop-blur-xl',
+        TILE_ENTER,
         onClick && 'cursor-pointer transition-shadow hover:shadow-lg',
       )}
     >
@@ -87,7 +98,9 @@ export function StatTile({
       </span>
       <span className="min-w-0">
         <span className="block truncate text-[11px] font-semibold tracking-wide text-gray-500 uppercase">{label}</span>
-        <span className="block truncate text-2xl leading-tight font-black text-[#1f2937]">{value}</span>
+        <span className="block truncate text-2xl leading-tight font-black text-[#1f2937] tabular-nums">
+          {typeof value === 'string' || typeof value === 'number' ? <CountUp text={String(value)} /> : value}
+        </span>
         {hint && <span className="block truncate text-[11px] text-gray-500">{hint}</span>}
       </span>
     </Card>
@@ -219,7 +232,7 @@ export function Meter({
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-gray-100">
         <div
-          className="h-full rounded-full"
+          className="h-full rounded-full animate-fill transition-[width] duration-500 ease-out motion-reduce:animate-none"
           style={{ width: `${max > 0 ? Math.min(100, (value / max) * 100) : 0}%`, backgroundColor: color }}
         />
       </div>

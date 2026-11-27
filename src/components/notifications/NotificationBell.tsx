@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNow } from 'date-fns'
-import { Archive, Bell, CheckCheck, Loader2, Volume2, VolumeX } from 'lucide-react'
+import { Archive, Bell, BellOff, CheckCheck, Loader2, Volume2, VolumeX } from 'lucide-react'
+import { AnimatePresence, motion, useAnimate, useReducedMotion } from 'framer-motion'
+import { EmptyState } from '@/components/common/EmptyState'
+import { ListSkeleton } from '@/components/ui/skeleton'
 import {
   useArchiveNotificationMutation,
   useMarkAllNotificationsReadMutation,
@@ -59,6 +62,18 @@ export function NotificationBell({ onOpen }: NotificationBellProps) {
   const archiveMutation = useArchiveNotificationMutation()
 
   const unreadCount = unreadCountQuery.data?.data.unreadCount ?? 0
+
+  // Ring the bell (a short swing) whenever the unread count goes up, from push or the periodic check alike.
+  const [bellScope, animateBell] = useAnimate<HTMLSpanElement>()
+  const reduceMotion = useReducedMotion()
+  const shakeFromCount = useRef<number | null>(null)
+  useEffect(() => {
+    if (!unreadCountQuery.isSuccess) return
+    const previous = shakeFromCount.current
+    shakeFromCount.current = unreadCount
+    if (previous === null || unreadCount <= previous || reduceMotion || !bellScope.current) return
+    animateBell(bellScope.current, { rotate: [0, -18, 15, -11, 8, -4, 0] }, { duration: 0.8, ease: 'easeInOut' })
+  }, [unreadCount, unreadCountQuery.isSuccess, reduceMotion, animateBell, bellScope])
 
   // Fallback when a push never reaches this tab: the 30-second check still alerts the user
   const lastUnreadCount = useRef<number | null>(null)
@@ -133,9 +148,16 @@ export function NotificationBell({ onOpen }: NotificationBellProps) {
         className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm border border-white/30 shadow-lg text-gray-700 transition-transform hover:scale-105 cursor-pointer"
         title="Notifications"
       >
-        <Bell className="h-5 w-5 text-gray-700" />
+        {/* Swings from the top, like a real bell */}
+        <span ref={bellScope} className="flex origin-top">
+          <Bell className="h-5 w-5 text-gray-700" />
+        </span>
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white">
+          <span
+            // Keyed by the count so each change pops the badge
+            key={unreadCount}
+            className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white animate-in zoom-in-50 animation-duration-300 motion-reduce:animate-none"
+          >
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -178,59 +200,82 @@ export function NotificationBell({ onOpen }: NotificationBellProps) {
 
         <div className="max-h-[420px] overflow-y-auto p-2">
           {notificationsQuery.isLoading ? (
-            <div className="px-3 py-8 text-center text-xs font-semibold text-gray-500">Loading notifications...</div>
+            <div aria-busy="true">
+              <span className="sr-only">Loading notifications...</span>
+              <ListSkeleton rows={3} />
+            </div>
           ) : notifications.length === 0 ? (
-            <div className="px-3 py-8 text-center text-xs font-semibold text-gray-400">No notifications yet</div>
+            <EmptyState
+              icon={BellOff}
+              size="sm"
+              title="You're all caught up"
+              description="New updates will appear here."
+            />
           ) : (
-            notifications.map((item) => (
-              <div
-                key={item.id}
-                className={cn(
-                  'w-full text-left rounded-xl border p-3 mb-2 transition-colors hover:bg-gray-50 flex items-start justify-between gap-2',
-                  severityClass(item.event?.severity),
-                  item.status === 'UNREAD' ? 'ring-1 ring-blue-200' : 'opacity-90',
-                )}
-              >
-                <Button
-                  variant="ghost"
-                  type="button"
-                  onClick={() => handleNotificationClick(item)}
-                  className="flex-1 min-w-0 p-0 h-auto text-left justify-start items-start flex-col font-normal hover:bg-transparent cursor-pointer whitespace-normal"
+            <AnimatePresence initial={true}>
+              {notifications.map((item, index) => (
+                <motion.div
+                  key={item.id}
+                  // Slide in one after another when the panel opens; slide out and close the gap when archived
+                  layout
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0, transition: { delay: Math.min(index, 8) * 0.035, duration: 0.25 } }}
+                  exit={{
+                    opacity: 0,
+                    x: 40,
+                    height: 0,
+                    marginBottom: 0,
+                    paddingTop: 0,
+                    paddingBottom: 0,
+                    transition: { duration: 0.25 },
+                  }}
+                  className={cn(
+                    'w-full text-left rounded-xl border p-3 mb-2 transition-colors hover:bg-gray-50 flex items-start justify-between gap-2',
+                    severityClass(item.event?.severity),
+                    item.status === 'UNREAD' ? 'ring-1 ring-blue-200' : 'opacity-90',
+                  )}
                 >
-                  <p className="text-[11px] font-black uppercase tracking-wide text-[#005390] truncate w-full">
-                    {item.event?.module || 'SYSTEM'}
-                  </p>
-                  <p className="text-xs font-bold text-gray-900 line-clamp-1 w-full">
-                    {item.event?.title || 'Notification'}
-                  </p>
-                  <p className="mt-1 text-[11px] text-gray-600 leading-relaxed line-clamp-2 w-full">
-                    {item.event?.message || 'You have a new update.'}
-                  </p>
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    onClick={() => handleNotificationClick(item)}
+                    className="flex-1 min-w-0 p-0 h-auto text-left justify-start items-start flex-col font-normal hover:bg-transparent cursor-pointer whitespace-normal"
+                  >
+                    <p className="text-[11px] font-black uppercase tracking-wide text-[#005390] truncate w-full">
+                      {item.event?.module || 'SYSTEM'}
+                    </p>
+                    <p className="text-xs font-bold text-gray-900 line-clamp-1 w-full">
+                      {item.event?.title || 'Notification'}
+                    </p>
+                    <p className="mt-1 text-[11px] text-gray-600 leading-relaxed line-clamp-2 w-full">
+                      {item.event?.message || 'You have a new update.'}
+                    </p>
 
-                  <div className="mt-2 flex items-center justify-between w-full">
-                    <span className="text-[10px] text-gray-400 font-semibold">
-                      {timeAgo(item.event?.occurredAt || item.createdAt)}
-                    </span>
-                    <span className="text-[10px] text-gray-500 font-semibold truncate max-w-[160px]">
-                      {item.event?.actorName || 'System'}
-                    </span>
-                  </div>
-                </Button>
+                    <div className="mt-2 flex items-center justify-between w-full">
+                      <span className="text-[10px] text-gray-400 font-semibold">
+                        {timeAgo(item.event?.occurredAt || item.createdAt)}
+                      </span>
+                      <span className="text-[10px] text-gray-500 font-semibold truncate max-w-[160px]">
+                        {item.event?.actorName || 'System'}
+                      </span>
+                    </div>
+                  </Button>
 
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  type="button"
-                  onClick={(event) => handleArchive(event, item)}
-                  disabled={archiveMutation.isPending}
-                  className="shrink-0 rounded-lg p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Archive notification"
-                  title="Archive"
-                >
-                  <Archive className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            ))
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    type="button"
+                    onClick={(event) => handleArchive(event, item)}
+                    disabled={archiveMutation.isPending}
+                    className="shrink-0 rounded-lg p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="Archive notification"
+                    title="Archive"
+                  >
+                    <Archive className="h-3.5 w-3.5" />
+                  </Button>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           )}
         </div>
 

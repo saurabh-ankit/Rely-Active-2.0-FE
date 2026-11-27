@@ -4,6 +4,8 @@ import { toast } from 'sonner'
 import { PermissionGuard } from '@/components/common/PermissionGuard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -90,6 +92,7 @@ const ServiceLogs = () => {
 
   const createMutation = useCreateServiceLog()
   const updateMutation = useUpdateServiceLog()
+  const { saved, flashSaved } = useSavedFlash()
   const deleteMutation = useDeleteServiceLog()
   const completeMutation = useCompleteServiceLog()
   const createGatePassMutation = useCreateItemRequest()
@@ -255,7 +258,8 @@ const ServiceLogs = () => {
         await createMutation.mutateAsync(payload)
         toast.success(count > 1 ? `${count} service logs created successfully` : 'Service log created successfully')
       }
-      handleCloseModal()
+      // ✓ on the button for a moment, then close
+      flashSaved(handleCloseModal)
     } catch (error) {
       const err = error as { response?: { data?: { message?: string } }; message?: string }
       const errorMessage = err?.response?.data?.message || err?.message || 'Failed to save service log'
@@ -344,7 +348,7 @@ const ServiceLogs = () => {
             ? 'Service log marked as completed. Asset is now available.'
             : 'Service log marked as completed.',
       )
-      handleCloseCompletionModal()
+      flashSaved(handleCloseCompletionModal)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to complete service log'
       toast.error(errorMessage)
@@ -959,9 +963,15 @@ const ServiceLogs = () => {
             <Button variant="outline" onClick={handleCloseModal}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
+            <SaveButton
+              onClick={handleSubmit}
+              saving={createMutation.isPending || updateMutation.isPending}
+              saved={saved}
+              savedLabel={editingLog ? 'Updated' : 'Created'}
+              className="gap-2"
+            >
               {editingLog ? 'Update' : 'Create'}
-            </Button>
+            </SaveButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1160,14 +1170,16 @@ const ServiceLogs = () => {
             <Button variant="outline" onClick={handleCloseCompletionModal}>
               Cancel
             </Button>
-            <Button
+            <SaveButton
               onClick={handleComplete}
-              disabled={completeMutation.isPending}
-              className="bg-green-600 hover:bg-green-700"
+              saving={completeMutation.isPending}
+              saved={saved}
+              savedLabel="Completed"
+              className="gap-2 bg-green-600 hover:bg-green-700"
             >
-              <CheckCircle className="h-4 w-4 mr-2" />
+              {!completeMutation.isPending && <CheckCircle className="h-4 w-4" />}
               Mark as Completed
-            </Button>
+            </SaveButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

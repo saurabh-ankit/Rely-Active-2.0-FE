@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocationContext, type PropertyLocationItem } from '@/hooks/useLocation'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
+import { CommandPalette } from '@/components/common/CommandPalette'
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -149,6 +150,9 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = tr
               </div>
             )}
           </div>
+
+          {/* Ctrl/⌘+K search (no visible trigger): modules, residents, tickets */}
+          <CommandPalette />
 
           <NotificationBell
             onOpen={() => {

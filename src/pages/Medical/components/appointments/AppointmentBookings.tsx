@@ -1,6 +1,8 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import {
@@ -59,6 +61,7 @@ const AppointmentBookingsPage = () => {
     !!shiftEmployeeDateId,
   )
   const updateStatusMutation = useUpdateAppointmentStatus()
+  const { saved, flashSaved } = useSavedFlash()
 
   const shiftContext = shiftDateData?.data
   const capacity = capacityData?.data
@@ -99,11 +102,12 @@ const AppointmentBookingsPage = () => {
         },
       },
       {
-        onSuccess: () => {
-          setIsStatusDialogOpen(false)
-          setSelectedAppointment(null)
-          setStatusNotes('')
-        },
+        onSuccess: () =>
+          flashSaved(() => {
+            setIsStatusDialogOpen(false)
+            setSelectedAppointment(null)
+            setStatusNotes('')
+          }),
       },
     )
   }
@@ -436,9 +440,15 @@ const AppointmentBookingsPage = () => {
               >
                 Cancel
               </Button>
-              <Button onClick={handleStatusUpdate} disabled={updateStatusMutation.isPending}>
+              <SaveButton
+                onClick={handleStatusUpdate}
+                saving={updateStatusMutation.isPending}
+                saved={saved}
+                savedLabel="Updated"
+                className="gap-2"
+              >
                 {updateStatusMutation.isPending ? 'Updating...' : 'Update Status'}
-              </Button>
+              </SaveButton>
             </DialogFooter>
           </DialogContent>
         </Dialog>

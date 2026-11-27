@@ -1,4 +1,6 @@
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Calendar as DateCalendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -126,6 +128,7 @@ const EventsListPage = ({ embedded = false, enabled = true }: EventsListPageProp
   const [meetingDate, setMeetingDate] = useState<Date | undefined>(undefined)
   const [meetingTime, setMeetingTime] = useState('10:00')
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+  const { saved, flashSaved } = useSavedFlash()
   const [cancellationReason, setCancellationReason] = useState('')
   const [cancellationReasonError, setCancellationReasonError] = useState('')
 
@@ -541,7 +544,7 @@ const EventsListPage = ({ embedded = false, enabled = true }: EventsListPageProp
               meetingScheduledAt: scheduled.toISOString(),
             })
           }
-          setIsMeetingDialogOpen(false)
+          flashSaved(() => setIsMeetingDialogOpen(false))
         },
       },
     )
@@ -592,9 +595,11 @@ const EventsListPage = ({ embedded = false, enabled = true }: EventsListPageProp
               cancellationReason: reason,
             })
           }
-          setIsCancelDialogOpen(false)
-          setCancellationReason('')
-          setCancellationReasonError('')
+          flashSaved(() => {
+            setIsCancelDialogOpen(false)
+            setCancellationReason('')
+            setCancellationReasonError('')
+          })
         },
       },
     )
@@ -1032,9 +1037,16 @@ const EventsListPage = ({ embedded = false, enabled = true }: EventsListPageProp
             <Button variant="outline" onClick={() => setIsMeetingDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleScheduleMeeting} disabled={!meetingDate || scheduleMeetingMutation.isPending}>
+            <SaveButton
+              onClick={handleScheduleMeeting}
+              saving={scheduleMeetingMutation.isPending}
+              saved={saved}
+              savedLabel="Scheduled"
+              disabled={!meetingDate}
+              className="gap-2"
+            >
               {scheduleMeetingMutation.isPending ? 'Scheduling...' : 'Save Meeting'}
-            </Button>
+            </SaveButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1082,9 +1094,16 @@ const EventsListPage = ({ embedded = false, enabled = true }: EventsListPageProp
             >
               Back
             </Button>
-            <Button variant="destructive" onClick={handleCancelRequest} disabled={cancelRequestMutation.isPending}>
+            <SaveButton
+              variant="destructive"
+              onClick={handleCancelRequest}
+              saving={cancelRequestMutation.isPending}
+              saved={saved}
+              savedLabel="Cancelled"
+              className="gap-2"
+            >
               {cancelRequestMutation.isPending ? 'Canceling...' : 'Confirm Cancel'}
-            </Button>
+            </SaveButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

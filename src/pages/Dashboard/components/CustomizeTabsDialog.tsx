@@ -1,6 +1,8 @@
 import { Globe2, Lock } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
@@ -30,6 +32,7 @@ export function CustomizeTabsDialog({
   const [selected, setSelected] = useState<DashboardTabKey[]>(settings.visibleTabs)
   const [wasOpen, setWasOpen] = useState(open)
   const update = useUpdateDashboardSettings(locationId)
+  const { saved, flashSaved } = useSavedFlash()
 
   // Start from the saved choice each time the dialog opens.
   if (open !== wasOpen) {
@@ -45,7 +48,7 @@ export function CustomizeTabsDialog({
   const save = () =>
     update.mutate(
       DASHBOARD_TABS.map((t) => t.value).filter((t) => t === 'dashboard' || selected.includes(t)),
-      { onSuccess: () => onOpenChange(false) },
+      { onSuccess: () => flashSaved(() => onOpenChange(false)) },
     )
 
   return (
@@ -143,14 +146,16 @@ export function CustomizeTabsDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={update.isPending}>
             Cancel
           </Button>
-          <Button
+          <SaveButton
             type="button"
             onClick={save}
-            disabled={!changed || update.isPending}
-            className="bg-[#005390] text-white hover:bg-[#00467a]"
+            saving={update.isPending}
+            saved={saved}
+            disabled={!changed}
+            className="gap-2 bg-[#005390] text-white hover:bg-[#00467a]"
           >
             {update.isPending ? 'Saving…' : 'Save for all properties'}
-          </Button>
+          </SaveButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

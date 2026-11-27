@@ -1,4 +1,6 @@
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { DataTable } from '@/components/ui/data-table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -48,6 +50,7 @@ const VenueManagement: React.FC<VenueManagementProps> = ({ open, onOpenChange })
   })
   const createVenueMutation = useCreateVenue()
   const updateVenueMutation = useUpdateVenue()
+  const { saved, flashSaved } = useSavedFlash()
   const deleteVenueMutation = useDeleteVenue()
 
   // Ensure venues is always an array - handle different API response structures
@@ -103,10 +106,11 @@ const VenueManagement: React.FC<VenueManagementProps> = ({ open, onOpenChange })
     }
 
     createVenueMutation.mutate(formData, {
-      onSuccess: () => {
-        setIsCreateOpen(false)
-        resetForm()
-      },
+      onSuccess: () =>
+        flashSaved(() => {
+          setIsCreateOpen(false)
+          resetForm()
+        }),
     })
   }
 
@@ -158,11 +162,12 @@ const VenueManagement: React.FC<VenueManagementProps> = ({ open, onOpenChange })
     updateVenueMutation.mutate(
       { venueId: selectedVenue.id, data: formData },
       {
-        onSuccess: () => {
-          setIsEditOpen(false)
-          setSelectedVenue(null)
-          resetForm()
-        },
+        onSuccess: () =>
+          flashSaved(() => {
+            setIsEditOpen(false)
+            setSelectedVenue(null)
+            resetForm()
+          }),
       },
     )
   }
@@ -512,13 +517,15 @@ const VenueManagement: React.FC<VenueManagementProps> = ({ open, onOpenChange })
               <Button variant="outline" onClick={() => setIsCreateOpen(false)} className="cursor-pointer">
                 Cancel
               </Button>
-              <Button
+              <SaveButton
                 onClick={handleCreateVenue}
-                disabled={createVenueMutation.isPending}
-                className="border-[#2a517c] text-white hover:bg-[#2a517c] hover:text-white cursor-pointer"
+                saving={createVenueMutation.isPending}
+                saved={saved}
+                savedLabel="Created"
+                className="gap-2 border-[#2a517c] text-white hover:bg-[#2a517c] hover:text-white cursor-pointer"
               >
                 Create Venue
-              </Button>
+              </SaveButton>
             </div>
           </div>
         </DialogContent>
@@ -718,13 +725,15 @@ const VenueManagement: React.FC<VenueManagementProps> = ({ open, onOpenChange })
               >
                 Delete
               </Button>
-              <Button
+              <SaveButton
                 onClick={handleUpdateVenue}
-                disabled={updateVenueMutation.isPending}
-                className="border-[#2a517c] text-white hover:bg-[#2a517c] hover:text-white cursor-pointer"
+                saving={updateVenueMutation.isPending}
+                saved={saved}
+                savedLabel="Updated"
+                className="gap-2 border-[#2a517c] text-white hover:bg-[#2a517c] hover:text-white cursor-pointer"
               >
                 Update Venue
-              </Button>
+              </SaveButton>
             </div>
           </div>
         </DialogContent>

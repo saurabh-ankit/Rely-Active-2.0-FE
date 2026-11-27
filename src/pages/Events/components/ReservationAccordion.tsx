@@ -114,7 +114,7 @@ export function ReservationAccordion({
                   </div>
                   <div className="mt-1 h-1.5 w-full max-w-36 overflow-hidden rounded-full bg-gray-100">
                     <div
-                      className="h-full rounded-full bg-emerald-500"
+                      className="h-full rounded-full bg-emerald-500 animate-fill transition-[width] duration-500 ease-out motion-reduce:animate-none"
                       style={{ width: `${Math.min(100, (came / seats) * 100)}%` }}
                     />
                   </div>

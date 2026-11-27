@@ -9,6 +9,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Label } from '@/components/ui/label'
 import { useCarePackagesQuery, useChangePackageMutation } from '@/hooks/react-query/medical'
 import type { CarePackage } from '@/lib/types/medical'
@@ -64,6 +66,7 @@ export const ChangePackageDialog: React.FC<ChangePackageDialogProps> = ({
     isOpen,
   )
   const changePackageMutation = useChangePackageMutation()
+  const { saved, flashSaved } = useSavedFlash()
 
   const carePackages = useMemo<CarePackage[]>(() => carePackagesData?.data || [], [carePackagesData?.data])
   const availablePackages = useMemo(
@@ -199,8 +202,11 @@ export const ChangePackageDialog: React.FC<ChangePackageDialogProps> = ({
       setSelectedPackageId('')
       setSearchQuery('')
       setIsDropdownOpen(false)
-      onOpenChange(false)
-      onSuccess?.()
+      // ✓ on the button for a moment, then close and refresh
+      flashSaved(() => {
+        onOpenChange(false)
+        onSuccess?.()
+      })
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to change care package.'
       notifyError('Package Change Failed', msg)
@@ -427,20 +433,16 @@ export const ChangePackageDialog: React.FC<ChangePackageDialogProps> = ({
             >
               Cancel
             </Button>
-            <Button
+            <SaveButton
               type="submit"
-              disabled={!selectedPackageId || changePackageMutation.isPending}
-              className="bg-[#005390] hover:bg-[#003d6b] text-white rounded-xl"
+              saving={changePackageMutation.isPending}
+              saved={saved}
+              savedLabel="Package changed"
+              disabled={!selectedPackageId}
+              className="gap-2 bg-[#005390] hover:bg-[#003d6b] text-white rounded-xl"
             >
-              {changePackageMutation.isPending ? (
-                <span className="inline-flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Changing...
-                </span>
-              ) : (
-                'Confirm & Change Package'
-              )}
-            </Button>
+              {changePackageMutation.isPending ? 'Changing...' : 'Confirm & Change Package'}
+            </SaveButton>
           </DialogFooter>
         </form>
       </DialogContent>

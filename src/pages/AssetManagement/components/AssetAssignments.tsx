@@ -4,6 +4,8 @@ import { toast } from 'sonner'
 import { PermissionGuard } from '@/components/common/PermissionGuard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Dialog,
@@ -106,6 +108,7 @@ const AssetAssignments: React.FC<AssetAssignmentsProps> = ({ enabled = true }) =
 
   const createMutation = useCreateAssetAssignment()
   const returnMutation = useReturnAsset()
+  const { saved, flashSaved } = useSavedFlash()
 
   const assignments = assignmentsData?.data?.assignments || []
   const categories = categoriesData?.data?.categories || []
@@ -203,7 +206,7 @@ const AssetAssignments: React.FC<AssetAssignmentsProps> = ({ enabled = true }) =
 
       await createMutation.mutateAsync(payload)
       toast.success('Asset assigned successfully')
-      handleCloseModal()
+      flashSaved(handleCloseModal)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to assign asset'
       toast.error(errorMessage)
@@ -224,7 +227,7 @@ const AssetAssignments: React.FC<AssetAssignmentsProps> = ({ enabled = true }) =
         data: returnData,
       })
       toast.success('Asset returned successfully')
-      handleCloseReturnModal()
+      flashSaved(handleCloseReturnModal)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to return asset'
       toast.error(errorMessage)
@@ -659,9 +662,15 @@ const AssetAssignments: React.FC<AssetAssignmentsProps> = ({ enabled = true }) =
               <Button variant="outline" onClick={handleCloseModal}>
                 Cancel
               </Button>
-              <Button onClick={handleSubmit} disabled={createMutation.isPending}>
+              <SaveButton
+                onClick={handleSubmit}
+                saving={createMutation.isPending}
+                saved={saved}
+                savedLabel="Assigned"
+                className="gap-2"
+              >
                 {createMutation.isPending ? 'Assigning...' : 'Assign'}
-              </Button>
+              </SaveButton>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -712,9 +721,15 @@ const AssetAssignments: React.FC<AssetAssignmentsProps> = ({ enabled = true }) =
               <Button variant="outline" onClick={handleCloseReturnModal}>
                 Cancel
               </Button>
-              <Button onClick={handleReturn} disabled={returnMutation.isPending}>
+              <SaveButton
+                onClick={handleReturn}
+                saving={returnMutation.isPending}
+                saved={saved}
+                savedLabel="Returned"
+                className="gap-2"
+              >
                 {returnMutation.isPending ? 'Returning...' : 'Return Asset'}
-              </Button>
+              </SaveButton>
             </DialogFooter>
           </DialogContent>
         </Dialog>

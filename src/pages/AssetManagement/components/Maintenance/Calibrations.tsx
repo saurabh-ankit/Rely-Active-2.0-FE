@@ -4,6 +4,8 @@ import { toast } from 'sonner'
 import { PermissionGuard } from '@/components/common/PermissionGuard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Dialog,
@@ -67,6 +69,7 @@ const Calibrations = () => {
 
   const createMutation = useCreateCalibration()
   const updateMutation = useUpdateCalibration()
+  const { saved, flashSaved } = useSavedFlash()
   const deleteMutation = useDeleteCalibration()
 
   const calibrations = calibrationsData?.data?.calibrations || []
@@ -175,7 +178,8 @@ const Calibrations = () => {
         await createMutation.mutateAsync(submitData)
         toast.success('Calibration created successfully')
       }
-      handleCloseModal()
+      // ✓ on the button for a moment, then close
+      flashSaved(handleCloseModal)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to save calibration'
       toast.error(errorMessage)
@@ -613,9 +617,15 @@ const Calibrations = () => {
             <Button variant="outline" onClick={handleCloseModal}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
+            <SaveButton
+              onClick={handleSubmit}
+              saving={createMutation.isPending || updateMutation.isPending}
+              saved={saved}
+              savedLabel={editingCalibration ? 'Updated' : 'Created'}
+              className="gap-2"
+            >
               {editingCalibration ? 'Update' : 'Create'}
-            </Button>
+            </SaveButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

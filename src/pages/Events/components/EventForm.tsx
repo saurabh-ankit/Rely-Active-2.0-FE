@@ -1,4 +1,6 @@
 import { Button } from '@/components/ui/button'
+import { SaveButton } from '@/components/common/SaveButton'
+import { useSavedFlash } from '@/hooks/useSavedFlash'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -370,6 +372,7 @@ interface EventFormProps {
 
 const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: eventIdProp }: EventFormProps = {}) => {
   const navigate = useNavigate()
+  const { saved, flashSaved } = useSavedFlash()
   const { eventId: eventIdParam } = useParams<{ eventId: string }>()
   const eventId = eventIdProp || eventIdParam
   const isEditMode = !!eventId
@@ -446,14 +449,16 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
     }
   }
 
-  const handleSuccess = () => {
-    if (asModal) {
-      resetForm()
-      onOpenChange?.(false)
-    } else {
-      navigate('/admin/events')
-    }
-  }
+  // ✓ on the button for a moment, then close the modal (or go back to the list)
+  const handleSuccess = () =>
+    flashSaved(() => {
+      if (asModal) {
+        resetForm()
+        onOpenChange?.(false)
+      } else {
+        navigate('/admin/events')
+      }
+    })
 
   useEffect(() => {
     if (asModal && open && !eventIdProp) {
@@ -1578,13 +1583,15 @@ const EventForm = ({ asModal = false, open = false, onOpenChange, eventId: event
           <Button type="button" variant="outline" onClick={handleClose} className="flex-1 cursor-pointer sm:flex-none">
             Cancel
           </Button>
-          <Button
+          <SaveButton
             type="submit"
-            disabled={isPending}
-            className="flex-1 cursor-pointer bg-[#005390] text-white hover:bg-[#004273] sm:flex-none sm:min-w-32"
+            saving={isPending}
+            saved={saved}
+            savedLabel={isEditMode ? 'Saved' : 'Created'}
+            className="flex-1 gap-2 cursor-pointer bg-[#005390] text-white hover:bg-[#004273] sm:flex-none sm:min-w-32"
           >
             {isPending ? (isEditMode ? 'Saving...' : 'Creating...') : isEditMode ? 'Save Changes' : 'Create Event'}
-          </Button>
+          </SaveButton>
         </div>
       </div>
     </form>
