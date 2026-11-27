@@ -122,3 +122,16 @@ export const isDepartmentManagerAllowedRoute = (user: UserAuthData | null | unde
       return true
   }
 }
+
+/**
+ * True when the user holds the Department Manager role (MANAGER) at this property, or at
+ * every property. Used to keep the Task Calendar away from managers (the API refuses too).
+ */
+export const isManagerAtLocation = (user: UserAuthData | null | undefined, locationId: string | null): boolean => {
+  if (!user || user.isSuperAdmin || user.roles?.includes('SUPER_ADMIN')) return false
+  const scopes = user.scopes || []
+  if (scopes.length) {
+    return scopes.some((s) => s.roleCode === 'MANAGER' && (!s.locationId || !locationId || s.locationId === locationId))
+  }
+  return !!user.roles?.includes('MANAGER')
+}
